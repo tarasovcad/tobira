@@ -29,6 +29,7 @@ import type {Collection} from "@/app/actions/collections";
 import {getCollections} from "@/app/actions/collections";
 import {Button} from "@/components/coss-ui/button";
 import {DeleteCollectionDialog} from "@/components/providers/DeleteCollectionDialog";
+import {CollectionDialog} from "@/components/providers/CollectionDialog";
 
 function normalizeTagParam(value: string | null | undefined) {
   const normalized = (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
@@ -105,6 +106,7 @@ export default function AllItemsClient({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemsToDelete, setItemsToDelete] = useState<Bookmark[]>([]);
   const [deleteCollectionDialogOpen, setDeleteCollectionDialogOpen] = useState(false);
+  const [editCollectionDialogOpen, setEditCollectionDialogOpen] = useState(false);
 
   // ── Refs for infinite scroll ──
   const scrollAreaRootRef = React.useRef<HTMLDivElement | null>(null);
@@ -531,7 +533,7 @@ export default function AllItemsClient({
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setEditCollectionDialogOpen(true)}>
                 <svg
                   width="16"
                   height="16"
@@ -635,6 +637,11 @@ export default function AllItemsClient({
         onDeleted={() => {
           router.push("/all");
         }}
+      />
+      <CollectionDialog
+        open={editCollectionDialogOpen}
+        onOpenChange={setEditCollectionDialogOpen}
+        collection={activeCollection}
       />
       {/* Item count */}
       {!activeCollection && (
