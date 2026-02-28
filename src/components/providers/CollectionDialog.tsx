@@ -28,12 +28,12 @@ const collectionSchema = z.object({
 
 type CollectionFormValues = z.infer<typeof collectionSchema>;
 
-interface CreateCollectionDialogProps {
+interface CollectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateCollectionDialog({open, onOpenChange}: CreateCollectionDialogProps) {
+export function CollectionDialog({open, onOpenChange}: CollectionDialogProps) {
   const queryClient = useQueryClient();
 
   const {

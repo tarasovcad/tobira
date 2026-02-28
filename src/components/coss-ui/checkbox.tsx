@@ -41,7 +41,7 @@ function Checkbox({className, ...props}: CheckboxPrimitive.Root.Props) {
       data-slot="checkbox"
       {...props}>
       <CheckboxPrimitive.Indicator
-        className="text-primary-foreground data-checked:bg-primary data-indeterminate:text-foreground absolute -inset-px flex items-center justify-center rounded-[.25rem] data-unchecked:hidden"
+        className="text-primary-foreground data-checked:bg-foreground/95 data-indeterminate:text-foreground absolute -inset-px flex items-center justify-center rounded-[.25rem] data-unchecked:hidden"
         data-slot="checkbox-indicator"
         render={(props, state) => (
           <span {...props}>

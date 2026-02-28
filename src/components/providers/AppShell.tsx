@@ -3,7 +3,7 @@
 import React, {useState} from "react";
 import {AddItemDialog} from "./AddItemDialog";
 import {Sidebar} from "./Sidebar";
-import {CreateCollectionDialog} from "./CreateCollectionDialog";
+import {CollectionDialog} from "./CollectionDialog";
 import {Header, type AppShellSession} from "./Header";
 import type {Collection} from "@/app/actions/collections";
 
@@ -32,7 +32,7 @@ const AppShell = ({
         <div className="min-h-0 flex-1">{children}</div>
       </div>
       <AddItemDialog collections={collections} />
-      <CreateCollectionDialog open={createCollectionOpen} onOpenChange={setCreateCollectionOpen} />
+      <CollectionDialog open={createCollectionOpen} onOpenChange={setCreateCollectionOpen} />
     </main>
   );
 };

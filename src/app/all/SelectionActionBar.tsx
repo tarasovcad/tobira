@@ -33,7 +33,7 @@ export function SelectionActionBar({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center transition-all duration-200 ease-out",
+        "pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center transition-all duration-200 ease-out",
         visible ? "pointer-events-auto translate-y-0 opacity-100" : "translate-y-3 opacity-0",
       )}>
       <motion.div
