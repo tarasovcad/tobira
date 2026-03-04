@@ -2,9 +2,12 @@
 
 import React, {useState} from "react";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {z} from "zod";
 import {useForm, Controller} from "react-hook-form";
+import {AnimatePresence, motion} from "framer-motion";
 import {zodResolver} from "@hookform/resolvers/zod";
+import Image from "next/image";
+import {cn} from "@/lib/utils";
+import Spinner from "@/components/shadcn/coss-ui";
 import {Button} from "@/components/coss-ui/button";
 import {Button as ShadcnButton} from "@/components/shadcn/button";
 import {Input} from "@/components/coss-ui/input";
@@ -19,7 +22,12 @@ import {
   DialogPopup,
   DialogTitle,
 } from "@/components/coss-ui/dialog";
-import {addBookmark, type AddBookmarkResult} from "@/app/actions/bookmarks";
+import {
+  addWebsiteBookmark,
+  addMediaBookmark,
+  type AddWebsiteBookmarkResult,
+  type AddMediaBookmarkResult,
+} from "@/app/actions/bookmarks";
 import TagsInput from "../ui/TagsInput";
 import {Label} from "../coss-ui/label";
 import type {Collection} from "@/app/actions/collections";
@@ -33,30 +41,24 @@ import {
   ComboboxTrigger,
   ComboboxValue,
 } from "@/components/coss-ui/combobox";
-import {SelectButton, Select} from "@/components/coss-ui/select";
+import {
+  SelectButton,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectPopup,
+  SelectItem,
+} from "@/components/coss-ui/select";
 
-const addItemSchema = z.object({
-  url: z
-    .string()
-    .trim()
-    .min(1, "URL is required")
-    .url("Please enter a valid URL")
-    .refine((s) => {
-      try {
-        const u = new URL(s);
-        return u.protocol === "http:" || u.protocol === "https:";
-      } catch {
-        return false;
-      }
-    }, "URL must start with http:// or https://"),
-  tags: z.array(z.string()),
-  collectionId: z.string().nullable().optional(),
-});
+import {ITEM_TYPES} from "./constants";
 
-type AddItemFormValues = z.infer<typeof addItemSchema>;
+import {addItemSchema, type AddItemFormValues} from "./addItemSchema";
 
 export function AddItemDialog({collections = []}: {collections?: Collection[]}) {
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
   const {
@@ -64,27 +66,56 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
     handleSubmit,
     control,
     reset,
+    trigger,
     formState: {errors, isValid},
+    watch,
   } = useForm<AddItemFormValues>({
     resolver: zodResolver(addItemSchema),
     defaultValues: {
       url: "",
       tags: [],
       collectionId: null,
+      type: "website",
     },
     mode: "onChange",
   });
 
   const addItemMutation = useMutation<
-    AddBookmarkResult,
+    AddWebsiteBookmarkResult | AddMediaBookmarkResult,
     Error,
-    {url: string; tags: string[]; collectionId?: string}
+    | {url: string; tags: string[]; collectionId?: string; kind: "website"}
+    | {
+        url: string;
+        tags: string[];
+        collectionId?: string;
+        kind: "media";
+        selectedMediaUrls?: string[];
+      }
   >({
     mutationKey: ["add-bookmark"],
     mutationFn: async (input) => {
-      return await addBookmark(input);
+      if (input.kind === "website") {
+        return await addWebsiteBookmark(input);
+      } else if (input.kind === "media") {
+        return await addMediaBookmark(input);
+      }
+      throw new Error("Invalid kind");
     },
-    onSuccess: (res) => {
+    onSuccess: (res, variables) => {
+      if (
+        variables.kind === "media" &&
+        "media" in res &&
+        Array.isArray(res.media) &&
+        res.media.length > 1 &&
+        !("selectedMediaUrls" in variables && variables.selectedMediaUrls)
+      ) {
+        setMediaUrls(res.media);
+        setSelectedMediaUrls(res.media);
+        setStep(2);
+        return;
+      }
+
+      setOpen(false);
       toastManager.add({
         title: "Bookmark added",
         description: res.url,
@@ -92,6 +123,12 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
       });
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: ["tags"]});
+      setTimeout(() => {
+        reset();
+        setStep(1);
+        setMediaUrls([]);
+        setSelectedMediaUrls([]);
+      }, 500);
     },
     onError: (err) => {
       toastManager.add({
@@ -108,13 +145,35 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
   });
 
   const onSubmit = (data: AddItemFormValues) => {
-    setOpen(false);
-    addItemMutation.mutate({
-      url: data.url,
-      tags: data.tags,
-      collectionId: data.collectionId ?? undefined,
-    });
-    reset();
+    switch (data.type) {
+      case "website":
+        addItemMutation.mutate({
+          url: data.url,
+          tags: data.tags,
+          collectionId: data.collectionId ?? undefined,
+          kind: "website",
+        });
+        setOpen(false);
+        break;
+      case "media":
+        addItemMutation.mutate({
+          url: data.url,
+          tags: data.tags,
+          collectionId: data.collectionId ?? undefined,
+          kind: "media",
+        });
+        break;
+      // case "article":
+      //   addItemMutation.mutate({
+      //     url: data.url,
+      //     tags: data.tags,
+      //     collectionId: data.collectionId ?? undefined,
+      //     kind: data.type,
+      //   });
+      //   break;
+      default:
+        throw new Error("Invalid item type");
+    }
   };
 
   const collectionItems = React.useMemo(
@@ -133,7 +192,12 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
         onOpenChange={(nextOpen) => {
           setOpen(nextOpen);
           if (!nextOpen) {
-            reset();
+            setTimeout(() => {
+              reset();
+              setStep(1);
+              setMediaUrls([]);
+              setSelectedMediaUrls([]);
+            }, 500);
           }
         }}>
         <ShadcnButton
@@ -158,100 +222,213 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
 
         <DialogPopup className="duration-250 ease-in-out data-ending-style:translate-y-2 data-ending-style:scale-98 data-ending-style:opacity-0 data-starting-style:translate-y-2 data-starting-style:scale-98 data-starting-style:opacity-0">
           <DialogHeader>
-            <DialogTitle>Add item</DialogTitle>
+            <DialogTitle>{step === 1 ? "Add item" : "Select Media"}</DialogTitle>
           </DialogHeader>
 
-          <DialogPanel>
-            <form
-              id="add-item-form"
-              className="flex flex-col gap-5"
-              onSubmit={handleSubmit(onSubmit)}>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="url">URL</Label>
-                <Input
-                  id="url"
-                  type="url"
-                  placeholder="https://example.com"
-                  {...register("url")}
-                  aria-invalid={!!errors.url}
-                />
-                {errors.url ? (
-                  <div className="text-destructive text-sm" role="alert">
-                    {errors.url.message}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label>Collection</Label>
-                <Controller
-                  name="collectionId"
-                  control={control}
-                  render={({field}) => {
-                    const selectedItem =
-                      collectionItems.find((item) => item.value === field.value) ?? null;
-
-                    return (
-                      <Combobox
-                        items={collectionItems}
-                        value={selectedItem}
-                        onValueChange={(val) => {
-                          field.onChange(val?.value ?? null);
-                        }}>
-                        <Select>
-                          <ComboboxTrigger render={<SelectButton />}>
-                            <ComboboxValue placeholder="Select a collection" />
-                          </ComboboxTrigger>
-                        </Select>
-                        <ComboboxPopup
-                          aria-label="Select a collection"
-                          className="w-(--anchor-width)">
-                          <div className="border-b p-2">
-                            <ComboboxInput
-                              className="rounded-md before:rounded-[calc(var(--radius-md)-1px)]"
-                              placeholder="Search collections..."
-                              showTrigger={false}
-                              startAddon={<SearchIcon className="size-4" />}
+          <AnimatePresence mode="wait" initial={false}>
+            {step === 1 ? (
+              <motion.div
+                key="step1"
+                initial={{opacity: 0, x: -20}}
+                animate={{opacity: 1, x: 0}}
+                exit={{opacity: 0, x: -20}}
+                transition={{duration: 0.2}}>
+                <DialogPanel>
+                  <form
+                    id="add-item-form"
+                    className="flex flex-col gap-5"
+                    onSubmit={handleSubmit(onSubmit)}>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="url">URL</Label>
+                      <Input
+                        id="url"
+                        type="url"
+                        placeholder="https://example.com"
+                        {...register("url")}
+                        aria-invalid={!!errors.url}
+                      />
+                      {errors.url ? (
+                        <div
+                          className="text-destructive flex items-center gap-1.5 text-sm"
+                          role="alert">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M7.99967 1.33333C11.6815 1.33333 14.6663 4.31809 14.6663 7.99999C14.6663 11.6819 11.6815 14.6667 7.99967 14.6667C4.31777 14.6667 1.33301 11.6819 1.33301 7.99999C1.33301 4.31809 4.31777 1.33333 7.99967 1.33333ZM7.99967 9.73306C7.55787 9.73306 7.19954 10.0914 7.19954 10.5332C7.19961 10.9749 7.55787 11.3333 7.99967 11.3333C8.44147 11.3333 8.79974 10.975 8.79981 10.5332C8.79981 10.0914 8.44147 9.73306 7.99967 9.73306ZM7.99967 4.66666C7.46867 4.66667 7.05821 5.13198 7.12401 5.65885L7.43781 8.17059C7.47327 8.45399 7.71407 8.66666 7.99967 8.66666C8.28527 8.66666 8.52607 8.45399 8.56154 8.17059L8.87601 5.65885C8.94174 5.13201 8.53061 4.66666 7.99967 4.66666Z"
+                              fill="currentColor"
                             />
-                          </div>
-                          <ComboboxEmpty>No collections found.</ComboboxEmpty>
-                          <ComboboxList>
-                            {(item) => (
-                              <ComboboxItem key={item.value} value={item}>
-                                {item.label}
-                              </ComboboxItem>
-                            )}
-                          </ComboboxList>
-                        </ComboboxPopup>
-                      </Combobox>
-                    );
-                  }}
-                />
-              </div>
+                          </svg>
+                          {errors.url.message}
+                        </div>
+                      ) : null}
+                    </div>
 
-              <Controller
-                name="tags"
-                control={control}
-                render={({field}) => (
-                  <TagsInput
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    name="tags"
-                    sortOnAdd={false}
-                  />
-                )}
-              />
-            </form>
-          </DialogPanel>
+                    <div className="flex flex-col gap-2">
+                      <Label>Type</Label>
+                      <Controller
+                        name="type"
+                        control={control}
+                        render={({field}) => (
+                          <Select
+                            value={field.value}
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              trigger("url");
+                            }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type">
+                                {ITEM_TYPES.find((t) => t.value === field.value)?.label}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectPopup alignItemWithTrigger={false}>
+                              {ITEM_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
+                            </SelectPopup>
+                          </Select>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label>Collection</Label>
+                      <Controller
+                        name="collectionId"
+                        control={control}
+                        render={({field}) => {
+                          const selectedItem =
+                            collectionItems.find((item) => item.value === field.value) ?? null;
+
+                          return (
+                            <Combobox
+                              items={collectionItems}
+                              value={selectedItem}
+                              onValueChange={(val) => {
+                                field.onChange(val?.value ?? null);
+                              }}>
+                              <Select>
+                                <ComboboxTrigger render={<SelectButton />}>
+                                  <ComboboxValue placeholder="Select a collection" />
+                                </ComboboxTrigger>
+                              </Select>
+                              <ComboboxPopup
+                                aria-label="Select a collection"
+                                className="w-(--anchor-width)">
+                                <div className="border-b p-2">
+                                  <ComboboxInput
+                                    className="rounded-md before:rounded-[calc(var(--radius-md)-1px)]"
+                                    placeholder="Search collections..."
+                                    showTrigger={false}
+                                    startAddon={<SearchIcon className="size-4" />}
+                                  />
+                                </div>
+                                <ComboboxEmpty>No collections found.</ComboboxEmpty>
+                                <ComboboxList>
+                                  {(item) => (
+                                    <ComboboxItem key={item.value} value={item}>
+                                      {item.label}
+                                    </ComboboxItem>
+                                  )}
+                                </ComboboxList>
+                              </ComboboxPopup>
+                            </Combobox>
+                          );
+                        }}
+                      />
+                    </div>
+
+                    <Controller
+                      name="tags"
+                      control={control}
+                      render={({field}) => (
+                        <TagsInput
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          name="tags"
+                          sortOnAdd={false}
+                        />
+                      )}
+                    />
+                  </form>
+                </DialogPanel>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="step2"
+                initial={{opacity: 0, x: 20}}
+                animate={{opacity: 1, x: 0}}
+                exit={{opacity: 0, x: 20}}
+                transition={{duration: 0.2}}
+                className="grid grid-cols-2 gap-4 px-6 pt-4 pb-6">
+                {mediaUrls.map((url, i) => {
+                  const isSelected = selectedMediaUrls.includes(url);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMediaUrls((prev) =>
+                          prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url],
+                        );
+                      }}
+                      className={cn(
+                        "group/preview border-border relative cursor-pointer overflow-hidden rounded-lg border transition-all duration-200",
+                        isSelected
+                          ? "border-primary"
+                          : "border-transparent opacity-50 hover:opacity-75",
+                      )}>
+                      <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-md">
+                        <Image
+                          src={url}
+                          alt={`Media ${i}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <DialogFooter>
             <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
-            <Button
-              type="submit"
-              form="add-item-form"
-              disabled={addItemMutation.isPending || !isValid}>
-              Submit
-            </Button>
+            {step === 1 ? (
+              <Button
+                type="submit"
+                form="add-item-form"
+                disabled={addItemMutation.isPending || !isValid}>
+                {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
+                Submit
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                disabled={selectedMediaUrls.length === 0 || addItemMutation.isPending}
+                onClick={() => {
+                  const data = watch();
+                  addItemMutation.mutate({
+                    url: data.url,
+                    tags: data.tags,
+                    collectionId: data.collectionId ?? undefined,
+                    kind: "media",
+                    selectedMediaUrls,
+                  });
+                }}>
+                {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
+                Confirm
+              </Button>
+            )}
           </DialogFooter>
         </DialogPopup>
       </Dialog>

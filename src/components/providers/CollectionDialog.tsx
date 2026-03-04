@@ -41,7 +41,7 @@ export function CollectionDialog({open, onOpenChange, collection}: CollectionDia
     register,
     handleSubmit,
     reset,
-    formState: {errors, isValid},
+    formState: {errors, isValid, isDirty},
   } = useForm<CollectionFormValues>({
     resolver: zodResolver(collectionSchema),
     defaultValues: {
@@ -57,6 +57,11 @@ export function CollectionDialog({open, onOpenChange, collection}: CollectionDia
         name: collection?.name || "",
         description: collection?.description || "",
       });
+    } else {
+      const t = setTimeout(() => {
+        reset({name: "", description: ""});
+      }, 500);
+      return () => clearTimeout(t);
     }
   }, [open, collection, reset]);
 
@@ -66,7 +71,6 @@ export function CollectionDialog({open, onOpenChange, collection}: CollectionDia
       queryClient.invalidateQueries({queryKey: ["collections"]});
       toastManager.add({title: "Collection created", type: "success"});
       onOpenChange(false);
-      reset();
     },
     onError: (err) => {
       toastManager.add({
@@ -117,7 +121,6 @@ export function CollectionDialog({open, onOpenChange, collection}: CollectionDia
       open={open}
       onOpenChange={(val) => {
         onOpenChange(val);
-        if (!val) reset();
       }}>
       <DialogPopup>
         <DialogHeader>
@@ -164,7 +167,12 @@ export function CollectionDialog({open, onOpenChange, collection}: CollectionDia
           <Button
             type="submit"
             form="create-collection-form"
-            disabled={mutation.isPending || updateMutation.isPending || !isValid}>
+            disabled={
+              mutation.isPending ||
+              updateMutation.isPending ||
+              !isValid ||
+              (!!collection && !isDirty)
+            }>
             {collection ? "Save Changes" : "Create"}
           </Button>
         </DialogFooter>

@@ -192,7 +192,16 @@ export default function AllItemsClient({
 
   // ── Bookmarks query (paginated) ──
   const bookmarksQuery = useInfiniteQuery({
-    queryKey: ["bookmarks", "all-items", userId, PAGE_SIZE, sort, tagFilter, collectionFilter],
+    queryKey: [
+      "bookmarks",
+      "all-items",
+      userId,
+      PAGE_SIZE,
+      sort,
+      tagFilter,
+      collectionFilter,
+      typeFilter,
+    ],
     enabled: !!userId,
     initialPageParam: 0,
     queryFn: async ({pageParam}) => {
@@ -240,6 +249,10 @@ export default function AllItemsClient({
         q = q.eq("bookmark_collections.collection_id", collectionFilter);
       }
 
+      if (typeFilter !== "all") {
+        q = q.eq("kind", typeFilter);
+      }
+
       // Apply sort order
       if (sort === "oldest") {
         q = q.order("created_at", {ascending: true});
@@ -270,7 +283,7 @@ export default function AllItemsClient({
     getNextPageParam: (lastPage) => lastPage.nextOffset,
     // Only seed initial data for the default sort and no filters to avoid stale mismatch
     initialData:
-      sort === "recent" && !tagFilter && !collectionFilter
+      sort === "recent" && !tagFilter && !collectionFilter && typeFilter === "all"
         ? {
             pageParams: [0],
             pages: [
@@ -346,8 +359,7 @@ export default function AllItemsClient({
 
   // ── Visible items (filtered, excluding animating/deleted) ──
   const visibleItems = React.useMemo(() => {
-    let items =
-      typeFilter === "all" ? allBookmarks : allBookmarks.filter((i) => i.kind === typeFilter);
+    let items = allBookmarks;
 
     // Hide the bookmark currently crossfading in the placeholder slot
     if (resolvedBookmark) {
@@ -360,7 +372,7 @@ export default function AllItemsClient({
     }
 
     return items;
-  }, [allBookmarks, typeFilter, resolvedBookmark, animatedOutIds]);
+  }, [allBookmarks, resolvedBookmark, animatedOutIds]);
 
   const visibleIds = React.useMemo(() => visibleItems.map((i) => i.id), [visibleItems]);
   const {data: collections} = useQuery({
@@ -638,6 +650,7 @@ export default function AllItemsClient({
           router.push("/all");
         }}
       />
+
       <CollectionDialog
         open={editCollectionDialogOpen}
         onOpenChange={setEditCollectionDialogOpen}

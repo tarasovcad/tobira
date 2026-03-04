@@ -4,7 +4,7 @@ import {cn} from "@/lib/utils";
 import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
 
 export type ViewMode = "grid" | "list";
-export type TypeFilter = "all" | "website" | "image";
+export type TypeFilter = "all" | "website" | "media";
 export type SortMode = "recent" | "oldest" | "az";
 
 function getTypeLabel(value: TypeFilter) {
@@ -13,8 +13,8 @@ function getTypeLabel(value: TypeFilter) {
       return "All Types";
     case "website":
       return "Websites";
-    case "image":
-      return "Images";
+    case "media":
+      return "Media";
   }
 }
 
@@ -141,7 +141,7 @@ export function TypeSelect({
       <SelectPopup>
         <SelectItem value="all">All Types</SelectItem>
         <SelectItem value="website">Websites</SelectItem>
-        <SelectItem value="image">Images</SelectItem>
+        <SelectItem value="media">Media</SelectItem>
       </SelectPopup>
     </Select>
   );
