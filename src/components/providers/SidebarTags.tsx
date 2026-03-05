@@ -9,7 +9,7 @@ import {getTags} from "@/app/actions/tags";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarTagItem} from "./SidebarItems";
 import {DeleteTagDialog} from "./DeleteTagDialog";
-import {SelectionActionBar} from "@/app/all/SelectionActionBar";
+import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
 
 export type SidebarTagsType = {id: string; name: string; count: number}[];

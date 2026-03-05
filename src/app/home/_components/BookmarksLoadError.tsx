@@ -8,7 +8,7 @@ type LoadError =
   | null
   | undefined;
 
-export default function BookmarksLoadError({error}: {error: LoadError}) {
+export function BookmarksLoadError({error}: {error: LoadError}) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center">
       <div

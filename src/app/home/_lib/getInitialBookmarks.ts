@@ -1,0 +1,70 @@
+import {tagNamesFromJoin} from "@/lib/bookmark-tags";
+import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {BookmarkRowWithJoins} from "../_types";
+import {PAGE_SIZE} from "../_constants";
+import type {SupabaseClient} from "@supabase/supabase-js";
+
+export async function getInitialBookmarks({
+  userId,
+  tagFilter,
+  collectionFilter,
+  supabase,
+}: {
+  userId: string;
+  tagFilter: string | null;
+  collectionFilter: string | null;
+  supabase: SupabaseClient;
+}) {
+  // When filtering by tag or collection we use an inner join so only matching bookmarks are returned.
+  const tagSelect = tagFilter
+    ? "bookmark_tags!inner(tags!inner(name))"
+    : "bookmark_tags(tags(name))";
+  const collectionSelect = collectionFilter
+    ? "bookmark_collections!inner(collections(id, name))"
+    : "bookmark_collections(collections(id, name))";
+  const bookmarksSelect = `*, ${tagSelect}, ${collectionSelect}`;
+
+  let bookmarksQuery = supabase
+    .from("bookmarks")
+    .select(bookmarksSelect as "*", {count: "exact"})
+    .eq("user_id", userId)
+    .is("archived_at", null)
+    .is("deleted_at", null);
+
+  if (tagFilter) {
+    bookmarksQuery = bookmarksQuery.eq("bookmark_tags.tags.name", tagFilter);
+  }
+
+  if (collectionFilter) {
+    bookmarksQuery = bookmarksQuery.eq("bookmark_collections.collection_id", collectionFilter);
+  }
+
+  const bookmarksPromise = bookmarksQuery
+    .order("created_at", {ascending: false})
+    .range(0, PAGE_SIZE - 1);
+
+  const tagsPromise = supabase.rpc("get_tags_with_counts", {p_user_id: userId});
+
+  const [
+    {data: bookmarkRows, count: totalCount, error: bookmarksError},
+    {data: tagsData, error: tagsError},
+  ] = await Promise.all([bookmarksPromise, tagsPromise]);
+
+  const rows = (bookmarkRows ?? []) as unknown as BookmarkRowWithJoins[];
+
+  const initialBookmarks: Bookmark[] = rows.map(
+    ({bookmark_tags, bookmark_collections, ...row}) => ({
+      ...(row as Bookmark),
+      tags: tagNamesFromJoin(bookmark_tags),
+      collections: bookmark_collections?.map((bc) => bc.collections) ?? [],
+    }),
+  );
+
+  return {
+    initialBookmarks,
+    totalCount,
+    bookmarksError,
+    tagsData,
+    tagsError,
+  };
+}

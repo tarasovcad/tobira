@@ -11,7 +11,7 @@ import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarCollectionItem} from "./SidebarItems";
 import {DeleteCollectionDialog} from "./DeleteCollectionDialog";
-import {SelectionActionBar} from "@/app/all/SelectionActionBar";
+import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 
 export function SidebarCollections({
   initialCollections,

@@ -21,7 +21,7 @@ import {ViewToggle, TypeSelect, SortSelect} from "./AllItemsToolbar";
 import type {ViewMode, TypeFilter, SortMode} from "./AllItemsToolbar";
 import {NewBookmarkRow, NewBookmarkGridCard} from "./NewBookmarkPlaceholder";
 import {DeleteBookmarkDialog} from "./DeleteBookmarkDialog";
-import {SelectionActionBar} from "./SelectionActionBar";
+import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {archiveBookmarks} from "@/app/actions/bookmarks";
 import {tagNamesFromJoin, type BookmarkTagJoinRow} from "@/lib/bookmark-tags";
 import {useSearchParams, useRouter} from "next/navigation";
@@ -30,6 +30,7 @@ import {getCollections} from "@/app/actions/collections";
 import {Button} from "@/components/coss-ui/button";
 import {DeleteCollectionDialog} from "@/components/providers/DeleteCollectionDialog";
 import {CollectionDialog} from "@/components/providers/CollectionDialog";
+import {PAGE_SIZE} from "../_constants";
 
 function normalizeTagParam(value: string | null | undefined) {
   const normalized = (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
@@ -48,16 +49,14 @@ function LoadingSpinner({className}: {className?: string}) {
   );
 }
 
-export default function AllItemsClient({
+export function AllItemsClient({
   userId,
   initialBookmarks,
   totalCount,
-  PAGE_SIZE,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
   totalCount: number;
-  PAGE_SIZE: number;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
