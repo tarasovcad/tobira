@@ -1,37 +1,16 @@
 "use client";
+
 import * as React from "react";
-import {useEffect, useRef, useState, useMemo} from "react";
+import {useRef, useState, useMemo, useEffect} from "react";
 import Image from "next/image";
 import {formatDateWithTime} from "@/lib/formatDate";
-import {cn} from "@/lib/utils";
 import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/components/coss-ui/sheet";
-import {
-  Dialog,
-  DialogPopup,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/coss-ui/dialog";
 import {Button} from "@/components/coss-ui/button";
-import {Button as ShadcnButton} from "@/components/shadcn/button";
 import {Separator} from "@/components/shadcn/separator";
 import {Textarea} from "@/components/coss-ui/textarea";
-import {useForm} from "react-hook-form";
-import {zodResolver} from "@hookform/resolvers/zod";
-import {z} from "zod";
-import {
-  updateBookmark,
-  UpdateBookmarkData,
-  archiveBookmarks,
-  resetBookmark,
-} from "@/app/actions/bookmarks";
-import {toastManager} from "@/components/coss-ui/toast";
 import {type Bookmark} from "@/components/bookmark/Bookmark";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import TagsInput from "@/components/ui/TagsInput";
-import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import {useQuery} from "@tanstack/react-query";
 import {getCollections} from "@/app/actions/collections";
 import {SearchIcon} from "lucide-react";
 import {
@@ -45,26 +24,15 @@ import {
   ComboboxValue,
 } from "@/components/coss-ui/combobox";
 import {SelectTrigger as SelectButton, Select} from "@/components/coss-ui/select";
+import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 
-// Zod schema for bookmark form validation
-const bookmarkFormSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
-  description: z.string().max(1000, "Description must be less than 1000 characters").optional(),
-  preview_image: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  notes: z.string().max(1000, "Notes must be less than 1000 characters").optional(),
-  tags: z.array(z.string()).max(10).default([]),
-  collectionId: z.string().nullable().optional(),
-});
-
-type BookmarkFormValues = z.input<typeof bookmarkFormSchema>;
-
-function normalizeTagsForCompare(tags: string[] | undefined) {
-  return (tags ?? [])
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"}))
-    .join(",");
-}
+// Extracted hooks and components
+import {type BookmarkFormValues, normalizeTagsForCompare} from "./_utils/bookmark-schema";
+import {useBookmarkForm} from "./_hooks/use-bookmark-form";
+import {useBookmarkMutations} from "./_hooks/use-bookmark-mutations";
+import {BookmarkPreviewDialog} from "./_components/BookmarkPreviewDialog";
+import {BookmarkMenuActions} from "./_components/BookmarkMenuActions";
+import {BookmarkDetails} from "./_components/BookmarkDetails";
 
 export function BookmarkMenu({
   item,
@@ -93,18 +61,7 @@ export function BookmarkMenu({
     };
   }, [item]);
 
-  // Initialize React Hook Form with Zod validation
-  const form = useForm<BookmarkFormValues>({
-    resolver: zodResolver(bookmarkFormSchema),
-    defaultValues: {
-      title: item?.title ?? "",
-      description: item?.description ?? "",
-      preview_image: item?.preview_image ?? "",
-      notes: item?.notes ?? "",
-      tags: item?.tags ?? [],
-      collectionId: item?.collections?.[0]?.id ?? null,
-    },
-  });
+  const {form, originalValuesRef, currentValues, hasChanges} = useBookmarkForm(item, open);
 
   const {data: collections = []} = useQuery({
     queryKey: ["collections"],
@@ -120,92 +77,27 @@ export function BookmarkMenu({
     [collections],
   );
 
-  const originalValues = useRef<BookmarkFormValues>({
-    title: "",
-    description: "",
-    preview_image: "",
-    notes: "",
-    tags: [],
-    collectionId: null,
-  });
-
   const titleElRef = useRef<HTMLHeadingElement | null>(null);
   const descriptionElRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (item) {
-      const values = {
-        title: item.title,
-        description: item.description,
-        preview_image: item.preview_image,
-        notes: item.notes ?? "",
-        tags: item.tags ?? [],
-        collectionId: item.collections?.[0]?.id ?? null,
-      };
-      form.reset(values);
-      originalValues.current = values;
-    }
-  }, [item, form]);
-
-  const currentValues = form.watch();
-
-  const hasChanges = useMemo(() => {
-    if (!item) return false;
-    return (
-      (currentValues.title ?? "") !== (originalValues.current.title ?? "") ||
-      (currentValues.description ?? "") !== (originalValues.current.description ?? "") ||
-      (currentValues.preview_image ?? "") !== (originalValues.current.preview_image ?? "") ||
-      (currentValues.notes ?? "") !== (originalValues.current.notes ?? "") ||
-      normalizeTagsForCompare(currentValues.tags) !==
-        normalizeTagsForCompare(originalValues.current.tags) ||
-      currentValues.collectionId !== originalValues.current.collectionId
-    );
-  }, [currentValues, item]);
 
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [selectedPreview, setSelectedPreview] = useState<"og" | "preview">("preview");
 
-  const queryClient = useQueryClient();
+  // Reset dialog state when menu closes
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        setPreviewDialogOpen(false);
+        setSelectedPreview("preview");
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
-  const updateMutation = useMutation({
-    mutationKey: ["update-bookmark"],
-    mutationFn: async (input: {bookmarkId: string; updates: UpdateBookmarkData}) => {
-      return updateBookmark(input.bookmarkId, input.updates);
-    },
-    onMutate: async () => {
-      // Close immediately, don't wait for response
-      onOpenChange(false);
-
-      // Optimistically lock in the latest form values so close/reset doesn't revert them
-      const prev = originalValues.current;
-      const nextValues = form.getValues();
-      originalValues.current = nextValues;
-      form.reset(nextValues);
-
-      return {prev};
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-      queryClient.invalidateQueries({queryKey: ["tags"]});
-      toastManager.add({
-        title: "Bookmark updated",
-        type: "success",
-      });
-    },
-    onError: (error, _vars, ctx) => {
-      console.error("Failed to update bookmark:", error);
-
-      if (ctx?.prev) {
-        originalValues.current = ctx.prev;
-        form.reset(ctx.prev);
-      }
-
-      toastManager.add({
-        title: "Update failed",
-        description: error instanceof Error ? error.message : "Failed to update bookmark",
-        type: "error",
-      });
-    },
+  const {updateMutation, archiveMutation, resetMutation} = useBookmarkMutations({
+    onOpenChange,
+    originalValuesRef,
+    form,
   });
 
   const onSubmit = (values: BookmarkFormValues) => {
@@ -214,24 +106,25 @@ export function BookmarkMenu({
     // Only include fields that have actually changed
     const updates: UpdateBookmarkData = {};
 
-    if ((values.title ?? "") !== (originalValues.current.title ?? "")) {
+    if ((values.title ?? "") !== (originalValuesRef.current.title ?? "")) {
       updates.title = values.title;
     }
 
-    if ((values.description ?? "") !== (originalValues.current.description ?? "")) {
+    if ((values.description ?? "") !== (originalValuesRef.current.description ?? "")) {
       updates.description = values.description;
     }
 
-    if ((values.preview_image ?? "") !== (originalValues.current.preview_image ?? "")) {
+    if ((values.preview_image ?? "") !== (originalValuesRef.current.preview_image ?? "")) {
       updates.preview_image = values.preview_image;
     }
 
-    if ((values.notes ?? "") !== (originalValues.current.notes ?? "")) {
+    if ((values.notes ?? "") !== (originalValuesRef.current.notes ?? "")) {
       updates.notes = values.notes ?? "";
     }
 
     if (
-      normalizeTagsForCompare(values.tags) !== normalizeTagsForCompare(originalValues.current.tags)
+      normalizeTagsForCompare(values.tags) !==
+      normalizeTagsForCompare(originalValuesRef.current.tags)
     ) {
       updates.tags = values.tags ?? [];
     }
@@ -243,53 +136,6 @@ export function BookmarkMenu({
 
     updateMutation.mutate({bookmarkId: item.id, updates});
   };
-
-  const archiveMutation = useMutation({
-    mutationKey: ["archive-bookmark"],
-    mutationFn: async (id: string) => {
-      return archiveBookmarks(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-      queryClient.invalidateQueries({queryKey: ["tags"]});
-      onOpenChange(false);
-      toastManager.add({
-        title: "Bookmark archived",
-        type: "success",
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to archive bookmark:", error);
-      toastManager.add({
-        title: "Archive failed",
-        description: error instanceof Error ? error.message : "Failed to archive bookmark",
-        type: "error",
-      });
-    },
-  });
-
-  const resetMutation = useMutation({
-    mutationKey: ["reset-bookmark"],
-    mutationFn: async (id: string) => {
-      return resetBookmark(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-      toastManager.add({
-        title: "Bookmark reset",
-        description: "Metadata and images are being refreshed.",
-        type: "success",
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to reset bookmark:", error);
-      toastManager.add({
-        title: "Reset failed",
-        description: error instanceof Error ? error.message : "Failed to reset bookmark",
-        type: "error",
-      });
-    },
-  });
 
   const handleReset = () => {
     if (item) {
@@ -307,29 +153,16 @@ export function BookmarkMenu({
     }
   };
 
+  const handleDelete = () => {
+    if (item && onDelete) {
+      onDelete(item);
+    }
+  };
+
   // Derive both OG and Preview URLs from whatever is currently saved
   const currentImageUrl = item?.preview_image ?? "";
   const ogImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/og.png");
   const previewImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/preview.png");
-
-  useEffect(() => {
-    if (!open) {
-      const timer = setTimeout(() => {
-        form.reset(originalValues.current);
-        setPreviewDialogOpen(false);
-        setSelectedPreview("preview");
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [open, form]);
-
-  const {copiedKey, copyText} = useClipboardCopy(2000);
-  const sourceCopied = copiedKey === "source";
-
-  const handleCopySource = async () => {
-    if (!data.source) return;
-    await copyText(data.source, "source");
-  };
 
   const handleSavePreview = () => {
     const newUrl = selectedPreview === "og" ? ogImageUrl : previewImageUrl;
@@ -342,6 +175,7 @@ export function BookmarkMenu({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="max-w-[560px]">
           <SheetPanel className="p-0 pt-0!">
+            {/* eslint-disable-next-line react-hooks/refs */}
             <form onSubmit={form.handleSubmit(onSubmit)}>
               {item?.id ? (
                 <div className="bg-muted relative aspect-video w-full border-b">
@@ -377,120 +211,18 @@ export function BookmarkMenu({
                   </SheetTitle>
                 </SheetHeader>
 
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="default"
-                    type="button"
-                    onClick={handleArchive}
-                    disabled={archiveMutation.isPending}>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M1.83301 2C1.55687 2 1.33301 2.22386 1.33301 2.5V4.16667C1.33301 4.44281 1.55687 4.66667 1.83301 4.66667H14.1663C14.4425 4.66667 14.6663 4.44281 14.6663 4.16667V2.5C14.6663 2.22386 14.4425 2 14.1663 2H1.83301Z"
-                        fill="currentColor"
-                      />
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M14 5.66667H2V10.3214C1.99999 10.8633 1.99999 11.3004 2.02891 11.6543C2.05869 12.0187 2.12159 12.3388 2.27249 12.635C2.51217 13.1054 2.89462 13.4879 3.36503 13.7275C3.66117 13.8784 3.98127 13.9413 4.34569 13.9711C4.69963 14 5.1367 14 5.67859 14H10.3214C10.8633 14 11.3004 14 11.6543 13.9711C12.0187 13.9413 12.3388 13.8784 12.635 13.7275C13.1054 13.4879 13.4879 13.1054 13.7275 12.635C13.8784 12.3388 13.9413 12.0187 13.9711 11.6543C14 11.3004 14 10.8633 14 10.3214V5.66667ZM6.16667 7.83334C6.16667 7.5572 6.39053 7.33334 6.66667 7.33334H9.33333C9.60947 7.33334 9.83333 7.5572 9.83333 7.83334C9.83333 8.10947 9.60947 8.33334 9.33333 8.33334H6.66667C6.39053 8.33334 6.16667 8.10947 6.16667 7.83334Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                    Archive
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    type="button"
-                    onClick={() => {
-                      const currentUrl = form.getValues("preview_image");
-                      setSelectedPreview(currentUrl?.endsWith("og.png") ? "og" : "preview");
-                      setPreviewDialogOpen(true);
-                    }}>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M11.5 2C12.8807 2 14 3.11929 14 4.5V11.5C14 12.8807 12.8807 14 11.5 14H4.5C3.11929 14 2 12.8807 2 11.5V4.5C2 3.11929 3.11929 2 4.5 2H11.5ZM6.39388 9.06053C5.80812 8.47493 4.85855 8.47493 4.27279 9.06053L3 10.3333V11.5C3 12.3284 3.67157 13 4.5 13H10.3333L6.39388 9.06053ZM10 4.33333C9.07953 4.33333 8.33333 5.07953 8.33333 6C8.33333 6.92047 9.07953 7.66667 10 7.66667C10.9205 7.66667 11.6667 6.92047 11.6667 6C11.6667 5.07953 10.9205 4.33333 10 4.33333Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                    Preview
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="default"
-                    type="button"
-                    onClick={handleReset}
-                    disabled={resetMutation.isPending}>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={cn(resetMutation.isPending && "animate-spin")}>
-                      <path
-                        d="M4.23019 11.3333C5.1574 12.3555 6.51774 13 8.00033 13C10.7617 13 13.0003 10.7614 13.0003 8C13.0003 7.78793 12.9871 7.57913 12.9616 7.3744C12.9275 7.10033 13.1219 6.85053 13.3959 6.81633C13.6699 6.7822 13.9198 6.9766 13.9539 7.2506C13.9846 7.49633 14.0003 7.74647 14.0003 8C14.0003 11.3137 11.3141 14 8.00033 14C6.31973 14 4.77059 13.3084 3.66699 12.1925V13.5C3.66699 13.7761 3.44313 14 3.16699 14C2.89085 14 2.66699 13.7761 2.66699 13.5V11.5C2.66699 10.8557 3.18933 10.3333 3.83366 10.3333H5.83366C6.1098 10.3333 6.33366 10.5572 6.33366 10.8333C6.33366 11.1095 6.1098 11.3333 5.83366 11.3333H4.23019Z"
-                        fill="currentColor"
-                      />
-                      <path
-                        d="M3.03871 8.6256C3.07288 8.89967 2.87844 9.14947 2.60442 9.18367C2.3304 9.2178 2.08057 9.0234 2.04639 8.7494C2.01576 8.50367 2 8.25353 2 8C2 4.68629 4.68629 2 8 2C9.6846 2 11.2371 2.69492 12.3412 3.81548V2.5C12.3412 2.22386 12.5651 2 12.8412 2C13.1174 2 13.3412 2.22386 13.3412 2.5V4.5C13.3412 5.14433 12.8189 5.66667 12.1745 5.66667H10.1745C9.8984 5.66667 9.67453 5.44281 9.67453 5.16667C9.67453 4.89053 9.8984 4.66667 10.1745 4.66667H11.7701C10.8429 3.64454 9.4826 3 8 3C5.23857 3 3 5.23857 3 8C3 8.21207 3.01318 8.42087 3.03871 8.6256Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                    Reset
-                  </Button>
-                  <Button variant="favorite" size="default" disabled>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M9.05993 1.3317C8.63333 0.444994 7.36659 0.444994 6.93999 1.3317L5.49129 4.3426C5.4663 4.39453 5.41575 4.43183 5.35567 4.43968L2.02343 4.87531C1.04565 5.00314 0.64586 6.20789 1.36907 6.88874L3.80454 9.1816C3.84736 9.22194 3.86593 9.28007 3.85548 9.33607L3.24375 12.6124C3.06169 13.5875 4.0948 14.3223 4.95811 13.8577L7.91533 12.2659C7.96799 12.2375 8.03193 12.2375 8.08459 12.2659L11.0418 13.8577C11.9051 14.3223 12.9383 13.5875 12.7562 12.6124L12.1445 9.33607C12.134 9.28007 12.1526 9.22194 12.1954 9.1816L14.6309 6.88874C15.3541 6.20789 14.9543 5.00314 13.9765 4.87531L10.6443 4.43968C10.5842 4.43183 10.5337 4.39453 10.5087 4.3426L9.05993 1.3317Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                    Favorite
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="default"
-                    type="button"
-                    onClick={() => {
-                      if (item) {
-                        onDelete?.(item);
-                      }
-                    }}>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M5.24601 3.33334H2.16699C1.89085 3.33334 1.66699 3.5572 1.66699 3.83334C1.66699 4.10948 1.89085 4.33334 2.16699 4.33334H2.66697C2.66699 4.34494 2.6674 4.35662 2.66822 4.36836L3.2281 12.3418C3.32005 13.6513 4.4092 14.6667 5.72196 14.6667H10.2787C11.5915 14.6667 12.6806 13.6513 12.7725 12.3418L13.3325 4.36836C13.3333 4.35662 13.3337 4.34494 13.3337 4.33334H13.8337C14.1098 4.33334 14.3337 4.10948 14.3337 3.83334C14.3337 3.5572 14.1098 3.33334 13.8337 3.33334H10.7547C10.4547 2.09005 9.33573 1.16667 8.00039 1.16667C6.66504 1.16667 5.54599 2.09005 5.24601 3.33334ZM6.29189 3.33334H9.70886C9.44219 2.65056 8.77753 2.16667 8.00039 2.16667C7.22319 2.16667 6.55853 2.65056 6.29189 3.33334ZM6.66699 6.50001C6.94313 6.50001 7.16699 6.72387 7.16699 7.00001V10.8333C7.16699 11.1095 6.94313 11.3333 6.66699 11.3333C6.39085 11.3333 6.16699 11.1095 6.16699 10.8333V7.00001C6.16699 6.72387 6.39085 6.50001 6.66699 6.50001ZM9.33366 6.50001C9.60979 6.50001 9.83366 6.72387 9.83366 7.00001V10.8333C9.83366 11.1095 9.60979 11.3333 9.33366 11.3333C9.05753 11.3333 8.83366 11.1095 8.83366 10.8333V7.00001C8.83366 6.72387 9.05753 6.50001 9.33366 6.50001Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                    Delete
-                  </Button>
-                </div>
+                <BookmarkMenuActions
+                  onArchive={handleArchive}
+                  isArchiving={archiveMutation.isPending}
+                  onPreviewClick={() => {
+                    const currentUrl = form.getValues("preview_image");
+                    setSelectedPreview(currentUrl?.endsWith("og.png") ? "og" : "preview");
+                    setPreviewDialogOpen(true);
+                  }}
+                  onReset={handleReset}
+                  isResetting={resetMutation.isPending}
+                  onDelete={handleDelete}
+                />
               </div>
 
               <Separator />
@@ -517,71 +249,14 @@ export function BookmarkMenu({
 
               <Separator />
 
-              <div className="p-6 text-[15px]">
-                <div className="font-semibold">Details</div>
-
-                <div className="mt-3 grid grid-cols-[120px_1fr] gap-y-3">
-                  <div className="text-muted-foreground">Source</div>
-                  <button
-                    type="button"
-                    onClick={handleCopySource}
-                    className={cn(
-                      "inline-flex min-w-0 items-center gap-2 text-left",
-                      "hover:text-foreground focus-visible:ring-ring/50 rounded-sm outline-none focus-visible:ring-2",
-                    )}>
-                    <span className="min-w-0 truncate underline-offset-4 hover:underline">
-                      {data.source}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "text-muted-foreground inline-flex shrink-0 items-center transition-opacity duration-200",
-                        sourceCopied ? "opacity-100" : "opacity-0",
-                      )}>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path
-                          d="M13.3332 4L6.33317 11L2.6665 7.33333"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                  </button>
-
-                  <div className="text-muted-foreground">Type</div>
-                  <div>{data.type}</div>
-
-                  {data.collections.length > 0 && (
-                    <>
-                      <div className="text-muted-foreground">Collection</div>
-                      <div className="flex flex-wrap gap-1">
-                        {data.collections.map((c) => (
-                          <span key={c.id} className="text-foreground">
-                            {c.name}
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  <div className="text-muted-foreground">Saved</div>
-                  <div>{data.saved}</div>
-
-                  {item?.updated_at !== item?.created_at && (
-                    <>
-                      <div className="text-muted-foreground">Updated</div>
-                      <div>{data.updated}</div>
-                    </>
-                  )}
-                </div>
-              </div>
+              <BookmarkDetails
+                source={data.source}
+                type={data.type}
+                collections={data.collections}
+                saved={data.saved}
+                updated={data.updated}
+                showUpdated={item?.updated_at !== item?.created_at}
+              />
 
               <Separator />
 
@@ -590,8 +265,7 @@ export function BookmarkMenu({
                 <Combobox
                   items={collectionItems}
                   value={
-                    collectionItems.find((item) => item.value === currentValues.collectionId) ??
-                    null
+                    collectionItems.find((ci) => ci.value === currentValues.collectionId) ?? null
                   }
                   onValueChange={(val) =>
                     form.setValue("collectionId", val?.value ?? null, {shouldDirty: true})
@@ -612,9 +286,9 @@ export function BookmarkMenu({
                     </div>
                     <ComboboxEmpty>No collections found.</ComboboxEmpty>
                     <ComboboxList>
-                      {(item) => (
-                        <ComboboxItem key={item.value} value={item}>
-                          {item.label}
+                      {(ci) => (
+                        <ComboboxItem key={ci.value} value={ci}>
+                          {ci.label}
                         </ComboboxItem>
                       )}
                     </ComboboxList>
@@ -662,67 +336,15 @@ export function BookmarkMenu({
         </SheetContent>
       </Sheet>
 
-      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogPopup className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Change Preview Image</DialogTitle>
-            <DialogDescription>
-              Choose which image to use as the bookmark preview.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-4 px-6 pb-6">
-            {/* OG Image option */}
-            <button
-              type="button"
-              onClick={() => setSelectedPreview("og")}
-              className={cn(
-                "group/preview border-border relative cursor-pointer overflow-hidden rounded-lg border transition-all duration-200",
-                selectedPreview === "og"
-                  ? "border-primary"
-                  : "border-transparent opacity-50 hover:opacity-75",
-              )}>
-              <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-md">
-                <Image src={ogImageUrl} alt="OG Image" fill className="object-cover" unoptimized />
-              </div>
-              <div className="text-foreground/90 my-3 text-center text-sm font-medium">
-                OG Image
-              </div>
-            </button>
-
-            {/* Preview Image option */}
-            <button
-              type="button"
-              onClick={() => setSelectedPreview("preview")}
-              className={cn(
-                "group/preview border-border relative cursor-pointer overflow-hidden rounded-lg border transition-all duration-200",
-                selectedPreview === "preview"
-                  ? "border-primary"
-                  : "border-transparent opacity-50 hover:opacity-75",
-              )}>
-              <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-md">
-                <Image
-                  src={previewImageUrl}
-                  alt="Preview Image"
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </div>
-              <div className="text-foreground/90 my-3 text-center text-sm font-medium">
-                Screenshot
-              </div>
-            </button>
-          </div>
-
-          <DialogFooter variant="default">
-            <DialogClose render={<ShadcnButton variant="ghost" />}>Cancel</DialogClose>
-            <Button variant="default" onClick={handleSavePreview}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogPopup>
-      </Dialog>
+      <BookmarkPreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        ogImageUrl={ogImageUrl}
+        previewImageUrl={previewImageUrl}
+        selectedPreview={selectedPreview}
+        onSelectPreview={setSelectedPreview}
+        onSave={handleSavePreview}
+      />
     </>
   );
 }

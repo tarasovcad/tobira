@@ -1,8 +1,10 @@
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
 import type {Bookmark} from "@/components/bookmark/Bookmark";
-import type {BookmarkRowWithJoins} from "../_types";
+import type {BookmarkRowWithJoins, TagsWithCountsRow} from "../_types";
 import {PAGE_SIZE} from "../_constants";
 import type {SupabaseClient} from "@supabase/supabase-js";
+
+export type TagWithCount = {id: string; name: string; count: number};
 
 export async function getInitialBookmarks({
   userId,
@@ -50,7 +52,7 @@ export async function getInitialBookmarks({
     {data: tagsData, error: tagsError},
   ] = await Promise.all([bookmarksPromise, tagsPromise]);
 
-  const rows = (bookmarkRows ?? []) as unknown as BookmarkRowWithJoins[];
+  const rows = (bookmarkRows ?? []) as BookmarkRowWithJoins[];
 
   const initialBookmarks: Bookmark[] = rows.map(
     ({bookmark_tags, bookmark_collections, ...row}) => ({
@@ -60,11 +62,17 @@ export async function getInitialBookmarks({
     }),
   );
 
+  const tags: TagWithCount[] = ((tagsData ?? []) as TagsWithCountsRow[]).map((t) => ({
+    id: t.id,
+    name: t.name,
+    count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
+  }));
+
   return {
     initialBookmarks,
     totalCount,
     bookmarksError,
-    tagsData,
+    tags,
     tagsError,
   };
 }

@@ -1,5 +1,6 @@
 import type {BookmarkTagJoinRow} from "@/lib/bookmark-tags";
 import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {SortMode, TypeFilter} from "../_components/AllItemsToolbar";
 
 export type SearchParams = {
   tag?: string;
@@ -17,3 +18,13 @@ export type TagsWithCountsRow = {
   name: string;
   count: number | string | null;
 };
+
+export interface UseBookmarksQueryProps {
+  userId: string | null;
+  initialBookmarks: Bookmark[];
+  totalCount: number;
+  sort: SortMode;
+  tagFilter: string | null;
+  collectionFilter: string | null;
+  typeFilter: TypeFilter;
+}
