@@ -8,14 +8,32 @@ export async function extractXMedia(url: string) {
       const postId = pathParts[statusIndex + 1];
       const apiUrl = `https://api.vxtwitter.com/Twitter/status/${postId}`;
 
-      const res = await fetch(apiUrl);
+      const res = await fetch(apiUrl, {cache: "no-store"});
       if (!res.ok) {
         throw new Error(`Failed to fetch from vxtwitter API: ${res.statusText}`);
       }
 
-      const data = await res.json();
-      console.log("X Media Extraction:", JSON.stringify(data, null, 2));
-      return data;
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Vxtwitter API returned non-JSON response:", text.substring(0, 500));
+        throw new Error(
+          "Failed to parse JSON from vxtwitter API. It might be returning an HTML page (e.g., Cloudflare challenge).",
+        );
+      }
+
+      const filteredData = {
+        date: data.date,
+        hasMedia: data.hasMedia,
+        mediaURLs: data.mediaURLs,
+        text: data.text,
+        user_name: data.user_name,
+        user_screen_name: data.user_screen_name,
+      };
+
+      return filteredData;
     } else {
       throw new Error("Invalid X/Twitter URL structure");
     }

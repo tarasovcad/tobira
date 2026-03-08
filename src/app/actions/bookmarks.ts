@@ -16,7 +16,7 @@ import {extractXMedia} from "@/lib/media-fetch";
 import {headers} from "next/headers";
 import {Client} from "@upstash/qstash";
 import {randomUUID} from "crypto";
-import {createClient as createSupabaseClient} from "@supabase/supabase-js";
+import {createClient as createSupabaseClient, type SupabaseClient} from "@supabase/supabase-js";
 export type AddWebsiteBookmarkResult = {
   ok: true;
   url: string;
@@ -196,6 +196,68 @@ export async function addWebsiteBookmark(input: {
   return {ok: true, url: normalized.toString()};
 }
 
+async function processAndUploadMediaImage(
+  mediaUrl: string,
+  originalUrl: string,
+  bookmarkId: string,
+  serviceRoleSupabase: SupabaseClient,
+): Promise<string> {
+  if (mediaUrl === originalUrl) {
+    return mediaUrl;
+  }
+
+  try {
+    const imageRes = await fetch(mediaUrl);
+    if (!imageRes.ok) return mediaUrl;
+
+    const imageBuffer = await imageRes.arrayBuffer();
+    const contentType = imageRes.headers.get("content-type") || "image/jpeg";
+    const extension = contentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+    const filePath = `${bookmarkId}/media.${extension}`;
+
+    const {error: uploadError} = await serviceRoleSupabase.storage
+      .from("bookmark-media")
+      .upload(filePath, imageBuffer, {
+        contentType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Failed to upload to Supabase storage:", uploadError);
+      return mediaUrl;
+    }
+
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-media/${filePath}`;
+  } catch (err) {
+    console.error("Failed to fetch image for storage:", err);
+    return mediaUrl;
+  }
+}
+
+async function attachBookmarkTags(
+  supabase: SupabaseClient,
+  bookmarkId: string,
+  userId: string,
+  tags?: string[],
+) {
+  const tagNames = (tags ?? [])
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"}));
+
+  if (tagNames.length === 0) return;
+
+  const {error} = await supabase.rpc("attach_tags_to_bookmark", {
+    p_bookmark_id: bookmarkId,
+    p_user_id: userId,
+    p_tag_names: tagNames,
+  });
+
+  if (error) {
+    console.error("Failed to attach tags to bookmark:", error);
+  }
+}
+
 export async function addMediaBookmark(input: {
   url: string;
   tags?: string[];
@@ -207,13 +269,8 @@ export async function addMediaBookmark(input: {
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
-
-  if (input.kind !== "media") {
-    throw new Error("Invalid kind");
-  }
+  if (!session) throw new Error("Unauthorized");
+  if (input.kind !== "media") throw new Error("Invalid kind");
 
   let normalized: URL;
   try {
@@ -231,136 +288,95 @@ export async function addMediaBookmark(input: {
     throw new Error("Domain not supported for media bookmarks");
   }
 
-  let media: string[] = [];
-  let extractedData: {
-    text?: string;
-    mediaURLs?: string[];
-    media_extended?: {url: string}[];
-    [key: string]: unknown;
-  } | null = null;
+  const isXDomain = ["x.com", "twitter.com", "www.x.com", "www.twitter.com"].includes(hostname);
 
-  if (
-    hostname === "x.com" ||
-    hostname === "twitter.com" ||
-    hostname === "www.x.com" ||
-    hostname === "www.twitter.com"
-  ) {
-    extractedData = await extractXMedia(normalized.toString());
-    if (extractedData && extractedData.mediaURLs && Array.isArray(extractedData.mediaURLs)) {
-      media = extractedData.mediaURLs;
-    } else if (
-      extractedData &&
-      extractedData.media_extended &&
-      Array.isArray(extractedData.media_extended)
-    ) {
-      media = extractedData.media_extended.map((m: {url: string}) => m.url);
-    }
+  if (!isXDomain) {
+    throw new Error("Only X (Twitter) URLs are currently supported for media bookmarks.");
   }
 
-  // If user hasn't selected media yet, and there are multiple options, return them to prompt user
-  if (!input.selectedMediaUrls && media.length > 1) {
-    return {ok: true, url: input.url, media};
+  let mediaUrls: string[] = [];
+
+  const extractedMetadata = await extractXMedia(normalized.toString());
+
+  if (extractedMetadata?.hasMedia === false) {
+    throw new Error("This post has no media. Please save it as a Website bookmark instead.");
   }
 
-  const urlsToCreate =
-    input.selectedMediaUrls && input.selectedMediaUrls.length > 0
-      ? input.selectedMediaUrls
-      : media.length > 0
-        ? media
-        : [input.url];
+  if (Array.isArray(extractedMetadata?.mediaURLs)) {
+    mediaUrls = extractedMetadata.mediaURLs;
+  }
+
+  // Prompt user if multiple media options exist and none selected
+  if (!input.selectedMediaUrls && mediaUrls.length > 1) {
+    return {ok: true, url: input.url, media: mediaUrls};
+  }
+
+  const urlsToCreate = input.selectedMediaUrls?.length
+    ? input.selectedMediaUrls
+    : mediaUrls.length > 0
+      ? mediaUrls
+      : [input.url];
 
   const supabase = await createClient();
-
-  // Create a service role client to bypass RLS for storage uploads
-
   const serviceRoleSupabase = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  for (const mediaUrl of urlsToCreate) {
-    const bookmarkId = randomUUID();
+  const processedItems = await Promise.all(
+    urlsToCreate.map(async (mediaUrl) => {
+      const bookmarkId = randomUUID();
+      const previewImage = await processAndUploadMediaImage(
+        mediaUrl,
+        input.url,
+        bookmarkId,
+        serviceRoleSupabase,
+      );
+      return {bookmarkId, previewImage};
+    }),
+  );
 
-    let finalPreviewImage = mediaUrl;
-    try {
-      if (mediaUrl !== input.url) {
-        const imageRes = await fetch(mediaUrl);
-        if (imageRes.ok) {
-          const imageBuffer = await imageRes.arrayBuffer();
-          const contentType = imageRes.headers.get("content-type") || "image/jpeg";
-          let extension = contentType.split("/")[1] || "jpg";
+  const bookmarksToInsert = processedItems.map(({bookmarkId, previewImage}) => ({
+    id: bookmarkId,
+    url: normalized.toString(),
+    title: extractedMetadata?.text || null,
+    user_id: session.user.id,
+    kind: "media",
+    preview_image: previewImage,
+    metadata: extractedMetadata || null,
+  }));
 
-          if (extension === "jpeg") extension = "jpg";
-          // keep png, gif, webp as they are
+  const {error: insertError} = await supabase.from("bookmarks").insert(bookmarksToInsert);
 
-          const filePath = `${bookmarkId}/media.${extension}`;
+  if (insertError) {
+    console.error("Error creating media bookmarks:", insertError);
+    throw insertError;
+  }
 
-          const {error: uploadError} = await serviceRoleSupabase.storage
-            .from("bookmark-media")
-            .upload(filePath, imageBuffer, {
-              contentType,
-              upsert: true,
-            });
+  if (input.collectionId) {
+    const collectionsToInsert = processedItems.map(({bookmarkId}) => ({
+      bookmark_id: bookmarkId,
+      collection_id: input.collectionId,
+    }));
 
-          if (!uploadError) {
-            finalPreviewImage = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-media/${filePath}`;
-          } else {
-            console.error("Failed to upload to Supabase storage:", uploadError);
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch image for storage:", err);
-    }
+    const {error: collectionError} = await supabase
+      .from("bookmark_collections")
+      .insert(collectionsToInsert);
 
-    const {data, error} = await supabase
-      .from("bookmarks")
-      .insert({
-        id: bookmarkId,
-        url: normalized.toString(),
-        title: extractedData?.text || null,
-        user_id: session.user.id,
-        kind: "media",
-        preview_image: finalPreviewImage,
-        metadata: extractedData || null,
-      })
-      .select("id")
-      .single();
-
-    if (error) {
-      console.error("Error creating media bookmark:", error);
-      throw error;
-    }
-
-    // attach tags
-    const tagNames = (input.tags ?? [])
-      .map((t) => t.trim())
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"}));
-    if (tagNames.length > 0) {
-      const {error: tagsError} = await supabase.rpc("attach_tags_to_bookmark", {
-        p_bookmark_id: data.id,
-        p_user_id: session.user.id,
-        p_tag_names: tagNames,
-      });
-      if (tagsError) {
-        console.error("Failed to attach tags to bookmark:", tagsError);
-      }
-    }
-
-    // attach to collection if provided
-    if (input.collectionId) {
-      const {error: collectionError} = await supabase.from("bookmark_collections").insert({
-        bookmark_id: data.id,
-        collection_id: input.collectionId,
-      });
-      if (collectionError) {
-        console.error("Failed to attach bookmark to collection:", collectionError);
-      }
+    if (collectionError) {
+      console.error("Failed to attach bookmarks to collection:", collectionError);
     }
   }
 
-  return {ok: true, url: input.url, media};
+  if (input.tags && input.tags.length > 0) {
+    await Promise.all(
+      processedItems.map(({bookmarkId}) =>
+        attachBookmarkTags(supabase, bookmarkId, session.user.id, input.tags),
+      ),
+    );
+  }
+
+  return {ok: true, url: input.url, media: mediaUrls};
 }
 
 export async function updateBookmark(
