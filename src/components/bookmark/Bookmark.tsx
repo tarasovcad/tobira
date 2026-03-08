@@ -6,6 +6,7 @@ import {formatDateAbsolute} from "@/lib/formatDate";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
+import {useMediaLayoutStore} from "@/store/use-media-layout";
 
 export type Bookmark = {
   id: string;
@@ -363,6 +364,100 @@ export const GridCard = ({
           <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
         </div>
       </div>
+    </Link>
+  );
+};
+
+export const MediaCard = ({
+  item,
+  onOpenMenu,
+  onDelete,
+  selectionMode,
+  selectionIndex = 0,
+  selectedIds,
+  setSelected,
+}: {
+  item: Bookmark;
+  onOpenMenu?: (item: Bookmark) => void;
+  onDelete?: (item: Bookmark) => void;
+  selectionMode?: boolean;
+  selectionIndex?: number;
+  selectedIds?: Set<string>;
+  setSelected?: (id: string, checked: boolean) => void;
+}) => {
+  const {borderRadius, gapSize} = useMediaLayoutStore();
+  const radiusClass =
+    borderRadius === "sharp"
+      ? "rounded-none"
+      : borderRadius === "pill"
+        ? "rounded-2xl"
+        : "rounded-md";
+
+  return (
+    <Link
+      href={item.url}
+      target="_blank"
+      className={cn(
+        "group bg-background relative block w-full cursor-pointer overflow-hidden text-left",
+        gapSize !== "none" && "border",
+        "hover:bg-muted/80",
+        "focus-visible:bg-muted! focus-visible:outline-none",
+        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        radiusClass,
+      )}>
+      {!selectionMode && (
+        <BookmarkHoverActions
+          onOptions={() => {
+            onOpenMenu?.(item);
+          }}
+          onDelete={() => {
+            onDelete?.(item);
+          }}
+        />
+      )}
+
+      <div
+        className={cn(
+          "absolute top-2 left-2 z-20",
+          selectionMode ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0",
+        )}
+        style={{
+          transitionDelay: selectionMode ? `${Math.min(selectionIndex * 15, 120)}ms` : "0ms",
+        }}>
+        <Checkbox
+          checked={selectedIds?.has(item.id)}
+          onCheckedChange={(next) => setSelected?.(item.id, next === true)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Select ${item.title}`}
+        />
+      </div>
+
+      <BookmarkImage
+        bookmark_id={item.id}
+        item={item}
+        type="preview"
+        width={1200}
+        height={1200}
+        imageClassName="w-full h-auto object-cover"
+      />
+
+      {/* <div className="p-3">
+        <div className="text-foreground line-clamp-2 text-[14px] font-medium leading-tight">
+          {item.title}
+        </div>
+        <div className="text-muted-foreground mt-1 flex items-center gap-2 text-[12px]">
+          <div className="relative size-4 overflow-hidden rounded-full border">
+             <BookmarkImage
+               bookmark_id={item.id}
+               item={item}
+               type="favicon"
+               fill={true}
+               imageClassName="object-cover"
+             />
+          </div>
+          <span className="truncate">{item.url ? (() => { try { return new URL(item.url).hostname } catch(e) { return item.url } })() : "Unknown"}</span>
+        </div>
+      </div> */}
     </Link>
   );
 };

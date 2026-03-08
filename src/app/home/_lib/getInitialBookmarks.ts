@@ -31,7 +31,8 @@ export async function getInitialBookmarks({
     .select(bookmarksSelect as "*", {count: "exact"})
     .eq("user_id", userId)
     .is("archived_at", null)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .eq("kind", "website");
 
   if (tagFilter) {
     bookmarksQuery = bookmarksQuery.eq("bookmark_tags.tags.name", tagFilter);

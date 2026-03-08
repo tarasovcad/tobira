@@ -86,6 +86,7 @@ export function AnimatedItem({
   onRemoved,
   variant,
   kind = "delete",
+  className,
   children,
 }: {
   id: string;
@@ -93,6 +94,7 @@ export function AnimatedItem({
   onRemoved: (id: string) => void;
   variant: "list" | "grid";
   kind?: RemovalKind;
+  className?: string;
   children: React.ReactNode;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -156,7 +158,7 @@ export function AnimatedItem({
   const contentStyle = phase === "flash" ? styles.flash : isExiting ? styles.exit : undefined;
 
   return (
-    <div ref={ref} style={phase === "collapse" ? COLLAPSE_STYLE : undefined}>
+    <div ref={ref} className={className} style={phase === "collapse" ? COLLAPSE_STYLE : undefined}>
       <div style={contentStyle}>{children}</div>
     </div>
   );

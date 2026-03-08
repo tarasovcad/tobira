@@ -24,6 +24,7 @@ import {toastManager} from "@/components/coss-ui/toast";
 
 import type {ViewMode, TypeFilter, SortMode} from "./AllItemsToolbar";
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
+import {MediaLayoutMenu} from "./MediaLayoutMenu";
 
 /**
  * Main client component for the All Items / Home page.
@@ -45,7 +46,7 @@ export function HomeClient({
 
   // ── View & filter state ──
   const [view, setView] = useState<ViewMode>("list");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("website");
   const [sort, setSort] = useState<SortMode>("recent");
 
   // ── Query Hook ──
@@ -232,7 +233,11 @@ export function HomeClient({
                 </svg>
               </button>
             </div>
-            <ViewToggle value={view} onChange={setView} />
+            {typeFilter !== "media" ? (
+              <ViewToggle value={view} onChange={setView} />
+            ) : (
+              <MediaLayoutMenu />
+            )}
           </div>
         </div>
       </div>
@@ -278,6 +283,7 @@ export function HomeClient({
       {/* Scrollable content area */}
       <AllItemsList
         view={view}
+        typeFilter={typeFilter}
         visibleItems={visibleItems}
         animatingUrl={animatingUrl}
         resolvedBookmark={resolvedBookmark}

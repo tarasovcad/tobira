@@ -51,7 +51,7 @@ export function useBookmarksQuery({
 }: UseBookmarksQueryProps) {
   // Check if we can use the server-rendered initial data to avoid a double fetch
   const isDefaultView =
-    sort === "recent" && !tagFilter && !collectionFilter && typeFilter === "all";
+    sort === "recent" && !tagFilter && !collectionFilter && typeFilter === "website";
 
   const bookmarksQuery = useInfiniteQuery({
     queryKey: [
@@ -96,9 +96,7 @@ export function useBookmarksQuery({
         q = q.eq("bookmark_collections.collection_id", collectionFilter);
       }
 
-      if (typeFilter !== "all") {
-        q = q.eq("kind", typeFilter);
-      }
+      q = q.eq("kind", typeFilter);
 
       // Handle sorting
       switch (sort) {

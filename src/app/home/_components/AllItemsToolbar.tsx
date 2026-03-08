@@ -4,13 +4,11 @@ import {cn} from "@/lib/utils";
 import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
 
 export type ViewMode = "grid" | "list";
-export type TypeFilter = "all" | "website" | "media";
+export type TypeFilter = "website" | "media";
 export type SortMode = "recent" | "oldest" | "az";
 
 function getTypeLabel(value: TypeFilter) {
   switch (value) {
-    case "all":
-      return "All Types";
     case "website":
       return "Websites";
     case "media":
@@ -134,12 +132,11 @@ export function TypeSelect({
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as TypeFilter)}>
-      <SelectTrigger aria-label="All Types" size="sm" className="min-w-36 rounded-md">
-        <span className="text-muted-foreground sr-only">All Types</span>
+      <SelectTrigger aria-label="Filter by type" size="sm" className="min-w-36 rounded-md">
+        <span className="text-muted-foreground sr-only">Filter by type</span>
         <span className="flex-1 truncate">{getTypeLabel(value)}</span>
       </SelectTrigger>
       <SelectPopup>
-        <SelectItem value="all">All Types</SelectItem>
         <SelectItem value="website">Websites</SelectItem>
         <SelectItem value="media">Media</SelectItem>
       </SelectPopup>
