@@ -55,11 +55,53 @@ function TooltipPopup({
   );
 }
 
+function TooltipPopupBlur({
+  className,
+  align = "center",
+  sideOffset = 4,
+  side = "top",
+  anchor,
+  children,
+  ...props
+}: TooltipPrimitive.Popup.Props & {
+  align?: TooltipPrimitive.Positioner.Props["align"];
+  side?: TooltipPrimitive.Positioner.Props["side"];
+  sideOffset?: TooltipPrimitive.Positioner.Props["sideOffset"];
+  anchor?: TooltipPrimitive.Positioner.Props["anchor"];
+}) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Positioner
+        align={align}
+        anchor={anchor}
+        className="z-50 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom,transform] data-instant:transition-none"
+        data-slot="tooltip-positioner"
+        side={side}
+        sideOffset={sideOffset}>
+        <TooltipPrimitive.Popup
+          className={cn(
+            "relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) items-center rounded-lg border border-white/20 bg-black/30 text-[13px] font-medium text-white shadow-2xl backdrop-blur-2xl transition-[width,height,scale,opacity] data-ending-style:scale-95 data-ending-style:opacity-0 data-instant:duration-0 data-starting-style:scale-95 data-starting-style:opacity-0 dark:border-white/10 dark:bg-white/10",
+            className,
+          )}
+          data-slot="tooltip-popup"
+          {...props}>
+          <TooltipPrimitive.Viewport
+            className="relative flex size-full items-center gap-2 overflow-clip px-(--viewport-inline-padding) py-1 [--viewport-inline-padding:--spacing(2)] **:data-current:w-[calc(var(--popup-width)-2*var(--viewport-inline-padding)-2px)] **:data-current:opacity-100 **:data-current:transition-opacity **:data-current:data-ending-style:opacity-0 data-instant:transition-none **:data-previous:w-[calc(var(--popup-width)-2*var(--viewport-inline-padding)-2px)] **:data-previous:truncate **:data-previous:opacity-100 **:data-previous:transition-opacity **:data-previous:data-ending-style:opacity-0 **:data-current:data-starting-style:opacity-0 **:data-previous:data-starting-style:opacity-0"
+            data-slot="tooltip-viewport">
+            {children}
+          </TooltipPrimitive.Viewport>
+        </TooltipPrimitive.Popup>
+      </TooltipPrimitive.Positioner>
+    </TooltipPrimitive.Portal>
+  );
+}
+
 export {
   TooltipCreateHandle,
   TooltipProvider,
   Tooltip,
   TooltipTrigger,
   TooltipPopup,
+  TooltipPopupBlur,
   TooltipPopup as TooltipContent,
 };

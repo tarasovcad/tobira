@@ -7,6 +7,7 @@ import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {useMediaLayoutStore} from "@/store/use-media-layout";
+import {CustomVideoPlayer} from "../ui/CustomVideoPlayer";
 
 export type Bookmark = {
   id: string;
@@ -145,6 +146,9 @@ const BookmarkImage = ({
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
+  const isVideo =
+    BASE_SRC.toLowerCase().endsWith(".mp4") || BASE_SRC.toLowerCase().endsWith(".mov");
+
   // If the image 404s (still uploading), retry with a cache-busting query param.
   useEffect(() => {
     if (status !== "error") return;
@@ -184,17 +188,36 @@ const BookmarkImage = ({
       ) : null}
 
       {/* Cache-busted favicon attempts. Keep hidden until loaded to avoid alt text flashes. */}
-      <Image
-        src={`${BASE_SRC}?v=${attempt}`}
-        alt={`${bookmark_id} ${type}`}
-        width={fill ? undefined : width}
-        height={fill ? undefined : height}
-        fill={fill}
-        className={cn(status === "loaded" ? "opacity-100" : "opacity-0", imageClassName)}
-        unoptimized
-        onLoad={() => setStatus("loaded")}
-        onError={() => setStatus("error")}
-      />
+      {isVideo ? (
+        <div
+          className={cn(
+            fill ? "absolute inset-0" : "relative h-full w-full",
+            status === "loaded" ? "opacity-100" : "opacity-0",
+          )}>
+          <CustomVideoPlayer
+            src={`${BASE_SRC}?v=${attempt}`}
+            className={cn("h-full w-full object-cover", imageClassName)}
+            style={{width: "100%", height: "100%", objectFit: "cover"}}
+            onCanPlay={() => setStatus("loaded")}
+            onError={() => setStatus("error")}
+            loop
+            autoPlay
+            muted
+          />
+        </div>
+      ) : (
+        <Image
+          src={`${BASE_SRC}?v=${attempt}`}
+          alt={`${bookmark_id} ${type}`}
+          width={fill ? undefined : width}
+          height={fill ? undefined : height}
+          fill={fill}
+          className={cn(status === "loaded" ? "opacity-100" : "opacity-0", imageClassName)}
+          unoptimized
+          onLoad={() => setStatus("loaded")}
+          onError={() => setStatus("error")}
+        />
+      )}
     </div>
   );
 };
@@ -394,9 +417,7 @@ export const MediaCard = ({
         : "rounded-md";
 
   return (
-    <Link
-      href={item.url}
-      target="_blank"
+    <div
       className={cn(
         "group bg-background relative block w-full cursor-pointer overflow-hidden text-left",
         gapSize !== "none" && "border",
@@ -458,6 +479,6 @@ export const MediaCard = ({
           <span className="truncate">{item.url ? (() => { try { return new URL(item.url).hostname } catch(e) { return item.url } })() : "Unknown"}</span>
         </div>
       </div> */}
-    </Link>
+    </div>
   );
 };

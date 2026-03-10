@@ -198,21 +198,43 @@ export async function addWebsiteBookmark(input: {
 
 async function processAndUploadMediaImage(
   mediaUrl: string,
-  originalUrl: string,
   bookmarkId: string,
   serviceRoleSupabase: SupabaseClient,
 ): Promise<string> {
-  if (mediaUrl === originalUrl) {
-    return mediaUrl;
-  }
-
   try {
+    const isMp4 = mediaUrl.endsWith(".mp4") || mediaUrl.includes(".mp4?");
+    const isMov = mediaUrl.endsWith(".mov") || mediaUrl.includes(".mov?");
+    const isVideo = isMp4 || isMov;
+
     const imageRes = await fetch(mediaUrl);
     if (!imageRes.ok) return mediaUrl;
 
     const imageBuffer = await imageRes.arrayBuffer();
-    const contentType = imageRes.headers.get("content-type") || "image/jpeg";
-    const extension = contentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+
+    let fallbackContentType = "image/jpeg";
+    let fallbackExtension = "jpg";
+
+    if (isMp4) {
+      fallbackContentType = "video/mp4";
+      fallbackExtension = "mp4";
+    } else if (isMov) {
+      fallbackContentType = "video/quicktime";
+      fallbackExtension = "mov";
+    }
+
+    const contentType = imageRes.headers.get("content-type") || fallbackContentType;
+    let extension = contentType.split("/")[1]?.replace("jpeg", "jpg") || fallbackExtension;
+
+    // Handle cases where content-type is weird or missing but it's clearly a video
+    if (
+      isVideo &&
+      !extension.includes("mp4") &&
+      !extension.includes("quicktime") &&
+      !extension.includes("mov")
+    ) {
+      extension = fallbackExtension;
+    }
+
     const filePath = `${bookmarkId}/media.${extension}`;
 
     const {error: uploadError} = await serviceRoleSupabase.storage
@@ -229,7 +251,7 @@ async function processAndUploadMediaImage(
 
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-media/${filePath}`;
   } catch (err) {
-    console.error("Failed to fetch image for storage:", err);
+    console.error("Failed to fetch media for storage:", err);
     return mediaUrl;
   }
 }
@@ -311,11 +333,7 @@ export async function addMediaBookmark(input: {
     return {ok: true, url: input.url, media: mediaUrls};
   }
 
-  const urlsToCreate = input.selectedMediaUrls?.length
-    ? input.selectedMediaUrls
-    : mediaUrls.length > 0
-      ? mediaUrls
-      : [input.url];
+  const urlsToCreate = input.selectedMediaUrls?.length ? input.selectedMediaUrls : mediaUrls;
 
   const supabase = await createClient();
   const serviceRoleSupabase = createSupabaseClient(
@@ -328,7 +346,6 @@ export async function addMediaBookmark(input: {
       const bookmarkId = randomUUID();
       const previewImage = await processAndUploadMediaImage(
         mediaUrl,
-        input.url,
         bookmarkId,
         serviceRoleSupabase,
       );
