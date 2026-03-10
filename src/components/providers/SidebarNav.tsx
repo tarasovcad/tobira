@@ -63,7 +63,7 @@ export const NAV_ITEMS = [
       </svg>
     ),
     label: "All Items",
-    href: "/all",
+    href: "/home",
   },
   {
     icon: (
