@@ -43,10 +43,13 @@ export function HomeClient({
   const router = useRouter();
   const tagFilter = normalizeTagParam(searchParams.get("tag") ?? searchParams.get("tab"));
   const collectionFilter = searchParams.get("collection");
+  const initialTypeFilter = (
+    searchParams.get("type") === "media" ? "media" : "website"
+  ) as TypeFilter;
 
   // ── View & filter state ──
   const [view, setView] = useState<ViewMode>("list");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("website");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(initialTypeFilter);
   const [sort, setSort] = useState<SortMode>("recent");
 
   // ── Query Hook ──

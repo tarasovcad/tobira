@@ -200,6 +200,7 @@ async function processAndUploadMediaImage(
   mediaUrl: string,
   bookmarkId: string,
   serviceRoleSupabase: SupabaseClient,
+  filenamePrefix: string = "media",
 ): Promise<string> {
   try {
     const isMp4 = mediaUrl.endsWith(".mp4") || mediaUrl.includes(".mp4?");
@@ -235,7 +236,7 @@ async function processAndUploadMediaImage(
       extension = fallbackExtension;
     }
 
-    const filePath = `${bookmarkId}/media.${extension}`;
+    const filePath = `${bookmarkId}/${filenamePrefix}.${extension}`;
 
     const {error: uploadError} = await serviceRoleSupabase.storage
       .from("bookmark-media")
@@ -349,19 +350,52 @@ export async function addMediaBookmark(input: {
         bookmarkId,
         serviceRoleSupabase,
       );
-      return {bookmarkId, previewImage};
+
+      let uploadedThumbnailUrl = null;
+      let mediaInfo = null;
+
+      if (extractedMetadata?.media_extended) {
+        mediaInfo = extractedMetadata.media_extended.find((m: {url: string}) => m.url === mediaUrl);
+        if (mediaInfo?.thumbnail_url) {
+          uploadedThumbnailUrl = await processAndUploadMediaImage(
+            mediaInfo.thumbnail_url,
+            bookmarkId,
+            serviceRoleSupabase,
+            "placeholder",
+          );
+        }
+      }
+
+      return {bookmarkId, previewImage, mediaUrl, mediaInfo, uploadedThumbnailUrl};
     }),
   );
 
-  const bookmarksToInsert = processedItems.map(({bookmarkId, previewImage}) => ({
-    id: bookmarkId,
-    url: normalized.toString(),
-    title: extractedMetadata?.text || null,
-    user_id: session.user.id,
-    kind: "media",
-    preview_image: previewImage,
-    metadata: extractedMetadata || null,
-  }));
+  const bookmarksToInsert = processedItems.map(
+    ({bookmarkId, previewImage, mediaInfo, uploadedThumbnailUrl}) => {
+      let metadataToSave = null;
+
+      if (extractedMetadata) {
+        const {media_extended: _media_extended, ...restMetadata} = extractedMetadata;
+
+        metadataToSave = {
+          ...restMetadata,
+          width: mediaInfo?.size?.width || null,
+          height: mediaInfo?.size?.height || null,
+          thumbnail_url: uploadedThumbnailUrl || mediaInfo?.thumbnail_url || null,
+        };
+      }
+
+      return {
+        id: bookmarkId,
+        url: normalized.toString(),
+        title: extractedMetadata?.text || null,
+        user_id: session.user.id,
+        kind: "media",
+        preview_image: previewImage,
+        metadata: metadataToSave,
+      };
+    },
+  );
 
   const {error: insertError} = await supabase.from("bookmarks").insert(bookmarksToInsert);
 

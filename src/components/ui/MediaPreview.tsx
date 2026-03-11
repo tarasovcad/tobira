@@ -24,7 +24,8 @@ export default function MediaPreview({
   onError,
   onCanPlay,
   addZoom = true,
-}: MediaPreviewProps) {
+  poster,
+}: MediaPreviewProps & {poster?: string}) {
   const {
     triggerRef,
     overlayRef,
@@ -78,6 +79,7 @@ export default function MediaPreview({
               playsInline
               onCanPlay={onCanPlay}
               onError={onError}
+              poster={poster}
             />
           </div>
         ) : (
@@ -187,6 +189,7 @@ export default function MediaPreview({
                     muted={false}
                     playsInline
                     showMainPlayIcon={true}
+                    poster={poster}
                   />
                 </div>
               ) : (

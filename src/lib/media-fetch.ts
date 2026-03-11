@@ -31,6 +31,7 @@ export async function extractXMedia(url: string) {
         text: data.text,
         user_name: data.user_name,
         user_screen_name: data.user_screen_name,
+        media_extended: data.media_extended,
       };
 
       return filteredData;

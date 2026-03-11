@@ -7,6 +7,7 @@ import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {useMediaLayoutStore} from "@/store/use-media-layout";
 import MediaPreview from "../ui/MediaPreview";
+import type {BookmarkMetadata} from "@/app/home/_types";
 
 export type Bookmark = {
   id: string;
@@ -23,6 +24,7 @@ export type Bookmark = {
   notes: string;
   tags?: string[];
   collections?: {id: string; name: string}[];
+  metadata?: BookmarkMetadata;
 };
 
 function BookmarkHoverActions({
@@ -169,7 +171,7 @@ const BookmarkImage = ({
         divClassName,
       )}>
       {status !== "loaded" ? (
-        <div className={cn("text-muted-foreground", fallbackClassName)}>
+        <div className={cn("text-muted-foreground col-start-1 row-start-1", fallbackClassName)}>
           <svg
             width="20"
             height="20"
@@ -187,7 +189,11 @@ const BookmarkImage = ({
       ) : null}
 
       {/* Cache-busted favicon attempts. Keep hidden until loaded to avoid alt text flashes. */}
-      <div className={cn(fill ? "absolute inset-0" : "relative h-full w-full")}>
+      <div
+        className={cn(
+          fill ? "absolute inset-0" : "relative h-full w-full",
+          "col-start-1 row-start-1 flex items-center justify-center",
+        )}>
         <MediaPreview
           src={`${BASE_SRC}?v=${attempt}`}
           alt={`${bookmark_id} ${type}`}
@@ -195,7 +201,9 @@ const BookmarkImage = ({
           height={height ?? 1200}
           addZoom={!isVideo}
           type={isVideo ? "video" : "image"}
+          poster={isVideo && item.metadata?.thumbnail_url ? item.metadata.thumbnail_url : undefined}
           className={cn(status === "loaded" ? "opacity-100" : "opacity-0", imageClassName)}
+          buttonClassName="flex items-center justify-center"
           unoptimized={!isVideo ? true : undefined}
           onLoad={!isVideo ? () => setStatus("loaded") : undefined}
           onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
@@ -274,11 +282,11 @@ export const ItemRow = ({
             bookmark_id={item.id}
             item={item}
             type="favicon"
-            divClassName="absolute inset-0 grid grid-cols-1 grid-rows-1 place-items-center"
-            imageClassName="col-start-1 row-start-1 h-full max-h-6 w-full max-w-6 object-cover"
-            fallbackClassName="text-muted-foreground col-start-1 row-start-1"
-            height={24}
-            width={24}
+            divClassName="absolute inset-0"
+            imageClassName="h-5 w-5 object-contain"
+            fallbackClassName=""
+            height={20}
+            width={20}
           />
         </div>
       </div>

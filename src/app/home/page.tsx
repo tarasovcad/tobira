@@ -23,10 +23,11 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const userId = data.user.id;
   const tagFilter = normalizeTagParam(searchParams?.tag ?? searchParams?.tab);
   const collectionFilter = searchParams?.collection ?? null;
+  const typeFilter = searchParams?.type === "media" ? "media" : "website";
   const supabase = await createClient();
 
   const [bookmarksResult, collections] = await Promise.all([
-    getInitialBookmarks({userId, tagFilter, collectionFilter, supabase}),
+    getInitialBookmarks({userId, tagFilter, collectionFilter, typeFilter, supabase}),
     getCollections(),
   ]);
 

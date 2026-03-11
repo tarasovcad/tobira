@@ -10,11 +10,13 @@ export async function getInitialBookmarks({
   userId,
   tagFilter,
   collectionFilter,
+  typeFilter = "website",
   supabase,
 }: {
   userId: string;
   tagFilter: string | null;
   collectionFilter: string | null;
+  typeFilter?: "website" | "media";
   supabase: SupabaseClient;
 }) {
   // When filtering by tag or collection we use an inner join so only matching bookmarks are returned.
@@ -32,7 +34,7 @@ export async function getInitialBookmarks({
     .eq("user_id", userId)
     .is("archived_at", null)
     .is("deleted_at", null)
-    .eq("kind", "website");
+    .eq("kind", typeFilter);
 
   if (tagFilter) {
     bookmarksQuery = bookmarksQuery.eq("bookmark_tags.tags.name", tagFilter);

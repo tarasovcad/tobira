@@ -2,10 +2,23 @@ import type {BookmarkTagJoinRow} from "@/lib/bookmark-tags";
 import type {Bookmark} from "@/components/bookmark/Bookmark";
 import type {SortMode, TypeFilter} from "../_components/AllItemsToolbar";
 
+export type BookmarkMetadata = {
+  date?: string;
+  text?: string;
+  width?: number;
+  height?: number;
+  hasMedia?: boolean;
+  mediaURLs?: string[];
+  user_name?: string;
+  thumbnail_url?: string;
+  user_screen_name?: string;
+};
+
 export type SearchParams = {
   tag?: string;
   tab?: string;
   collection?: string;
+  type?: string;
 };
 
 export type BookmarkRowWithJoins = Bookmark & {
