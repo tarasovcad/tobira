@@ -11,13 +11,13 @@ import type {Pan, PanBounds, Rect} from "./types";
 import {clampPanToBounds, clampZoom, getTargetRect} from "./utils";
 import {usePreviewEffects} from "./usePreviewEffects";
 
-type UseImagePreviewParams = {
+type UseMediaPreviewParams = {
   width: number;
   height: number;
 };
 
-type UseImagePreviewResult = {
-  triggerRef: RefObject<HTMLButtonElement | null>;
+type UseMediaPreviewResult = {
+  triggerRef: RefObject<HTMLDivElement | null>;
   overlayRef: RefObject<HTMLDivElement | null>;
   open: boolean;
   expanded: boolean;
@@ -31,18 +31,18 @@ type UseImagePreviewResult = {
   openPreview: () => void;
   closePreview: () => void;
   handleZoomControlClick: () => void;
-  handleWheelZoom: (event: WheelEvent<HTMLImageElement>) => void;
-  handleImagePointerDown: (event: PointerEvent<HTMLImageElement>) => void;
-  handleImagePointerMove: (event: PointerEvent<HTMLImageElement>) => void;
-  handleImagePointerUp: (event: PointerEvent<HTMLImageElement>) => void;
-  handleImagePointerCancel: (event: PointerEvent<HTMLImageElement>) => void;
-  handleImageClick: () => void;
+  handleWheelZoom: (event: WheelEvent<HTMLElement>) => void;
+  handleMediaPointerDown: (event: PointerEvent<HTMLElement>) => void;
+  handleMediaPointerMove: (event: PointerEvent<HTMLElement>) => void;
+  handleMediaPointerUp: (event: PointerEvent<HTMLElement>) => void;
+  handleMediaPointerCancel: (event: PointerEvent<HTMLElement>) => void;
+  handleMediaClick: () => void;
   handleToggleFullscreen: () => Promise<void>;
 };
 
-// Encapsulates all interaction and viewport state for ImagePreview.
-export function useImagePreview({width, height}: UseImagePreviewParams): UseImagePreviewResult {
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
+// Encapsulates all interaction and viewport state for MediaPreview.
+export function useMediaPreview({width, height}: UseMediaPreviewParams): UseMediaPreviewResult {
+  const triggerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   const [open, setOpen] = useState(false);
@@ -109,12 +109,18 @@ export function useImagePreview({width, height}: UseImagePreviewParams): UseImag
     const trigger = triggerRef.current;
     if (!trigger) return;
 
-    const imageEl = trigger.querySelector("img");
-    if (!imageEl) return;
+    const mediaEl = trigger.querySelector("img, video");
+    if (!mediaEl) return;
 
-    const thumbRect = imageEl.getBoundingClientRect();
-    const naturalWidth = imageEl.naturalWidth || width;
-    const naturalHeight = imageEl.naturalHeight || height;
+    const thumbRect = mediaEl.getBoundingClientRect();
+    const naturalWidth =
+      (mediaEl as HTMLImageElement).naturalWidth ||
+      (mediaEl as HTMLVideoElement).videoWidth ||
+      width;
+    const naturalHeight =
+      (mediaEl as HTMLImageElement).naturalHeight ||
+      (mediaEl as HTMLVideoElement).videoHeight ||
+      height;
     const ratio = naturalWidth / naturalHeight;
 
     setFromRect({
@@ -161,7 +167,7 @@ export function useImagePreview({width, height}: UseImagePreviewParams): UseImag
   }, [applyZoom, zoom]);
 
   const handleWheelZoom = useCallback(
-    (event: WheelEvent<HTMLImageElement>) => {
+    (event: WheelEvent<HTMLElement>) => {
       event.preventDefault();
 
       const direction = event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
@@ -170,8 +176,8 @@ export function useImagePreview({width, height}: UseImagePreviewParams): UseImag
     [applyZoom],
   );
 
-  const handleImagePointerDown = useCallback(
-    (event: PointerEvent<HTMLImageElement>) => {
+  const handleMediaPointerDown = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
       if (zoom <= MIN_ZOOM) return;
 
       event.preventDefault();
@@ -185,8 +191,8 @@ export function useImagePreview({width, height}: UseImagePreviewParams): UseImag
     [pan, zoom],
   );
 
-  const handleImagePointerMove = useCallback(
-    (event: PointerEvent<HTMLImageElement>) => {
+  const handleMediaPointerMove = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
       if (dragPointerIdRef.current !== event.pointerId) return;
 
       const panBounds = getPanBounds();
@@ -212,21 +218,21 @@ export function useImagePreview({width, height}: UseImagePreviewParams): UseImag
     setIsDragging(false);
   }, []);
 
-  const handleImagePointerUp = useCallback(
-    (event: PointerEvent<HTMLImageElement>) => {
+  const handleMediaPointerUp = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
       stopDragging(event.pointerId);
     },
     [stopDragging],
   );
 
-  const handleImagePointerCancel = useCallback(
-    (event: PointerEvent<HTMLImageElement>) => {
+  const handleMediaPointerCancel = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
       stopDragging(event.pointerId);
     },
     [stopDragging],
   );
 
-  const handleImageClick = useCallback(() => {
+  const handleMediaClick = useCallback(() => {
     if (didDragRef.current) {
       didDragRef.current = false;
       return;
@@ -273,11 +279,11 @@ export function useImagePreview({width, height}: UseImagePreviewParams): UseImag
     closePreview,
     handleZoomControlClick,
     handleWheelZoom,
-    handleImagePointerDown,
-    handleImagePointerMove,
-    handleImagePointerUp,
-    handleImagePointerCancel,
-    handleImageClick,
+    handleMediaPointerDown,
+    handleMediaPointerMove,
+    handleMediaPointerUp,
+    handleMediaPointerCancel,
+    handleMediaClick,
     handleToggleFullscreen,
   };
 }

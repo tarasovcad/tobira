@@ -15,11 +15,18 @@ export type PanBounds = {
   height: number;
 };
 
-export type ImagePreviewProps = {
+export type MediaPreviewProps = {
   src: string;
   alt: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
   className?: string;
+  buttonClassName?: string;
   previewClassName?: string;
+  type?: "image" | "video";
+  unoptimized?: boolean;
+  onLoad?: () => void;
+  onError?: () => void;
+  onCanPlay?: () => void;
+  addZoom?: boolean;
 };

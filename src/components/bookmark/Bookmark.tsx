@@ -1,13 +1,12 @@
 "use client";
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {formatDateAbsolute} from "@/lib/formatDate";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {useMediaLayoutStore} from "@/store/use-media-layout";
-import {CustomVideoPlayer} from "../ui/CustomVideoPlayer";
+import MediaPreview from "../ui/MediaPreview";
 
 export type Bookmark = {
   id: string;
@@ -188,36 +187,21 @@ const BookmarkImage = ({
       ) : null}
 
       {/* Cache-busted favicon attempts. Keep hidden until loaded to avoid alt text flashes. */}
-      {isVideo ? (
-        <div
-          className={cn(
-            fill ? "absolute inset-0" : "relative h-full w-full",
-            status === "loaded" ? "opacity-100" : "opacity-0",
-          )}>
-          <CustomVideoPlayer
-            src={`${BASE_SRC}?v=${attempt}`}
-            className={cn("h-full w-full object-cover", imageClassName)}
-            style={{width: "100%", height: "100%", objectFit: "cover"}}
-            onCanPlay={() => setStatus("loaded")}
-            onError={() => setStatus("error")}
-            loop
-            autoPlay
-            muted
-          />
-        </div>
-      ) : (
-        <Image
+      <div className={cn(fill ? "absolute inset-0" : "relative h-full w-full")}>
+        <MediaPreview
           src={`${BASE_SRC}?v=${attempt}`}
           alt={`${bookmark_id} ${type}`}
-          width={fill ? undefined : width}
-          height={fill ? undefined : height}
-          fill={fill}
+          width={width ?? 1200}
+          height={height ?? 1200}
+          addZoom={!isVideo}
+          type={isVideo ? "video" : "image"}
           className={cn(status === "loaded" ? "opacity-100" : "opacity-0", imageClassName)}
-          unoptimized
-          onLoad={() => setStatus("loaded")}
+          unoptimized={!isVideo ? true : undefined}
+          onLoad={!isVideo ? () => setStatus("loaded") : undefined}
+          onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
           onError={() => setStatus("error")}
         />
-      )}
+      </div>
     </div>
   );
 };

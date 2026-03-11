@@ -2,7 +2,7 @@ import AppShell from "@/components/providers/AppShell";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
 import React from "react";
-import ImagePreview from "@/components/ui/ImagePreview";
+import MediaPreview from "@/components/ui/MediaPreview";
 
 const page = async () => {
   const data = await auth.api.getSession({
@@ -12,7 +12,7 @@ const page = async () => {
     <AppShell session={data}>
       <div className="relative mx-auto max-w-4xl pt-10">
         {/* <CustomVideoPlayer src="/media.mp4" className="w-full" autoPlay muted loop /> */}
-        <ImagePreview
+        <MediaPreview
           src="https://jvnaqdowfvgjeiiynebq.supabase.co/storage/v1/object/public/bookmark-media/3245dfb7-e7f4-4ddd-bafd-3e89419e0592/media.jpg"
           alt="Media"
           width={1000}
