@@ -7,7 +7,7 @@ import {Bookmark, GridCard, ItemRow, MediaCard} from "@/components/bookmark/Book
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
 import {NewBookmarkRow, NewBookmarkGridCard} from "./NewBookmarkPlaceholder";
 import type {ViewMode, TypeFilter} from "./AllItemsToolbar";
-import {RowSkeleton, GridSkeleton} from "./ListSkeletons";
+import {RowSkeleton, GridSkeleton, MediaSkeleton} from "./ListSkeletons";
 import {useMediaLayoutStore} from "@/store/use-media-layout";
 
 function LoadingSpinner({className}: {className?: string}) {
@@ -128,7 +128,15 @@ export function AllItemsList({
 
           {isInitialLoad
             ? Array.from({length: isGrid || isMedia ? 12 : 12}).map((_, i) =>
-                isGrid || isMedia ? <GridSkeleton key={i} /> : <RowSkeleton key={i} />,
+                isMedia ? (
+                  <div key={i} className={cn(itemMbClass, "break-inside-avoid")}>
+                    <MediaSkeleton index={i} />
+                  </div>
+                ) : isGrid ? (
+                  <GridSkeleton key={i} />
+                ) : (
+                  <RowSkeleton key={i} />
+                ),
               )
             : visibleItems.map((item, index) => (
                 <AnimatedItem

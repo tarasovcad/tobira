@@ -1,4 +1,5 @@
 import {Skeleton} from "@/components/coss-ui/skeleton";
+import {cn} from "@/lib/utils";
 
 export function RowSkeleton() {
   return (
@@ -27,6 +28,18 @@ export function GridSkeleton() {
           <Skeleton className="h-3 w-1/2 rounded" />
         </div>
       </div>
+    </div>
+  );
+}
+
+export function MediaSkeleton({index}: {index: number}) {
+  // Alternate aspect ratios to simulate a masonry layout
+  const aspectRatios = ["aspect-square", "aspect-4/3", "aspect-3/4", "aspect-16/9", "aspect-9/16"];
+  const aspectClass = aspectRatios[index % aspectRatios.length];
+
+  return (
+    <div className="bg-background w-full overflow-hidden rounded-md border">
+      <Skeleton className={cn("w-full", aspectClass)} />
     </div>
   );
 }

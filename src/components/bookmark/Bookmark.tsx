@@ -171,7 +171,11 @@ const BookmarkImage = ({
         divClassName,
       )}>
       {status !== "loaded" ? (
-        <div className={cn("text-muted-foreground col-start-1 row-start-1", fallbackClassName)}>
+        <div
+          className={cn(
+            "text-muted-foreground/30 z-10 col-start-1 row-start-1",
+            fallbackClassName,
+          )}>
           <svg
             width="20"
             height="20"
@@ -193,6 +197,7 @@ const BookmarkImage = ({
         className={cn(
           fill ? "absolute inset-0" : "relative h-full w-full",
           "col-start-1 row-start-1 flex items-center justify-center",
+          status !== "loaded" && "bg-muted animate-pulse",
         )}>
         <MediaPreview
           src={`${BASE_SRC}?v=${attempt}`}
@@ -202,8 +207,12 @@ const BookmarkImage = ({
           addZoom={!isVideo}
           type={isVideo ? "video" : "image"}
           poster={isVideo && item.metadata?.thumbnail_url ? item.metadata.thumbnail_url : undefined}
-          className={cn(status === "loaded" ? "opacity-100" : "opacity-0", imageClassName)}
-          buttonClassName="flex items-center justify-center"
+          className={cn(
+            status === "loaded" ? "opacity-100" : "opacity-0",
+            "transition-opacity duration-300 ease-in-out",
+            imageClassName,
+          )}
+          buttonClassName="flex items-center justify-center h-full w-full"
           unoptimized={!isVideo ? true : undefined}
           onLoad={!isVideo ? () => setStatus("loaded") : undefined}
           onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
@@ -408,6 +417,9 @@ export const MediaCard = ({
         ? "rounded-2xl"
         : "rounded-md";
 
+  const hasDimensions = item.metadata?.width && item.metadata?.height;
+  const aspectRatio = hasDimensions ? `${item.metadata!.width} / ${item.metadata!.height}` : "16/9";
+
   return (
     <div
       className={cn(
@@ -417,7 +429,10 @@ export const MediaCard = ({
         "focus-visible:bg-muted! focus-visible:outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         radiusClass,
-      )}>
+      )}
+      style={{
+        aspectRatio,
+      }}>
       {!selectionMode && (
         <BookmarkHoverActions
           onOptions={() => {
@@ -449,9 +464,10 @@ export const MediaCard = ({
         bookmark_id={item.id}
         item={item}
         type="preview"
-        width={1200}
-        height={1200}
-        imageClassName="w-full h-auto object-cover"
+        fill={true}
+        width={item.metadata?.width ?? 1200}
+        height={item.metadata?.height ?? 1200}
+        imageClassName="w-full h-full object-cover"
       />
 
       {/* <div className="p-3">
