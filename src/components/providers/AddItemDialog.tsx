@@ -118,7 +118,6 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
       setOpen(false);
       toastManager.add({
         title: "Bookmark added",
-        description: res.url,
         type: "success",
       });
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
@@ -424,6 +423,7 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
                     kind: "media",
                     selectedMediaUrls,
                   });
+                  setOpen(false);
                 }}>
                 {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
                 Confirm

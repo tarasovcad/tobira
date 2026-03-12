@@ -11,7 +11,7 @@ import type {BookmarkMetadata} from "@/app/home/_types";
 
 export type Bookmark = {
   id: string;
-  kind: "website" | "article" | "video" | "image" | "social" | "other";
+  kind: "website" | "media";
   title: string;
   description: string;
   created_at: string;
@@ -29,37 +29,50 @@ export type Bookmark = {
 
 function BookmarkHoverActions({
   className,
+  variant = "default",
   onOptions,
   onDelete,
 }: {
   className?: string;
+  variant?: "default" | "glass";
   onOptions?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onDelete?: () => void;
 }) {
-  const baseButtonClassName = cn(
-    "pointer-events-auto inline-flex size-8 items-center justify-center rounded-md border",
-    "bg-background text-foreground/90",
-    "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-2 cursor-pointer",
-  );
-
   const stopNav = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
+  const getButtonClassName = (hasRightBorder?: boolean) => {
+    if (variant === "glass") {
+      return cn(
+        "pointer-events-auto flex size-8 cursor-pointer items-center justify-center text-white/90 transition-colors hover:bg-white/8",
+        hasRightBorder && "border-r border-white/15",
+      );
+    }
+    return cn(
+      "pointer-events-auto inline-flex size-8 items-center justify-center rounded-md border",
+      "bg-background text-foreground/90",
+      "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-2 cursor-pointer",
+    );
+  };
+
   return (
     <div
       className={cn(
-        "pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-1",
+        "pointer-events-none absolute top-2 right-2 z-10 flex items-center",
+        variant === "glass"
+          ? "overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md"
+          : "gap-1",
         "opacity-0 transition-opacity duration-75 ease-out",
         "group-hover:pointer-events-auto group-hover:opacity-100",
         "group-focus-visible:pointer-events-auto group-focus-visible:opacity-100",
         className,
       )}>
-      <button
+      {/* <button
         type="button"
         aria-label="Delete"
-        className={baseButtonClassName}
+        className={getButtonClassName(true)}
         onClick={(e) => {
           stopNav(e);
           onDelete?.();
@@ -77,11 +90,11 @@ function BookmarkHoverActions({
             fill="currentColor"
           />
         </svg>
-      </button>
+      </button> */}
       <button
         type="button"
         aria-label="Options"
-        className={baseButtonClassName}
+        className={getButtonClassName(false)}
         onClick={(e) => {
           stopNav(e);
           onOptions?.(e);
@@ -344,6 +357,7 @@ export const GridCard = ({
       <div className="bg-muted relative aspect-16/10 w-full">
         {!selectionMode && (
           <BookmarkHoverActions
+            variant="glass"
             onOptions={() => {
               onOpenMenu?.(item);
             }}
@@ -435,6 +449,7 @@ export const MediaCard = ({
       }}>
       {!selectionMode && (
         <BookmarkHoverActions
+          variant="glass"
           onOptions={() => {
             onOpenMenu?.(item);
           }}

@@ -11,6 +11,7 @@ interface BookmarkMenuActionsProps {
   onReset: () => void;
   isResetting: boolean;
   onDelete: () => void;
+  kind?: "website" | "media";
 }
 
 export function BookmarkMenuActions({
@@ -20,9 +21,12 @@ export function BookmarkMenuActions({
   onReset,
   isResetting,
   onDelete,
+  kind,
 }: BookmarkMenuActionsProps) {
+  const isMedia = kind === "media";
+
   return (
-    <div className="mt-2 flex gap-2">
+    <div className={cn("mt-2 flex gap-2", isMedia && "mt-0 justify-end")}>
       <Button
         variant="outline"
         size="default"
@@ -48,48 +52,52 @@ export function BookmarkMenuActions({
         </svg>
         Archive
       </Button>
-      <Button variant="outline" size="default" type="button" onClick={onPreviewClick}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M11.5 2C12.8807 2 14 3.11929 14 4.5V11.5C14 12.8807 12.8807 14 11.5 14H4.5C3.11929 14 2 12.8807 2 11.5V4.5C2 3.11929 3.11929 2 4.5 2H11.5ZM6.39388 9.06053C5.80812 8.47493 4.85855 8.47493 4.27279 9.06053L3 10.3333V11.5C3 12.3284 3.67157 13 4.5 13H10.3333L6.39388 9.06053ZM10 4.33333C9.07953 4.33333 8.33333 5.07953 8.33333 6C8.33333 6.92047 9.07953 7.66667 10 7.66667C10.9205 7.66667 11.6667 6.92047 11.6667 6C11.6667 5.07953 10.9205 4.33333 10 4.33333Z"
-            fill="currentColor"
-          />
-        </svg>
-        Preview
-      </Button>
+      {!isMedia && (
+        <>
+          <Button variant="outline" size="default" type="button" onClick={onPreviewClick}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M11.5 2C12.8807 2 14 3.11929 14 4.5V11.5C14 12.8807 12.8807 14 11.5 14H4.5C3.11929 14 2 12.8807 2 11.5V4.5C2 3.11929 3.11929 2 4.5 2H11.5ZM6.39388 9.06053C5.80812 8.47493 4.85855 8.47493 4.27279 9.06053L3 10.3333V11.5C3 12.3284 3.67157 13 4.5 13H10.3333L6.39388 9.06053ZM10 4.33333C9.07953 4.33333 8.33333 5.07953 8.33333 6C8.33333 6.92047 9.07953 7.66667 10 7.66667C10.9205 7.66667 11.6667 6.92047 11.6667 6C11.6667 5.07953 10.9205 4.33333 10 4.33333Z"
+                fill="currentColor"
+              />
+            </svg>
+            Preview
+          </Button>
 
-      <Button
-        variant="outline"
-        size="default"
-        type="button"
-        onClick={onReset}
-        disabled={isResetting}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={cn(isResetting && "animate-spin")}>
-          <path
-            d="M4.23019 11.3333C5.1574 12.3555 6.51774 13 8.00033 13C10.7617 13 13.0003 10.7614 13.0003 8C13.0003 7.78793 12.9871 7.57913 12.9616 7.3744C12.9275 7.10033 13.1219 6.85053 13.3959 6.81633C13.6699 6.7822 13.9198 6.9766 13.9539 7.2506C13.9846 7.49633 14.0003 7.74647 14.0003 8C14.0003 11.3137 11.3141 14 8.00033 14C6.31973 14 4.77059 13.3084 3.66699 12.1925V13.5C3.66699 13.7761 3.44313 14 3.16699 14C2.89085 14 2.66699 13.7761 2.66699 13.5V11.5C2.66699 10.8557 3.18933 10.3333 3.83366 10.3333H5.83366C6.1098 10.3333 6.33366 10.5572 6.33366 10.8333C6.33366 11.1095 6.1098 11.3333 5.83366 11.3333H4.23019Z"
-            fill="currentColor"
-          />
-          <path
-            d="M3.03871 8.6256C3.07288 8.89967 2.87844 9.14947 2.60442 9.18367C2.3304 9.2178 2.08057 9.0234 2.04639 8.7494C2.01576 8.50367 2 8.25353 2 8C2 4.68629 4.68629 2 8 2C9.6846 2 11.2371 2.69492 12.3412 3.81548V2.5C12.3412 2.22386 12.5651 2 12.8412 2C13.1174 2 13.3412 2.22386 13.3412 2.5V4.5C13.3412 5.14433 12.8189 5.66667 12.1745 5.66667H10.1745C9.8984 5.66667 9.67453 5.44281 9.67453 5.16667C9.67453 4.89053 9.8984 4.66667 10.1745 4.66667H11.7701C10.8429 3.64454 9.4826 3 8 3C5.23857 3 3 5.23857 3 8C3 8.21207 3.01318 8.42087 3.03871 8.6256Z"
-            fill="currentColor"
-          />
-        </svg>
-        Reset
-      </Button>
-      <Button variant="favorite" size="default" disabled>
+          <Button
+            variant="outline"
+            size="default"
+            type="button"
+            onClick={onReset}
+            disabled={isResetting}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className={cn(isResetting && "animate-spin")}>
+              <path
+                d="M4.23019 11.3333C5.1574 12.3555 6.51774 13 8.00033 13C10.7617 13 13.0003 10.7614 13.0003 8C13.0003 7.78793 12.9871 7.57913 12.9616 7.3744C12.9275 7.10033 13.1219 6.85053 13.3959 6.81633C13.6699 6.7822 13.9198 6.9766 13.9539 7.2506C13.9846 7.49633 14.0003 7.74647 14.0003 8C14.0003 11.3137 11.3141 14 8.00033 14C6.31973 14 4.77059 13.3084 3.66699 12.1925V13.5C3.66699 13.7761 3.44313 14 3.16699 14C2.89085 14 2.66699 13.7761 2.66699 13.5V11.5C2.66699 10.8557 3.18933 10.3333 3.83366 10.3333H5.83366C6.1098 10.3333 6.33366 10.5572 6.33366 10.8333C6.33366 11.1095 6.1098 11.3333 5.83366 11.3333H4.23019Z"
+                fill="currentColor"
+              />
+              <path
+                d="M3.03871 8.6256C3.07288 8.89967 2.87844 9.14947 2.60442 9.18367C2.3304 9.2178 2.08057 9.0234 2.04639 8.7494C2.01576 8.50367 2 8.25353 2 8C2 4.68629 4.68629 2 8 2C9.6846 2 11.2371 2.69492 12.3412 3.81548V2.5C12.3412 2.22386 12.5651 2 12.8412 2C13.1174 2 13.3412 2.22386 13.3412 2.5V4.5C13.3412 5.14433 12.8189 5.66667 12.1745 5.66667H10.1745C9.8984 5.66667 9.67453 5.44281 9.67453 5.16667C9.67453 4.89053 9.8984 4.66667 10.1745 4.66667H11.7701C10.8429 3.64454 9.4826 3 8 3C5.23857 3 3 5.23857 3 8C3 8.21207 3.01318 8.42087 3.03871 8.6256Z"
+                fill="currentColor"
+              />
+            </svg>
+            Reset
+          </Button>
+        </>
+      )}
+      {/* <Button variant="favorite" size="default" disabled>
         <svg
           width="16"
           height="16"
@@ -102,7 +110,7 @@ export function BookmarkMenuActions({
           />
         </svg>
         Favorite
-      </Button>
+      </Button> */}
       <Button variant="destructive" size="default" type="button" onClick={onDelete}>
         <svg
           width="16"

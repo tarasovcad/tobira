@@ -388,7 +388,7 @@ export async function addMediaBookmark(input: {
       return {
         id: bookmarkId,
         url: normalized.toString(),
-        title: extractedMetadata?.text || null,
+        description: extractedMetadata?.text || null,
         user_id: session.user.id,
         kind: "media",
         preview_image: previewImage,

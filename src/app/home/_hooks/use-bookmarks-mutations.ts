@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react";
+import {useState, useEffect, useMemo} from "react";
 import {useMutation, useMutationState, useQueryClient} from "@tanstack/react-query";
 import {archiveBookmarks} from "@/app/actions/bookmarks";
 import {toastManager} from "@/components/coss-ui/toast";
@@ -25,6 +25,12 @@ export function useBookmarksMutations({
       inputUrl: (m.state.variables as {url: string; tags?: string[]} | undefined)?.url,
       inputTags: (m.state.variables as {url: string; tags?: string[]} | undefined)?.tags ?? [],
       resultUrl: (m.state.data as {url: string} | undefined)?.url,
+      kind: (m.state.variables as {kind: "website" | "media"} | undefined)?.kind,
+      selectedMediaUrls: (m.state.variables as {selectedMediaUrls?: string[]} | undefined)
+        ?.selectedMediaUrls,
+      hasMultipleMediaOptions:
+        Array.isArray((m.state.data as {media?: string[]} | undefined)?.media) &&
+        ((m.state.data as {media?: string[]} | undefined)?.media?.length ?? 0) > 1,
     }),
   });
 
@@ -74,28 +80,51 @@ export function useBookmarksMutations({
   const [animatingUrl, setAnimatingUrl] = useState<string | null>(null);
 
   // Sync state during render to avoid cascading renders in useEffect
-  if (animatingUrl !== null && (!latestAddAppliesToCurrentFilter || isError)) {
+  const wasMediaPhase1Aborted =
+    latestAdd?.kind === "media" &&
+    !latestAdd?.selectedMediaUrls &&
+    latestAdd?.hasMultipleMediaOptions;
+  const isMediaPhase1Pending =
+    isPending && latestAdd?.kind === "media" && !latestAdd?.selectedMediaUrls;
+  const isSingleMediaSuccess =
+    latestAdd?.status === "success" &&
+    latestAdd?.kind === "media" &&
+    !latestAdd?.selectedMediaUrls &&
+    !latestAdd?.hasMultipleMediaOptions;
+
+  if (
+    animatingUrl !== null &&
+    (!latestAddAppliesToCurrentFilter || isError || wasMediaPhase1Aborted)
+  ) {
     setAnimatingUrl(null);
   } else if (
-    isPending &&
     inputUrl &&
     latestAddAppliesToCurrentFilter &&
-    animatingUrl !== inputUrl
+    animatingUrl !== inputUrl &&
+    ((isPending && !isMediaPhase1Pending) || isSingleMediaSuccess)
   ) {
     setAnimatingUrl(inputUrl);
   }
 
-  const resolvedBookmark =
-    animatingUrl && resultUrl ? (allBookmarks.find((b) => b.url === resultUrl) ?? null) : null;
+  const animatingItemCount =
+    animatingUrl === inputUrl && latestAdd?.kind === "media"
+      ? latestAdd?.selectedMediaUrls?.length || 1
+      : 1;
+
+  const resolvedBookmarks = useMemo(() => {
+    return animatingUrl && resultUrl
+      ? allBookmarks.filter((b) => b.url === resultUrl).slice(0, animatingItemCount)
+      : [];
+  }, [animatingUrl, resultUrl, allBookmarks, animatingItemCount]);
 
   useEffect(() => {
     if (!animatingUrl) return;
 
-    if (latestAdd?.status === "success" && !resolvedBookmark) {
+    if (latestAdd?.status === "success" && resolvedBookmarks.length === 0) {
       const t = window.setTimeout(() => setAnimatingUrl(null), 5000);
       return () => window.clearTimeout(t);
     }
-  }, [animatingUrl, latestAdd?.status, resolvedBookmark]);
+  }, [animatingUrl, latestAdd?.status, resolvedBookmarks]);
 
   const handleTransitionDone = () => {
     setAnimatingUrl(null);
@@ -132,7 +161,8 @@ export function useBookmarksMutations({
     animatedOutIds,
     handleItemRemoved,
     animatingUrl,
-    resolvedBookmark,
+    animatingItemCount,
+    resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,
   };

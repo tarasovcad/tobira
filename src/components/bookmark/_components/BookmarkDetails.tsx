@@ -3,10 +3,14 @@
 import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import type {BookmarkMetadata} from "@/app/home/_types";
+import Link from "next/link";
 
 interface BookmarkDetailsProps {
   source?: string;
   type?: string;
+  kind?: "website" | "media";
+  metadata?: BookmarkMetadata;
   collections: {id: string; name: string}[];
   saved: string;
   updated?: string;
@@ -16,6 +20,8 @@ interface BookmarkDetailsProps {
 export function BookmarkDetails({
   source,
   type,
+  kind,
+  metadata,
   collections,
   saved,
   updated,
@@ -23,6 +29,11 @@ export function BookmarkDetails({
 }: BookmarkDetailsProps) {
   const {copiedKey, copyText} = useClipboardCopy(2000);
   const sourceCopied = copiedKey === "source";
+  const publisherName = metadata?.user_name?.trim() || "";
+  const publisherHandle = (metadata?.user_screen_name ?? "").trim().replace(/^@+/, "");
+  const publisherUrl = publisherHandle ? `https://x.com/${publisherHandle}` : undefined;
+  const shouldShowPublisher =
+    kind === "media" && (publisherName.length > 0 || publisherHandle.length > 0) && !!publisherUrl;
 
   const handleCopySource = async () => {
     if (!source) return;
@@ -69,12 +80,31 @@ export function BookmarkDetails({
         <div className="text-muted-foreground">Type</div>
         <div>{type}</div>
 
+        {shouldShowPublisher && (
+          <>
+            <div className="text-muted-foreground">Publisher</div>
+
+            <Link
+              href={publisherUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "text-foreground inline-flex min-w-0 items-center gap-1.5 rounded-sm",
+                "focus-visible:ring-ring/50 outline-none hover:underline focus-visible:ring-2",
+              )}>
+              <span>
+                {publisherName} - @{publisherHandle}
+              </span>
+            </Link>
+          </>
+        )}
+
         {collections.length > 0 && (
           <>
             <div className="text-muted-foreground">Collection</div>
             <div className="flex flex-wrap gap-1">
               {collections.map((c) => (
-                <span key={c.id} className="text-foreground">
+                <span key={c.id} className="">
                   {c.name}
                 </span>
               ))}

@@ -69,7 +69,8 @@ export function HomeClient({
     removingIds,
     handleItemRemoved,
     animatingUrl,
-    resolvedBookmark,
+    animatingItemCount,
+    resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,
   } = useBookmarksMutations({
@@ -80,7 +81,7 @@ export function HomeClient({
   // ── Derived visible items ──
   const visibleItems = allBookmarks.filter((item) => {
     const isBeingRemoved = removingIds.has(item.id);
-    const isDuplicateOfResolved = item.id === resolvedBookmark?.id;
+    const isDuplicateOfResolved = resolvedBookmarks.some((b) => b.id === item.id);
 
     return !isBeingRemoved && !isDuplicateOfResolved;
   });
@@ -289,7 +290,8 @@ export function HomeClient({
         typeFilter={typeFilter}
         visibleItems={visibleItems}
         animatingUrl={animatingUrl}
-        resolvedBookmark={resolvedBookmark}
+        animatingItemCount={animatingItemCount}
+        resolvedBookmarks={resolvedBookmarks}
         isInitialLoad={isInitialLoad}
         isFetchingNextPage={isFetchingNextPage}
         selectionMode={selectionMode}

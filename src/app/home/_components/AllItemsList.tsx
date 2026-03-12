@@ -5,7 +5,7 @@ import {cn} from "@/lib/utils";
 import Spinner from "@/components/shadcn/coss-ui";
 import {Bookmark, GridCard, ItemRow, MediaCard} from "@/components/bookmark/Bookmark";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
-import {NewBookmarkRow, NewBookmarkGridCard} from "./NewBookmarkPlaceholder";
+import {NewBookmarkRow, NewBookmarkGridCard, NewBookmarkMediaCard} from "./NewBookmarkPlaceholder";
 import type {ViewMode, TypeFilter} from "./AllItemsToolbar";
 import {RowSkeleton, GridSkeleton, MediaSkeleton} from "./ListSkeletons";
 import {useMediaLayoutStore} from "@/store/use-media-layout";
@@ -23,7 +23,8 @@ interface AllItemsListProps {
   typeFilter: TypeFilter;
   visibleItems: Bookmark[];
   animatingUrl: string | null;
-  resolvedBookmark: Bookmark | null;
+  animatingItemCount: number;
+  resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
   isFetchingNextPage: boolean;
   selectionMode: boolean;
@@ -47,7 +48,8 @@ export function AllItemsList({
   typeFilter,
   visibleItems,
   animatingUrl,
-  resolvedBookmark,
+  animatingItemCount,
+  resolvedBookmarks,
   // isInitialLoad,
   isFetchingNextPage,
   selectionMode,
@@ -101,7 +103,11 @@ export function AllItemsList({
       ? "grid grid-cols-1 gap-6 px-6 pb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       : "border-t";
 
-  const NewBookmarkPlaceholder = isGrid ? NewBookmarkGridCard : NewBookmarkRow;
+  const NewBookmarkPlaceholder = isMedia
+    ? NewBookmarkMediaCard
+    : isGrid
+      ? NewBookmarkGridCard
+      : NewBookmarkRow;
   const BookmarkItem = isMedia ? MediaCard : isGrid ? GridCard : ItemRow;
 
   const fetchSpinnerClassName =
@@ -116,15 +122,18 @@ export function AllItemsList({
       <ScrollArea className="h-full" scrollbarGutter>
         <div className={containerClassName}>
           {/* Skeleton placeholder for a newly-added bookmark */}
-          {animatingUrl && (
-            <div className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}>
-              <NewBookmarkPlaceholder
-                url={animatingUrl}
-                bookmark={resolvedBookmark}
-                onDone={onTransitionDone}
-              />
-            </div>
-          )}
+          {animatingUrl &&
+            Array.from({length: animatingItemCount ?? 1}).map((_, i) => (
+              <div
+                key={`animating-${animatingUrl}-${i}`}
+                className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}>
+                <NewBookmarkPlaceholder
+                  url={animatingUrl}
+                  bookmark={resolvedBookmarks.at(i) || null}
+                  onDone={i === 0 ? onTransitionDone : () => {}}
+                />
+              </div>
+            ))}
 
           {isInitialLoad
             ? Array.from({length: isGrid || isMedia ? 12 : 12}).map((_, i) =>

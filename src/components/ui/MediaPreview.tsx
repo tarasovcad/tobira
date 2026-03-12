@@ -148,7 +148,7 @@ export default function MediaPreview({
                 type="button"
                 aria-label="Previous image"
                 onClick={(e) => e.stopPropagation()}
-                className={`absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10 ${
+                className={`hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10 ${
                   expanded ? "opacity-100" : "pointer-events-none opacity-0"
                 }`}>
                 <svg
@@ -167,7 +167,7 @@ export default function MediaPreview({
                 type="button"
                 aria-label="Next image"
                 onClick={(e) => e.stopPropagation()}
-                className={`absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10 ${
+                className={`hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10 ${
                   expanded ? "opacity-100" : "pointer-events-none opacity-0"
                 }`}>
                 <svg

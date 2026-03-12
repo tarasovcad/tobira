@@ -23,7 +23,7 @@ import {
   ComboboxTrigger,
   ComboboxValue,
 } from "@/components/coss-ui/combobox";
-import {SelectTrigger as SelectButton, Select} from "@/components/coss-ui/select";
+import {SelectButton, Select} from "@/components/coss-ui/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 
 // Extracted hooks and components
@@ -33,6 +33,7 @@ import {useBookmarkMutations} from "./_hooks/use-bookmark-mutations";
 import {BookmarkPreviewDialog} from "./_components/BookmarkPreviewDialog";
 import {BookmarkMenuActions} from "./_components/BookmarkMenuActions";
 import {BookmarkDetails} from "./_components/BookmarkDetails";
+import CustomVideoPlayer from "@/components/ui/CustomVideoPlayer";
 
 export function BookmarkMenu({
   item,
@@ -58,6 +59,8 @@ export function BookmarkMenu({
       preview_image: item?.preview_image,
       tags: item?.tags ?? [],
       collections: item?.collections ?? [],
+      kind: item?.kind,
+      metadata: item?.metadata,
     };
   }, [item]);
 
@@ -164,6 +167,12 @@ export function BookmarkMenu({
   const ogImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/og.png");
   const previewImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/preview.png");
 
+  const isMedia = item?.kind === "media";
+  const headerSrc = currentValues.preview_image ?? "";
+  const isVideoHeader =
+    isMedia &&
+    (headerSrc.toLowerCase().endsWith(".mp4") || headerSrc.toLowerCase().endsWith(".mov"));
+
   const handleSavePreview = () => {
     const newUrl = selectedPreview === "og" ? ogImageUrl : previewImageUrl;
     form.setValue("preview_image", newUrl, {shouldDirty: true});
@@ -179,41 +188,58 @@ export function BookmarkMenu({
             <form onSubmit={form.handleSubmit(onSubmit)}>
               {item?.id ? (
                 <div className="bg-muted relative aspect-video w-full border-b">
-                  <Image
-                    src={currentValues.preview_image ?? ""}
-                    alt={currentValues.title ?? "Bookmark preview"}
-                    fill
-                    className="object-cover"
-                  />
+                  {isVideoHeader ? (
+                    <CustomVideoPlayer
+                      src={headerSrc}
+                      poster={item?.metadata?.thumbnail_url}
+                      className="h-full w-full"
+                      videoClassName="h-full w-full object-cover"
+                      loop
+                      muted
+                      playsInline
+                      minimal
+                      showMainPlayIcon
+                    />
+                  ) : (
+                    <Image
+                      src={headerSrc}
+                      alt={currentValues.title ?? "Bookmark preview"}
+                      fill
+                      className="object-cover"
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="bg-muted aspect-video w-full border-b" />
               )}
 
               <div className="p-6">
-                <SheetHeader className="p-0">
-                  <SheetTitle
-                    key={`title-${item?.id}`}
-                    ref={titleElRef}
-                    contentEditable
-                    spellCheck={false}
-                    suppressContentEditableWarning
-                    onInput={(e) => {
-                      const newTitle = e.currentTarget.textContent ?? "";
-                      form.setValue("title", newTitle, {shouldDirty: true});
-                    }}
-                    onBlur={(e) => {
-                      const newTitle = e.currentTarget.textContent ?? "";
-                      form.setValue("title", newTitle, {shouldDirty: true});
-                    }}
-                    className="text-foreground/95 text-lg font-semibold focus:ring-0 focus:ring-offset-0 focus:outline-none">
-                    {item?.title}
-                  </SheetTitle>
-                </SheetHeader>
+                {item?.kind === "website" && (
+                  <SheetHeader className="p-0">
+                    <SheetTitle
+                      key={`title-${item?.id}`}
+                      ref={titleElRef}
+                      contentEditable
+                      spellCheck={false}
+                      suppressContentEditableWarning
+                      onInput={(e) => {
+                        const newTitle = e.currentTarget.textContent ?? "";
+                        form.setValue("title", newTitle, {shouldDirty: true});
+                      }}
+                      onBlur={(e) => {
+                        const newTitle = e.currentTarget.textContent ?? "";
+                        form.setValue("title", newTitle, {shouldDirty: true});
+                      }}
+                      className="text-foreground/95 text-lg font-semibold focus:ring-0 focus:ring-offset-0 focus:outline-none">
+                      {item?.title}
+                    </SheetTitle>
+                  </SheetHeader>
+                )}
 
                 <BookmarkMenuActions
                   onArchive={handleArchive}
                   isArchiving={archiveMutation.isPending}
+                  kind={item?.kind}
                   onPreviewClick={() => {
                     const currentUrl = form.getValues("preview_image");
                     setSelectedPreview(currentUrl?.endsWith("og.png") ? "og" : "preview");
@@ -252,6 +278,8 @@ export function BookmarkMenu({
               <BookmarkDetails
                 source={data.source}
                 type={data.type}
+                kind={item?.kind}
+                metadata={item?.metadata}
                 collections={data.collections}
                 saved={data.saved}
                 updated={data.updated}
