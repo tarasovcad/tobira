@@ -113,7 +113,7 @@ export function AllItemsList({
 
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
-      <ScrollArea className="h-full" scrollbarGutter scrollFade>
+      <ScrollArea className="h-full" scrollbarGutter>
         <div className={containerClassName}>
           {/* Skeleton placeholder for a newly-added bookmark */}
           {animatingUrl && (

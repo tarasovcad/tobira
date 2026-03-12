@@ -8,6 +8,7 @@ import type {MediaPreviewProps} from "./media-preview/types";
 import {useMediaPreview} from "./media-preview/useMediaPreview";
 import {cn} from "@/lib/utils";
 import CustomVideoPlayer from "./CustomVideoPlayer";
+import {useState} from "react";
 
 // Renders a thumbnail image or video with fullscreen, zoom, and pan preview behavior.
 export default function MediaPreview({
@@ -26,6 +27,9 @@ export default function MediaPreview({
   addZoom = true,
   poster,
 }: MediaPreviewProps & {poster?: string}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
   const {
     triggerRef,
     overlayRef,
@@ -57,6 +61,11 @@ export default function MediaPreview({
         tabIndex={0}
         ref={triggerRef}
         onClick={openPreview}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          setHasInteracted(true);
+        }}
+        onMouseLeave={() => setIsHovered(false)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -64,23 +73,42 @@ export default function MediaPreview({
           }
         }}
         className={cn(
-          "focus-visible:ring-ring block h-full w-full cursor-pointer rounded-lg focus-visible:ring-2 focus-visible:outline-none",
+          "focus-visible:ring-ring block h-full w-full cursor-pointer focus-visible:ring-2 focus-visible:outline-none",
           type === "video" && "pointer-events-auto relative overflow-hidden",
           buttonClassName,
         )}>
         {type === "video" ? (
-          <div className="pointer-events-none h-full w-full">
-            <CustomVideoPlayer
-              src={src}
-              className={className}
-              loop
-              autoPlay
-              muted
-              playsInline
-              onCanPlay={onCanPlay}
-              onError={onError}
-              poster={poster}
-            />
+          <div className="bg-muted pointer-events-none relative h-full w-full">
+            {poster && !hasInteracted ? (
+              <>
+                <Image
+                  src={poster}
+                  alt={alt}
+                  width={width}
+                  height={height}
+                  className={cn(className, "absolute inset-0 h-full w-full object-cover")}
+                  unoptimized={unoptimized}
+                  onLoad={onCanPlay}
+                  onError={onError}
+                />
+              </>
+            ) : (
+              <CustomVideoPlayer
+                src={src}
+                className={className}
+                videoClassName="h-full w-full cursor-pointer object-cover"
+                loop
+                autoPlay={isHovered}
+                playing={isHovered}
+                muted
+                playsInline
+                showMainPlayIcon={false}
+                minimal={true}
+                onCanPlay={onCanPlay}
+                onError={onError}
+                poster={poster}
+              />
+            )}
           </div>
         ) : (
           <Image
@@ -189,6 +217,7 @@ export default function MediaPreview({
                     muted={false}
                     playsInline
                     showMainPlayIcon={true}
+                    minimal={true}
                     poster={poster}
                   />
                 </div>

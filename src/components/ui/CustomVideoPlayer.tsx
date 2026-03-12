@@ -14,18 +14,24 @@ interface CustomVideoPlayerProps extends React.VideoHTMLAttributes<HTMLVideoElem
   src: string;
   poster?: string;
   className?: string;
+  videoClassName?: string;
   showMainPlayIcon?: boolean;
+  minimal?: boolean;
+  playing?: boolean;
 }
 
 export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   src,
   poster,
   className,
+  videoClassName,
   loop,
   autoPlay,
   muted,
   playsInline,
   showMainPlayIcon = false,
+  minimal = false,
+  playing,
   ...props
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,18 +56,37 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   const fastForwardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wasFastForwardingRef = useRef(false);
 
+  const shouldSilencePlayError = (err: unknown) => {
+    if (!err || typeof err !== "object") return false;
+    const name = "name" in err ? String((err as {name?: unknown}).name) : "";
+    const message = "message" in err ? String((err as {message?: unknown}).message) : "";
+    return (
+      name === "AbortError" ||
+      message.includes("play() request was interrupted") ||
+      message.includes("interrupted by a call to pause") ||
+      message.includes("interrupted by a new load request")
+    );
+  };
+
+  const safePlay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.play().catch((err) => {
+      if (shouldSilencePlayError(err)) return;
+      console.error("Error attempting to play video:", err);
+      setIsPlaying(false);
+    });
+  }, []);
+
   const togglePlay = useCallback(() => {
     if (videoRef.current) {
       if (videoRef.current.paused) {
-        videoRef.current.play().catch((err) => {
-          console.error("Error attempting to play video:", err);
-          setIsPlaying(false);
-        });
+        safePlay();
       } else {
         videoRef.current.pause();
       }
     }
-  }, []);
+  }, [safePlay]);
 
   const toggleMute = useCallback(() => {
     if (videoRef.current) {
@@ -190,26 +215,29 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     setShowControls(false);
   };
 
-  const handleVideoPointerDown = useCallback((e: React.PointerEvent<HTMLVideoElement>) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
+  const handleVideoPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLVideoElement>) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
 
-    wasFastForwardingRef.current = false;
-    if (fastForwardTimeoutRef.current) {
-      clearTimeout(fastForwardTimeoutRef.current);
-    }
-
-    fastForwardTimeoutRef.current = setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.playbackRate = 2;
-        setIsFastForwarding(true);
-        wasFastForwardingRef.current = true;
-        if (videoRef.current.paused) {
-          videoRef.current.play().catch(console.error);
-          setIsPlaying(true);
-        }
+      wasFastForwardingRef.current = false;
+      if (fastForwardTimeoutRef.current) {
+        clearTimeout(fastForwardTimeoutRef.current);
       }
-    }, 400);
-  }, []);
+
+      fastForwardTimeoutRef.current = setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.playbackRate = 2;
+          setIsFastForwarding(true);
+          wasFastForwardingRef.current = true;
+          if (videoRef.current.paused) {
+            safePlay();
+            setIsPlaying(true);
+          }
+        }
+      }, 400);
+    },
+    [safePlay],
+  );
 
   const handleVideoPointerUpOrLeave = useCallback(() => {
     if (fastForwardTimeoutRef.current) {
@@ -223,16 +251,13 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     setIsFastForwarding(false);
   }, []);
 
-  const handleVideoClick = useCallback(
-    (e: React.MouseEvent<HTMLVideoElement>) => {
-      if (wasFastForwardingRef.current) {
-        wasFastForwardingRef.current = false;
-        return;
-      }
-      togglePlay();
-    },
-    [togglePlay],
-  );
+  const handleVideoClick = useCallback(() => {
+    if (wasFastForwardingRef.current) {
+      wasFastForwardingRef.current = false;
+      return;
+    }
+    togglePlay();
+  }, [togglePlay]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -262,6 +287,21 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     }, 50);
     return () => clearTimeout(timer);
   }, [src]);
+
+  useEffect(() => {
+    if (playing !== undefined && videoRef.current) {
+      if (playing) {
+        // Let the video element's natural 'onPlay' and 'onPause' events handle the 'isPlaying' state.
+        // This avoids calling setState synchronously within the effect.
+        videoRef.current.play().catch((err) => {
+          if (shouldSilencePlayError(err)) return;
+          console.error("Error attempting to play video from prop:", err);
+        });
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [playing]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -299,11 +339,11 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`group/video relative overflow-hidden rounded-xl bg-black ${className}`}
+      className={`group/video relative overflow-hidden ${minimal ? "h-full w-full bg-transparent" : "bg-black"} ${className}`}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}>
       {/* Loading overlay */}
-      {isLoading && (
+      {isLoading && !minimal && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
           <Loader2 className="h-10 w-10 animate-spin text-white" />
         </div>
@@ -318,7 +358,7 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         autoPlay={autoPlay}
         muted={muted}
         playsInline={playsInline}
-        className="h-full w-full cursor-pointer object-contain"
+        className={videoClassName || "h-full w-full cursor-pointer object-contain"}
         onClick={handleVideoClick}
         onPointerDown={handleVideoPointerDown}
         onPointerUp={handleVideoPointerUpOrLeave}
