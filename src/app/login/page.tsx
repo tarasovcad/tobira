@@ -118,6 +118,7 @@ const LoginPage = () => {
       setIsGithubLoading(false);
     }
   };
+
   const handleLogin = async ({email}: EmailFormValues) => {
     setServerError(null);
     setIsLoading(true);

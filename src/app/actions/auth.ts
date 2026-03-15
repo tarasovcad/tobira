@@ -3,8 +3,9 @@
 
 import {Redis} from "@upstash/redis";
 import {Ratelimit} from "@upstash/ratelimit";
-import {authClient} from "@/components/utils/better-auth/auth-client"; // server-side client
 import {getIp} from "@/lib/ip";
+import {auth} from "@/lib/auth";
+import {headers} from "next/headers";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -51,13 +52,13 @@ export async function sendOtpAction(email: string) {
     };
   }
 
-  const res = await authClient.emailOtp.sendVerificationOtp({
-    email,
-    type: "sign-in",
+  const res = await auth.api.sendVerificationOTP({
+    body: {email, type: "sign-in"},
+    headers: await headers(),
   });
 
-  if (res.error) {
-    return {error: res.error.message ?? "Failed to send OTP"};
+  if (!res.success) {
+    return {error: "Failed to send OTP"};
   }
 
   return {success: true};
@@ -78,10 +79,15 @@ export async function verifyOtpAction(email: string, otp: string) {
     };
   }
 
-  const res = await authClient.signIn.emailOtp({email, otp});
-
-  if (res.error) {
-    return {error: res.error.message ?? "Invalid code"};
+  try {
+    await auth.api.signInEmailOTP({
+      body: {email, otp},
+      headers: await headers(),
+    });
+  } catch (error: unknown) {
+    return {
+      error: error instanceof Error ? error.message : "Invalid code",
+    };
   }
 
   return {success: true};
