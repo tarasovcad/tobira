@@ -11,12 +11,14 @@ export async function getInitialBookmarks({
   tagFilter,
   collectionFilter,
   typeFilter = "website",
+  sort = "recent",
   supabase,
 }: {
   userId: string;
   tagFilter: string | null;
   collectionFilter: string | null;
   typeFilter?: "website" | "media";
+  sort?: "recent" | "oldest" | "az";
   supabase: SupabaseClient;
 }) {
   // When filtering by tag or collection we use an inner join so only matching bookmarks are returned.
@@ -44,9 +46,22 @@ export async function getInitialBookmarks({
     bookmarksQuery = bookmarksQuery.eq("bookmark_collections.collection_id", collectionFilter);
   }
 
-  const bookmarksPromise = bookmarksQuery
-    .order("created_at", {ascending: false})
-    .range(0, PAGE_SIZE - 1);
+  switch (sort) {
+    case "oldest":
+      bookmarksQuery = bookmarksQuery.order("created_at", {ascending: true});
+      break;
+    case "az":
+      bookmarksQuery = bookmarksQuery
+        .order("title", {ascending: true})
+        .order("id", {ascending: true});
+      break;
+    case "recent":
+    default:
+      bookmarksQuery = bookmarksQuery.order("created_at", {ascending: false});
+      break;
+  }
+
+  const bookmarksPromise = bookmarksQuery.range(0, PAGE_SIZE - 1);
 
   const tagsPromise = supabase.rpc("get_tags_with_counts", {p_user_id: userId});
 

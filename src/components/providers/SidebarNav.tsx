@@ -21,9 +21,7 @@ export const NavItem = ({
     <Link
       href={href}
       className={cn(
-        isActive
-          ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
-          : "text-secondary bg-transparent",
+        isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
         "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
         "hover:bg-muted hover:text-foreground",
         className,

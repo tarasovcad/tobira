@@ -19,6 +19,7 @@ export type SearchParams = {
   tab?: string;
   collection?: string;
   type?: string;
+  sort?: string;
 };
 
 export type BookmarkRowWithJoins = Bookmark & {

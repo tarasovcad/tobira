@@ -202,7 +202,7 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
         <ShadcnButton
           variant="default"
           size="icon-lg"
-          className="size-12 rounded-full"
+          className="relative z-100 size-12 rounded-full"
           onClick={() => setOpen(true)}>
           <svg
             width="20"

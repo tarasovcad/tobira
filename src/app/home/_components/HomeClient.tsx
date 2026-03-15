@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useRef} from "react";
-import {useSearchParams, useRouter} from "next/navigation";
+import {useSearchParams, useRouter, usePathname} from "next/navigation";
 import {cn, normalizeTagParam} from "@/lib/utils";
 import NumberFlow from "@number-flow/react";
 
@@ -26,6 +26,11 @@ import type {ViewMode, TypeFilter, SortMode} from "./AllItemsToolbar";
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {MediaLayoutMenu} from "./MediaLayoutMenu";
 
+const resolveSortFilter = (sortParam: string | null): SortMode => {
+  if (sortParam === "oldest" || sortParam === "az") return sortParam;
+  return "recent";
+};
+
 /**
  * Main client component for the All Items / Home page.
  * Orchestrates fetching, filtering, selection, and mutations for bookmarks.
@@ -41,16 +46,35 @@ export function HomeClient({
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const tagFilter = normalizeTagParam(searchParams.get("tag") ?? searchParams.get("tab"));
   const collectionFilter = searchParams.get("collection");
   const initialTypeFilter = (
     searchParams.get("type") === "media" ? "media" : "website"
   ) as TypeFilter;
+  const initialSort = resolveSortFilter(searchParams.get("sort"));
 
   // ── View & filter state ──
   const [view, setView] = useState<ViewMode>("list");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(initialTypeFilter);
-  const [sort, setSort] = useState<SortMode>("recent");
+  const [sort, setSort] = useState<SortMode>(initialSort);
+
+  const updateUrlParam = (key: "type" | "sort", value: TypeFilter | SortMode) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(key, value);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const handleTypeChange = (nextType: TypeFilter) => {
+    setTypeFilter(nextType);
+    updateUrlParam("type", nextType);
+  };
+
+  const handleSortChange = (nextSort: SortMode) => {
+    setSort(nextSort);
+    updateUrlParam("sort", nextSort);
+  };
 
   // ── Query Hook ──
   const {bookmarksQuery, allBookmarks, currentTotalCount, activeCollection, isInitialLoad} =
@@ -204,8 +228,8 @@ export function HomeClient({
         )}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <TypeSelect value={typeFilter} onChange={setTypeFilter} />
-            <SortSelect value={sort} onChange={setSort} />
+            <TypeSelect value={typeFilter} onChange={handleTypeChange} />
+            <SortSelect value={sort} onChange={handleSortChange} />
           </div>
           <div className="flex items-center gap-2">
             <div

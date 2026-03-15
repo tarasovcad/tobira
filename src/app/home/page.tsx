@@ -9,6 +9,12 @@ import {getCollections} from "@/app/actions/collections";
 import {getInitialBookmarks} from "./_lib/getInitialBookmarks";
 import {normalizeTagParam} from "@/lib/utils";
 import type {SearchParams} from "./_types";
+import type {SortMode} from "./_components/AllItemsToolbar";
+
+const resolveSortFilter = (sortParam?: string): SortMode => {
+  if (sortParam === "oldest" || sortParam === "az") return sortParam;
+  return "recent";
+};
 
 const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const searchParams = await props.searchParams;
@@ -24,10 +30,18 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const tagFilter = normalizeTagParam(searchParams?.tag ?? searchParams?.tab);
   const collectionFilter = searchParams?.collection ?? null;
   const typeFilter = searchParams?.type === "media" ? "media" : "website";
+  const sortFilter = resolveSortFilter(searchParams?.sort);
   const supabase = await createClient();
 
   const [bookmarksResult, collections] = await Promise.all([
-    getInitialBookmarks({userId, tagFilter, collectionFilter, typeFilter, supabase}),
+    getInitialBookmarks({
+      userId,
+      tagFilter,
+      collectionFilter,
+      typeFilter,
+      sort: sortFilter,
+      supabase,
+    }),
     getCollections(),
   ]);
 
