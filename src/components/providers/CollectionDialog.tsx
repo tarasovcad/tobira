@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, {useEffect} from "react";
 import {
   Dialog,
   DialogPopup,
@@ -15,7 +15,7 @@ import {Input} from "@/components/coss-ui/input";
 import {Textarea} from "@/components/coss-ui/textarea";
 import {Label} from "@/components/coss-ui/label";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {createCollection} from "@/app/actions/collections";
+import {createCollection, updateCollection, type Collection} from "@/app/actions/collections";
 import {toastManager} from "@/components/coss-ui/toast";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -28,27 +28,42 @@ const collectionSchema = z.object({
 
 type CollectionFormValues = z.infer<typeof collectionSchema>;
 
-interface CreateCollectionDialogProps {
+interface CollectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  collection?: Collection | null;
 }
 
-export function CreateCollectionDialog({open, onOpenChange}: CreateCollectionDialogProps) {
+export function CollectionDialog({open, onOpenChange, collection}: CollectionDialogProps) {
   const queryClient = useQueryClient();
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: {errors, isValid},
+    formState: {errors, isValid, isDirty},
   } = useForm<CollectionFormValues>({
     resolver: zodResolver(collectionSchema),
     defaultValues: {
-      name: "",
-      description: "",
+      name: collection?.name || "",
+      description: collection?.description || "",
     },
     mode: "onChange",
   });
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        name: collection?.name || "",
+        description: collection?.description || "",
+      });
+    } else {
+      const t = setTimeout(() => {
+        reset({name: "", description: ""});
+      }, 500);
+      return () => clearTimeout(t);
+    }
+  }, [open, collection, reset]);
 
   const mutation = useMutation({
     mutationFn: createCollection,
@@ -56,7 +71,6 @@ export function CreateCollectionDialog({open, onOpenChange}: CreateCollectionDia
       queryClient.invalidateQueries({queryKey: ["collections"]});
       toastManager.add({title: "Collection created", type: "success"});
       onOpenChange(false);
-      reset();
     },
     onError: (err) => {
       toastManager.add({
@@ -67,7 +81,35 @@ export function CreateCollectionDialog({open, onOpenChange}: CreateCollectionDia
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (variables: {id: string; data: {name: string; description?: string}}) =>
+      updateCollection(variables.id, variables.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ["collections"]});
+      toastManager.add({title: "Collection updated", type: "success"});
+      onOpenChange(false);
+    },
+    onError: (err) => {
+      toastManager.add({
+        title: "Failed to update collection",
+        description: err instanceof Error ? err.message : "Unknown error",
+        type: "error",
+      });
+    },
+  });
+
   const onSubmit = (data: CollectionFormValues) => {
+    if (collection) {
+      updateMutation.mutate({
+        id: collection.id,
+        data: {
+          name: data.name.trim(),
+          description: data.description?.trim() || undefined,
+        },
+      });
+      return;
+    }
+
     mutation.mutate({
       name: data.name.trim(),
       description: data.description?.trim() || undefined,
@@ -79,12 +121,15 @@ export function CreateCollectionDialog({open, onOpenChange}: CreateCollectionDia
       open={open}
       onOpenChange={(val) => {
         onOpenChange(val);
-        if (!val) reset();
       }}>
       <DialogPopup>
         <DialogHeader>
-          <DialogTitle>Create Collection</DialogTitle>
-          <DialogDescription>Organize your bookmarks into collections.</DialogDescription>
+          <DialogTitle>{collection ? "Edit Collection" : "Create Collection"}</DialogTitle>
+          <DialogDescription>
+            {collection
+              ? "Update your collection details."
+              : "Organize your bookmarks into collections."}
+          </DialogDescription>
         </DialogHeader>
 
         <DialogPanel>
@@ -122,8 +167,13 @@ export function CreateCollectionDialog({open, onOpenChange}: CreateCollectionDia
           <Button
             type="submit"
             form="create-collection-form"
-            disabled={mutation.isPending || !isValid}>
-            Create
+            disabled={
+              mutation.isPending ||
+              updateMutation.isPending ||
+              !isValid ||
+              (!!collection && !isDirty)
+            }>
+            {collection ? "Save Changes" : "Create"}
           </Button>
         </DialogFooter>
       </DialogPopup>

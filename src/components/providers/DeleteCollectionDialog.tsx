@@ -1,0 +1,87 @@
+"use client";
+
+import {Button} from "@/components/coss-ui/button";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "@/components/coss-ui/alert-dialog";
+import {toastManager} from "@/components/coss-ui/toast";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {deleteCollections} from "@/app/actions/collections";
+
+export function DeleteCollectionDialog({
+  open,
+  onOpenChange,
+  collections,
+  onDeleted,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  collections: {id: string; name: string}[];
+  onDeleted?: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const count = collections.length;
+
+  const deleteMutation = useMutation({
+    mutationKey: ["delete-collection"],
+    mutationFn: async (ids: string | string[]) => {
+      return deleteCollections(ids);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ["collections"]});
+      queryClient.invalidateQueries({queryKey: ["bookmarks"]});
+    },
+    onError: (error) => {
+      console.error("Failed to delete collection:", error);
+      toastManager.add({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Failed to delete collection",
+        type: "error",
+      });
+    },
+  });
+
+  const handleDelete = () => {
+    if (count === 0) return;
+
+    const ids = collections.map((c) => c.id);
+    deleteMutation.mutate(ids);
+
+    toastManager.add({
+      title: count === 1 ? "Collection deleted" : `${count} collections deleted`,
+      type: "success",
+    });
+
+    onOpenChange(false);
+    onDeleted?.();
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {count <= 1 ? "Delete collection?" : `Delete ${count} collections?`}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {count <= 1
+              ? `The collection "${collections[0]?.name}" will be permanently removed. This won't delete the bookmarks associated with it.`
+              : `These ${count} collections will be permanently removed. This won't delete the bookmarks associated with them.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
+          <Button variant="destructive" onClick={handleDelete}>
+            {count <= 1 ? "Delete Collection" : `Delete ${count} Collections`}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
+  );
+}

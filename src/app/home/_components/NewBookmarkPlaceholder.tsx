@@ -4,7 +4,9 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {Skeleton} from "@/components/coss-ui/skeleton";
 import {formatDateAbsolute} from "@/lib/formatDate";
-import type {Bookmark} from "@/components/Bookmark";
+import type {Bookmark} from "@/components/bookmark/Bookmark";
+import {useMediaLayoutStore} from "@/store/use-media-layout";
+import {useEffect} from "react";
 
 function CrossFade({
   loaded,
@@ -149,6 +151,53 @@ export function NewBookmarkGridCard({
           </CrossFade>
         </div>
       </div>
+    </div>
+  );
+}
+
+export function NewBookmarkMediaCard({
+  url,
+  bookmark,
+  onDone,
+}: {
+  url: string;
+  bookmark: Bookmark | null;
+  onDone: () => void;
+}) {
+  const loaded = !!bookmark;
+  const {borderRadius, gapSize} = useMediaLayoutStore();
+
+  const radiusClass =
+    borderRadius === "sharp"
+      ? "rounded-none"
+      : borderRadius === "pill"
+        ? "rounded-2xl"
+        : "rounded-md";
+
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(onDone, 900);
+    return () => clearTimeout(t);
+  }, [loaded, onDone]);
+
+  const hasDimensions = bookmark?.metadata?.width && bookmark?.metadata?.height;
+  const aspectRatio = hasDimensions
+    ? `${bookmark.metadata!.width} / ${bookmark.metadata!.height}`
+    : "16/9";
+
+  return (
+    <div
+      className={cn(
+        "bg-background relative block w-full overflow-hidden text-left",
+        gapSize !== "none" && "border",
+        radiusClass,
+      )}
+      style={{
+        aspectRatio,
+      }}>
+      <CrossFade loaded={loaded} delay={0} skeleton={<Skeleton className="h-full w-full" />}>
+        <div className="bg-muted h-full w-full" />
+      </CrossFade>
     </div>
   );
 }

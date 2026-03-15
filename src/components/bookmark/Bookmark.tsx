@@ -1,15 +1,17 @@
 "use client";
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {formatDateAbsolute} from "@/lib/formatDate";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
+import {useMediaLayoutStore} from "@/store/use-media-layout";
+import MediaPreview from "../ui/MediaPreview";
+import type {BookmarkMetadata} from "@/app/home/_types";
 
 export type Bookmark = {
   id: string;
-  kind: "website" | "article" | "video" | "image" | "social" | "other";
+  kind: "website" | "media";
   title: string;
   description: string;
   created_at: string;
@@ -22,41 +24,55 @@ export type Bookmark = {
   notes: string;
   tags?: string[];
   collections?: {id: string; name: string}[];
+  metadata?: BookmarkMetadata;
 };
 
 function BookmarkHoverActions({
   className,
+  variant = "default",
   onOptions,
   onDelete,
 }: {
   className?: string;
+  variant?: "default" | "glass";
   onOptions?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onDelete?: () => void;
 }) {
-  const baseButtonClassName = cn(
-    "pointer-events-auto inline-flex size-8 items-center justify-center rounded-md border",
-    "bg-background text-foreground/90",
-    "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-2 cursor-pointer",
-  );
-
   const stopNav = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
+  const getButtonClassName = (hasRightBorder?: boolean) => {
+    if (variant === "glass") {
+      return cn(
+        "pointer-events-auto flex size-8 cursor-pointer items-center justify-center text-white/90 transition-colors hover:bg-white/8",
+        hasRightBorder && "border-r border-white/15",
+      );
+    }
+    return cn(
+      "pointer-events-auto inline-flex size-8 items-center justify-center rounded-md border",
+      "bg-background text-foreground/90",
+      "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-2 cursor-pointer",
+    );
+  };
+
   return (
     <div
       className={cn(
-        "pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-1",
+        "pointer-events-none absolute top-2 right-2 z-10 flex items-center",
+        variant === "glass"
+          ? "overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md"
+          : "gap-1",
         "opacity-0 transition-opacity duration-75 ease-out",
         "group-hover:pointer-events-auto group-hover:opacity-100",
         "group-focus-visible:pointer-events-auto group-focus-visible:opacity-100",
         className,
       )}>
-      <button
+      {/* <button
         type="button"
         aria-label="Delete"
-        className={baseButtonClassName}
+        className={getButtonClassName(true)}
         onClick={(e) => {
           stopNav(e);
           onDelete?.();
@@ -74,11 +90,11 @@ function BookmarkHoverActions({
             fill="currentColor"
           />
         </svg>
-      </button>
+      </button> */}
       <button
         type="button"
         aria-label="Options"
-        className={baseButtonClassName}
+        className={getButtonClassName(false)}
         onClick={(e) => {
           stopNav(e);
           onOptions?.(e);
@@ -144,6 +160,9 @@ const BookmarkImage = ({
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
+  const isVideo =
+    BASE_SRC.toLowerCase().endsWith(".mp4") || BASE_SRC.toLowerCase().endsWith(".mov");
+
   // If the image 404s (still uploading), retry with a cache-busting query param.
   useEffect(() => {
     if (status !== "error") return;
@@ -165,7 +184,11 @@ const BookmarkImage = ({
         divClassName,
       )}>
       {status !== "loaded" ? (
-        <div className={cn("text-muted-foreground", fallbackClassName)}>
+        <div
+          className={cn(
+            "text-muted-foreground/30 z-10 col-start-1 row-start-1",
+            fallbackClassName,
+          )}>
           <svg
             width="20"
             height="20"
@@ -183,17 +206,32 @@ const BookmarkImage = ({
       ) : null}
 
       {/* Cache-busted favicon attempts. Keep hidden until loaded to avoid alt text flashes. */}
-      <Image
-        src={`${BASE_SRC}?v=${attempt}`}
-        alt={`${bookmark_id} ${type}`}
-        width={fill ? undefined : width}
-        height={fill ? undefined : height}
-        fill={fill}
-        className={cn(status === "loaded" ? "opacity-100" : "opacity-0", imageClassName)}
-        unoptimized
-        onLoad={() => setStatus("loaded")}
-        onError={() => setStatus("error")}
-      />
+      <div
+        className={cn(
+          fill ? "absolute inset-0" : "relative h-full w-full",
+          "col-start-1 row-start-1 flex items-center justify-center",
+          status !== "loaded" && "bg-muted animate-pulse",
+        )}>
+        <MediaPreview
+          src={`${BASE_SRC}?v=${attempt}`}
+          alt={`${bookmark_id} ${type}`}
+          width={width ?? 1200}
+          height={height ?? 1200}
+          addZoom={!isVideo}
+          type={isVideo ? "video" : "image"}
+          poster={isVideo && item.metadata?.thumbnail_url ? item.metadata.thumbnail_url : undefined}
+          className={cn(
+            status === "loaded" ? "opacity-100" : "opacity-0",
+            "transition-opacity duration-300 ease-in-out",
+            imageClassName,
+          )}
+          buttonClassName="flex items-center justify-center h-full w-full"
+          unoptimized={!isVideo ? true : undefined}
+          onLoad={!isVideo ? () => setStatus("loaded") : undefined}
+          onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
+          onError={() => setStatus("error")}
+        />
+      </div>
     </div>
   );
 };
@@ -266,11 +304,11 @@ export const ItemRow = ({
             bookmark_id={item.id}
             item={item}
             type="favicon"
-            divClassName="absolute inset-0 grid grid-cols-1 grid-rows-1 place-items-center"
-            imageClassName="col-start-1 row-start-1 h-full max-h-6 w-full max-w-6 object-cover"
-            fallbackClassName="text-muted-foreground col-start-1 row-start-1"
-            height={24}
-            width={24}
+            divClassName="absolute inset-0"
+            imageClassName="h-5 w-5 object-contain"
+            fallbackClassName=""
+            height={20}
+            width={20}
           />
         </div>
       </div>
@@ -319,6 +357,7 @@ export const GridCard = ({
       <div className="bg-muted relative aspect-16/10 w-full">
         {!selectionMode && (
           <BookmarkHoverActions
+            variant="glass"
             onOptions={() => {
               onOpenMenu?.(item);
             }}
@@ -364,5 +403,105 @@ export const GridCard = ({
         </div>
       </div>
     </Link>
+  );
+};
+
+export const MediaCard = ({
+  item,
+  onOpenMenu,
+  onDelete,
+  selectionMode,
+  selectionIndex = 0,
+  selectedIds,
+  setSelected,
+}: {
+  item: Bookmark;
+  onOpenMenu?: (item: Bookmark) => void;
+  onDelete?: (item: Bookmark) => void;
+  selectionMode?: boolean;
+  selectionIndex?: number;
+  selectedIds?: Set<string>;
+  setSelected?: (id: string, checked: boolean) => void;
+}) => {
+  const {borderRadius, gapSize} = useMediaLayoutStore();
+  const radiusClass =
+    borderRadius === "sharp"
+      ? "rounded-none"
+      : borderRadius === "pill"
+        ? "rounded-2xl"
+        : "rounded-md";
+
+  const hasDimensions = item.metadata?.width && item.metadata?.height;
+  const aspectRatio = hasDimensions ? `${item.metadata!.width} / ${item.metadata!.height}` : "16/9";
+
+  return (
+    <div
+      className={cn(
+        "group bg-background relative block w-full cursor-pointer overflow-hidden text-left",
+        gapSize !== "none" && "border",
+        "hover:bg-muted/80",
+        "focus-visible:bg-muted! focus-visible:outline-none",
+        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        radiusClass,
+      )}
+      style={{
+        aspectRatio,
+      }}>
+      {!selectionMode && (
+        <BookmarkHoverActions
+          variant="glass"
+          onOptions={() => {
+            onOpenMenu?.(item);
+          }}
+          onDelete={() => {
+            onDelete?.(item);
+          }}
+        />
+      )}
+
+      <div
+        className={cn(
+          "absolute top-2 left-2 z-20",
+          selectionMode ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0",
+        )}
+        style={{
+          transitionDelay: selectionMode ? `${Math.min(selectionIndex * 15, 120)}ms` : "0ms",
+        }}>
+        <Checkbox
+          checked={selectedIds?.has(item.id)}
+          onCheckedChange={(next) => setSelected?.(item.id, next === true)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Select ${item.title}`}
+        />
+      </div>
+
+      <BookmarkImage
+        bookmark_id={item.id}
+        item={item}
+        type="preview"
+        fill={true}
+        width={item.metadata?.width ?? 1200}
+        height={item.metadata?.height ?? 1200}
+        imageClassName="w-full h-full object-cover"
+      />
+
+      {/* <div className="p-3">
+        <div className="text-foreground line-clamp-2 text-[14px] font-medium leading-tight">
+          {item.title}
+        </div>
+        <div className="text-muted-foreground mt-1 flex items-center gap-2 text-[12px]">
+          <div className="relative size-4 overflow-hidden rounded-full border">
+             <BookmarkImage
+               bookmark_id={item.id}
+               item={item}
+               type="favicon"
+               fill={true}
+               imageClassName="object-cover"
+             />
+          </div>
+          <span className="truncate">{item.url ? (() => { try { return new URL(item.url).hostname } catch(e) { return item.url } })() : "Unknown"}</span>
+        </div>
+      </div> */}
+    </div>
   );
 };
