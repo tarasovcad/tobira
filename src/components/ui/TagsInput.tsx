@@ -11,6 +11,7 @@ import {useMutation} from "@tanstack/react-query";
 import {generateAiSuggestions as generateAiSuggestionsAction} from "@/app/actions/tags";
 import {Tooltip, TooltipTrigger, TooltipPopup} from "@/components/coss-ui/tooltip";
 import {cn} from "@/lib/utils";
+import {Label} from "../coss-ui/label";
 export type TagsInputProps = {
   value?: string[];
   defaultValue?: string[];
@@ -332,12 +333,10 @@ const TagsInput = ({
 
   return (
     <div className={cn("flex w-full max-w-[460px] flex-col gap-2", containerClassName)}>
-      <label
-        htmlFor={inputId}
-        className={cn("flex items-center gap-1 text-sm font-medium", labelClassName)}>
+      <Label htmlFor={inputId} className="flex items-center gap-1">
         {label} <span className="text-muted-foreground font-medium">(max {maxTags})</span>
         <InfoIcon />
-      </label>
+      </Label>
       <div className="space-y-3">
         <InputGroup>
           <div className="relative w-full">

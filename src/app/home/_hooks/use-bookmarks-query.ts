@@ -1,28 +1,12 @@
 import * as React from "react";
 import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
-import {supabase} from "@/components/utils/supabase/client";
 import {PAGE_SIZE} from "../_constants";
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
 import {getCollections} from "@/app/actions/collections";
+import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/Bookmark";
 import type {Collection} from "@/app/actions/collections";
 import type {UseBookmarksQueryProps, BookmarkRowWithJoins} from "../_types";
-
-/**
- * Builds the Supabase select string based on active filters.
- * Using !inner joins for filtering ensures we only get rows that have the associated records.
- */
-function getBookmarksSelect(tagFilter: string | null, collectionFilter: string | null): string {
-  const tagsJoin = tagFilter
-    ? "bookmark_tags!inner(tags!inner(name))"
-    : "bookmark_tags(tags(name))";
-
-  const collectionsJoin = collectionFilter
-    ? "bookmark_collections!inner(collections(id, name))"
-    : "bookmark_collections(collections(id, name))";
-
-  return `*, ${tagsJoin}, ${collectionsJoin}`;
-}
 
 /**
  * Maps the raw database response to the domain Bookmark type.
@@ -77,43 +61,14 @@ export function useBookmarksQuery({
         };
       }
 
-      const bookmarksSelect = getBookmarksSelect(tagFilter, collectionFilter);
-
-      // We only request the exact count on the first page to optimize database performance
-      let q =
-        offset === 0
-          ? supabase.from("bookmarks").select(bookmarksSelect as "*", {count: "exact"})
-          : supabase.from("bookmarks").select(bookmarksSelect as "*");
-
-      // Filter by ownership and state (exclude archived/deleted)
-      q = q.eq("user_id", userId).is("archived_at", null).is("deleted_at", null);
-
-      if (tagFilter) {
-        q = q.eq("bookmark_tags.tags.name", tagFilter);
-      }
-
-      if (collectionFilter) {
-        q = q.eq("bookmark_collections.collection_id", collectionFilter);
-      }
-
-      q = q.eq("kind", typeFilter);
-
-      // Handle sorting
-      switch (sort) {
-        case "oldest":
-          q = q.order("created_at", {ascending: true});
-          break;
-        case "az":
-          q = q.order("title", {ascending: true}).order("id", {ascending: true});
-          break;
-        case "recent":
-        default:
-          q = q.order("created_at", {ascending: false});
-          break;
-      }
-
-      const {data, count, error} = await q.range(offset, offset + PAGE_SIZE - 1);
-      if (error) throw error;
+      const {data, count} = await fetchBookmarksPageAction({
+        offset,
+        limit: PAGE_SIZE,
+        sort,
+        tagFilter,
+        collectionFilter,
+        typeFilter,
+      });
 
       const items = ((data ?? []) as BookmarkRowWithJoins[]).map(mapBookmarkRow);
       const nextOffset = items.length < PAGE_SIZE ? undefined : offset + PAGE_SIZE;
