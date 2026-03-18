@@ -1,7 +1,6 @@
 import {createClient} from "@/components/utils/supabase/server";
 import AppShell from "@/components/providers/AppShell";
 import {auth} from "@/lib/auth";
-import {redirect} from "next/navigation";
 import {headers} from "next/headers";
 import {HomeClient} from "./_components/HomeClient";
 import {BookmarksLoadError} from "./_components/BookmarksLoadError";
@@ -23,7 +22,11 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
     headers: await headers(),
   });
   if (!data?.user?.id) {
-    redirect("/login");
+    return (
+      <AppShell session={data} tags={[]} collections={[]}>
+        <HomeClient userId={null} initialBookmarks={[]} totalCount={0} />
+      </AppShell>
+    );
   }
 
   const userId = data.user.id;

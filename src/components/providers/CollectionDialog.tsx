@@ -19,6 +19,7 @@ import {createCollection, updateCollection, type Collection} from "@/app/actions
 import {toastManager} from "@/components/coss-ui/toast";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
+import {useRouter} from "next/navigation";
 import * as z from "zod";
 
 const collectionSchema = z.object({
@@ -32,9 +33,16 @@ interface CollectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   collection?: Collection | null;
+  isAuthenticated?: boolean;
 }
 
-export function CollectionDialog({open, onOpenChange, collection}: CollectionDialogProps) {
+export function CollectionDialog({
+  open,
+  onOpenChange,
+  collection,
+  isAuthenticated = false,
+}: CollectionDialogProps) {
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const {
@@ -99,6 +107,12 @@ export function CollectionDialog({open, onOpenChange, collection}: CollectionDia
   });
 
   const onSubmit = (data: CollectionFormValues) => {
+    if (!collection && !isAuthenticated) {
+      onOpenChange(false);
+      router.push("/login");
+      return;
+    }
+
     if (collection) {
       updateMutation.mutate({
         id: collection.id,
@@ -120,6 +134,11 @@ export function CollectionDialog({open, onOpenChange, collection}: CollectionDia
     <Dialog
       open={open}
       onOpenChange={(val) => {
+        if (val && !collection && !isAuthenticated) {
+          onOpenChange(false);
+          router.push("/login");
+          return;
+        }
         onOpenChange(val);
       }}>
       <DialogPopup>

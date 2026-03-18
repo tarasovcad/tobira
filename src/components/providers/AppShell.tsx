@@ -19,7 +19,6 @@ const AppShell = ({
   collections?: Collection[];
 }) => {
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
-
   return (
     <main className="flex h-dvh min-h-screen flex-col">
       <Header session={session} />
@@ -28,11 +27,16 @@ const AppShell = ({
           tags={tags}
           collections={collections}
           onCreateCollection={() => setCreateCollectionOpen(true)}
+          isAuthenticated={Boolean(session)}
         />
         <div className="min-h-0 flex-1">{children}</div>
       </div>
-      <AddItemDialog collections={collections} />
-      <CollectionDialog open={createCollectionOpen} onOpenChange={setCreateCollectionOpen} />
+      <AddItemDialog collections={collections} isAuthenticated={Boolean(session)} />
+      <CollectionDialog
+        open={createCollectionOpen}
+        onOpenChange={setCreateCollectionOpen}
+        isAuthenticated={Boolean(session)}
+      />
     </main>
   );
 };

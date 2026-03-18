@@ -25,6 +25,7 @@ import {toastManager} from "@/components/coss-ui/toast";
 import type {ViewMode, TypeFilter, SortMode} from "./AllItemsToolbar";
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {MediaLayoutMenu} from "./MediaLayoutMenu";
+import {HomeEmptyState} from "./HomeEmptyState";
 
 const resolveSortFilter = (sortParam: string | null): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;
@@ -147,6 +148,12 @@ export function HomeClient({
   const menuItem = menuItemId ? allBookmarks.find((b) => b.id === menuItemId) : undefined;
 
   const {hasNextPage, isFetchingNextPage, fetchNextPage} = bookmarksQuery;
+  const showEmptyState =
+    !isInitialLoad &&
+    !isFetchingNextPage &&
+    visibleItems.length === 0 &&
+    !animatingUrl &&
+    resolvedBookmarks.length === 0;
 
   // ── Infinite scroll ──
   useEffect(() => {
@@ -302,34 +309,38 @@ export function HomeClient({
       />
 
       {/* Item count */}
-      {!activeCollection && (
+      {!activeCollection && userId && (
         <div className="text-muted-foreground flex items-center gap-1 px-6 py-3 text-sm">
           <NumberFlow value={currentTotalCount} /> items
         </div>
       )}
 
       {/* Scrollable content area */}
-      <AllItemsList
-        view={view}
-        typeFilter={typeFilter}
-        visibleItems={visibleItems}
-        animatingUrl={animatingUrl}
-        animatingItemCount={animatingItemCount}
-        resolvedBookmarks={resolvedBookmarks}
-        isInitialLoad={isInitialLoad}
-        isFetchingNextPage={isFetchingNextPage}
-        selectionMode={selectionMode}
-        selectedIds={selectedIds}
-        removingIds={removingIds}
-        scrollAreaRootRef={scrollAreaRootRef}
-        bottomSentinelRef={bottomSentinelRef}
-        onTransitionDone={handleTransitionDone}
-        onItemRemoved={handleItemRemoved}
-        toggleSelected={toggleSelected}
-        setSelected={setSelected}
-        openMenu={openMenu}
-        openDeleteDialog={openDeleteDialog}
-      />
+      {showEmptyState ? (
+        <HomeEmptyState userId={userId} />
+      ) : (
+        <AllItemsList
+          view={view}
+          typeFilter={typeFilter}
+          visibleItems={visibleItems}
+          animatingUrl={animatingUrl}
+          animatingItemCount={animatingItemCount}
+          resolvedBookmarks={resolvedBookmarks}
+          isInitialLoad={isInitialLoad}
+          isFetchingNextPage={isFetchingNextPage}
+          selectionMode={selectionMode}
+          selectedIds={selectedIds}
+          removingIds={removingIds}
+          scrollAreaRootRef={scrollAreaRootRef}
+          bottomSentinelRef={bottomSentinelRef}
+          onTransitionDone={handleTransitionDone}
+          onItemRemoved={handleItemRemoved}
+          toggleSelected={toggleSelected}
+          setSelected={setSelected}
+          openMenu={openMenu}
+          openDeleteDialog={openDeleteDialog}
+        />
+      )}
 
       {/* ── Floating selection action bar ── */}
       <SelectionActionBar
