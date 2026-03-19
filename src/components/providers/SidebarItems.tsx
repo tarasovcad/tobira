@@ -43,7 +43,7 @@ export function SidebarCollectionItem({
               onToggleSelection();
               return;
             }
-            router.push(`/all?collection=${collection.id}`);
+            router.push(`/home?collection=${collection.id}`);
           }}
           className={cn(
             isActive
@@ -137,7 +137,7 @@ export function SidebarTagItem({
               onToggleSelection();
               return;
             }
-            router.push(`/all?tag=${encodeURIComponent(tag.name)}`);
+            router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
           }}
           className={cn(
             isActive

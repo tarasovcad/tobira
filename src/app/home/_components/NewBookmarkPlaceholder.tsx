@@ -67,16 +67,16 @@ export function NewBookmarkRow({
         <CrossFade
           loaded={!!bookmark?.title}
           delay={100}
-          skeleton={<Skeleton className="h-4.5 w-48 rounded" />}>
+          skeleton={<Skeleton className="h-5 w-48 rounded" />}>
           <div className="text-foreground truncate text-sm font-semibold">
             {bookmark?.title ?? url}
           </div>
         </CrossFade>
-        <div className="mt-0.5">
+        <div className="mt-1">
           <CrossFade
             loaded={loaded}
             delay={200}
-            skeleton={<Skeleton className="h-3.5 w-64 rounded" />}>
+            skeleton={<Skeleton className="h-4.5 w-64 rounded" />}>
             <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-xs whitespace-nowrap">
               <span className="min-w-0 truncate">{bookmark?.url ?? url}</span>
               {bookmark ? (
@@ -88,11 +88,11 @@ export function NewBookmarkRow({
             </div>
           </CrossFade>
         </div>
-        <div className="mt-2">
+        <div className="mt-[9.5px]">
           <CrossFade
             loaded={!!bookmark?.description}
             delay={300}
-            skeleton={<Skeleton className="h-4 w-40 rounded" />}>
+            skeleton={<Skeleton className="h-5 w-40 rounded" />}>
             <div className="text-muted-foreground line-clamp-2 text-xs">
               {bookmark?.description ?? ""}
             </div>

@@ -6,6 +6,7 @@ import {useForm, Controller} from "react-hook-form";
 import {AnimatePresence, motion} from "framer-motion";
 import {zodResolver} from "@hookform/resolvers/zod";
 import Image from "next/image";
+import {useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
 import Spinner from "@/components/shadcn/coss-ui";
 import {Button} from "@/components/coss-ui/button";
@@ -53,9 +54,19 @@ import {
 import {ITEM_TYPES} from "./constants";
 
 import {addItemSchema, type AddItemFormValues} from "./addItemSchema";
+import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
 
-export function AddItemDialog({collections = []}: {collections?: Collection[]}) {
-  const [open, setOpen] = useState(false);
+export function AddItemDialog({
+  collections = [],
+  isAuthenticated = false,
+}: {
+  collections?: Collection[];
+  isAuthenticated?: boolean;
+}) {
+  const router = useRouter();
+  const open = useAddItemDialogStore((state) => state.isOpen);
+  const setDialogOpen = useAddItemDialogStore((state) => state.setDialogOpen);
+  const closeDialog = useAddItemDialogStore((state) => state.closeDialog);
   const [step, setStep] = useState<1 | 2>(1);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
@@ -115,7 +126,7 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
         return;
       }
 
-      setOpen(false);
+      closeDialog();
       toastManager.add({
         title: "Bookmark added",
         type: "success",
@@ -152,7 +163,7 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
           collectionId: data.collectionId ?? undefined,
           kind: "website",
         });
-        setOpen(false);
+        closeDialog();
         break;
       case "media":
         addItemMutation.mutate({
@@ -184,26 +195,40 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
     [collections],
   );
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && !isAuthenticated) {
+      closeDialog();
+      router.push("/login");
+      return;
+    }
+
+    setDialogOpen(nextOpen);
+    if (!nextOpen) {
+      setTimeout(() => {
+        reset();
+        setStep(1);
+        setMediaUrls([]);
+        setSelectedMediaUrls([]);
+      }, 500);
+    }
+  };
+
+  const handleOpenDialogClick = () => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    setDialogOpen(true);
+  };
+
   return (
     <div className="absolute right-6 bottom-6">
-      <Dialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          setOpen(nextOpen);
-          if (!nextOpen) {
-            setTimeout(() => {
-              reset();
-              setStep(1);
-              setMediaUrls([]);
-              setSelectedMediaUrls([]);
-            }, 500);
-          }
-        }}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <ShadcnButton
           variant="default"
           size="icon-lg"
           className="relative z-100 size-12 rounded-full"
-          onClick={() => setOpen(true)}>
+          onClick={handleOpenDialogClick}>
           <svg
             width="20"
             height="20"
@@ -423,7 +448,7 @@ export function AddItemDialog({collections = []}: {collections?: Collection[]}) 
                     kind: "media",
                     selectedMediaUrls,
                   });
-                  setOpen(false);
+                  closeDialog();
                 }}>
                 {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
                 Confirm

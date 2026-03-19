@@ -188,7 +188,7 @@ export function SidebarCollections({
             )}
             {collectionsExpanded &&
               collections?.map((c, index) => {
-                const isActive = pathname === "/all" && searchParams.get("collection") === c.id;
+                const isActive = pathname === "/home" && searchParams.get("collection") === c.id;
                 return (
                   <SidebarCollectionItem
                     key={c.id}

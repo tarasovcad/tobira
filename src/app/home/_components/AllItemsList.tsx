@@ -108,7 +108,9 @@ export function AllItemsList({
     : isGrid
       ? NewBookmarkGridCard
       : NewBookmarkRow;
+
   const BookmarkItem = isMedia ? MediaCard : isGrid ? GridCard : ItemRow;
+  const skeletonCount = 12;
 
   const fetchSpinnerClassName =
     isGrid || isMedia
@@ -116,6 +118,59 @@ export function AllItemsList({
       : "text-muted-foreground px-6 py-6 text-center text-xs";
 
   const sentinelClassName = isGrid || isMedia ? "col-span-full h-px" : "h-px";
+
+  const renderSkeletonItem = (index: number) => {
+    if (isMedia) {
+      return (
+        <div key={index} className={cn(itemMbClass, "break-inside-avoid")}>
+          <MediaSkeleton index={index} />
+        </div>
+      );
+    }
+
+    if (isGrid) {
+      return <GridSkeleton key={index} />;
+    }
+
+    return <RowSkeleton key={index} />;
+  };
+
+  const renderBookmarkItem = (item: Bookmark, index: number) => (
+    <AnimatedItem
+      key={item.id}
+      id={item.id}
+      isRemoving={removingIds.has(item.id)}
+      onRemoved={onItemRemoved}
+      variant={isMedia ? "grid" : view}
+      className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}
+      kind={removingIds.get(item.id) ?? "delete"}>
+      <div
+        className={cn(
+          "relative",
+          selectionMode && selectedIds.has(item.id) && "ring-primary rounded-md ring-2",
+        )}
+        onClickCapture={(e) => {
+          if (!selectionMode) return;
+          e.preventDefault();
+          e.stopPropagation();
+          toggleSelected(item.id);
+        }}>
+        <BookmarkItem
+          item={item}
+          onOpenMenu={openMenu}
+          onDelete={openDeleteDialog}
+          selectionMode={selectionMode}
+          selectionIndex={index}
+          selectedIds={selectedIds}
+          setSelected={setSelected}
+        />
+      </div>
+    </AnimatedItem>
+  );
+
+  const content = isInitialLoad
+    ? Array.from({length: skeletonCount}, (_, index) => renderSkeletonItem(index))
+    : visibleItems.map(renderBookmarkItem);
 
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
@@ -135,50 +190,7 @@ export function AllItemsList({
               </div>
             ))}
 
-          {isInitialLoad
-            ? Array.from({length: isGrid || isMedia ? 12 : 12}).map((_, i) =>
-                isMedia ? (
-                  <div key={i} className={cn(itemMbClass, "break-inside-avoid")}>
-                    <MediaSkeleton index={i} />
-                  </div>
-                ) : isGrid ? (
-                  <GridSkeleton key={i} />
-                ) : (
-                  <RowSkeleton key={i} />
-                ),
-              )
-            : visibleItems.map((item, index) => (
-                <AnimatedItem
-                  key={item.id}
-                  id={item.id}
-                  isRemoving={removingIds.has(item.id)}
-                  onRemoved={onItemRemoved}
-                  variant={isMedia ? "grid" : view}
-                  className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}
-                  kind={removingIds.get(item.id) ?? "delete"}>
-                  <div
-                    className={cn(
-                      "relative",
-                      selectionMode && selectedIds.has(item.id) && "ring-primary rounded-md ring-2",
-                    )}
-                    onClickCapture={(e) => {
-                      if (!selectionMode) return;
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSelected(item.id);
-                    }}>
-                    <BookmarkItem
-                      item={item}
-                      onOpenMenu={openMenu}
-                      onDelete={openDeleteDialog}
-                      selectionMode={selectionMode}
-                      selectionIndex={index}
-                      selectedIds={selectedIds}
-                      setSelected={setSelected}
-                    />
-                  </div>
-                </AnimatedItem>
-              ))}
+          {content}
 
           {/* Pagination loader */}
           {isFetchingNextPage && <LoadingSpinner className={fetchSpinnerClassName} />}

@@ -585,3 +585,77 @@ export async function resetBookmark(bookmarkId: string): Promise<{ok: true}> {
 
   return {ok: true};
 }
+
+export async function fetchBookmarksPageAction(params: {
+  offset: number;
+  limit: number;
+  sort: "recent" | "oldest" | "az";
+  tagFilter: string | null;
+  collectionFilter: string | null;
+  typeFilter: "website" | "media";
+}) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createClient();
+
+  const bookmarksSelect = getBookmarksSelect(params.tagFilter, params.collectionFilter);
+
+  let q =
+    params.offset === 0
+      ? supabase.from("bookmarks").select(bookmarksSelect as "*", {count: "exact"})
+      : supabase.from("bookmarks").select(bookmarksSelect as "*");
+
+  q = q
+    .eq("user_id", session.user.id)
+    .is("archived_at", null)
+    .is("deleted_at", null)
+    .eq("kind", params.typeFilter);
+
+  if (params.tagFilter) {
+    q = q.eq("bookmark_tags.tags.name", params.tagFilter);
+  }
+  if (params.collectionFilter) {
+    q = q.eq("bookmark_collections.collection_id", params.collectionFilter);
+  }
+
+  switch (params.sort) {
+    case "oldest":
+      q = q.order("created_at", {ascending: true});
+      break;
+    case "az":
+      q = q.order("title", {ascending: true}).order("id", {ascending: true});
+      break;
+    case "recent":
+    default:
+      q = q.order("created_at", {ascending: false});
+      break;
+  }
+
+  const {data, count, error} = await q.range(params.offset, params.offset + params.limit - 1);
+
+  if (error) throw error;
+
+  return {data, count};
+}
+
+/**
+ * Builds the Supabase select string based on active filters.
+ * Using !inner joins for filtering ensures we only get rows that have the associated records.
+ */
+function getBookmarksSelect(tagFilter: string | null, collectionFilter: string | null): string {
+  const tagsJoin = tagFilter
+    ? "bookmark_tags!inner(tags!inner(name))"
+    : "bookmark_tags(tags(name))";
+
+  const collectionsJoin = collectionFilter
+    ? "bookmark_collections!inner(collections(id, name))"
+    : "bookmark_collections(collections(id, name))";
+
+  return `*, ${tagsJoin}, ${collectionsJoin}`;
+}
