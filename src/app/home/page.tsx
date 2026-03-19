@@ -49,7 +49,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   ]);
 
   const {initialBookmarks, totalCount, bookmarksError, tags, tagsError} = bookmarksResult;
-  console.log(initialBookmarks);
+
   if (tagsError) console.error("Failed to fetch tags with counts:", tagsError);
 
   if (bookmarksError || tagsError) {

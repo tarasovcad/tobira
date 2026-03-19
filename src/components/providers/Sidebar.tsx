@@ -7,6 +7,7 @@ import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
 import {SidebarTags, SidebarTagsType} from "./SidebarTags";
 import {SidebarCollections} from "./SidebarCollections";
+import {useSidebarStore} from "@/store/use-sidebar";
 
 export function Sidebar({
   tags: initialTags,
@@ -22,6 +23,7 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isSidebarOpen = useSidebarStore((state) => state.isOpen);
 
   const handleCreateCollection = () => {
     if (!isAuthenticated) {
@@ -37,15 +39,17 @@ export function Sidebar({
     null;
 
   return (
-    <aside className="h-full w-[224px] shrink-0 border-r">
+    <aside
+      data-state={isSidebarOpen ? "open" : "closed"}
+      className="h-full w-[224px] shrink-0 border-r">
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="px-3 pt-3">
             <div className="flex flex-col gap-0.5">
               {NAV_ITEMS.map((item) => {
                 const isAllItemsWithFilter =
-                  item.href === "/all" &&
-                  pathname === "/all" &&
+                  item.href === "/home" &&
+                  pathname === "/home" &&
                   (!!activeTag || !!searchParams.get("collection"));
                 const isActive = item.href === pathname && !isAllItemsWithFilter;
 
