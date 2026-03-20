@@ -272,7 +272,7 @@ const LoginPage = () => {
                 variant="default"
                 size="lg"
                 type="submit"
-                disabled={isLoading}>
+                disabled={isLoading || isGoogleLoading || isGithubLoading}>
                 {isLoading && <Spinner />}
                 Send me a code
               </Button>

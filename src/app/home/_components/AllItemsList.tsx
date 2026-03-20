@@ -145,10 +145,7 @@ export function AllItemsList({
       className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}
       kind={removingIds.get(item.id) ?? "delete"}>
       <div
-        className={cn(
-          "relative",
-          selectionMode && selectedIds.has(item.id) && "ring-primary rounded-md ring-2",
-        )}
+        className="relative"
         onClickCapture={(e) => {
           if (!selectionMode) return;
           e.preventDefault();
@@ -189,7 +186,6 @@ export function AllItemsList({
                 />
               </div>
             ))}
-
           {content}
 
           {/* Pagination loader */}

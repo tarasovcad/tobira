@@ -295,6 +295,7 @@ export const ItemRow = ({
                 onCheckedChange={(next) => setSelected?.(item.id, next === true)}
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`Select ${item.title}`}
+                className="focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
           </div>
@@ -380,6 +381,7 @@ export const GridCard = ({
             onCheckedChange={(next) => setSelected?.(item.id, next === true)}
             onClick={(e) => e.stopPropagation()}
             aria-label={`Select ${item.title}`}
+            className="focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
 
@@ -472,6 +474,7 @@ export const MediaCard = ({
           onCheckedChange={(next) => setSelected?.(item.id, next === true)}
           onClick={(e) => e.stopPropagation()}
           aria-label={`Select ${item.title}`}
+          className="focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
 
