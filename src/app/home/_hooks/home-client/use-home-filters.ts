@@ -5,7 +5,7 @@ import {useSearchParams, useRouter, usePathname} from "next/navigation";
 import {normalizeTagParam} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {TypeFilter, SortMode} from "../../_components/AllItemsToolbar";
-import {getDefaultAllItemsView} from "../../_components/all-items-list-view-options";
+import {getDefaultAllItemsView} from "../../_components/all-items-client/all-items-list-view-options";
 
 const resolveSortFilter = (sortParam: string | null): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;

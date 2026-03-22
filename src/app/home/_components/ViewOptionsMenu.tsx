@@ -27,7 +27,10 @@ import {
   type BorderRadius,
 } from "@/store/use-view-options";
 import type {TypeFilter} from "./AllItemsToolbar";
-import {getCurrentAllItemsView, isAllItemsViewSelectable} from "./all-items-list-view-options";
+import {
+  getCurrentAllItemsView,
+  isAllItemsViewSelectable,
+} from "./all-items-client/all-items-list-view-options";
 
 const LAYOUT_OPTIONS = [
   {
