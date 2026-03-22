@@ -4,9 +4,11 @@ import {Button} from "@/components/coss-ui/button";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
+
 export function HomeEmptyState({userId}: {userId: string | null}) {
   const router = useRouter();
   const openDialog = useAddItemDialogStore((state) => state.openDialog);
+
   const handleAddBookmark = () => {
     if (!userId) {
       router.push("/login");

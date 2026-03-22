@@ -1,9 +1,9 @@
 "use client";
 
 import {cn} from "@/lib/utils";
-import {TypeSelect, SortSelect} from "./AllItemsToolbar";
-import ViewOptionsMenu from "./ViewOptionsMenu";
-import type {TypeFilter, SortMode} from "./AllItemsToolbar";
+import {TypeSelect, SortSelect} from "../AllItemsToolbar";
+import ViewOptionsMenu from "../ViewOptionsMenu";
+import type {TypeFilter, SortMode} from "../AllItemsToolbar";
 import type {Collection} from "@/app/actions/collections";
 
 interface HomeToolbarProps {

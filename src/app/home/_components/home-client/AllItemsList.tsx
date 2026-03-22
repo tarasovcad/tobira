@@ -5,10 +5,10 @@ import {cn} from "@/lib/utils";
 import Spinner from "@/components/ui/spinner";
 import {Bookmark, GridCard, ItemRow, MediaCard} from "@/components/bookmark/Bookmark";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
-import {NewBookmarkRow, NewBookmarkGridCard, NewBookmarkMediaCard} from "./NewBookmarkPlaceholder";
-import type {TypeFilter} from "./AllItemsToolbar";
+import {NewBookmarkRow, NewBookmarkGridCard, NewBookmarkMediaCard} from "../NewBookmarkPlaceholder";
+import type {TypeFilter} from "../AllItemsToolbar";
 import type {ViewMode} from "@/store/use-view-options";
-import {RowSkeleton, GridSkeleton, MediaSkeleton} from "./ListSkeletons";
+import {RowSkeleton, GridSkeleton, MediaSkeleton} from "../ListSkeletons";
 import {useViewOptionsStore} from "@/store/use-view-options";
 
 const BORDER_RADIUS_MAP: Record<string, string> = {
@@ -82,9 +82,6 @@ interface AllItemsListProps {
   openDeleteDialog: (item: Bookmark) => void;
 }
 
-/**
- * Renders the scrollable list of bookmarks in either grid or list view.
- */
 export function AllItemsList({
   view,
   typeFilter,
@@ -92,7 +89,6 @@ export function AllItemsList({
   animatingUrl,
   animatingItemCount,
   resolvedBookmarks,
-  // isInitialLoad,
   isFetchingNextPage,
   selectionMode,
   selectedIds,
@@ -107,7 +103,6 @@ export function AllItemsList({
   openDeleteDialog,
   isInitialLoad,
 }: AllItemsListProps) {
-  // const isInitialLoad = true;
   const isGrid = view === "grid";
   const isMedia = typeFilter === "media";
   const {gridGap, columnSize, borderRadius} = useViewOptionsStore();
@@ -194,7 +189,6 @@ export function AllItemsList({
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
       <ScrollArea className="h-full" scrollbarGutter>
         <div className={containerClassName}>
-          {/* Skeleton placeholder for a newly-added bookmark */}
           {animatingUrl &&
             Array.from({length: animatingItemCount ?? 1}).map((_, i) => (
               <div
@@ -209,10 +203,8 @@ export function AllItemsList({
             ))}
           {content}
 
-          {/* Pagination loader */}
           {isFetchingNextPage && <LoadingSpinner className={fetchSpinnerClassName} />}
 
-          {/* Intersection observer sentinel */}
           <div ref={bottomSentinelRef} aria-hidden className={sentinelClassName} />
         </div>
       </ScrollArea>

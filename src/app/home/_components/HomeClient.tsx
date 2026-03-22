@@ -7,25 +7,25 @@ import NumberFlow from "@number-flow/react";
 // Components
 import {Bookmark} from "@/components/bookmark/Bookmark";
 import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
-import {DeleteBookmarkDialog} from "./DeleteBookmarkDialog";
+import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {DeleteCollectionDialog} from "@/components/providers/DeleteCollectionDialog";
 import {CollectionDialog} from "@/components/providers/CollectionDialog";
-import {CollectionHeader} from "./CollectionHeader";
-import {AllItemsList} from "./AllItemsList";
-import {HomeToolbar} from "./HomeToolbar";
+import {CollectionHeader} from "./home-client/CollectionHeader";
+import {AllItemsList} from "./home-client/AllItemsList";
+import {HomeToolbar} from "./home-client/HomeToolbar";
 
 // Hooks
 import {useBookmarksSelection} from "../_hooks/use-bookmarks-selection";
 import {useBookmarksMutations} from "../_hooks/use-bookmarks-mutations";
-import {useHomeArchiveActions} from "../_hooks/use-home-archive-actions";
-import {useHomeDialogs} from "../_hooks/use-home-dialogs";
-import {useHomeFilters} from "../_hooks/use-home-filters";
-import {useHomeInfiniteScroll} from "../_hooks/use-home-infinite-scroll";
+import {useHomeArchiveActions} from "../_hooks/home-client/use-home-archive-actions";
+import {useHomeDialogs} from "../_hooks/home-client/use-home-dialogs";
+import {useHomeFilters} from "../_hooks/home-client/use-home-filters";
+import {useHomeInfiniteScroll} from "../_hooks/home-client/use-home-infinite-scroll";
 import {useHomeShortcuts} from "../_hooks/use-home-shortcuts";
 
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
-import {HomeEmptyState} from "./HomeEmptyState";
+import {HomeEmptyState} from "./home-client/HomeEmptyState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 
 /**
@@ -237,7 +237,7 @@ export function HomeClient({
           activeCollection ? [{id: activeCollection.id, name: activeCollection.name}] : []
         }
         onDeleted={() => {
-          router.push("/all");
+          router.push("/home");
         }}
       />
       <CollectionDialog
