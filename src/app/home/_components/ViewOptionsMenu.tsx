@@ -20,11 +20,14 @@ import {SliderComfortable} from "@/components/ui/slider";
 import {cn} from "@/lib/utils";
 import {
   useViewOptionsStore,
+  type ColumnSize,
+  type ContentField,
   type ViewMode,
   type GridGap,
   type BorderRadius,
 } from "@/store/use-view-options";
 import type {TypeFilter} from "./AllItemsToolbar";
+import {getCurrentAllItemsView, isAllItemsViewSelectable} from "./all-items-list-view-options";
 
 const LAYOUT_OPTIONS = [
   {
@@ -166,6 +169,26 @@ const BORDER_RADIUS_OPTIONS = [
   {value: "lg", label: "L"},
 ] as const;
 
+const DISABLED_CONTENT_BY_VIEW: Partial<Record<ViewMode, ContentField[]>> = {
+  compact: ["description"],
+  table: ["description", "tags"],
+};
+
+// We keep this lookup exhaustive because direct `contentToggles[field]`
+// access triggers the dynamic object indexing lint rule in this codebase.
+function isContentFieldEnabled(contentToggles: Record<ContentField, boolean>, field: ContentField) {
+  switch (field) {
+    case "description":
+      return contentToggles.description;
+    case "tags":
+      return contentToggles.tags;
+    case "source":
+      return contentToggles.source;
+    case "savedDate":
+      return contentToggles.savedDate;
+  }
+}
+
 const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
@@ -181,8 +204,8 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const setContentToggle = useViewOptionsStore((state) => state.setContentToggle);
 
   const isMedia = typeFilter === "media";
-  const currentView = isMedia ? "grid" : view;
-  const isAppearanceDisabled = typeFilter === "website" && currentView !== "grid";
+  const currentView = getCurrentAllItemsView(view, typeFilter);
+  const isAppearanceDisabled = currentView !== "grid";
 
   return (
     <Menu>
@@ -223,7 +246,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
               <AccordionContent className="px-1 py-1">
                 <div className="grid grid-cols-2 gap-1">
                   {LAYOUT_OPTIONS.map(({id, title, icon: Icon}) => {
-                    const isOptionDisabled = isMedia && id !== "grid";
+                    const isOptionDisabled = !isAllItemsViewSelectable(id as ViewMode, typeFilter);
                     return (
                       <div
                         key={id}
@@ -277,7 +300,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     variant="pips"
                     showTooltip={false}
                     disabled={isAppearanceDisabled}
-                    onChange={(val) => setColumnSize(val as number)}
+                    onChange={(val) => setColumnSize(val as ColumnSize)}
                   />
 
                   <SliderComfortable
@@ -340,20 +363,31 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                       <span className="shrink-0">Always on</span>
                     </div>
 
-                    {CONTENT_OPTIONS.map(({id, label}, index) => (
-                      <Switch
-                        key={id}
-                        label={label}
-                        checked={contentToggles[id]}
-                        onToggle={() => setContentToggle(id, !contentToggles[id])}
-                        labelClassName="text-sm"
-                        className={cn(
-                          "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",
-                          index === CONTENT_OPTIONS.length - 1 && "rounded-b-sm",
-                        )}
-                        aria-label={`Show ${label}`}
-                      />
-                    ))}
+                    {CONTENT_OPTIONS.map(({id, label}) => {
+                      const isDisabled = (
+                        DISABLED_CONTENT_BY_VIEW[currentView as ViewMode] || []
+                      ).includes(id);
+
+                      return (
+                        <Switch
+                          key={id}
+                          label={label}
+                          disabled={isDisabled}
+                          checked={isDisabled ? false : isContentFieldEnabled(contentToggles, id)}
+                          onToggle={() => {
+                            if (!isDisabled) {
+                              setContentToggle(id, !isContentFieldEnabled(contentToggles, id));
+                            }
+                          }}
+                          labelClassName="text-sm"
+                          className={cn(
+                            "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",
+                            isDisabled && "cursor-not-allowed!",
+                          )}
+                          aria-label={`Show ${label}`}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </AccordionContent>

@@ -5,7 +5,6 @@ import {useRouter} from "next/navigation";
 import NumberFlow from "@number-flow/react";
 
 // Components
-import {Bookmark} from "@/components/bookmark/Bookmark";
 import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
 import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
@@ -27,6 +26,7 @@ import {useHomeShortcuts} from "../_hooks/use-home-shortcuts";
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {HomeEmptyState} from "./home-client/HomeEmptyState";
 import {useViewOptionsStore} from "@/store/use-view-options";
+import type {Bookmark} from "@/components/bookmark/types";
 
 /**
  * Main client component for the All Items / Home page.
@@ -102,6 +102,7 @@ export function HomeClient({
     selectionMode,
     handleClearSelection,
     view,
+    typeFilter,
     setView,
   });
 

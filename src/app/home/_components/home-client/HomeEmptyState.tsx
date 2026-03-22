@@ -22,7 +22,7 @@ export function HomeEmptyState({userId}: {userId: string | null}) {
       <div className="flex max-w-md flex-col items-center text-center">
         <div className="mb-1.5 h-[67.5px] w-[45px]">
           <Image
-            src="/icons/bookmark.png"
+            src="/icons/bookmark.webp"
             alt="No bookmarks yet"
             width={45}
             height={45}

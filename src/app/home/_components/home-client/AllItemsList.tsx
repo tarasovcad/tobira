@@ -3,54 +3,26 @@ import * as React from "react";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import {cn} from "@/lib/utils";
 import Spinner from "@/components/ui/spinner";
-import {Bookmark, GridCard, ItemRow, MediaCard} from "@/components/bookmark/Bookmark";
+import {
+  getTableBookmarkColumnsClass,
+  GridCard,
+  ItemList,
+  MediaCard,
+  MinimalItemRow,
+  TableItemRow,
+} from "@/components/bookmark/Bookmark";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
-import {NewBookmarkRow, NewBookmarkGridCard, NewBookmarkMediaCard} from "../NewBookmarkPlaceholder";
+import type {Bookmark} from "@/components/bookmark/types";
+import {
+  NewBookmarkList,
+  NewBookmarkGridCard,
+  NewBookmarkMediaCard,
+} from "../NewBookmarkPlaceholder";
 import type {TypeFilter} from "../AllItemsToolbar";
 import type {ViewMode} from "@/store/use-view-options";
-import {RowSkeleton, GridSkeleton, MediaSkeleton} from "../ListSkeletons";
+import {ListSkeleton, GridSkeleton, MediaSkeleton} from "../ListSkeletons";
 import {useViewOptionsStore} from "@/store/use-view-options";
-
-const BORDER_RADIUS_MAP: Record<string, string> = {
-  none: "rounded-none",
-  sm: "rounded-sm",
-  md: "rounded-md",
-  lg: "rounded-lg",
-};
-
-const GAP_MAP: Record<string, string> = {
-  none: "gap-0",
-  xs: "gap-2",
-  sm: "gap-4",
-  md: "gap-6",
-  lg: "gap-8",
-};
-
-const MB_MAP: Record<string, string> = {
-  none: "mb-0",
-  xs: "mb-2",
-  sm: "mb-4",
-  md: "mb-6",
-  lg: "mb-8",
-};
-
-const COLUMNS_MAP: Record<number, string> = {
-  1: "columns-1 lg:columns-2",
-  2: "columns-1 xl:columns-2",
-  3: "columns-1 lg:columns-2 xl:columns-3",
-  4: "columns-1 sm:columns-2 lg:columns-3 xl:columns-4",
-  5: "columns-2 sm:columns-3 lg:columns-4 xl:columns-5",
-  6: "columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6",
-};
-
-const GRID_COLS_MAP: Record<number, string> = {
-  1: "grid-cols-1",
-  2: "grid-cols-1 sm:grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-  4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-  5: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
-  6: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
-};
+import {getCurrentAllItemsView, getAllItemsListViewOptions} from "../all-items-list-view-options";
 
 function LoadingSpinner({className}: {className?: string}) {
   return (
@@ -103,53 +75,83 @@ export function AllItemsList({
   openDeleteDialog,
   isInitialLoad,
 }: AllItemsListProps) {
-  const isGrid = view === "grid";
-  const isMedia = typeFilter === "media";
-  const {gridGap, columnSize, borderRadius} = useViewOptionsStore();
+  const currentView = getCurrentAllItemsView(view, typeFilter);
+  const isGrid = currentView === "grid";
+  const isTable = currentView === "table";
+  const isMediaGrid = isGrid && typeFilter === "media";
 
-  const borderRadiusClass = BORDER_RADIUS_MAP[borderRadius];
-  const gapClass = GAP_MAP[gridGap];
-  const itemMbClass = MB_MAP[gridGap];
-  const columnClass = COLUMNS_MAP[columnSize];
-  const gridColsClass = GRID_COLS_MAP[columnSize];
+  const gridGap = useViewOptionsStore((state) => state.gridGap);
+  const columnSize = useViewOptionsStore((state) => state.columnSize);
+  const borderRadius = useViewOptionsStore((state) => state.borderRadius);
+  const contentToggles = useViewOptionsStore((state) => state.contentToggles);
 
-  const containerClassName = cn(
-    isMedia && [columnClass, gapClass, "px-6 pb-8"],
-    isGrid && !isMedia && ["grid", gridColsClass, gapClass, "px-6 pb-8"],
-    !isMedia && !isGrid && "border-t",
-  );
+  const {borderRadiusClass, gapClass, gridColsClass} = getAllItemsListViewOptions({
+    borderRadius,
+    gridGap,
+    columnSize,
+  });
 
-  const NewBookmarkPlaceholder = isMedia
-    ? NewBookmarkMediaCard
-    : isGrid
-      ? NewBookmarkGridCard
-      : NewBookmarkRow;
+  const layoutConfig = (() => {
+    switch (currentView) {
+      case "grid":
+        return {
+          containerClassName: cn("grid", gridColsClass, gapClass, "px-6 pb-8"),
+          NewBookmarkPlaceholder: isMediaGrid ? NewBookmarkMediaCard : NewBookmarkGridCard,
+          BookmarkItem: isMediaGrid ? MediaCard : GridCard,
+          fetchSpinnerClassName: "text-muted-foreground col-span-full py-6 text-center text-xs",
+          sentinelClassName: "col-span-full h-px",
+          animatedVariant: "grid" as const,
+          renderSkeletonItem: (index: number) =>
+            isMediaGrid ? (
+              <MediaSkeleton key={index} index={index} borderRadiusClass={borderRadiusClass} />
+            ) : (
+              <GridSkeleton key={index} borderRadiusClass={borderRadiusClass} />
+            ),
+        };
+      case "table":
+        return {
+          containerClassName: "px-6 pb-8",
+          NewBookmarkPlaceholder: NewBookmarkList,
+          BookmarkItem: TableItemRow,
+          fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
+          sentinelClassName: "h-px",
+          animatedVariant: "list" as const,
+          renderSkeletonItem: (index: number) => <ListSkeleton key={index} />,
+        };
+      case "compact":
+        return {
+          containerClassName: "border-t",
+          NewBookmarkPlaceholder: NewBookmarkList,
+          BookmarkItem: MinimalItemRow,
+          fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
+          sentinelClassName: "h-px",
+          animatedVariant: "list" as const,
+          renderSkeletonItem: (index: number) => <ListSkeleton key={index} />,
+        };
+      case "list":
+        return {
+          containerClassName: "border-t",
+          NewBookmarkPlaceholder: NewBookmarkList,
+          BookmarkItem: ItemList,
+          fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
+          sentinelClassName: "h-px",
+          animatedVariant: "list" as const,
+          renderSkeletonItem: (index: number) => <ListSkeleton key={index} />,
+        };
+    }
+  })();
 
-  const BookmarkItem = isMedia ? MediaCard : isGrid ? GridCard : ItemRow;
+  const {
+    containerClassName,
+    NewBookmarkPlaceholder,
+    BookmarkItem,
+    fetchSpinnerClassName,
+    sentinelClassName,
+    animatedVariant,
+    renderSkeletonItem,
+  } = layoutConfig;
+
   const skeletonCount = 12;
-
-  const fetchSpinnerClassName =
-    isGrid || isMedia
-      ? "text-muted-foreground col-span-full py-6 text-center text-xs"
-      : "text-muted-foreground px-6 py-6 text-center text-xs";
-
-  const sentinelClassName = isGrid || isMedia ? "col-span-full h-px" : "h-px";
-
-  const renderSkeletonItem = (index: number) => {
-    if (isMedia) {
-      return (
-        <div key={index} className={cn(itemMbClass, "break-inside-avoid")}>
-          <MediaSkeleton index={index} borderRadiusClass={borderRadiusClass} />
-        </div>
-      );
-    }
-
-    if (isGrid) {
-      return <GridSkeleton key={index} borderRadiusClass={borderRadiusClass} />;
-    }
-
-    return <RowSkeleton key={index} />;
-  };
 
   const renderBookmarkItem = (item: Bookmark, index: number) => (
     <AnimatedItem
@@ -157,8 +159,7 @@ export function AllItemsList({
       id={item.id}
       isRemoving={removingIds.has(item.id)}
       onRemoved={onItemRemoved}
-      variant={isMedia || view === "grid" ? "grid" : "list"}
-      className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}
+      variant={animatedVariant}
       kind={removingIds.get(item.id) ?? "delete"}>
       <div
         className="relative"
@@ -185,27 +186,66 @@ export function AllItemsList({
     ? Array.from({length: skeletonCount}, (_, index) => renderSkeletonItem(index))
     : visibleItems.map(renderBookmarkItem);
 
+  const showSourceColumn = contentToggles.source;
+  const showSavedDateColumn = contentToggles.savedDate;
+  const tableColumnsClass = getTableBookmarkColumnsClass(showSourceColumn, showSavedDateColumn);
+
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
       <ScrollArea className="h-full" scrollbarGutter>
         <div className={containerClassName}>
-          {animatingUrl &&
-            Array.from({length: animatingItemCount ?? 1}).map((_, i) => (
-              <div
-                key={`animating-${animatingUrl}-${i}`}
-                className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}>
-                <NewBookmarkPlaceholder
-                  url={animatingUrl}
-                  bookmark={resolvedBookmarks.at(i) || null}
-                  onDone={i === 0 ? onTransitionDone : () => {}}
-                />
+          {isTable ? (
+            <>
+              <div className="overflow-hidden rounded-lg border">
+                <div
+                  className={cn(
+                    "bg-muted/40 text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-4 py-2 text-xs font-medium tracking-wide uppercase",
+                    tableColumnsClass,
+                  )}>
+                  <div className="w-8 shrink-0" />
+                  <div>Title</div>
+                  {showSourceColumn && (
+                    <div className="hidden min-w-0 truncate md:block">Source</div>
+                  )}
+                  {showSavedDateColumn && <div className="hidden shrink-0 md:block">Saved</div>}
+                </div>
+
+                {animatingUrl &&
+                  Array.from({length: animatingItemCount ?? 1}).map((_, i) => (
+                    <div key={`animating-${animatingUrl}-${i}`}>
+                      <NewBookmarkPlaceholder
+                        url={animatingUrl}
+                        bookmark={resolvedBookmarks.at(i) || null}
+                        onDone={i === 0 ? onTransitionDone : () => {}}
+                      />
+                    </div>
+                  ))}
+                {content}
+
+                {isFetchingNextPage && <LoadingSpinner className={fetchSpinnerClassName} />}
               </div>
-            ))}
-          {content}
 
-          {isFetchingNextPage && <LoadingSpinner className={fetchSpinnerClassName} />}
+              <div ref={bottomSentinelRef} aria-hidden className={sentinelClassName} />
+            </>
+          ) : (
+            <>
+              {animatingUrl &&
+                Array.from({length: animatingItemCount ?? 1}).map((_, i) => (
+                  <div key={`animating-${animatingUrl}-${i}`}>
+                    <NewBookmarkPlaceholder
+                      url={animatingUrl}
+                      bookmark={resolvedBookmarks.at(i) || null}
+                      onDone={i === 0 ? onTransitionDone : () => {}}
+                    />
+                  </div>
+                ))}
+              {content}
 
-          <div ref={bottomSentinelRef} aria-hidden className={sentinelClassName} />
+              {isFetchingNextPage && <LoadingSpinner className={fetchSpinnerClassName} />}
+
+              <div ref={bottomSentinelRef} aria-hidden className={sentinelClassName} />
+            </>
+          )}
         </div>
       </ScrollArea>
     </div>

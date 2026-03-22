@@ -7,31 +7,12 @@ import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import MediaPreview from "../ui/MediaPreview";
-import type {BookmarkMetadata} from "@/app/home/_types";
-
-export type Bookmark = {
-  id: string;
-  kind: "website" | "media";
-  title: string;
-  description: string;
-  created_at: string;
-  url: string;
-  user_id: string;
-  preview_image: string;
-  updated_at: string;
-  archived_at: string;
-  deleted_at: string;
-  notes: string;
-  tags?: string[];
-  collections?: {id: string; name: string}[];
-  metadata?: BookmarkMetadata;
-};
+import type {Bookmark} from "./types";
 
 function BookmarkHoverActions({
   className,
   variant = "default",
   onOptions,
-  onDelete,
 }: {
   className?: string;
   variant?: "default" | "glass";
@@ -236,7 +217,7 @@ const BookmarkImage = ({
   );
 };
 
-export const ItemRow = ({
+export const ItemList = ({
   item,
   onOpenMenu,
   onDelete,
@@ -344,6 +325,280 @@ export const ItemRow = ({
           </div>
         )}
       </div>
+    </Link>
+  );
+};
+
+const AVATAR_PALETTES = [
+  {bg: "bg-blue-100 dark:bg-blue-950", text: "text-blue-700 dark:text-blue-300"},
+  {bg: "bg-emerald-100 dark:bg-emerald-950", text: "text-emerald-700 dark:text-emerald-300"},
+  {bg: "bg-amber-100 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300"},
+  {bg: "bg-rose-100 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300"},
+  {bg: "bg-violet-100 dark:bg-violet-950", text: "text-violet-700 dark:text-violet-300"},
+  {bg: "bg-sky-100 dark:bg-sky-950", text: "text-sky-700 dark:text-sky-300"},
+  {bg: "bg-orange-100 dark:bg-orange-950", text: "text-orange-700 dark:text-orange-300"},
+  {bg: "bg-teal-100 dark:bg-teal-950", text: "text-teal-700 dark:text-teal-300"},
+];
+
+function getAvatarPalette(index: number): (typeof AVATAR_PALETTES)[number] {
+  switch (index) {
+    case 0:
+      return AVATAR_PALETTES[0];
+    case 1:
+      return AVATAR_PALETTES[1];
+    case 2:
+      return AVATAR_PALETTES[2];
+    case 3:
+      return AVATAR_PALETTES[3];
+    case 4:
+      return AVATAR_PALETTES[4];
+    case 5:
+      return AVATAR_PALETTES[5];
+    case 6:
+      return AVATAR_PALETTES[6];
+    default:
+      return AVATAR_PALETTES[7];
+  }
+}
+
+function getDomainLetter(url: string): {letter: string; palette: (typeof AVATAR_PALETTES)[number]} {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    const letter = hostname[0]?.toUpperCase() ?? "?";
+    const idx = hostname.charCodeAt(0) % AVATAR_PALETTES.length;
+    return {letter, palette: getAvatarPalette(idx)};
+  } catch {
+    return {letter: "?", palette: AVATAR_PALETTES[0]};
+  }
+}
+
+function getDomainName(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+export function getTableBookmarkColumnsClass(showSource: boolean, showSavedDate: boolean): string {
+  if (showSource && showSavedDate) {
+    return "md:grid-cols-[auto_minmax(0,2fr)_minmax(0,1fr)_auto]";
+  }
+
+  if (showSource) {
+    return "md:grid-cols-[auto_minmax(0,2fr)_minmax(0,1fr)]";
+  }
+
+  if (showSavedDate) {
+    return "md:grid-cols-[auto_minmax(0,2fr)_auto]";
+  }
+
+  return "md:grid-cols-[auto_minmax(0,1fr)]";
+}
+
+export const MinimalItemRow = ({
+  item,
+  onOpenMenu,
+  onDelete,
+  className,
+  selectionMode,
+  selectionIndex = 0,
+  selectedIds,
+  setSelected,
+}: {
+  item: Bookmark;
+  onOpenMenu?: (item: Bookmark) => void;
+  onDelete?: (item: Bookmark) => void;
+  className?: string;
+  selectionMode?: boolean;
+  selectionIndex?: number;
+  selectedIds?: Set<string>;
+  setSelected?: (id: string, checked: boolean) => void;
+}) => {
+  const {contentToggles} = useViewOptionsStore();
+  const {letter, palette} = getDomainLetter(item.url);
+  const domain = getDomainName(item.url);
+
+  return (
+    <Link
+      href={item.url}
+      target="_blank"
+      className={cn(
+        "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 pr-12 text-left",
+        "hover:bg-muted/80",
+        "focus-visible:bg-muted! outline-none",
+        "transition-none",
+        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        className,
+      )}>
+      {!selectionMode && (
+        <BookmarkHoverActions
+          className="top-1.5 right-2"
+          onOptions={() => {
+            onOpenMenu?.(item);
+          }}
+          onDelete={() => {
+            onDelete?.(item);
+          }}
+        />
+      )}
+
+      {/* Checkbox + letter avatar */}
+      <div className="flex shrink-0 items-center">
+        <div
+          className={cn(
+            "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
+            selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
+          )}
+          style={{
+            transitionDelay: selectionMode ? `${Math.min(selectionIndex * 20, 120)}ms` : "0ms",
+          }}>
+          <div className="min-w-0 overflow-hidden">
+            <div className="pr-2">
+              <Checkbox
+                checked={selectedIds?.has(item.id)}
+                onCheckedChange={(next) => setSelected?.(item.id, next === true)}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Select ${item.title}`}
+                className="focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          className={cn(
+            "flex size-5 shrink-0 items-center justify-center rounded-sm text-[11px] font-semibold",
+            palette.bg,
+            palette.text,
+          )}>
+          {letter}
+        </div>
+      </div>
+
+      {/* Title */}
+      <span className="text-foreground min-w-0 flex-1 truncate text-[13.5px]">{item.title}</span>
+
+      {/* Right side: domain + tags */}
+      <div className="flex shrink-0 items-center gap-2">
+        {contentToggles.source && (
+          <span className="text-muted-foreground hidden text-[12px] sm:block">{domain}</span>
+        )}
+        {contentToggles.tags && item.tags && item.tags.length > 0 && (
+          <div className="flex items-center gap-1">
+            {item.tags.slice(0, 2).map((tag) => (
+              <span
+                key={tag}
+                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+};
+
+export const TableItemRow = ({
+  item,
+  onOpenMenu,
+  onDelete,
+  className,
+  selectionMode,
+  selectionIndex = 0,
+  selectedIds,
+  setSelected,
+}: {
+  item: Bookmark;
+  onOpenMenu?: (item: Bookmark) => void;
+  onDelete?: (item: Bookmark) => void;
+  className?: string;
+  selectionMode?: boolean;
+  selectionIndex?: number;
+  selectedIds?: Set<string>;
+  setSelected?: (id: string, checked: boolean) => void;
+}) => {
+  const {contentToggles} = useViewOptionsStore();
+  const showSource = contentToggles.source;
+  const showSavedDate = contentToggles.savedDate;
+
+  return (
+    <Link
+      href={item.url}
+      target="_blank"
+      className={cn(
+        "group relative grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-4 py-3 pr-14 text-left",
+        getTableBookmarkColumnsClass(showSource, showSavedDate),
+        "hover:bg-muted/80",
+        "focus-visible:bg-muted! outline-none",
+        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        className,
+      )}>
+      {!selectionMode && (
+        <BookmarkHoverActions
+          className="top-2.5 right-2"
+          onOptions={() => {
+            onOpenMenu?.(item);
+          }}
+          onDelete={() => {
+            onDelete?.(item);
+          }}
+        />
+      )}
+
+      <div className="flex items-center">
+        <div
+          className={cn(
+            "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
+            selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
+          )}
+          style={{
+            transitionDelay: selectionMode ? `${Math.min(selectionIndex * 20, 120)}ms` : "0ms",
+          }}>
+          <div className="min-w-0 overflow-hidden">
+            <div className="pr-2">
+              <Checkbox
+                checked={selectedIds?.has(item.id)}
+                onCheckedChange={(next) => setSelected?.(item.id, next === true)}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Select ${item.title}`}
+                className="focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="relative size-8 shrink-0 overflow-hidden rounded-md border">
+          <BookmarkImage
+            bookmark_id={item.id}
+            item={item}
+            type="favicon"
+            divClassName="absolute inset-0"
+            imageClassName="h-4 w-4 object-contain"
+            fallbackClassName=""
+            height={16}
+            width={16}
+          />
+        </div>
+      </div>
+
+      <div className="min-w-0">
+        <div className="text-foreground truncate text-sm font-medium">{item.title}</div>
+        <div className="text-muted-foreground mt-0.5 truncate text-xs md:hidden">
+          {getDomainName(item.url)}
+        </div>
+      </div>
+
+      {showSource && (
+        <div className="text-muted-foreground hidden min-w-0 truncate text-sm md:block">
+          {getDomainName(item.url)}
+        </div>
+      )}
+
+      {showSavedDate && (
+        <div className="text-muted-foreground hidden shrink-0 text-sm md:block">
+          {formatDateAbsolute(item.created_at)}
+        </div>
+      )}
     </Link>
   );
 };

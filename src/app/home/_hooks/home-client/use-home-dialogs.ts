@@ -1,7 +1,7 @@
 "use client";
 
 import {useState} from "react";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 
 interface UseHomeDialogsProps {
   allBookmarks: Bookmark[];

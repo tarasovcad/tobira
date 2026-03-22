@@ -10,7 +10,7 @@ import {
   AlertDialogPopup,
   AlertDialogTitle,
 } from "@/components/coss-ui/alert-dialog";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {deleteBookmarks} from "@/app/actions/bookmarks";
 import {toastManager} from "@/components/coss-ui/toast";

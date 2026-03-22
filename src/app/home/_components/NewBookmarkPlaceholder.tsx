@@ -4,7 +4,7 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {Skeleton} from "@/components/coss-ui/skeleton";
 import {formatDateAbsolute} from "@/lib/formatDate";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {useEffect} from "react";
 
@@ -41,7 +41,7 @@ function CrossFade({
   );
 }
 
-export function NewBookmarkRow({
+export function NewBookmarkList({
   url,
   bookmark,
   onDone,

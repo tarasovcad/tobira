@@ -141,7 +141,7 @@ const Switch = forwardRef<HTMLDivElement, SwitchProps>(
         ref={ref}
         className={cn(
           "relative z-10 flex cursor-pointer touch-none items-center gap-2.5 px-3 py-2 select-none",
-          disabled && "pointer-events-none opacity-50",
+          disabled && "pointer-events-none opacity-60",
           className,
         )}
         onPointerEnter={(e) => {

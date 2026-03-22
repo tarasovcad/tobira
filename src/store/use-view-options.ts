@@ -3,6 +3,8 @@ import {create} from "zustand";
 export type ViewMode = "list" | "grid" | "table" | "compact";
 export type GridGap = "none" | "xs" | "sm" | "md" | "lg";
 export type BorderRadius = "none" | "sm" | "md" | "lg";
+export const COLUMN_SIZES = [1, 2, 3, 4, 5, 6] as const;
+export type ColumnSize = (typeof COLUMN_SIZES)[number];
 export type ContentField = "description" | "tags" | "source" | "savedDate";
 
 export interface ViewOptionsState {
@@ -12,10 +14,10 @@ export interface ViewOptionsState {
 
   // Appearance
   gridGap: GridGap;
-  columnSize: number;
+  columnSize: ColumnSize;
   borderRadius: BorderRadius;
   setGridGap: (gap: GridGap) => void;
-  setColumnSize: (size: number) => void;
+  setColumnSize: (size: ColumnSize) => void;
   setBorderRadius: (radius: BorderRadius) => void;
 
   // Content
@@ -24,12 +26,12 @@ export interface ViewOptionsState {
   setContentToggles: (toggles: Record<ContentField, boolean>) => void;
 
   // Reset
-  resetViewOptions: (typeFilter?: "media" | "website") => void;
+  resetViewOptions: (view?: ViewMode) => void;
 }
 
 const DEFAULT_OPTIONS = {
   gridGap: "md" as GridGap,
-  columnSize: 3,
+  columnSize: 3 as ColumnSize,
   borderRadius: "md" as BorderRadius,
   contentToggles: {
     description: true,
@@ -69,9 +71,9 @@ export const useViewOptionsStore = create<ViewOptionsState>((set) => ({
       },
     })),
   setContentToggles: (contentToggles) => set({contentToggles}),
-  resetViewOptions: (typeFilter) =>
+  resetViewOptions: (view) =>
     set({
       ...DEFAULT_OPTIONS,
-      view: typeFilter === "media" ? "grid" : "list",
+      view: view ?? "list",
     }),
 }));

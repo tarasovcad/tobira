@@ -4,7 +4,7 @@ import {PAGE_SIZE} from "../_constants";
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
 import {getCollections} from "@/app/actions/collections";
 import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
 import type {UseBookmarksQueryProps, BookmarkRowWithJoins} from "../_types";
 

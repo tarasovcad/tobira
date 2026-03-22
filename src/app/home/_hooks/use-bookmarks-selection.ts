@@ -1,5 +1,5 @@
 import {useState} from "react";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/coss-ui/toast";
 
 /**

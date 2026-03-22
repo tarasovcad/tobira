@@ -2,7 +2,7 @@ import {Skeleton} from "@/components/coss-ui/skeleton";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 
-export function RowSkeleton() {
+export function ListSkeleton() {
   const {contentToggles} = useViewOptionsStore();
 
   return (

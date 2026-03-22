@@ -1,9 +1,9 @@
 import {useState, useEffect, useMemo} from "react";
 import {useMutation, useMutationState, useQueryClient} from "@tanstack/react-query";
 import {archiveBookmarks} from "@/app/actions/bookmarks";
+import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/coss-ui/toast";
 import {normalizeTagName} from "@/lib/utils";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
 
 /**
  * Manages mutation tracking (add/delete/archive)
