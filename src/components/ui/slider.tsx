@@ -769,14 +769,17 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
           {/* Visual track with pointer handlers */}
           <div
             ref={trackRef}
-            className="relative w-full cursor-ew-resize py-2"
+            className={cn(
+              "relative w-full py-2",
+              disabled ? "cursor-not-allowed" : "cursor-ew-resize",
+            )}
             style={{height: THUMB_SIZE + 16, opacity: ready ? 1 : 0}}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}>
             {/* Extended hit area — 8px beyond each edge */}
             <div
-              className="absolute cursor-ew-resize"
+              className={cn("absolute", disabled ? "cursor-not-allowed" : "cursor-ew-resize")}
               style={{left: -8, right: -8, top: 0, bottom: 0}}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
@@ -1207,7 +1210,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
         }}>
         {/* Extended hit area — 8px beyond each edge */}
         <div
-          className="absolute cursor-ew-resize"
+          className={cn("absolute", disabled ? "cursor-not-allowed" : "cursor-ew-resize")}
           style={{left: -8, right: -8, top: 0, bottom: 0}}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -1243,9 +1246,8 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
           ref={mergedRef}
           className={cn(
             "border-border relative h-8 w-full touch-none overflow-hidden border outline-offset-2 select-none",
-            variant === "scrubber"
-              ? "flex cursor-ew-resize items-center gap-3 px-4"
-              : "cursor-ew-resize",
+            variant === "scrubber" && "flex items-center gap-3 px-4",
+            disabled ? "cursor-not-allowed" : "cursor-ew-resize",
             shape.bg,
             disabled && "pointer-events-none opacity-50",
             className,
@@ -1461,7 +1463,10 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
           {/* Resize handle (scrubber only) */}
           {variant === "scrubber" && (
             <motion.div
-              className="absolute top-0 bottom-0 z-20 w-2 cursor-ew-resize"
+              className={cn(
+                "absolute top-0 bottom-0 z-20 w-2",
+                disabled ? "cursor-not-allowed" : "cursor-ew-resize",
+              )}
               style={{left: handleLeftStyle}}
               onPointerDown={handleResizePointerDown}
               onPointerMove={handleResizePointerMove}

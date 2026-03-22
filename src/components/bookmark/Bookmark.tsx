@@ -5,7 +5,7 @@ import {formatDateAbsolute} from "@/lib/formatDate";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
-import {useMediaLayoutStore} from "@/store/use-media-layout";
+import {useViewOptionsStore} from "@/store/use-view-options";
 import MediaPreview from "../ui/MediaPreview";
 import type {BookmarkMetadata} from "@/app/home/_types";
 
@@ -255,6 +255,8 @@ export const ItemRow = ({
   selectedIds?: Set<string>;
   setSelected?: (id: string, checked: boolean) => void;
 }) => {
+  const {contentToggles} = useViewOptionsStore();
+
   return (
     <Link
       href={item.url}
@@ -316,14 +318,31 @@ export const ItemRow = ({
 
       <div className="min-w-0 flex-1 text-[13px]">
         <div className="text-foreground truncate text-[15px] font-semibold">{item.title}</div>
-        <div className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 whitespace-nowrap">
-          <span className="min-w-0 truncate">{item.url}</span>
-          <span className="shrink-0">-</span>
-          <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
-        </div>
-        {item.description ? (
-          <div className="text-muted-foreground mt-2 line-clamp-2">{item.description}</div>
+        {(contentToggles.source || contentToggles.savedDate) && (
+          <div className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 whitespace-nowrap">
+            {contentToggles.source && <span className="min-w-0 truncate">{item.url}</span>}
+            {contentToggles.source && contentToggles.savedDate && (
+              <span className="shrink-0">-</span>
+            )}
+            {contentToggles.savedDate && (
+              <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
+            )}
+          </div>
+        )}
+        {contentToggles.description && item.description ? (
+          <div className="text-muted-foreground mt-1.5 line-clamp-2">{item.description}</div>
         ) : null}
+        {contentToggles.tags && item.tags && item.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {item.tags.map((tag) => (
+              <span
+                key={tag}
+                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </Link>
   );
@@ -346,14 +365,25 @@ export const GridCard = ({
   selectedIds?: Set<string>;
   setSelected?: (id: string, checked: boolean) => void;
 }) => {
+  const {borderRadius, contentToggles} = useViewOptionsStore();
+  const radiusClass =
+    borderRadius === "none"
+      ? "rounded-none"
+      : borderRadius === "sm"
+        ? "rounded-sm"
+        : borderRadius === "md"
+          ? "rounded-md"
+          : "rounded-lg";
+
   return (
     <Link
       href={item.url}
       className={cn(
-        "group bg-background relative block w-full cursor-pointer overflow-hidden rounded-md border text-left",
+        "group bg-background relative block w-full cursor-pointer overflow-hidden border text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        radiusClass,
       )}>
       <div className="bg-muted relative aspect-16/10 w-full">
         {!selectionMode && (
@@ -390,7 +420,7 @@ export const GridCard = ({
           item={item}
           type="preview"
           fill={true}
-          imageClassName="rounded-md object-cover rounded-b-none overflow-hidden"
+          imageClassName="w-full h-full object-cover"
         />
       </div>
 
@@ -398,11 +428,33 @@ export const GridCard = ({
         <div className="text-foreground line-clamp-1 text-sm text-[15px] font-semibold">
           {item.title}
         </div>
-        <div className="text-muted-foreground mt-1 flex min-w-0 items-center gap-1 text-[13px] whitespace-nowrap">
-          <span className="min-w-0 truncate">{item.url}</span>
-          <span className="shrink-0">-</span>
-          <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
-        </div>
+        {(contentToggles.source || contentToggles.savedDate) && (
+          <div className="text-muted-foreground mt-1 flex min-w-0 items-center gap-1 text-[13px] whitespace-nowrap">
+            {contentToggles.source && <span className="min-w-0 truncate">{item.url}</span>}
+            {contentToggles.source && contentToggles.savedDate && (
+              <span className="shrink-0">-</span>
+            )}
+            {contentToggles.savedDate && (
+              <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
+            )}
+          </div>
+        )}
+        {contentToggles.description && item.description && (
+          <div className="text-muted-foreground mt-1.5 line-clamp-2 text-[13px]">
+            {item.description}
+          </div>
+        )}
+        {contentToggles.tags && item.tags && item.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {item.tags.map((tag) => (
+              <span
+                key={tag}
+                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </Link>
   );
@@ -425,13 +477,15 @@ export const MediaCard = ({
   selectedIds?: Set<string>;
   setSelected?: (id: string, checked: boolean) => void;
 }) => {
-  const {borderRadius, gapSize} = useMediaLayoutStore();
+  const {borderRadius, gridGap} = useViewOptionsStore();
   const radiusClass =
-    borderRadius === "sharp"
+    borderRadius === "none"
       ? "rounded-none"
-      : borderRadius === "pill"
-        ? "rounded-2xl"
-        : "rounded-md";
+      : borderRadius === "sm"
+        ? "rounded-sm"
+        : borderRadius === "md"
+          ? "rounded-md"
+          : "rounded-lg";
 
   const hasDimensions = item.metadata?.width && item.metadata?.height;
   const aspectRatio = hasDimensions ? `${item.metadata!.width} / ${item.metadata!.height}` : "16/9";
@@ -440,7 +494,7 @@ export const MediaCard = ({
     <div
       className={cn(
         "group bg-background relative block w-full cursor-pointer overflow-hidden text-left",
-        gapSize !== "none" && "border",
+        gridGap !== "none" && "border",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! focus-visible:outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",

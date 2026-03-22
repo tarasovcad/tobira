@@ -6,9 +6,51 @@ import Spinner from "@/components/ui/spinner";
 import {Bookmark, GridCard, ItemRow, MediaCard} from "@/components/bookmark/Bookmark";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
 import {NewBookmarkRow, NewBookmarkGridCard, NewBookmarkMediaCard} from "./NewBookmarkPlaceholder";
-import type {ViewMode, TypeFilter} from "./AllItemsToolbar";
+import type {TypeFilter} from "./AllItemsToolbar";
+import type {ViewMode} from "@/store/use-view-options";
 import {RowSkeleton, GridSkeleton, MediaSkeleton} from "./ListSkeletons";
-import {useMediaLayoutStore} from "@/store/use-media-layout";
+import {useViewOptionsStore} from "@/store/use-view-options";
+
+const BORDER_RADIUS_MAP: Record<string, string> = {
+  none: "rounded-none",
+  sm: "rounded-sm",
+  md: "rounded-md",
+  lg: "rounded-lg",
+};
+
+const GAP_MAP: Record<string, string> = {
+  none: "gap-0",
+  xs: "gap-2",
+  sm: "gap-4",
+  md: "gap-6",
+  lg: "gap-8",
+};
+
+const MB_MAP: Record<string, string> = {
+  none: "mb-0",
+  xs: "mb-2",
+  sm: "mb-4",
+  md: "mb-6",
+  lg: "mb-8",
+};
+
+const COLUMNS_MAP: Record<number, string> = {
+  1: "columns-1 lg:columns-2",
+  2: "columns-1 xl:columns-2",
+  3: "columns-1 lg:columns-2 xl:columns-3",
+  4: "columns-1 sm:columns-2 lg:columns-3 xl:columns-4",
+  5: "columns-2 sm:columns-3 lg:columns-4 xl:columns-5",
+  6: "columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6",
+};
+
+const GRID_COLS_MAP: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-1 sm:grid-cols-2",
+  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+  4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+  5: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
+  6: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
+};
 
 function LoadingSpinner({className}: {className?: string}) {
   return (
@@ -68,40 +110,19 @@ export function AllItemsList({
   // const isInitialLoad = true;
   const isGrid = view === "grid";
   const isMedia = typeFilter === "media";
-  const {gapSize, columnSize} = useMediaLayoutStore();
+  const {gridGap, columnSize, borderRadius} = useViewOptionsStore();
 
-  const gapClass =
-    gapSize === "none"
-      ? "gap-0"
-      : gapSize === "small"
-        ? "gap-2"
-        : gapSize === "large"
-          ? "gap-8"
-          : "gap-4";
+  const borderRadiusClass = BORDER_RADIUS_MAP[borderRadius];
+  const gapClass = GAP_MAP[gridGap];
+  const itemMbClass = MB_MAP[gridGap];
+  const columnClass = COLUMNS_MAP[columnSize];
+  const gridColsClass = GRID_COLS_MAP[columnSize];
 
-  const itemMbClass =
-    gapSize === "none"
-      ? "mb-0"
-      : gapSize === "small"
-        ? "mb-2"
-        : gapSize === "large"
-          ? "mb-8"
-          : "mb-4";
-
-  const columnClass =
-    columnSize === "s"
-      ? "columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6"
-      : columnSize === "l"
-        ? "columns-1 lg:columns-2 xl:columns-3"
-        : columnSize === "xl"
-          ? "columns-1 xl:columns-2"
-          : "columns-1 sm:columns-2 lg:columns-3 xl:columns-4";
-
-  const containerClassName = isMedia
-    ? `${columnClass} ${gapClass} px-6 pb-8`
-    : isGrid
-      ? "grid grid-cols-1 gap-6 px-6 pb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-      : "border-t";
+  const containerClassName = cn(
+    isMedia && [columnClass, gapClass, "px-6 pb-8"],
+    isGrid && !isMedia && ["grid", gridColsClass, gapClass, "px-6 pb-8"],
+    !isMedia && !isGrid && "border-t",
+  );
 
   const NewBookmarkPlaceholder = isMedia
     ? NewBookmarkMediaCard
@@ -123,13 +144,13 @@ export function AllItemsList({
     if (isMedia) {
       return (
         <div key={index} className={cn(itemMbClass, "break-inside-avoid")}>
-          <MediaSkeleton index={index} />
+          <MediaSkeleton index={index} borderRadiusClass={borderRadiusClass} />
         </div>
       );
     }
 
     if (isGrid) {
-      return <GridSkeleton key={index} />;
+      return <GridSkeleton key={index} borderRadiusClass={borderRadiusClass} />;
     }
 
     return <RowSkeleton key={index} />;
@@ -141,7 +162,7 @@ export function AllItemsList({
       id={item.id}
       isRemoving={removingIds.has(item.id)}
       onRemoved={onItemRemoved}
-      variant={isMedia ? "grid" : view}
+      variant={isMedia || view === "grid" ? "grid" : "list"}
       className={isMedia ? cn(itemMbClass, "break-inside-avoid") : undefined}
       kind={removingIds.get(item.id) ?? "delete"}>
       <div

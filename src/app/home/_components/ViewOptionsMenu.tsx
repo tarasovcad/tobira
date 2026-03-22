@@ -1,6 +1,5 @@
 "use client";
 
-import {useState} from "react";
 import {
   Menu,
   MenuTrigger,
@@ -19,6 +18,13 @@ import {Button} from "@/components/coss-ui/button";
 import {Switch} from "@/components/ui/switch";
 import {SliderComfortable} from "@/components/ui/slider";
 import {cn} from "@/lib/utils";
+import {
+  useViewOptionsStore,
+  type ViewMode,
+  type GridGap,
+  type BorderRadius,
+} from "@/store/use-view-options";
+import type {TypeFilter} from "./AllItemsToolbar";
 
 const LAYOUT_OPTIONS = [
   {
@@ -143,10 +149,7 @@ const CONTENT_OPTIONS = [
   {id: "tags", label: "Tags"},
   {id: "source", label: "Source"},
   {id: "savedDate", label: "Saved date"},
-  {id: "favorites", label: "Favorites"},
 ] as const;
-
-type ContentField = (typeof CONTENT_OPTIONS)[number]["id"];
 
 const GRID_GAP_OPTIONS = [
   {value: "none", label: "None"},
@@ -163,23 +166,23 @@ const BORDER_RADIUS_OPTIONS = [
   {value: "lg", label: "L"},
 ] as const;
 
-const ViewOptionsMenu = () => {
-  const [appearance, setAppearance] = useState<{
-    gridGap: (typeof GRID_GAP_OPTIONS)[number]["value"];
-    columnSize: number;
-    borderRadius: (typeof BORDER_RADIUS_OPTIONS)[number]["value"];
-  }>({
-    gridGap: "md",
-    columnSize: 3,
-    borderRadius: "md",
-  });
-  const [contentToggles, setContentToggles] = useState<Record<ContentField, boolean>>({
-    description: true,
-    tags: true,
-    source: true,
-    savedDate: true,
-    favorites: true,
-  });
+const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
+  const view = useViewOptionsStore((state) => state.view);
+  const setView = useViewOptionsStore((state) => state.setView);
+
+  const gridGap = useViewOptionsStore((state) => state.gridGap);
+  const setGridGap = useViewOptionsStore((state) => state.setGridGap);
+  const columnSize = useViewOptionsStore((state) => state.columnSize);
+  const setColumnSize = useViewOptionsStore((state) => state.setColumnSize);
+  const borderRadius = useViewOptionsStore((state) => state.borderRadius);
+  const setBorderRadius = useViewOptionsStore((state) => state.setBorderRadius);
+
+  const contentToggles = useViewOptionsStore((state) => state.contentToggles);
+  const setContentToggle = useViewOptionsStore((state) => state.setContentToggle);
+
+  const isMedia = typeFilter === "media";
+  const currentView = isMedia ? "grid" : view;
+  const isAppearanceDisabled = typeFilter === "website" && currentView !== "grid";
 
   return (
     <Menu>
@@ -191,7 +194,7 @@ const ViewOptionsMenu = () => {
         <DropdownMenuGroup>
           <DropdownMenuLabel className="uppercase">View options</DropdownMenuLabel>
 
-          <Accordion className="w-full">
+          <Accordion className="w-full" defaultValue={isMedia ? ["appearance"] : ["layout"]}>
             <AccordionItem className="border-b-0" value="layout">
               <AccordionTrigger className="hover:bg-accent hover:text-accent-foreground min-h-8 items-center rounded-sm px-2 py-1 text-sm font-normal sm:min-h-7">
                 <div className="flex items-center gap-2 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0 [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4.5 sm:[&>svg:not([class*='size-'])]:size-4">
@@ -219,16 +222,27 @@ const ViewOptionsMenu = () => {
               </AccordionTrigger>
               <AccordionContent className="px-1 py-1">
                 <div className="grid grid-cols-2 gap-1">
-                  {LAYOUT_OPTIONS.map(({id, title, icon: Icon}) => (
-                    <div
-                      key={id}
-                      className="hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-start gap-2 rounded-sm p-1">
-                      <div className="border-border flex size-8 items-center justify-center rounded-md border">
-                        <Icon />
+                  {LAYOUT_OPTIONS.map(({id, title, icon: Icon}) => {
+                    const isOptionDisabled = isMedia && id !== "grid";
+                    return (
+                      <div
+                        key={id}
+                        onClick={() => {
+                          if (isOptionDisabled) return;
+                          setView(id as ViewMode);
+                        }}
+                        className={cn(
+                          "hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-start gap-2 rounded-sm p-1",
+                          currentView === id && "bg-accent text-accent-foreground",
+                          isOptionDisabled && "pointer-events-none opacity-50",
+                        )}>
+                        <div className="border-border flex size-8 items-center justify-center rounded-md border">
+                          <Icon />
+                        </div>
+                        <span className="text-sm font-medium">{title}</span>
                       </div>
-                      <span className="text-sm font-medium">{title}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -255,21 +269,20 @@ const ViewOptionsMenu = () => {
                 <div className="space-y-4 pt-2">
                   <SliderComfortable
                     label="Column size"
-                    value={appearance.columnSize}
+                    value={columnSize}
                     min={1}
                     max={6}
                     step={1}
                     className="cursor-pointer rounded-md"
                     variant="pips"
                     showTooltip={false}
-                    onChange={(val) =>
-                      setAppearance((prev) => ({...prev, columnSize: val as number}))
-                    }
+                    disabled={isAppearanceDisabled}
+                    onChange={(val) => setColumnSize(val as number)}
                   />
 
                   <SliderComfortable
                     label="Grid gap"
-                    value={GRID_GAP_OPTIONS.findIndex((o) => o.value === appearance.gridGap)}
+                    value={GRID_GAP_OPTIONS.findIndex((o) => o.value === gridGap)}
                     min={0}
                     max={GRID_GAP_OPTIONS.length - 1}
                     step={1}
@@ -277,19 +290,13 @@ const ViewOptionsMenu = () => {
                     showTooltip={false}
                     className="cursor-pointer rounded-md"
                     formatValue={(v) => GRID_GAP_OPTIONS[v as number].label}
-                    onChange={(val) =>
-                      setAppearance((prev) => ({
-                        ...prev,
-                        gridGap: GRID_GAP_OPTIONS[val as number].value,
-                      }))
-                    }
+                    disabled={isAppearanceDisabled}
+                    onChange={(val) => setGridGap(GRID_GAP_OPTIONS[val as number].value as GridGap)}
                   />
 
                   <SliderComfortable
                     label="Border radius"
-                    value={BORDER_RADIUS_OPTIONS.findIndex(
-                      (o) => o.value === appearance.borderRadius,
-                    )}
+                    value={BORDER_RADIUS_OPTIONS.findIndex((o) => o.value === borderRadius)}
                     min={0}
                     max={BORDER_RADIUS_OPTIONS.length - 1}
                     step={1}
@@ -297,11 +304,9 @@ const ViewOptionsMenu = () => {
                     className="cursor-pointer rounded-md"
                     showTooltip={false}
                     formatValue={(v) => BORDER_RADIUS_OPTIONS[v as number].label}
+                    disabled={isAppearanceDisabled}
                     onChange={(val) =>
-                      setAppearance((prev) => ({
-                        ...prev,
-                        borderRadius: BORDER_RADIUS_OPTIONS[val as number].value,
-                      }))
+                      setBorderRadius(BORDER_RADIUS_OPTIONS[val as number].value as BorderRadius)
                     }
                   />
                 </div>
@@ -340,7 +345,7 @@ const ViewOptionsMenu = () => {
                         key={id}
                         label={label}
                         checked={contentToggles[id]}
-                        onToggle={() => setContentToggles((prev) => ({...prev, [id]: !prev[id]}))}
+                        onToggle={() => setContentToggle(id, !contentToggles[id])}
                         labelClassName="text-sm"
                         className={cn(
                           "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",

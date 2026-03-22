@@ -12,7 +12,7 @@ import {DeleteBookmarkDialog} from "./DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {DeleteCollectionDialog} from "@/components/providers/DeleteCollectionDialog";
 import {CollectionDialog} from "@/components/providers/CollectionDialog";
-import {ViewToggle, TypeSelect, SortSelect} from "./AllItemsToolbar";
+import {TypeSelect, SortSelect} from "./AllItemsToolbar";
 import {CollectionHeader} from "./CollectionHeader";
 import {AllItemsList} from "./AllItemsList";
 
@@ -22,11 +22,11 @@ import {useBookmarksMutations} from "../_hooks/use-bookmarks-mutations";
 import {useHomeShortcuts} from "../_hooks/use-home-shortcuts";
 import {toastManager} from "@/components/coss-ui/toast";
 
-import type {ViewMode, TypeFilter, SortMode} from "./AllItemsToolbar";
+import type {TypeFilter, SortMode} from "./AllItemsToolbar";
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {HomeEmptyState} from "./HomeEmptyState";
-import {MediaLayoutMenu} from "./MediaLayoutMenu";
 import ViewOptionsMenu from "./ViewOptionsMenu";
+import {useViewOptionsStore} from "@/store/use-view-options";
 
 const resolveSortFilter = (sortParam: string | null): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;
@@ -57,7 +57,10 @@ export function HomeClient({
   const initialSort = resolveSortFilter(searchParams.get("sort"));
 
   // ── View & filter state ──
-  const [view, setView] = useState<ViewMode>("list");
+  const view = useViewOptionsStore((state) => state.view);
+  const setView = useViewOptionsStore((state) => state.setView);
+  const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
+
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(initialTypeFilter);
   const [sort, setSort] = useState<SortMode>(initialSort);
 
@@ -70,6 +73,7 @@ export function HomeClient({
 
   const handleTypeChange = (nextType: TypeFilter) => {
     setTypeFilter(nextType);
+    resetViewOptions(nextType);
     updateUrlParam("type", nextType);
   };
 
@@ -130,6 +134,7 @@ export function HomeClient({
   useHomeShortcuts({
     selectionMode,
     handleClearSelection,
+    view,
     setView,
   });
 
@@ -269,12 +274,8 @@ export function HomeClient({
                 </svg>
               </button>
             </div>
-            {typeFilter !== "media" ? (
-              <ViewToggle value={view} onChange={setView} />
-            ) : (
-              <MediaLayoutMenu />
-            )}
-            <ViewOptionsMenu />
+
+            <ViewOptionsMenu typeFilter={typeFilter} />
           </div>
         </div>
       </div>

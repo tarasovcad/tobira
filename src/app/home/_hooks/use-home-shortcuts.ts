@@ -1,24 +1,26 @@
 import {useEffect, useRef} from "react";
-import type {ViewMode} from "../_components/AllItemsToolbar";
+import type {ViewMode} from "@/store/use-view-options";
 
 interface UseHomeShortcutsProps {
   selectionMode: boolean;
   handleClearSelection: () => void;
-  setView: React.Dispatch<React.SetStateAction<ViewMode>>;
+  view: ViewMode;
+  setView: (view: ViewMode) => void;
 }
 
 export function useHomeShortcuts({
   selectionMode,
   handleClearSelection,
+  view,
   setView,
 }: UseHomeShortcutsProps) {
   // Store latest values in a ref to avoid re-attaching the event listener
-  const stateRef = useRef({selectionMode, handleClearSelection, setView});
+  const stateRef = useRef({selectionMode, handleClearSelection, view, setView});
 
   // Update ref when props change
   useEffect(() => {
-    stateRef.current = {selectionMode, handleClearSelection, setView};
-  }, [selectionMode, handleClearSelection, setView]);
+    stateRef.current = {selectionMode, handleClearSelection, view, setView};
+  }, [selectionMode, handleClearSelection, view, setView]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,7 +47,8 @@ export function useHomeShortcuts({
       // Using e.code === "KeyV" is more robust than e.key === "V" against CapsLock
       if (e.code === "KeyV" && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        currentSetView((v) => (v === "list" ? "grid" : "list"));
+        const {view: currentView, setView: currentSetView} = stateRef.current;
+        currentSetView(currentView === "list" ? "grid" : "list");
       }
     };
 
