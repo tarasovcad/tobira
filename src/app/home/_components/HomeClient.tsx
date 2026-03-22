@@ -27,6 +27,7 @@ import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {HomeEmptyState} from "./home-client/HomeEmptyState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
+import {cn} from "@/lib/utils";
 
 /**
  * Main client component for the All Items / Home page.
@@ -176,7 +177,12 @@ export function HomeClient({
       />
       {/* Item count */}
       {!activeCollection && userId && (
-        <div className="text-muted-foreground flex items-center gap-1 px-6 py-3 text-sm">
+        <div
+          className={cn(
+            "text-muted-foreground border-border flex items-center gap-1 px-6 py-3 text-sm",
+            view === "compact" && "border-b",
+            view === "list" && "border-b",
+          )}>
           <NumberFlow value={currentTotalCount} /> items
         </div>
       )}

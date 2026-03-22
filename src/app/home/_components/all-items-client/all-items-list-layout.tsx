@@ -17,6 +17,7 @@ import {
   NewBookmarkMediaCard,
 } from "../NewBookmarkPlaceholder";
 import type {AllItemsView} from "./all-items-list-view-options";
+import type {BookmarkWidth} from "@/store/use-view-options";
 
 export type AllItemsAnimatedVariant = "list" | "grid";
 
@@ -54,6 +55,7 @@ interface GetAllItemsListLayoutConfigArgs {
   gapClass: string;
   gridColsClass: string;
   isMediaGrid: boolean;
+  bookmarkWidth: BookmarkWidth;
 }
 
 export function getAllItemsListLayoutConfig({
@@ -62,7 +64,19 @@ export function getAllItemsListLayoutConfig({
   gapClass,
   gridColsClass,
   isMediaGrid,
+  bookmarkWidth,
 }: GetAllItemsListLayoutConfigArgs): AllItemsListLayoutConfig {
+  const widthClass =
+    bookmarkWidth === "xs"
+      ? "max-w-xl mx-auto"
+      : bookmarkWidth === "sm"
+        ? "max-w-2xl mx-auto"
+        : bookmarkWidth === "md"
+          ? "max-w-4xl mx-auto"
+          : bookmarkWidth === "lg"
+            ? "max-w-6xl mx-auto"
+            : "max-w-full mx-auto";
+
   switch (view) {
     case "grid":
       return {
@@ -82,7 +96,7 @@ export function getAllItemsListLayoutConfig({
       };
     case "table":
       return {
-        containerClassName: "px-6 pb-8",
+        containerClassName: cn("px-6 pb-8", widthClass),
         fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
         sentinelClassName: "h-px",
         animatedVariant: "list",
@@ -93,7 +107,7 @@ export function getAllItemsListLayoutConfig({
       };
     case "compact":
       return {
-        containerClassName: "border-t",
+        containerClassName: widthClass,
         fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
         sentinelClassName: "h-px",
         animatedVariant: "list",
@@ -104,7 +118,7 @@ export function getAllItemsListLayoutConfig({
       };
     case "list":
       return {
-        containerClassName: "border-t",
+        containerClassName: cn("", widthClass),
         fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
         sentinelClassName: "h-px",
         animatedVariant: "list",

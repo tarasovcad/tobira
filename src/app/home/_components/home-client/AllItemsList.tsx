@@ -72,6 +72,7 @@ export function AllItemsList({
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
   const borderRadius = useViewOptionsStore((state) => state.borderRadius);
+  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidth);
 
   const {borderRadiusClass, gapClass, gridColsClass} = getAllItemsListViewOptions({
     borderRadius,
@@ -87,8 +88,9 @@ export function AllItemsList({
         gapClass,
         gridColsClass,
         isMediaGrid,
+        bookmarkWidth,
       }),
-    [borderRadiusClass, currentView, gapClass, gridColsClass, isMediaGrid],
+    [borderRadiusClass, currentView, gapClass, gridColsClass, isMediaGrid, bookmarkWidth],
   );
 
   const skeletonCount = 12;

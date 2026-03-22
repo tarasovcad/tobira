@@ -25,6 +25,7 @@ import {
   type ViewMode,
   type GridGap,
   type BorderRadius,
+  type BookmarkWidth,
 } from "@/store/use-view-options";
 import type {TypeFilter} from "./AllItemsToolbar";
 import {
@@ -172,6 +173,22 @@ const BORDER_RADIUS_OPTIONS = [
   {value: "lg", label: "L"},
 ] as const;
 
+const WIDTH_OPTIONS = [
+  {value: "xs", label: "XS"},
+  {value: "sm", label: "S"},
+  {value: "md", label: "M"},
+  {value: "lg", label: "L"},
+  {value: "full", label: "Full"},
+] as const;
+
+type AppearanceField = "width" | "columnSize" | "gridGap" | "borderRadius";
+
+const DISABLED_APPEARANCE_BY_VIEW: Partial<Record<ViewMode, AppearanceField[]>> = {
+  list: ["columnSize", "gridGap", "borderRadius"],
+  compact: ["columnSize", "gridGap", "borderRadius"],
+  table: ["columnSize", "gridGap", "borderRadius"],
+};
+
 const DISABLED_CONTENT_BY_VIEW: Partial<Record<ViewMode, ContentField[]>> = {
   compact: ["description"],
   table: ["description", "tags"],
@@ -192,7 +209,69 @@ function isContentFieldEnabled(contentToggles: Record<ContentField, boolean>, fi
   }
 }
 
+const DEFAULT_VIEW_OPTIONS: Record<
+  ViewMode,
+  {
+    gridGap: GridGap;
+    columnSize: ColumnSize;
+    borderRadius: BorderRadius;
+    bookmarkWidth: BookmarkWidth;
+    contentToggles: Record<ContentField, boolean>;
+  }
+> = {
+  list: {
+    gridGap: "none",
+    columnSize: 3,
+    borderRadius: "none",
+    bookmarkWidth: "full",
+    contentToggles: {
+      description: true,
+      tags: false,
+      source: true,
+      savedDate: true,
+    },
+  },
+  compact: {
+    gridGap: "none",
+    columnSize: 3,
+    borderRadius: "none",
+    bookmarkWidth: "full",
+    contentToggles: {
+      description: false,
+      tags: false,
+      source: true,
+      savedDate: false,
+    },
+  },
+  grid: {
+    gridGap: "md",
+    columnSize: 4,
+    borderRadius: "md",
+    bookmarkWidth: "full",
+    contentToggles: {
+      description: false,
+      tags: false,
+      source: true,
+      savedDate: true,
+    },
+  },
+  table: {
+    gridGap: "none",
+    columnSize: 1,
+    borderRadius: "none",
+    bookmarkWidth: "full",
+    contentToggles: {
+      description: false,
+      tags: false,
+      source: true,
+      savedDate: true,
+    },
+  },
+};
+
 const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
+  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidth);
+  const setBookmarkWidth = useViewOptionsStore((state) => state.setBookmarkWidth);
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
 
@@ -205,10 +284,11 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
 
   const contentToggles = useViewOptionsStore((state) => state.contentToggles);
   const setContentToggle = useViewOptionsStore((state) => state.setContentToggle);
+  const setContentToggles = useViewOptionsStore((state) => state.setContentToggles);
 
   const isMedia = typeFilter === "media";
   const currentView = getCurrentAllItemsView(view, typeFilter);
-  const isAppearanceDisabled = currentView !== "grid";
+  const disabledAppearanceFields = DISABLED_APPEARANCE_BY_VIEW[currentView as ViewMode] || [];
 
   return (
     <Menu>
@@ -255,7 +335,20 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                         key={id}
                         onClick={() => {
                           if (isOptionDisabled) return;
-                          setView(id as ViewMode);
+
+                          // Set the new view
+                          const newView = id as ViewMode;
+                          setView(newView);
+
+                          // Reset to default options for the new view
+                          const defaults = DEFAULT_VIEW_OPTIONS[newView];
+                          if (defaults) {
+                            setGridGap(defaults.gridGap);
+                            setColumnSize(defaults.columnSize);
+                            setBorderRadius(defaults.borderRadius);
+                            setBookmarkWidth(defaults.bookmarkWidth);
+                            setContentToggles(defaults.contentToggles);
+                          }
                         }}
                         className={cn(
                           "hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-start gap-2 rounded-sm p-1",
@@ -294,6 +387,22 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
               <AccordionContent className="px-2 pb-2">
                 <div className="space-y-4 pt-2">
                   <SliderComfortable
+                    label="Width"
+                    value={WIDTH_OPTIONS.findIndex((o) => o.value === bookmarkWidth)}
+                    min={0}
+                    max={WIDTH_OPTIONS.length - 1}
+                    step={1}
+                    variant="pips"
+                    className="cursor-pointer rounded-md"
+                    showTooltip={false}
+                    formatValue={(v) => WIDTH_OPTIONS[v as number].label}
+                    disabled={disabledAppearanceFields.includes("width")}
+                    onChange={(val) =>
+                      setBookmarkWidth(WIDTH_OPTIONS[val as number].value as BookmarkWidth)
+                    }
+                  />
+
+                  <SliderComfortable
                     label="Column size"
                     value={columnSize}
                     min={1}
@@ -302,7 +411,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     className="cursor-pointer rounded-md"
                     variant="pips"
                     showTooltip={false}
-                    disabled={isAppearanceDisabled}
+                    disabled={disabledAppearanceFields.includes("columnSize")}
                     onChange={(val) => setColumnSize(val as ColumnSize)}
                   />
 
@@ -316,7 +425,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     showTooltip={false}
                     className="cursor-pointer rounded-md"
                     formatValue={(v) => GRID_GAP_OPTIONS[v as number].label}
-                    disabled={isAppearanceDisabled}
+                    disabled={disabledAppearanceFields.includes("gridGap")}
                     onChange={(val) => setGridGap(GRID_GAP_OPTIONS[val as number].value as GridGap)}
                   />
 
@@ -330,7 +439,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     className="cursor-pointer rounded-md"
                     showTooltip={false}
                     formatValue={(v) => BORDER_RADIUS_OPTIONS[v as number].label}
-                    disabled={isAppearanceDisabled}
+                    disabled={disabledAppearanceFields.includes("borderRadius")}
                     onChange={(val) =>
                       setBorderRadius(BORDER_RADIUS_OPTIONS[val as number].value as BorderRadius)
                     }
@@ -361,15 +470,19 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
               <AccordionContent className="text-foreground px-1 py-2 text-sm">
                 <div className="space-y-2">
                   <div className="divide-border border-border divide-y rounded-md">
-                    <div className="text-muted-foreground flex items-center justify-between gap-3 px-2 py-2">
+                    <div
+                      className={cn(
+                        "text-muted-foreground flex items-center justify-between gap-3 px-2 py-2",
+                        isMedia && "pointer-events-none opacity-60",
+                      )}>
                       <span className="">Title</span>
-                      <span className="shrink-0">Always on</span>
+                      <span className="shrink-0">{isMedia ? "Always off" : "Always on"}</span>
                     </div>
 
                     {CONTENT_OPTIONS.map(({id, label}) => {
-                      const isDisabled = (
-                        DISABLED_CONTENT_BY_VIEW[currentView as ViewMode] || []
-                      ).includes(id);
+                      const isDisabled =
+                        isMedia ||
+                        (DISABLED_CONTENT_BY_VIEW[currentView as ViewMode] || []).includes(id);
 
                       return (
                         <Switch

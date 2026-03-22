@@ -243,7 +243,7 @@ export const ItemList = ({
       href={item.url}
       target="_blank"
       className={cn(
-        "group relative flex w-full cursor-pointer gap-5 border-b px-6 py-5 pr-16 text-left",
+        "group relative flex w-full cursor-pointer items-center gap-5 border-b px-6 py-5 pr-16 text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
@@ -311,7 +311,13 @@ export const ItemList = ({
           </div>
         )}
         {contentToggles.description && item.description ? (
-          <div className="text-muted-foreground mt-1.5 line-clamp-2">{item.description}</div>
+          <div
+            className={cn(
+              "text-muted-foreground line-clamp-2",
+              contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5",
+            )}>
+            {item.description}
+          </div>
         ) : null}
         {contentToggles.tags && item.tags && item.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
@@ -478,10 +484,18 @@ export const MinimalItemRow = ({
       {/* Title */}
       <span className="text-foreground min-w-0 flex-1 truncate text-[13.5px]">{item.title}</span>
 
-      {/* Right side: domain + tags */}
+      {/* Right side: domain + date + tags */}
       <div className="flex shrink-0 items-center gap-2">
-        {contentToggles.source && (
-          <span className="text-muted-foreground hidden text-[12px] sm:block">{domain}</span>
+        {(contentToggles.source || contentToggles.savedDate) && (
+          <div className="text-muted-foreground hidden items-center gap-1 text-[12px] sm:flex">
+            {contentToggles.source && <span>{domain}</span>}
+            {contentToggles.source && contentToggles.savedDate && (
+              <span className="shrink-0">/</span>
+            )}
+            {contentToggles.savedDate && (
+              <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
+            )}
+          </div>
         )}
         {contentToggles.tags && item.tags && item.tags.length > 0 && (
           <div className="flex items-center gap-1">
