@@ -10,7 +10,7 @@ import {Button} from "@/components/coss-ui/button";
 import {Form} from "@/components/coss-ui/form";
 import {Field, FieldLabel} from "@/components/coss-ui/field";
 import {z} from "zod";
-import Spinner from "@/components/shadcn/coss-ui";
+import Spinner from "@/components/ui/spinner";
 import {InputOTP, InputOTPGroup, InputOTPSlot} from "@/components/other/InputOtp";
 import {authClient} from "@/components/utils/better-auth/auth-client";
 import {toastManager} from "@/components/coss-ui/toast";

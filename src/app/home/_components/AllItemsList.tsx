@@ -2,7 +2,7 @@
 import * as React from "react";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import {cn} from "@/lib/utils";
-import Spinner from "@/components/shadcn/coss-ui";
+import Spinner from "@/components/ui/spinner";
 import {Bookmark, GridCard, ItemRow, MediaCard} from "@/components/bookmark/Bookmark";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
 import {NewBookmarkRow, NewBookmarkGridCard, NewBookmarkMediaCard} from "./NewBookmarkPlaceholder";

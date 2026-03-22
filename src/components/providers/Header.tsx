@@ -46,7 +46,7 @@ export function Header({session}: {session: AppShellSession}) {
   });
 
   return (
-    <div className="flex items-center justify-between border-b px-6 py-3.5">
+    <div className="bg-muted/30 flex items-center justify-between border-b px-6 py-3.5">
       <div className="text-foreground flex flex-1">
         <Link
           href="/home"

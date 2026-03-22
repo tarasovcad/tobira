@@ -24,8 +24,9 @@ import {toastManager} from "@/components/coss-ui/toast";
 
 import type {ViewMode, TypeFilter, SortMode} from "./AllItemsToolbar";
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
-import {MediaLayoutMenu} from "./MediaLayoutMenu";
 import {HomeEmptyState} from "./HomeEmptyState";
+import {MediaLayoutMenu} from "./MediaLayoutMenu";
+import ViewOptionsMenu from "./ViewOptionsMenu";
 
 const resolveSortFilter = (sortParam: string | null): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;
@@ -273,6 +274,7 @@ export function HomeClient({
             ) : (
               <MediaLayoutMenu />
             )}
+            <ViewOptionsMenu />
           </div>
         </div>
       </div>
