@@ -60,52 +60,79 @@ export function NewBookmarkList({
   }, [loaded, onDone]);
 
   return (
-    <div className="flex w-full items-center gap-5 border-b px-6 py-5 pr-16">
-      <CrossFade loaded={loaded} delay={0} skeleton={<Skeleton className="size-9 rounded-md" />}>
-        <div className="bg-muted size-9 rounded-md border" />
-      </CrossFade>
-      <div className="min-w-0 flex-1">
-        <CrossFade
-          loaded={!!bookmark?.title}
-          delay={100}
-          skeleton={<Skeleton className="h-[22.5px] w-48 rounded" />}>
-          <div className="text-foreground truncate text-[15px] font-semibold">
-            {bookmark?.title ?? url}
-          </div>
+    <div className="flex w-full flex-col gap-2 border-b px-6 py-5 pr-16">
+      <div className="flex min-w-0 flex-1 items-center gap-5">
+        <CrossFade loaded={loaded} delay={0} skeleton={<Skeleton className="size-9 rounded-md" />}>
+          <div className="bg-muted size-9 rounded-md border" />
         </CrossFade>
-        {(contentToggles.source || contentToggles.savedDate) && (
-          <div className="mt-0.5">
-            <CrossFade
-              loaded={loaded}
-              delay={200}
-              skeleton={<Skeleton className="h-[19.5px] w-64 rounded" />}>
-              <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-[13px] whitespace-nowrap">
-                {contentToggles.source && (
-                  <span className="min-w-0 truncate">{bookmark?.url ?? url}</span>
-                )}
-                {bookmark && contentToggles.source && contentToggles.savedDate ? (
-                  <span className="shrink-0">-</span>
-                ) : null}
-                {bookmark && contentToggles.savedDate ? (
-                  <span className="shrink-0">{formatDateAbsolute(bookmark.created_at)}</span>
-                ) : null}
-              </div>
-            </CrossFade>
-          </div>
-        )}
-        {contentToggles.description && (
-          <div className="mt-2">
-            <CrossFade
-              loaded={!!bookmark?.description}
-              delay={300}
-              skeleton={<Skeleton className="h-[19.5px] w-40 rounded" />}>
-              <div className="text-muted-foreground line-clamp-2 text-[13px]">
-                {bookmark?.description ?? ""}
-              </div>
-            </CrossFade>
-          </div>
-        )}
+        <div className="min-w-0 flex-1 text-[13px]">
+          <CrossFade
+            loaded={!!bookmark?.title}
+            delay={100}
+            skeleton={<Skeleton className="h-[22.5px] w-48 rounded" />}>
+            <div className="text-foreground truncate text-[15px] font-semibold">
+              {bookmark?.title ?? url}
+            </div>
+          </CrossFade>
+          {(contentToggles.source || contentToggles.savedDate) && (
+            <div className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 whitespace-nowrap">
+              <CrossFade
+                loaded={loaded}
+                delay={200}
+                skeleton={<Skeleton className="h-[19.5px] w-64 rounded" />}>
+                <div className="flex min-w-0 items-center gap-1">
+                  {contentToggles.source && (
+                    <span className="min-w-0 truncate">{bookmark?.url ?? url}</span>
+                  )}
+                  {bookmark && contentToggles.source && contentToggles.savedDate ? (
+                    <span className="shrink-0">-</span>
+                  ) : null}
+                  {bookmark && contentToggles.savedDate ? (
+                    <span className="shrink-0">{formatDateAbsolute(bookmark.created_at)}</span>
+                  ) : null}
+                </div>
+              </CrossFade>
+            </div>
+          )}
+          {contentToggles.description && (
+            <div
+              className={cn(
+                "text-muted-foreground line-clamp-2",
+                contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5",
+              )}>
+              <CrossFade
+                loaded={!!bookmark?.description}
+                delay={300}
+                skeleton={<Skeleton className="h-[19.5px] w-40 rounded" />}>
+                <div>{bookmark?.description ?? ""}</div>
+              </CrossFade>
+            </div>
+          )}
+        </div>
       </div>
+      {contentToggles.tags && (!bookmark || (bookmark.tags && bookmark.tags.length > 0)) && (
+        <div className="pl-14">
+          <CrossFade
+            loaded={!!(bookmark?.tags && bookmark.tags.length > 0)}
+            delay={400}
+            skeleton={
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 rounded-[2px]" />
+                <Skeleton className="h-5 w-20 rounded-[2px]" />
+              </div>
+            }>
+            <div className="flex flex-wrap gap-1">
+              {bookmark?.tags?.map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </CrossFade>
+        </div>
+      )}
     </div>
   );
 }

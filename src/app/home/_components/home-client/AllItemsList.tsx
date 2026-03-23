@@ -15,6 +15,9 @@ import {AllItemsAnimatingPlaceholders} from "../all-items-client/AllItemsAnimati
 import {AllItemsBookmarkRow} from "../all-items-client/AllItemsBookmarkRow";
 import {getAllItemsListLayoutConfig} from "../all-items-client/all-items-list-layout";
 
+// Toggle to test new item placeholder with fake data (remove when done)
+const SHOW_TEST_PLACEHOLDER = true;
+
 function LoadingSpinner({className}: {className?: string}) {
   return (
     <div className={className}>
@@ -95,6 +98,22 @@ export function AllItemsList({
 
   const skeletonCount = 12;
 
+  const fakeBookmark: Bookmark = {
+    id: "test-placeholder",
+    kind: "website",
+    title: "Testing",
+    description: "This is a sample description for testing the new bookmark placeholder layout.",
+    created_at: new Date().toISOString(),
+    url: "https://example.com/test-page",
+    user_id: "",
+    preview_image: "",
+    updated_at: "",
+    archived_at: "",
+    deleted_at: "",
+    notes: "",
+    tags: ["test", "placeholder"],
+  };
+
   const content = isInitialLoad
     ? Array.from({length: skeletonCount}, (_, index) => layoutConfig.renderSkeletonItem(index))
     : visibleItems.map((item, index) => (
@@ -116,8 +135,28 @@ export function AllItemsList({
         />
       ));
 
+  const PlaceholderComponent = layoutConfig.NewBookmarkPlaceholder;
+
   const body = (
     <>
+      {/* {SHOW_TEST_PLACEHOLDER && (
+        <>
+          <div>
+            <PlaceholderComponent
+              url="https://example.com/loading-bookmark"
+              bookmark={null}
+              onDone={() => {}}
+            />
+          </div>
+          <div>
+            <PlaceholderComponent
+              url="https://example.com/test-bookmark"
+              bookmark={fakeBookmark}
+              onDone={() => {}}
+            />
+          </div>
+        </>
+      )} */}
       <AllItemsAnimatingPlaceholders
         animatingUrl={animatingUrl}
         animatingItemCount={animatingItemCount}
