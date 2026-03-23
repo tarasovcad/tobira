@@ -161,7 +161,7 @@
   }
 }
 
-@keyframes user-avatar-surface-flow {
+@keyframes avatar-surface-flow {
   0% {
     background-position: 18% 20%;
     transform: scale(1);
@@ -184,7 +184,7 @@
   }
 }
 
-@keyframes user-avatar-glow-flow {
+@keyframes avatar-glow-flow {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
     opacity: 0.9;
@@ -205,7 +205,7 @@
   }
 }
 
-@keyframes user-avatar-orb-primary-flow {
+@keyframes avatar-orb-primary-flow {
   0% {
     transform: translate3d(-50%, -50%, 0) scale(1);
   }
@@ -238,7 +238,7 @@
   }
 }
 
-@keyframes user-avatar-orb-secondary-flow {
+@keyframes avatar-orb-secondary-flow {
   0% {
     transform: translate3d(-50%, -50%, 0) scale(1);
   }
@@ -263,7 +263,7 @@
   }
 }
 
-@keyframes user-avatar-highlight-flow {
+@keyframes avatar-highlight-flow {
   0% {
     transform: translate3d(-50%, 0, 0) scaleX(1);
     opacity: 0.9;
@@ -284,32 +284,29 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .user-avatar-surface {
-    animation: user-avatar-surface-flow var(--avatar-flow-surface-duration, 20s) ease-in-out
-      infinite;
+  .avatar-surface {
+    animation: avatar-surface-flow var(--avatar-flow-surface-duration, 20s) ease-in-out infinite;
     will-change: transform, background-position;
   }
 
-  .user-avatar-glow {
-    animation: user-avatar-glow-flow var(--avatar-flow-glow-duration, 22s) ease-in-out infinite;
+  .avatar-glow {
+    animation: avatar-glow-flow var(--avatar-flow-glow-duration, 22s) ease-in-out infinite;
     will-change: transform, opacity;
   }
 
-  .user-avatar-orb-primary {
-    animation: user-avatar-orb-primary-flow var(--avatar-flow-primary-duration, 13s) ease-in-out
+  .avatar-orb-primary {
+    animation: avatar-orb-primary-flow var(--avatar-flow-primary-duration, 13s) ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .avatar-orb-secondary {
+    animation: avatar-orb-secondary-flow var(--avatar-flow-secondary-duration, 15s) ease-in-out
       infinite;
     will-change: transform;
   }
 
-  .user-avatar-orb-secondary {
-    animation: user-avatar-orb-secondary-flow var(--avatar-flow-secondary-duration, 15s) ease-in-out
-      infinite;
-    will-change: transform;
-  }
-
-  .user-avatar-highlight {
-    animation: user-avatar-highlight-flow var(--avatar-flow-highlight-duration, 18s) ease-in-out
-      infinite;
+  .avatar-highlight {
+    animation: avatar-highlight-flow var(--avatar-flow-highlight-duration, 18s) ease-in-out infinite;
     will-change: transform, opacity;
   }
 }

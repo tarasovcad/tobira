@@ -12,7 +12,7 @@ import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/component
 import {useMutation} from "@tanstack/react-query";
 import {authClient} from "@/components/utils/better-auth/auth-client";
 import {toastManager} from "@/components/coss-ui/toast";
-import {UserAvatar} from "@/components/ui/user-avatar";
+import {Avatar} from "@/components/ui/avatar";
 
 export type AppShellSession = {
   session: Session;
@@ -108,12 +108,13 @@ export function Header({session}: {session: AppShellSession}) {
                 "overflow-hidden rounded-full p-0",
               )}
               type="button">
-              <UserAvatar
+              <Avatar
                 email={email}
                 label={email}
                 size={28}
                 showInitials={false}
                 showFrame={false}
+                showUserIcon={true}
               />
             </MenuTrigger>
             <MenuPopup align="end" className="w-44">

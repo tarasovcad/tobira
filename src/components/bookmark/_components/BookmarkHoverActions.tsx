@@ -1,0 +1,97 @@
+import * as React from "react";
+import {cn} from "@/lib/utils";
+
+export function BookmarkHoverActions({
+  className,
+  variant = "default",
+  onOptions,
+}: {
+  className?: string;
+  variant?: "default" | "glass";
+  onOptions?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onDelete?: () => void;
+}) {
+  const stopNav = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const getButtonClassName = (hasRightBorder?: boolean) => {
+    if (variant === "glass") {
+      return cn(
+        "pointer-events-auto flex size-8 cursor-pointer items-center justify-center text-white/90 transition-colors hover:bg-white/8",
+        hasRightBorder && "border-r border-white/15",
+      );
+    }
+    return cn(
+      "pointer-events-auto inline-flex size-8 items-center justify-center rounded-md border",
+      "bg-background text-foreground/90",
+      "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-2 cursor-pointer",
+    );
+  };
+
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute top-2 right-2 z-10 flex items-center",
+        variant === "glass"
+          ? "overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md"
+          : "gap-1",
+        "opacity-0 transition-opacity duration-75 ease-out",
+        "group-hover:pointer-events-auto group-hover:opacity-100",
+        "group-focus-visible:pointer-events-auto group-focus-visible:opacity-100",
+        className,
+      )}>
+      {/* <button
+        type="button"
+        aria-label="Delete"
+        className={getButtonClassName(true)}
+        onClick={(e) => {
+          stopNav(e);
+          onDelete?.();
+        }}>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M5.24552 3.33317H2.1665C1.89036 3.33317 1.6665 3.55703 1.6665 3.83317C1.6665 4.10931 1.89036 4.33317 2.1665 4.33317H2.66648C2.6665 4.34477 2.66691 4.35645 2.66773 4.36819L3.22761 12.3416C3.31956 13.6512 4.40871 14.6665 5.72147 14.6665H10.2782C11.591 14.6665 12.6801 13.6512 12.772 12.3416L13.332 4.36819C13.3328 4.35645 13.3332 4.34477 13.3332 4.33317H13.8332C14.1093 4.33317 14.3332 4.10931 14.3332 3.83317C14.3332 3.55703 14.1093 3.33317 13.8332 3.33317H10.7542C10.4542 2.08988 9.33524 1.1665 7.9999 1.1665C6.66455 1.1665 5.5455 2.08988 5.24552 3.33317ZM6.2914 3.33317H9.70837C9.4417 2.65039 8.77704 2.1665 7.9999 2.1665C7.2227 2.1665 6.55804 2.65039 6.2914 3.33317ZM6.6665 6.49984C6.94264 6.49984 7.1665 6.7237 7.1665 6.99984V10.8332C7.1665 11.1093 6.94264 11.3332 6.6665 11.3332C6.39036 11.3332 6.1665 11.1093 6.1665 10.8332V6.99984C6.1665 6.7237 6.39036 6.49984 6.6665 6.49984ZM9.33317 6.49984C9.6093 6.49984 9.83317 6.7237 9.83317 6.99984V10.8332C9.83317 11.1093 9.6093 11.3332 9.33317 11.3332C9.05704 11.3332 8.83317 11.1093 8.83317 10.8332V6.99984C8.83317 6.7237 9.05704 6.49984 9.33317 6.49984Z"
+            fill="currentColor"
+          />
+        </svg>
+      </button> */}
+      <button
+        type="button"
+        aria-label="Options"
+        className={getButtonClassName(false)}
+        onClick={(e) => {
+          stopNav(e);
+          onOptions?.(e);
+        }}>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M2.50016 6.8335C1.85583 6.8335 1.3335 7.35583 1.3335 8.00016C1.3335 8.6445 1.85583 9.16683 2.50016 9.16683C3.1445 9.16683 3.66683 8.6445 3.66683 8.00016C3.66683 7.35583 3.1445 6.8335 2.50016 6.8335Z"
+            fill="currentColor"
+          />
+          <path
+            d="M8.00016 6.8335C7.35583 6.8335 6.8335 7.35583 6.8335 8.00016C6.8335 8.6445 7.35583 9.16683 8.00016 9.16683C8.6445 9.16683 9.16683 8.6445 9.16683 8.00016C9.16683 7.35583 8.6445 6.8335 8.00016 6.8335Z"
+            fill="currentColor"
+          />
+          <path
+            d="M13.5002 6.8335C12.8558 6.8335 12.3335 7.35583 12.3335 8.00016C12.3335 8.6445 12.8558 9.16683 13.5002 9.16683C14.1445 9.16683 14.6668 8.6445 14.6668 8.00016C14.6668 7.35583 14.1445 6.8335 13.5002 6.8335Z"
+            fill="currentColor"
+          />
+        </svg>
+      </button>
+    </div>
+  );
+}

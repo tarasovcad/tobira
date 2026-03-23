@@ -2,220 +2,13 @@
 import * as React from "react";
 import Link from "next/link";
 import {formatDateAbsolute} from "@/lib/formatDate";
-import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import MediaPreview from "../ui/MediaPreview";
 import type {Bookmark} from "./types";
-
-function BookmarkHoverActions({
-  className,
-  variant = "default",
-  onOptions,
-}: {
-  className?: string;
-  variant?: "default" | "glass";
-  onOptions?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onDelete?: () => void;
-}) {
-  const stopNav = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const getButtonClassName = (hasRightBorder?: boolean) => {
-    if (variant === "glass") {
-      return cn(
-        "pointer-events-auto flex size-8 cursor-pointer items-center justify-center text-white/90 transition-colors hover:bg-white/8",
-        hasRightBorder && "border-r border-white/15",
-      );
-    }
-    return cn(
-      "pointer-events-auto inline-flex size-8 items-center justify-center rounded-md border",
-      "bg-background text-foreground/90",
-      "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-2 cursor-pointer",
-    );
-  };
-
-  return (
-    <div
-      className={cn(
-        "pointer-events-none absolute top-2 right-2 z-10 flex items-center",
-        variant === "glass"
-          ? "overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md"
-          : "gap-1",
-        "opacity-0 transition-opacity duration-75 ease-out",
-        "group-hover:pointer-events-auto group-hover:opacity-100",
-        "group-focus-visible:pointer-events-auto group-focus-visible:opacity-100",
-        className,
-      )}>
-      {/* <button
-        type="button"
-        aria-label="Delete"
-        className={getButtonClassName(true)}
-        onClick={(e) => {
-          stopNav(e);
-          onDelete?.();
-        }}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M5.24552 3.33317H2.1665C1.89036 3.33317 1.6665 3.55703 1.6665 3.83317C1.6665 4.10931 1.89036 4.33317 2.1665 4.33317H2.66648C2.6665 4.34477 2.66691 4.35645 2.66773 4.36819L3.22761 12.3416C3.31956 13.6512 4.40871 14.6665 5.72147 14.6665H10.2782C11.591 14.6665 12.6801 13.6512 12.772 12.3416L13.332 4.36819C13.3328 4.35645 13.3332 4.34477 13.3332 4.33317H13.8332C14.1093 4.33317 14.3332 4.10931 14.3332 3.83317C14.3332 3.55703 14.1093 3.33317 13.8332 3.33317H10.7542C10.4542 2.08988 9.33524 1.1665 7.9999 1.1665C6.66455 1.1665 5.5455 2.08988 5.24552 3.33317ZM6.2914 3.33317H9.70837C9.4417 2.65039 8.77704 2.1665 7.9999 2.1665C7.2227 2.1665 6.55804 2.65039 6.2914 3.33317ZM6.6665 6.49984C6.94264 6.49984 7.1665 6.7237 7.1665 6.99984V10.8332C7.1665 11.1093 6.94264 11.3332 6.6665 11.3332C6.39036 11.3332 6.1665 11.1093 6.1665 10.8332V6.99984C6.1665 6.7237 6.39036 6.49984 6.6665 6.49984ZM9.33317 6.49984C9.6093 6.49984 9.83317 6.7237 9.83317 6.99984V10.8332C9.83317 11.1093 9.6093 11.3332 9.33317 11.3332C9.05704 11.3332 8.83317 11.1093 8.83317 10.8332V6.99984C8.83317 6.7237 9.05704 6.49984 9.33317 6.49984Z"
-            fill="currentColor"
-          />
-        </svg>
-      </button> */}
-      <button
-        type="button"
-        aria-label="Options"
-        className={getButtonClassName(false)}
-        onClick={(e) => {
-          stopNav(e);
-          onOptions?.(e);
-        }}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M2.50016 6.8335C1.85583 6.8335 1.3335 7.35583 1.3335 8.00016C1.3335 8.6445 1.85583 9.16683 2.50016 9.16683C3.1445 9.16683 3.66683 8.6445 3.66683 8.00016C3.66683 7.35583 3.1445 6.8335 2.50016 6.8335Z"
-            fill="currentColor"
-          />
-          <path
-            d="M8.00016 6.8335C7.35583 6.8335 6.8335 7.35583 6.8335 8.00016C6.8335 8.6445 7.35583 9.16683 8.00016 9.16683C8.6445 9.16683 9.16683 8.6445 9.16683 8.00016C9.16683 7.35583 8.6445 6.8335 8.00016 6.8335Z"
-            fill="currentColor"
-          />
-          <path
-            d="M13.5002 6.8335C12.8558 6.8335 12.3335 7.35583 12.3335 8.00016C12.3335 8.6445 12.8558 9.16683 13.5002 9.16683C14.1445 9.16683 14.6668 8.6445 14.6668 8.00016C14.6668 7.35583 14.1445 6.8335 13.5002 6.8335Z"
-            fill="currentColor"
-          />
-        </svg>
-      </button>
-    </div>
-  );
-}
-
-const BookmarkImage = ({
-  bookmark_id,
-  item,
-  type,
-  divClassName,
-  imageClassName,
-  height,
-  width,
-  fallbackClassName,
-  fill,
-}: {
-  bookmark_id: string;
-  item: Bookmark;
-  type: "preview" | "favicon" | "og";
-  divClassName?: string;
-  imageClassName?: string;
-  height?: number;
-  width?: number;
-  fallbackClassName?: string;
-  fill?: boolean;
-}) => {
-  let BASE_SRC = "";
-
-  switch (type) {
-    case "preview":
-      BASE_SRC = item.preview_image ?? "";
-      break;
-    case "favicon":
-      BASE_SRC = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-favicons/${bookmark_id}/favicon.png`;
-      break;
-  }
-  const MAX_RETRIES = 12; // ~24s at 2s interval
-  const RETRY_MS = 2000;
-
-  const [attempt, setAttempt] = useState(0);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
-
-  const isVideo =
-    BASE_SRC.toLowerCase().endsWith(".mp4") || BASE_SRC.toLowerCase().endsWith(".mov");
-
-  // If the image 404s (still uploading), retry with a cache-busting query param.
-  useEffect(() => {
-    if (status !== "error") return;
-    if (attempt >= MAX_RETRIES) return;
-
-    const t = window.setTimeout(() => {
-      setAttempt((a) => a + 1);
-      setStatus("loading");
-    }, RETRY_MS);
-
-    return () => window.clearTimeout(t);
-  }, [attempt, status]);
-
-  return (
-    <div
-      className={cn(
-        fill ? "absolute inset-0" : "relative",
-        "grid place-items-center",
-        divClassName,
-      )}>
-      {status !== "loaded" ? (
-        <div
-          className={cn(
-            "text-muted-foreground/30 z-10 col-start-1 row-start-1",
-            fallbackClassName,
-          )}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M14.375 2.5C16.1009 2.5 17.5 3.89911 17.5 5.625V14.375C17.5 16.1009 16.1009 17.5 14.375 17.5H5.625C3.89911 17.5 2.5 16.1009 2.5 14.375V5.625C2.5 3.89911 3.89911 2.5 5.625 2.5H14.375ZM7.99235 11.3257C7.26015 10.5937 6.07318 10.5937 5.34098 11.3257L3.75 12.9167V14.375C3.75 15.4105 4.58947 16.25 5.625 16.25H12.9167L7.99235 11.3257ZM12.5 5.41667C11.3494 5.41667 10.4167 6.34941 10.4167 7.5C10.4167 8.65058 11.3494 9.58333 12.5 9.58333C13.6506 9.58333 14.5833 8.65058 14.5833 7.5C14.5833 6.34941 13.6506 5.41667 12.5 5.41667Z"
-              fill="currentColor"
-            />
-          </svg>
-        </div>
-      ) : null}
-
-      {/* Cache-busted favicon attempts. Keep hidden until loaded to avoid alt text flashes. */}
-      <div
-        className={cn(
-          fill ? "absolute inset-0" : "relative h-full w-full",
-          "col-start-1 row-start-1 flex items-center justify-center",
-          status !== "loaded" && "bg-muted animate-pulse",
-        )}>
-        <MediaPreview
-          src={`${BASE_SRC}?v=${attempt}`}
-          alt={`${bookmark_id} ${type}`}
-          width={width ?? 1200}
-          height={height ?? 1200}
-          addZoom={!isVideo}
-          type={isVideo ? "video" : "image"}
-          poster={isVideo && item.metadata?.thumbnail_url ? item.metadata.thumbnail_url : undefined}
-          className={cn(
-            status === "loaded" ? "opacity-100" : "opacity-0",
-            "transition-opacity duration-300 ease-in-out",
-            imageClassName,
-          )}
-          buttonClassName="flex items-center justify-center h-full w-full"
-          unoptimized={!isVideo ? true : undefined}
-          onLoad={!isVideo ? () => setStatus("loaded") : undefined}
-          onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
-          onError={() => setStatus("error")}
-        />
-      </div>
-    </div>
-  );
-};
+import {BookmarkHoverActions} from "./_components/BookmarkHoverActions";
+import {BookmarkImage} from "./_components/BookmarkImage";
+import {BookmarkAvatar} from "./_components/BookmarkAvatar";
 
 export const ItemList = ({
   item,
@@ -283,18 +76,14 @@ export const ItemList = ({
             </div>
           </div>
         </div>
-        <div className="relative size-9 shrink-0 overflow-hidden rounded-md border">
-          <BookmarkImage
-            bookmark_id={item.id}
-            item={item}
-            type="favicon"
-            divClassName="absolute inset-0"
-            imageClassName="h-5 w-5 object-contain"
-            fallbackClassName=""
-            height={20}
-            width={20}
-          />
-        </div>
+        <BookmarkAvatar
+          item={item}
+          className="size-9"
+          imageClassName="h-5 w-5 object-contain"
+          height={20}
+          width={20}
+          iconSize={32}
+        />
       </div>
 
       <div className="min-w-0 flex-1 text-[13px]">
@@ -335,50 +124,7 @@ export const ItemList = ({
   );
 };
 
-const AVATAR_PALETTES = [
-  {bg: "bg-blue-100 dark:bg-blue-950", text: "text-blue-700 dark:text-blue-300"},
-  {bg: "bg-emerald-100 dark:bg-emerald-950", text: "text-emerald-700 dark:text-emerald-300"},
-  {bg: "bg-amber-100 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300"},
-  {bg: "bg-rose-100 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300"},
-  {bg: "bg-violet-100 dark:bg-violet-950", text: "text-violet-700 dark:text-violet-300"},
-  {bg: "bg-sky-100 dark:bg-sky-950", text: "text-sky-700 dark:text-sky-300"},
-  {bg: "bg-orange-100 dark:bg-orange-950", text: "text-orange-700 dark:text-orange-300"},
-  {bg: "bg-teal-100 dark:bg-teal-950", text: "text-teal-700 dark:text-teal-300"},
-];
-
-function getAvatarPalette(index: number): (typeof AVATAR_PALETTES)[number] {
-  switch (index) {
-    case 0:
-      return AVATAR_PALETTES[0];
-    case 1:
-      return AVATAR_PALETTES[1];
-    case 2:
-      return AVATAR_PALETTES[2];
-    case 3:
-      return AVATAR_PALETTES[3];
-    case 4:
-      return AVATAR_PALETTES[4];
-    case 5:
-      return AVATAR_PALETTES[5];
-    case 6:
-      return AVATAR_PALETTES[6];
-    default:
-      return AVATAR_PALETTES[7];
-  }
-}
-
-function getDomainLetter(url: string): {letter: string; palette: (typeof AVATAR_PALETTES)[number]} {
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, "");
-    const letter = hostname[0]?.toUpperCase() ?? "?";
-    const idx = hostname.charCodeAt(0) % AVATAR_PALETTES.length;
-    return {letter, palette: getAvatarPalette(idx)};
-  } catch {
-    return {letter: "?", palette: AVATAR_PALETTES[0]};
-  }
-}
-
-function getDomainName(url: string): string {
+export function getDomainName(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
   } catch {
@@ -422,7 +168,6 @@ export const MinimalItemRow = ({
   setSelected?: (id: string, checked: boolean) => void;
 }) => {
   const {contentToggles} = useViewOptionsStore();
-  const {letter, palette} = getDomainLetter(item.url);
   const domain = getDomainName(item.url);
 
   return (
@@ -471,14 +216,16 @@ export const MinimalItemRow = ({
             </div>
           </div>
         </div>
-        <div
-          className={cn(
-            "flex size-5 shrink-0 items-center justify-center rounded-sm text-[11px] font-semibold",
-            palette.bg,
-            palette.text,
-          )}>
-          {letter}
-        </div>
+        <BookmarkAvatar
+          item={item}
+          letterClassName="size-[18px]"
+          imageContainerClassName="size-[18px] border-none bg-transparent rounded-none"
+          imageClassName="h-[18px] w-[18px] object-contain"
+          skeletonClassName="bg-transparent"
+          height={18}
+          width={18}
+          iconSize={16}
+        />
       </div>
 
       {/* Title */}
@@ -581,18 +328,14 @@ export const TableItemRow = ({
             </div>
           </div>
         </div>
-        <div className="relative size-8 shrink-0 overflow-hidden rounded-md border">
-          <BookmarkImage
-            bookmark_id={item.id}
-            item={item}
-            type="favicon"
-            divClassName="absolute inset-0"
-            imageClassName="h-4 w-4 object-contain"
-            fallbackClassName=""
-            height={16}
-            width={16}
-          />
-        </div>
+        <BookmarkAvatar
+          item={item}
+          className="size-8"
+          imageClassName="h-4 w-4 object-contain"
+          height={16}
+          width={16}
+          iconSize={16}
+        />
       </div>
 
       <div className="min-w-0">

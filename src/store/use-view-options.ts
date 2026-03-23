@@ -6,7 +6,7 @@ export type BorderRadius = "none" | "sm" | "md" | "lg";
 export type BookmarkWidth = "full" | "lg" | "md" | "sm" | "xs";
 export const COLUMN_SIZES = [1, 2, 3, 4, 5, 6] as const;
 export type ColumnSize = (typeof COLUMN_SIZES)[number];
-export type ContentField = "description" | "tags" | "source" | "savedDate";
+export type ContentField = "description" | "tags" | "source" | "savedDate" | "avatar";
 
 export interface ViewOptionsState {
   // Layout
@@ -43,6 +43,7 @@ const DEFAULT_OPTIONS = {
     source: true,
     savedDate: true,
     favorites: true,
+    avatar: true,
   },
 };
 
@@ -68,6 +69,7 @@ export const useViewOptionsStore = create<ViewOptionsState>((set) => ({
     tags: true,
     source: true,
     savedDate: true,
+    avatar: true,
   },
   setContentToggle: (field, value) =>
     set((state) => ({

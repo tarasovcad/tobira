@@ -152,6 +152,7 @@ const LAYOUT_OPTIONS = [
 ];
 
 const CONTENT_OPTIONS = [
+  {id: "avatar", label: "Avatar"},
   {id: "description", label: "Description"},
   {id: "tags", label: "Tags"},
   {id: "source", label: "Source"},
@@ -191,13 +192,14 @@ const DISABLED_APPEARANCE_BY_VIEW: Partial<Record<ViewMode, AppearanceField[]>> 
 
 const DISABLED_CONTENT_BY_VIEW: Partial<Record<ViewMode, ContentField[]>> = {
   compact: ["description"],
-  table: ["description", "tags"],
 };
 
 // We keep this lookup exhaustive because direct `contentToggles[field]`
 // access triggers the dynamic object indexing lint rule in this codebase.
 function isContentFieldEnabled(contentToggles: Record<ContentField, boolean>, field: ContentField) {
   switch (field) {
+    case "avatar":
+      return contentToggles.avatar;
     case "description":
       return contentToggles.description;
     case "tags":
@@ -225,6 +227,7 @@ const DEFAULT_VIEW_OPTIONS: Record<
     borderRadius: "none",
     bookmarkWidth: "full",
     contentToggles: {
+      avatar: true,
       description: true,
       tags: false,
       source: true,
@@ -235,8 +238,9 @@ const DEFAULT_VIEW_OPTIONS: Record<
     gridGap: "none",
     columnSize: 3,
     borderRadius: "none",
-    bookmarkWidth: "full",
+    bookmarkWidth: "sm",
     contentToggles: {
+      avatar: true,
       description: false,
       tags: false,
       source: true,
@@ -249,6 +253,7 @@ const DEFAULT_VIEW_OPTIONS: Record<
     borderRadius: "md",
     bookmarkWidth: "full",
     contentToggles: {
+      avatar: true,
       description: false,
       tags: false,
       source: true,
@@ -261,6 +266,7 @@ const DEFAULT_VIEW_OPTIONS: Record<
     borderRadius: "none",
     bookmarkWidth: "full",
     contentToggles: {
+      avatar: true,
       description: false,
       tags: false,
       source: true,
