@@ -7,7 +7,6 @@ import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
 import {SidebarTags, SidebarTagsType} from "./SidebarTags";
 import {SidebarCollections} from "./SidebarCollections";
-import {useSidebarStore} from "@/store/use-sidebar";
 
 export function Sidebar({
   tags: initialTags,
@@ -23,7 +22,6 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isSidebarOpen = useSidebarStore((state) => state.isOpen);
 
   const handleCreateCollection = () => {
     if (!isAuthenticated) {
@@ -39,9 +37,7 @@ export function Sidebar({
     null;
 
   return (
-    <aside
-      data-state={isSidebarOpen ? "open" : "closed"}
-      className="h-full w-[224px] shrink-0 border-r">
+    <aside className="bg-muted/30 h-full w-[224px] shrink-0 border-r">
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="px-3 pt-3">
@@ -74,7 +70,10 @@ export function Sidebar({
                 initialCollections={initialCollections}
                 onCreateCollection={handleCreateCollection}
               />
-              <div className="bg-border my-4 h-px w-full" />
+              <div className="px-3">
+                <div className="bg-border my-4 h-px w-full" />
+              </div>
+
               <SidebarTags initialTags={initialTags} />
             </ScrollArea>
           </div>

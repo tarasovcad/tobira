@@ -8,7 +8,7 @@ import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/compon
 import {Button} from "@/components/coss-ui/button";
 import {Separator} from "@/components/shadcn/separator";
 import {Textarea} from "@/components/coss-ui/textarea";
-import {type Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 import TagsInput from "@/components/ui/TagsInput";
 import {useQuery} from "@tanstack/react-query";
 import {getCollections} from "@/app/actions/collections";

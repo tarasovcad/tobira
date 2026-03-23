@@ -3,7 +3,7 @@
 import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
-import type {BookmarkMetadata} from "@/app/home/_types";
+import type {BookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 import Link from "next/link";
 
 interface BookmarkDetailsProps {

@@ -1,4 +1,5 @@
 "use client";
+
 import NumberFlow from "@number-flow/react";
 import {Button} from "@/components/coss-ui/button";
 import type {Collection} from "@/app/actions/collections";
@@ -10,9 +11,6 @@ interface CollectionHeaderProps {
   onDelete: () => void;
 }
 
-/**
- * Renders the header for a collection view.
- */
 export function CollectionHeader({
   activeCollection,
   currentTotalCount,

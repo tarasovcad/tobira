@@ -1,18 +1,7 @@
+import type {Bookmark} from "@/components/bookmark/types";
 import type {BookmarkTagJoinRow} from "@/lib/bookmark-tags";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
 import type {SortMode, TypeFilter} from "../_components/AllItemsToolbar";
-
-export type BookmarkMetadata = {
-  date?: string;
-  text?: string;
-  width?: number;
-  height?: number;
-  hasMedia?: boolean;
-  mediaURLs?: string[];
-  user_name?: string;
-  thumbnail_url?: string;
-  user_screen_name?: string;
-};
+export type {BookmarkMetadata} from "./bookmark-metadata";
 
 export type SearchParams = {
   tag?: string;

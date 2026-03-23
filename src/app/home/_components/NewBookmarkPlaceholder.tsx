@@ -4,8 +4,8 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {Skeleton} from "@/components/coss-ui/skeleton";
 import {formatDateAbsolute} from "@/lib/formatDate";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
-import {useMediaLayoutStore} from "@/store/use-media-layout";
+import type {Bookmark} from "@/components/bookmark/types";
+import {useViewOptionsStore} from "@/store/use-view-options";
 import {useEffect} from "react";
 
 function CrossFade({
@@ -41,7 +41,7 @@ function CrossFade({
   );
 }
 
-export function NewBookmarkRow({
+export function NewBookmarkList({
   url,
   bookmark,
   onDone,
@@ -51,6 +51,7 @@ export function NewBookmarkRow({
   onDone: () => void;
 }) {
   const loaded = !!bookmark;
+  const {contentToggles} = useViewOptionsStore();
 
   React.useEffect(() => {
     if (!loaded) return;
@@ -59,7 +60,7 @@ export function NewBookmarkRow({
   }, [loaded, onDone]);
 
   return (
-    <div className="flex w-full gap-5 border-b px-6 py-5 pr-16">
+    <div className="flex w-full items-center gap-5 border-b px-6 py-5 pr-16">
       <CrossFade loaded={loaded} delay={0} skeleton={<Skeleton className="size-9 rounded-md" />}>
         <div className="bg-muted size-9 rounded-md border" />
       </CrossFade>
@@ -67,37 +68,43 @@ export function NewBookmarkRow({
         <CrossFade
           loaded={!!bookmark?.title}
           delay={100}
-          skeleton={<Skeleton className="h-5 w-48 rounded" />}>
-          <div className="text-foreground truncate text-sm font-semibold">
+          skeleton={<Skeleton className="h-[22.5px] w-48 rounded" />}>
+          <div className="text-foreground truncate text-[15px] font-semibold">
             {bookmark?.title ?? url}
           </div>
         </CrossFade>
-        <div className="mt-1">
-          <CrossFade
-            loaded={loaded}
-            delay={200}
-            skeleton={<Skeleton className="h-4.5 w-64 rounded" />}>
-            <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-xs whitespace-nowrap">
-              <span className="min-w-0 truncate">{bookmark?.url ?? url}</span>
-              {bookmark ? (
-                <>
+        {(contentToggles.source || contentToggles.savedDate) && (
+          <div className="mt-0.5">
+            <CrossFade
+              loaded={loaded}
+              delay={200}
+              skeleton={<Skeleton className="h-[19.5px] w-64 rounded" />}>
+              <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-[13px] whitespace-nowrap">
+                {contentToggles.source && (
+                  <span className="min-w-0 truncate">{bookmark?.url ?? url}</span>
+                )}
+                {bookmark && contentToggles.source && contentToggles.savedDate ? (
                   <span className="shrink-0">-</span>
+                ) : null}
+                {bookmark && contentToggles.savedDate ? (
                   <span className="shrink-0">{formatDateAbsolute(bookmark.created_at)}</span>
-                </>
-              ) : null}
-            </div>
-          </CrossFade>
-        </div>
-        <div className="mt-[9.5px]">
-          <CrossFade
-            loaded={!!bookmark?.description}
-            delay={300}
-            skeleton={<Skeleton className="h-5 w-40 rounded" />}>
-            <div className="text-muted-foreground line-clamp-2 text-xs">
-              {bookmark?.description ?? ""}
-            </div>
-          </CrossFade>
-        </div>
+                ) : null}
+              </div>
+            </CrossFade>
+          </div>
+        )}
+        {contentToggles.description && (
+          <div className="mt-2">
+            <CrossFade
+              loaded={!!bookmark?.description}
+              delay={300}
+              skeleton={<Skeleton className="h-[19.5px] w-40 rounded" />}>
+              <div className="text-muted-foreground line-clamp-2 text-[13px]">
+                {bookmark?.description ?? ""}
+              </div>
+            </CrossFade>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -113,6 +120,7 @@ export function NewBookmarkGridCard({
   onDone: () => void;
 }) {
   const loaded = !!bookmark;
+  const {contentToggles} = useViewOptionsStore();
 
   React.useEffect(() => {
     if (!loaded) return;
@@ -134,22 +142,26 @@ export function NewBookmarkGridCard({
             {bookmark?.title ?? url}
           </div>
         </CrossFade>
-        <div className="mt-1">
-          <CrossFade
-            loaded={loaded}
-            delay={300}
-            skeleton={<Skeleton className="h-3 w-1/2 rounded" />}>
-            <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-xs whitespace-nowrap">
-              <span className="min-w-0 truncate">{bookmark?.url ?? url}</span>
-              {bookmark ? (
-                <>
+        {(contentToggles.source || contentToggles.savedDate) && (
+          <div className="mt-1">
+            <CrossFade
+              loaded={loaded}
+              delay={300}
+              skeleton={<Skeleton className="h-3 w-1/2 rounded" />}>
+              <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-xs whitespace-nowrap">
+                {contentToggles.source && (
+                  <span className="min-w-0 truncate">{bookmark?.url ?? url}</span>
+                )}
+                {bookmark && contentToggles.source && contentToggles.savedDate ? (
                   <span className="shrink-0">-</span>
+                ) : null}
+                {bookmark && contentToggles.savedDate ? (
                   <span className="shrink-0">{formatDateAbsolute(bookmark.created_at)}</span>
-                </>
-              ) : null}
-            </div>
-          </CrossFade>
-        </div>
+                ) : null}
+              </div>
+            </CrossFade>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -165,14 +177,16 @@ export function NewBookmarkMediaCard({
   onDone: () => void;
 }) {
   const loaded = !!bookmark;
-  const {borderRadius, gapSize} = useMediaLayoutStore();
+  const {borderRadius, gridGap} = useViewOptionsStore();
 
   const radiusClass =
-    borderRadius === "sharp"
+    borderRadius === "none"
       ? "rounded-none"
-      : borderRadius === "pill"
-        ? "rounded-2xl"
-        : "rounded-md";
+      : borderRadius === "sm"
+        ? "rounded-sm"
+        : borderRadius === "md"
+          ? "rounded-md"
+          : "rounded-lg";
 
   useEffect(() => {
     if (!loaded) return;
@@ -189,7 +203,7 @@ export function NewBookmarkMediaCard({
     <div
       className={cn(
         "bg-background relative block w-full overflow-hidden text-left",
-        gapSize !== "none" && "border",
+        gridGap !== "none" && "border",
         radiusClass,
       )}
       style={{

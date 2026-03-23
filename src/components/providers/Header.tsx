@@ -12,6 +12,7 @@ import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/component
 import {useMutation} from "@tanstack/react-query";
 import {authClient} from "@/components/utils/better-auth/auth-client";
 import {toastManager} from "@/components/coss-ui/toast";
+import {Avatar} from "@/components/ui/avatar";
 
 export type AppShellSession = {
   session: Session;
@@ -22,7 +23,6 @@ export type AppShellSession = {
 
 export function Header({session}: {session: AppShellSession}) {
   const email = session?.user?.email ?? null;
-  const userInitial = email?.trim()?.[0]?.toUpperCase() ?? "?";
   const router = useRouter();
 
   const signOutMutation = useMutation({
@@ -46,7 +46,7 @@ export function Header({session}: {session: AppShellSession}) {
   });
 
   return (
-    <div className="flex items-center justify-between border-b px-6 py-3.5">
+    <div className="bg-muted/30 flex items-center justify-between border-b px-6 py-3.5">
       <div className="text-foreground flex flex-1">
         <Link
           href="/home"
@@ -103,9 +103,19 @@ export function Header({session}: {session: AppShellSession}) {
           <Menu>
             <MenuTrigger
               aria-label="User menu"
-              className={cn(buttonVariants({variant: "outline", size: "icon-sm"}), "rounded-full")}
+              className={cn(
+                buttonVariants({variant: "ghost", size: "icon-sm"}),
+                "overflow-hidden rounded-full p-0",
+              )}
               type="button">
-              {userInitial}
+              <Avatar
+                email={email}
+                label={email}
+                size={28}
+                showInitials={false}
+                showFrame={false}
+                showUserIcon={true}
+              />
             </MenuTrigger>
             <MenuPopup align="end" className="w-44">
               <MenuItem

@@ -6,7 +6,7 @@ import {
   BookmarkFormValues,
   normalizeTagsForCompare,
 } from "../_utils/bookmark-schema";
-import {type Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

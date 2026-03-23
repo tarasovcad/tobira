@@ -161,6 +161,156 @@
   }
 }
 
+@keyframes avatar-surface-flow {
+  0% {
+    background-position: 18% 20%;
+    transform: scale(1);
+  }
+  25% {
+    background-position: 34% 28%;
+    transform: scale(1.04);
+  }
+  50% {
+    background-position: 68% 60%;
+    transform: scale(1.01);
+  }
+  75% {
+    background-position: 44% 76%;
+    transform: scale(1.05);
+  }
+  100% {
+    background-position: 18% 20%;
+    transform: scale(1);
+  }
+}
+
+@keyframes avatar-glow-flow {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+  33% {
+    transform: translate3d(calc(var(--avatar-size) * 0.02), calc(var(--avatar-size) * -0.015), 0)
+      scale(1.05);
+    opacity: 1;
+  }
+  66% {
+    transform: translate3d(calc(var(--avatar-size) * -0.02), calc(var(--avatar-size) * 0.02), 0)
+      scale(0.98);
+    opacity: 0.92;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes avatar-orb-primary-flow {
+  0% {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+  25% {
+    transform: translate3d(
+        calc(-50% + calc(var(--avatar-size) * var(--avatar-flow-primary-x))),
+        calc(-50% - calc(var(--avatar-size) * var(--avatar-flow-primary-y))),
+        0
+      )
+      scale(1.06);
+  }
+  50% {
+    transform: translate3d(
+        calc(-50% - calc(var(--avatar-size) * var(--avatar-flow-primary-x))),
+        calc(-50% + calc(var(--avatar-size) * var(--avatar-flow-primary-y))),
+        0
+      )
+      scale(0.98);
+  }
+  75% {
+    transform: translate3d(
+        calc(-50% + calc(var(--avatar-size) * 0.5 * var(--avatar-flow-primary-x))),
+        calc(-50% + calc(var(--avatar-size) * 0.6 * var(--avatar-flow-primary-y))),
+        0
+      )
+      scale(1.03);
+  }
+  100% {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+}
+
+@keyframes avatar-orb-secondary-flow {
+  0% {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+  30% {
+    transform: translate3d(
+        calc(-50% - calc(var(--avatar-size) * var(--avatar-flow-secondary-x))),
+        calc(-50% - calc(var(--avatar-size) * 0.5 * var(--avatar-flow-secondary-y))),
+        0
+      )
+      scale(1.05);
+  }
+  60% {
+    transform: translate3d(
+        calc(-50% + calc(var(--avatar-size) * 0.85 * var(--avatar-flow-secondary-x))),
+        calc(-50% + calc(var(--avatar-size) * var(--avatar-flow-secondary-y))),
+        0
+      )
+      scale(0.97);
+  }
+  100% {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+}
+
+@keyframes avatar-highlight-flow {
+  0% {
+    transform: translate3d(-50%, 0, 0) scaleX(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(
+        calc(-50% + calc(var(--avatar-size) * var(--avatar-flow-highlight-x))),
+        calc(var(--avatar-size) * var(--avatar-flow-highlight-y)),
+        0
+      )
+      scaleX(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0) scaleX(1);
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .avatar-surface {
+    animation: avatar-surface-flow var(--avatar-flow-surface-duration, 20s) ease-in-out infinite;
+    will-change: transform, background-position;
+  }
+
+  .avatar-glow {
+    animation: avatar-glow-flow var(--avatar-flow-glow-duration, 22s) ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  .avatar-orb-primary {
+    animation: avatar-orb-primary-flow var(--avatar-flow-primary-duration, 13s) ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .avatar-orb-secondary {
+    animation: avatar-orb-secondary-flow var(--avatar-flow-secondary-duration, 15s) ease-in-out
+      infinite;
+    will-change: transform;
+  }
+
+  .avatar-highlight {
+    animation: avatar-highlight-flow var(--avatar-flow-highlight-duration, 18s) ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+}
+
 @utility hit-area-debug {
   position: relative;
   &::before {

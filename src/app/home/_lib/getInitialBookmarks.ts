@@ -1,5 +1,5 @@
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
-import type {Bookmark} from "@/components/bookmark/Bookmark";
+import type {Bookmark} from "@/components/bookmark/types";
 import type {BookmarkRowWithJoins, TagsWithCountsRow} from "../_types";
 import {PAGE_SIZE} from "../_constants";
 import type {SupabaseClient} from "@supabase/supabase-js";

@@ -8,7 +8,7 @@ import {zodResolver} from "@hookform/resolvers/zod";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
-import Spinner from "@/components/shadcn/coss-ui";
+import Spinner from "@/components/ui/spinner";
 import {Button} from "@/components/coss-ui/button";
 import {Button as ShadcnButton} from "@/components/shadcn/button";
 import {Input} from "@/components/coss-ui/input";
