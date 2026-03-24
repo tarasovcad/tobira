@@ -9,6 +9,8 @@ export const BookmarkImage = ({
   bookmark_id,
   item,
   type,
+  previewOpenSignal,
+  disablePreviewOnClick,
   divClassName,
   imageClassName,
   skeletonClassName,
@@ -20,6 +22,8 @@ export const BookmarkImage = ({
   bookmark_id: string;
   item: Bookmark;
   type: "preview" | "favicon" | "og";
+  previewOpenSignal?: number;
+  disablePreviewOnClick?: boolean;
   divClassName?: string;
   imageClassName?: string;
   skeletonClassName?: string;
@@ -46,6 +50,9 @@ export const BookmarkImage = ({
 
   const isVideo =
     BASE_SRC.toLowerCase().endsWith(".mp4") || BASE_SRC.toLowerCase().endsWith(".mov");
+
+  const hasValidImage = !!BASE_SRC && status === "loaded";
+  const showFallbackInPreview = type === "preview" && !hasValidImage;
 
   // If the image 404s (still uploading), retry with a cache-busting query param.
   useEffect(() => {
@@ -102,8 +109,11 @@ export const BookmarkImage = ({
           alt={`${bookmark_id} ${type}`}
           width={width ?? 1200}
           height={height ?? 1200}
-          addZoom={!isVideo}
+          openSignal={previewOpenSignal}
+          disableClickToOpen={disablePreviewOnClick}
+          addZoom={!isVideo && hasValidImage}
           type={isVideo ? "video" : "image"}
+          showFallback={showFallbackInPreview}
           poster={isVideo && item.metadata?.thumbnail_url ? item.metadata.thumbnail_url : undefined}
           className={cn(
             status === "loaded" ? "opacity-100" : "opacity-0",

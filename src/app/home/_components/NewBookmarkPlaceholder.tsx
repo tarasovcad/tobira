@@ -149,7 +149,8 @@ export function NewBookmarkGridCard({
   onDone: () => void;
 }) {
   const loaded = !!bookmark;
-  const {contentToggles} = useViewOptionsStore();
+  const {contentToggles, gridGap} = useViewOptionsStore();
+  const zeroGap = gridGap === "none";
 
   React.useEffect(() => {
     if (!loaded) return;
@@ -158,7 +159,11 @@ export function NewBookmarkGridCard({
   }, [loaded, onDone]);
 
   return (
-    <div className="bg-background w-full overflow-hidden rounded-md border">
+    <div
+      className={cn(
+        "bg-background w-full overflow-hidden",
+        zeroGap ? "rounded-none border-r border-b" : "rounded-md border",
+      )}>
       <CrossFade loaded={loaded} delay={0} skeleton={<Skeleton className="aspect-16/10 w-full" />}>
         <div className="bg-muted aspect-16/10 w-full" />
       </CrossFade>

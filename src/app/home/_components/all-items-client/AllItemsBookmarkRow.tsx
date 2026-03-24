@@ -45,9 +45,12 @@ export function AllItemsBookmarkRow({
       isRemoving={isRemoving}
       onRemoved={onItemRemoved}
       variant={animatedVariant}
-      kind={removalKind}>
+      kind={removalKind}
+      className={animatedVariant === "grid" ? "flex h-full flex-col" : undefined}>
       <div
-        className="relative"
+        className={
+          animatedVariant === "grid" ? "relative flex min-h-0 flex-1 flex-col" : "relative"
+        }
         onClickCapture={(e) => {
           if (!selectionMode) return;
           e.preventDefault();

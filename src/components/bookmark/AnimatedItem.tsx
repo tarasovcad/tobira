@@ -156,10 +156,13 @@ export function AnimatedItem({
   const styles = EXIT_STYLES[activeKind][variant];
   const isExiting = phase === "exit" || phase === "collapse";
   const contentStyle = phase === "flash" ? styles.flash : isExiting ? styles.exit : undefined;
+  const isGrid = variant === "grid";
 
   return (
     <div ref={ref} className={className} style={phase === "collapse" ? COLLAPSE_STYLE : undefined}>
-      <div style={contentStyle}>{children}</div>
+      <div className={isGrid ? "flex min-h-0 flex-1 flex-col" : undefined} style={contentStyle}>
+        {children}
+      </div>
     </div>
   );
 }

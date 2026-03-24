@@ -188,10 +188,12 @@ const DISABLED_APPEARANCE_BY_VIEW: Partial<Record<ViewMode, AppearanceField[]>> 
   list: ["columnSize", "gridGap", "borderRadius"],
   compact: ["columnSize", "gridGap", "borderRadius"],
   table: ["columnSize", "gridGap", "borderRadius"],
+  grid: ["width"],
 };
 
 const DISABLED_CONTENT_BY_VIEW: Partial<Record<ViewMode, ContentField[]>> = {
   compact: ["description"],
+  grid: ["avatar"],
 };
 
 // We keep this lookup exhaustive because direct `contentToggles[field]`

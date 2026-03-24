@@ -41,6 +41,7 @@ export interface AllItemsNewBookmarkPlaceholderProps {
 }
 
 export interface AllItemsListLayoutConfig {
+  wrapperClassName: string;
   containerClassName: string;
   fetchSpinnerClassName: string;
   sentinelClassName: string;
@@ -82,7 +83,13 @@ export function getAllItemsListLayoutConfig({
   switch (view) {
     case "grid":
       return {
-        containerClassName: cn("grid", gridColsClass, gapClass, "px-6 pb-8"),
+        wrapperClassName: "px-6 pb-8",
+        containerClassName: cn(
+          "grid",
+          gridColsClass,
+          gapClass,
+          gapClass === "gap-0" && !isMediaGrid && "border-t border-l border-border",
+        ),
         fetchSpinnerClassName: "text-muted-foreground col-span-full py-6 text-center text-xs",
         sentinelClassName: "col-span-full h-px",
         animatedVariant: "grid",
@@ -98,7 +105,8 @@ export function getAllItemsListLayoutConfig({
       };
     case "table":
       return {
-        containerClassName: cn("px-6 pb-8", widthClass),
+        wrapperClassName: cn("px-6 pb-8", widthClass),
+        containerClassName: "",
         fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
         sentinelClassName: "h-px",
         animatedVariant: "list",
@@ -109,7 +117,8 @@ export function getAllItemsListLayoutConfig({
       };
     case "compact":
       return {
-        containerClassName: widthClass,
+        wrapperClassName: widthClass,
+        containerClassName: "",
         fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
         sentinelClassName: "h-px",
         animatedVariant: "list",
@@ -120,7 +129,8 @@ export function getAllItemsListLayoutConfig({
       };
     case "list":
       return {
-        containerClassName: cn("", widthClass),
+        wrapperClassName: cn("", widthClass),
+        containerClassName: "",
         fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
         sentinelClassName: "h-px",
         animatedVariant: "list",

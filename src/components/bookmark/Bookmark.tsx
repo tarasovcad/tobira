@@ -10,6 +10,7 @@ import {BookmarkHoverActions} from "./_components/BookmarkHoverActions";
 import {BookmarkImage} from "./_components/BookmarkImage";
 import {BookmarkAvatar} from "./_components/BookmarkAvatar";
 import {Tag} from "@/components/ui/Tag";
+import {useState} from "react";
 
 export const ItemList = ({
   item,
@@ -377,9 +378,17 @@ export const GridCard = ({
   selectedIds?: Set<string>;
   setSelected?: (id: string, checked: boolean) => void;
 }) => {
-  const {borderRadius, contentToggles} = useViewOptionsStore();
+  const {borderRadius, contentToggles, gridGap} = useViewOptionsStore();
+  const [previewOpenSignal, setPreviewOpenSignal] = useState(0);
+  const zeroGap = gridGap === "none";
+  const onlyTitle =
+    !contentToggles.source &&
+    !contentToggles.savedDate &&
+    !(contentToggles.description && item.description) &&
+    !(contentToggles.tags && item.tags && item.tags.length > 0);
+
   const radiusClass =
-    borderRadius === "none"
+    borderRadius === "none" || zeroGap
       ? "rounded-none"
       : borderRadius === "sm"
         ? "rounded-sm"
@@ -391,16 +400,20 @@ export const GridCard = ({
     <Link
       href={item.url}
       className={cn(
-        "group bg-background relative block w-full cursor-pointer overflow-hidden border text-left",
+        "group bg-background relative flex h-full w-full cursor-pointer flex-col overflow-hidden text-left",
+        zeroGap ? "border-r border-b" : "border",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         radiusClass,
       )}>
-      <div className="bg-muted relative aspect-16/10 w-full">
+      <div className="bg-muted relative aspect-16/10 w-full shrink-0">
         {!selectionMode && (
           <BookmarkHoverActions
             variant="glass"
+            onExpand={() => {
+              setPreviewOpenSignal((current) => current + 1);
+            }}
             onOptions={() => {
               onOpenMenu?.(item);
             }}
@@ -432,11 +445,13 @@ export const GridCard = ({
           item={item}
           type="preview"
           fill={true}
+          previewOpenSignal={previewOpenSignal}
+          disablePreviewOnClick={true}
           imageClassName="w-full h-full object-cover"
         />
       </div>
 
-      <div className="p-4 pt-3">
+      <div className={cn("flex min-h-0 flex-1 flex-col px-4", onlyTitle ? "py-3" : "pt-3 pb-4")}>
         <div className="text-foreground line-clamp-1 text-sm text-[15px] font-semibold">
           {item.title}
         </div>
