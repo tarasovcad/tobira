@@ -24,7 +24,12 @@ export function useBookmarksMutations({
       status: m.state.status as string,
       inputUrl: (m.state.variables as {url: string; tags?: string[]} | undefined)?.url,
       inputTags: (m.state.variables as {url: string; tags?: string[]} | undefined)?.tags ?? [],
-      resultUrl: (m.state.data as {url: string} | undefined)?.url,
+      resultIds: (() => {
+        const d = m.state.data as {id?: string; ids?: string[]} | undefined;
+        if (d?.ids?.length) return d.ids;
+        if (d?.id) return [d.id];
+        return [] as string[];
+      })(),
       kind: (m.state.variables as {kind: "website" | "media"} | undefined)?.kind,
       selectedMediaUrls: (m.state.variables as {selectedMediaUrls?: string[]} | undefined)
         ?.selectedMediaUrls,
@@ -38,7 +43,6 @@ export function useBookmarksMutations({
   const isPending = latestAdd?.status === "pending";
   const isError = latestAdd?.status === "error";
   const inputUrl = latestAdd?.inputUrl;
-  const resultUrl = latestAdd?.resultUrl;
   const latestAddAppliesToCurrentFilter =
     tagFilter === null ||
     (latestAdd?.inputTags ?? []).some((t) => normalizeTagName(t) === (tagFilter ?? ""));
@@ -112,10 +116,10 @@ export function useBookmarksMutations({
       : 1;
 
   const resolvedBookmarks = useMemo(() => {
-    return animatingUrl && resultUrl
-      ? allBookmarks.filter((b) => b.url === resultUrl).slice(0, animatingItemCount)
-      : [];
-  }, [animatingUrl, resultUrl, allBookmarks, animatingItemCount]);
+    const ids = latestAdd?.resultIds ?? [];
+    if (!animatingUrl || !ids.length) return [];
+    return allBookmarks.filter((b) => ids.includes(b.id)).slice(0, animatingItemCount);
+  }, [animatingUrl, latestAdd?.resultIds, allBookmarks, animatingItemCount]);
 
   useEffect(() => {
     if (!animatingUrl) return;
@@ -158,7 +162,6 @@ export function useBookmarksMutations({
     isPending,
     isError,
     inputUrl,
-    resultUrl,
     latestAddAppliesToCurrentFilter,
     removingIds,
     animatedOutIds,

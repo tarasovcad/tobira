@@ -20,12 +20,14 @@ import {createClient as createSupabaseClient, type SupabaseClient} from "@supaba
 export type AddWebsiteBookmarkResult = {
   ok: true;
   url: string;
+  id: string;
 };
 
 export type AddMediaBookmarkResult = {
   ok: true;
   url: string;
   media?: string[];
+  ids?: string[];
 };
 
 export type UrlMetadataResult = {
@@ -193,7 +195,7 @@ export async function addWebsiteBookmark(input: {
     timeout: 30,
   });
 
-  return {ok: true, url: normalized.toString()};
+  return {ok: true, url: normalized.toString(), id: bookmarkId};
 }
 
 async function processAndUploadMediaImage(
@@ -427,7 +429,12 @@ export async function addMediaBookmark(input: {
     );
   }
 
-  return {ok: true, url: input.url, media: mediaUrls};
+  return {
+    ok: true,
+    url: input.url,
+    media: mediaUrls,
+    ids: processedItems.map((p) => p.bookmarkId),
+  };
 }
 
 export async function updateBookmark(
