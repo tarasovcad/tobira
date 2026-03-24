@@ -7,6 +7,7 @@ import {formatDateAbsolute} from "@/lib/formatDate";
 import type {Bookmark} from "@/components/bookmark/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {useEffect} from "react";
+import {Tag} from "@/components/ui/Tag";
 
 function CrossFade({
   loaded,
@@ -45,10 +46,12 @@ export function NewBookmarkList({
   url,
   bookmark,
   onDone,
+  tags,
 }: {
   url: string;
   bookmark: Bookmark | null;
   onDone: () => void;
+  tags?: string[];
 }) {
   const loaded = !!bookmark;
   const {contentToggles} = useViewOptionsStore();
@@ -97,42 +100,41 @@ export function NewBookmarkList({
           {contentToggles.description && (
             <div
               className={cn(
-                "text-muted-foreground line-clamp-2",
+                "text-muted-foreground",
                 contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5",
               )}>
               <CrossFade
                 loaded={!!bookmark?.description}
                 delay={300}
                 skeleton={<Skeleton className="h-[19.5px] w-40 rounded" />}>
-                <div>{bookmark?.description ?? ""}</div>
+                <div className="line-clamp-1">{bookmark?.description ?? ""}</div>
               </CrossFade>
             </div>
           )}
         </div>
       </div>
-      {contentToggles.tags && (!bookmark || (bookmark.tags && bookmark.tags.length > 0)) && (
-        <div className="pl-14">
-          <CrossFade
-            loaded={!!(bookmark?.tags && bookmark.tags.length > 0)}
-            delay={400}
-            skeleton={
-              <div className="flex gap-2">
-                <Skeleton className="h-5 w-16 rounded-[2px]" />
-                <Skeleton className="h-5 w-20 rounded-[2px]" />
+      {contentToggles.tags &&
+        ((tags && tags.length > 0) || (bookmark?.tags && bookmark.tags.length > 0)) && (
+          <div className="pl-14">
+            <CrossFade
+              loaded={!!(bookmark?.tags && bookmark.tags.length > 0)}
+              delay={400}
+              skeleton={
+                <div className="flex gap-2">
+                  <Skeleton className="h-[20.5px] w-16 rounded-[2px]" />
+                  <Skeleton className="h-[20.5px] w-20 rounded-[2px]" />
+                </div>
+              }>
+              <div className="flex flex-wrap gap-1">
+                {bookmark?.tags?.map((tag) => (
+                  <Tag key={tag} className="text-muted-foreground text-[12px]">
+                    {tag}
+                  </Tag>
+                ))}
               </div>
-            }>
-            <div className="flex flex-wrap gap-1">
-              {bookmark?.tags?.map((tag) => (
-                <span
-                  key={tag}
-                  className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </CrossFade>
-        </div>
-      )}
+            </CrossFade>
+          </div>
+        )}
     </div>
   );
 }
@@ -185,6 +187,98 @@ export function NewBookmarkGridCard({
                 {bookmark && contentToggles.savedDate ? (
                   <span className="shrink-0">{formatDateAbsolute(bookmark.created_at)}</span>
                 ) : null}
+              </div>
+            </CrossFade>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function NewBookmarkCompact({
+  url,
+  bookmark,
+  onDone,
+}: {
+  url: string;
+  bookmark: Bookmark | null;
+  onDone: () => void;
+}) {
+  const loaded = !!bookmark;
+  const {contentToggles} = useViewOptionsStore();
+
+  React.useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(onDone, 900);
+    return () => clearTimeout(t);
+  }, [loaded, onDone]);
+
+  const domain = React.useMemo(() => {
+    try {
+      return new URL(bookmark?.url ?? url).hostname.replace(/^www\./, "");
+    } catch {
+      return bookmark?.url ?? url;
+    }
+  }, [bookmark?.url, url]);
+
+  return (
+    <div className="flex min-h-[45px] w-full items-center gap-3 border-b px-5 py-2.5 pr-12">
+      <div className="flex shrink-0 items-center">
+        <CrossFade
+          loaded={loaded}
+          delay={0}
+          skeleton={<Skeleton className="size-[18px] rounded-none" />}>
+          <div className="bg-muted size-[18px] rounded-none" />
+        </CrossFade>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <CrossFade
+          loaded={!!bookmark?.title}
+          delay={100}
+          skeleton={<Skeleton className="h-[20px] w-48 rounded" />}>
+          <div className="text-foreground truncate text-[13.5px]">{bookmark?.title ?? url}</div>
+        </CrossFade>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2">
+        {(contentToggles.source || contentToggles.savedDate) && (
+          <div className="text-muted-foreground hidden items-center gap-1 text-[12px] sm:flex">
+            <CrossFade
+              loaded={loaded}
+              delay={200}
+              skeleton={<Skeleton className="h-[18px] w-24 rounded" />}>
+              <div className="flex items-center gap-1">
+                {contentToggles.source && <span>{domain}</span>}
+                {bookmark && contentToggles.source && contentToggles.savedDate && (
+                  <span className="shrink-0">/</span>
+                )}
+                {bookmark && contentToggles.savedDate && (
+                  <span className="shrink-0">{formatDateAbsolute(bookmark.created_at)}</span>
+                )}
+              </div>
+            </CrossFade>
+          </div>
+        )}
+
+        {contentToggles.tags && (!bookmark || (bookmark.tags && bookmark.tags.length > 0)) && (
+          <div className="flex items-center gap-1">
+            <CrossFade
+              loaded={!!(bookmark?.tags && bookmark.tags.length > 0)}
+              delay={300}
+              skeleton={
+                <div className="flex gap-1">
+                  <Skeleton className="h-[18px] w-12 rounded-[2px]" />
+                  <Skeleton className="h-[18px] w-16 rounded-[2px]" />
+                </div>
+              }>
+              <div className="flex items-center gap-1">
+                {bookmark?.tags?.slice(0, 2).map((tag) => (
+                  <Tag key={tag} className="text-muted-foreground text-[12px]">
+                    {tag}
+                  </Tag>
+                ))}
               </div>
             </CrossFade>
           </div>

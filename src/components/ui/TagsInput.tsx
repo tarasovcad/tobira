@@ -5,7 +5,7 @@ import type {ClipboardEvent, CSSProperties, KeyboardEvent} from "react";
 import {AnimatePresence, motion} from "framer-motion";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
 import {Button} from "@/components/coss-ui/button";
-import {Badge} from "@/components/coss-ui/badge";
+import {Tag} from "@/components/ui/Tag";
 import {Skeleton} from "@/components/coss-ui/skeleton";
 import {useMutation} from "@tanstack/react-query";
 import {generateAiSuggestions as generateAiSuggestionsAction} from "@/app/actions/tags";
@@ -497,13 +497,13 @@ const TagsInput = ({
                           animate={{opacity: 1, scale: 1, y: 0, filter: "blur(0px)"}}
                           exit={{opacity: 0, scale: 0.92, y: -2, filter: "blur(3px)"}}
                           transition={{duration: 0.16, ease: "easeOut"}}>
-                          <Badge
+                          <Tag
                             size="md"
                             variant="outline"
                             className="border-muted-foreground/30 hover:bg-muted gap-1 border-dashed transition-colors duration-100">
                             <PlusIcon />
                             {t}
-                          </Badge>
+                          </Tag>
                         </motion.button>
                       ))}
                     </AnimatePresence>
@@ -542,17 +542,9 @@ const TagsInput = ({
                     animate={{opacity: 1, scale: 1, filter: "blur(0px)"}}
                     exit={{opacity: 0, scale: 0.8, filter: "blur(4px)"}}
                     transition={{duration: 0.2, ease: "easeOut"}}>
-                    <Badge size="md" variant="outline" className="bg-muted gap-0!">
+                    <Tag onRemove={() => removeTagAt(idx)} disabled={disabled}>
                       {tag}
-                      <button
-                        type="button"
-                        className="text-foreground/70 hover:text-foreground cursor-pointer p-1"
-                        onClick={() => removeTagAt(idx)}
-                        aria-label={`Remove tag ${tag}`}
-                        disabled={disabled}>
-                        <RemoveIcon />
-                      </button>
-                    </Badge>
+                    </Tag>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -614,19 +606,6 @@ function SparklesIcon({className}: {className?: string}) {
           <rect width="16" height="16" fill="currentColor" />
         </clipPath>
       </defs>
-    </svg>
-  );
-}
-
-function RemoveIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M2.05806 2.05806C2.30214 1.81398 2.69787 1.81398 2.94194 2.05806L6 5.1161L9.05805 2.05806C9.30215 1.81398 9.69785 1.81398 9.94195 2.05806C10.186 2.30214 10.186 2.69787 9.94195 2.94194L6.8839 6L9.94195 9.05805C10.186 9.30215 10.186 9.69785 9.94195 9.94195C9.69785 10.186 9.30215 10.186 9.05805 9.94195L6 6.8839L2.94194 9.94195C2.69787 10.186 2.30214 10.186 2.05806 9.94195C1.81398 9.69785 1.81398 9.30215 2.05806 9.05805L5.1161 6L2.05806 2.94194C1.81398 2.69787 1.81398 2.30214 2.05806 2.05806Z"
-        fill="currentColor"
-      />
     </svg>
   );
 }

@@ -15,6 +15,7 @@ import {
   NewBookmarkGridCard,
   NewBookmarkList,
   NewBookmarkMediaCard,
+  NewBookmarkCompact,
 } from "../NewBookmarkPlaceholder";
 import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
@@ -36,6 +37,7 @@ export interface AllItemsNewBookmarkPlaceholderProps {
   url: string;
   bookmark: Bookmark | null;
   onDone: () => void;
+  tags?: string[];
 }
 
 export interface AllItemsListLayoutConfig {
@@ -113,7 +115,7 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "list",
         isTable: false,
         BookmarkItem: MinimalItemRow,
-        NewBookmarkPlaceholder: NewBookmarkList,
+        NewBookmarkPlaceholder: NewBookmarkCompact,
         renderSkeletonItem: (index) => <ListSkeleton key={index} />,
       };
     case "list":

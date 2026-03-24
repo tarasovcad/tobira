@@ -150,6 +150,9 @@ export function useBookmarksMutations({
     },
   });
 
+  const animatingTags =
+    animatingUrl && animatingUrl === inputUrl ? latestAdd?.inputTags : undefined;
+
   return {
     latestAdd,
     isPending,
@@ -162,6 +165,7 @@ export function useBookmarksMutations({
     handleItemRemoved,
     animatingUrl,
     animatingItemCount,
+    animatingTags,
     resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,

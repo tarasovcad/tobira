@@ -68,6 +68,7 @@ export function HomeClient({
     handleItemRemoved,
     animatingUrl,
     animatingItemCount,
+    animatingTags,
     resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,
@@ -196,6 +197,7 @@ export function HomeClient({
           visibleItems={visibleItems}
           animatingUrl={animatingUrl}
           animatingItemCount={animatingItemCount}
+          animatingTags={animatingTags}
           resolvedBookmarks={resolvedBookmarks}
           isInitialLoad={isInitialLoad}
           isFetchingNextPage={isFetchingNextPage}
@@ -235,7 +237,10 @@ export function HomeClient({
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         items={itemsToDelete}
-        onDeleted={handleClearSelection}
+        onDeleted={() => {
+          handleClearSelection();
+          setMenuOpen(false);
+        }}
       />
       <DeleteCollectionDialog
         open={deleteCollectionDialogOpen}

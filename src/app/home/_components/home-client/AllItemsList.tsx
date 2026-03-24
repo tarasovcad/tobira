@@ -32,6 +32,7 @@ interface AllItemsListProps {
   visibleItems: Bookmark[];
   animatingUrl: string | null;
   animatingItemCount: number;
+  animatingTags?: string[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
   isFetchingNextPage: boolean;
@@ -54,6 +55,7 @@ export function AllItemsList({
   visibleItems,
   animatingUrl,
   animatingItemCount,
+  animatingTags,
   resolvedBookmarks,
   isFetchingNextPage,
   selectionMode,
@@ -160,6 +162,7 @@ export function AllItemsList({
       <AllItemsAnimatingPlaceholders
         animatingUrl={animatingUrl}
         animatingItemCount={animatingItemCount}
+        animatingTags={animatingTags}
         resolvedBookmarks={resolvedBookmarks}
         onTransitionDone={onTransitionDone}
         PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}

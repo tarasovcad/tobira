@@ -9,6 +9,7 @@ import type {Bookmark} from "./types";
 import {BookmarkHoverActions} from "./_components/BookmarkHoverActions";
 import {BookmarkImage} from "./_components/BookmarkImage";
 import {BookmarkAvatar} from "./_components/BookmarkAvatar";
+import {Tag} from "@/components/ui/Tag";
 
 export const ItemList = ({
   item,
@@ -83,7 +84,7 @@ export const ItemList = ({
             imageClassName="h-5 w-5 object-contain"
             height={20}
             width={20}
-            iconSize={32}
+            iconSize={36}
           />
         </div>
 
@@ -103,7 +104,7 @@ export const ItemList = ({
           {contentToggles.description && item.description ? (
             <div
               className={cn(
-                "text-muted-foreground line-clamp-2",
+                "text-muted-foreground line-clamp-1",
                 contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5",
               )}>
               {item.description}
@@ -115,11 +116,9 @@ export const ItemList = ({
       {contentToggles.tags && item.tags && item.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 pl-14">
           {item.tags.map((tag) => (
-            <span
-              key={tag}
-              className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+            <Tag key={tag} className="text-muted-foreground text-[12px]">
               {tag}
-            </span>
+            </Tag>
           ))}
         </div>
       )}
@@ -250,11 +249,9 @@ export const MinimalItemRow = ({
         {contentToggles.tags && item.tags && item.tags.length > 0 && (
           <div className="flex items-center gap-1">
             {item.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+              <Tag key={tag} className="text-muted-foreground text-[12px]">
                 {tag}
-              </span>
+              </Tag>
             ))}
           </div>
         )}
@@ -462,11 +459,9 @@ export const GridCard = ({
         {contentToggles.tags && item.tags && item.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {item.tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+              <Tag key={tag} className="text-muted-foreground text-[12px]">
                 {tag}
-              </span>
+              </Tag>
             ))}
           </div>
         )}
