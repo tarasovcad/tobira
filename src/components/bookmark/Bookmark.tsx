@@ -43,6 +43,7 @@ export const ItemList = ({
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         className,
+        "transition-none!",
       )}>
       {!selectionMode && (
         <BookmarkHoverActions
@@ -90,7 +91,7 @@ export const ItemList = ({
         </div>
 
         <div className="min-w-0 flex-1 text-[13px]">
-          <div className="text-foreground truncate text-[15px] font-semibold">{item.title}</div>
+          <div className="text-foreground truncate text-[15px] font-[550]">{item.title}</div>
           {(contentToggles.source || contentToggles.savedDate) && (
             <div className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 whitespace-nowrap">
               {contentToggles.source && <span className="min-w-0 truncate">{item.url}</span>}
@@ -181,9 +182,9 @@ export const MinimalItemRow = ({
         "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 pr-12 text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
-        "transition-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         className,
+        "transition-none!",
       )}>
       {!selectionMode && (
         <BookmarkHoverActions
@@ -295,6 +296,7 @@ export const TableItemRow = ({
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         className,
+        "transition-none!",
       )}>
       {!selectionMode && (
         <BookmarkHoverActions
@@ -406,6 +408,7 @@ export const GridCard = ({
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         radiusClass,
+        "transition-none!",
       )}>
       <div className="bg-muted relative aspect-16/10 w-full shrink-0">
         {!selectionMode && (
@@ -451,19 +454,23 @@ export const GridCard = ({
         />
       </div>
 
-      <div className={cn("flex min-h-0 flex-1 flex-col px-4", onlyTitle ? "py-3" : "pt-3 pb-4")}>
-        <div className="text-foreground line-clamp-1 text-sm text-[15px] font-semibold">
-          {item.title}
-        </div>
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-1 flex-col px-4",
+          onlyTitle ? "py-3" : "pt-3 pb-4",
+        )}>
+        <div className="text-foreground line-clamp-1 text-[15px] font-[550]">{item.title}</div>
         {(contentToggles.source || contentToggles.savedDate) && (
-          <div className="text-muted-foreground mt-1 flex min-w-0 items-center gap-1 text-[13px] whitespace-nowrap">
-            {contentToggles.source && <span className="min-w-0 truncate">{item.url}</span>}
-            {contentToggles.source && contentToggles.savedDate && (
-              <span className="shrink-0">-</span>
-            )}
-            {contentToggles.savedDate && (
-              <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
-            )}
+          <div className="text-muted-foreground mt-1 min-w-0 text-[13px] whitespace-nowrap">
+            <div className="flex min-w-0 items-center gap-1">
+              {contentToggles.source && <span className="min-w-0 flex-1 truncate">{item.url}</span>}
+              {contentToggles.source && contentToggles.savedDate && (
+                <span className="shrink-0">-</span>
+              )}
+              {contentToggles.savedDate && (
+                <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
+              )}
+            </div>
           </div>
         )}
         {contentToggles.description && item.description && (
@@ -524,6 +531,7 @@ export const MediaCard = ({
         "focus-visible:bg-muted! focus-visible:outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         radiusClass,
+        "transition-none!",
       )}
       style={{
         aspectRatio,

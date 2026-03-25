@@ -13,7 +13,6 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/coss-ui/accordion";
-import {Settings2Icon} from "lucide-react";
 import {Button} from "@/components/coss-ui/button";
 import {Switch} from "@/components/ui/switch";
 import {SliderComfortable} from "@/components/ui/slider";
@@ -301,7 +300,21 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   return (
     <Menu>
       <MenuTrigger render={<Button variant="outline" size="default" />}>
-        <Settings2Icon className="size-4" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M6 8.66667C7.243 8.66667 8.2868 9.51627 8.58267 10.6667H13.3333C13.7015 10.6667 14 10.9651 14 11.3333C14 11.7015 13.7015 12 13.3333 12H8.58267C8.2868 13.1504 7.243 14 6 14C4.75703 14 3.71321 13.1504 3.41732 12H2.66667C2.29848 12 2 11.7015 2 11.3333C2 10.9651 2.29848 10.6667 2.66667 10.6667H3.41732C3.71321 9.51627 4.75703 8.66667 6 8.66667Z"
+            fill="currentColor"
+          />
+          <path
+            d="M10 2C11.243 2 12.2868 2.84962 12.5827 4H13.3333C13.7015 4 14 4.29848 14 4.66667C14 5.03485 13.7015 5.33333 13.3333 5.33333H12.5827C12.2868 6.48371 11.243 7.33333 10 7.33333C8.757 7.33333 7.7132 6.48371 7.41733 5.33333H2.66667C2.29848 5.33333 2 5.03485 2 4.66667C2 4.29848 2.29848 4 2.66667 4H7.41733C7.7132 2.84962 8.757 2 10 2Z"
+            fill="currentColor"
+          />
+        </svg>
         View
       </MenuTrigger>
       <MenuPopup className="w-64">
@@ -337,7 +350,8 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
               <AccordionContent className="px-1 py-1">
                 <div className="grid grid-cols-2 gap-1">
                   {LAYOUT_OPTIONS.map(({id, title, icon: Icon}) => {
-                    const isOptionDisabled = !isAllItemsViewSelectable(id as ViewMode, typeFilter);
+                    const isOptionDisabled =
+                      id === "table" || !isAllItemsViewSelectable(id as ViewMode, typeFilter);
                     return (
                       <div
                         key={id}

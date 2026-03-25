@@ -41,7 +41,7 @@ export function BookmarkHoverActions({
         variant === "glass"
           ? "overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md"
           : "gap-1",
-        "opacity-0 transition-opacity duration-75 ease-out",
+        "opacity-0",
         "group-hover:pointer-events-auto group-hover:opacity-100",
         "group-focus-visible:pointer-events-auto group-focus-visible:opacity-100",
         className,
