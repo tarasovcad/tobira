@@ -20,6 +20,7 @@ export type TagsWithCountsRow = {
   name: string;
   count: number | string | null;
   description: string | null;
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -29,6 +30,7 @@ export type TagWithCount = {
   name: string;
   count: number;
   description: string | null;
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
 };

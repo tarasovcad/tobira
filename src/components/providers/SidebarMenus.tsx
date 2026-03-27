@@ -9,6 +9,49 @@ import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import type {Collection} from "@/app/actions/collections";
 import type {TagWithCount} from "@/app/home/_types";
+import {toggleTagPin} from "@/app/actions/tags";
+import {toggleCollectionPin} from "@/app/actions/collections";
+import {toastManager} from "@/components/coss-ui/toast";
+import {useQueryClient} from "@tanstack/react-query";
+import type {QueryClient} from "@tanstack/react-query";
+
+async function handleToggleCollectionPin(
+  collectionId: string,
+  isPinned: boolean,
+  queryClient: QueryClient,
+) {
+  try {
+    await toggleCollectionPin(collectionId, !isPinned);
+    queryClient.invalidateQueries({queryKey: ["collections"]});
+    toastManager.add({
+      title: isPinned ? "Collection unpinned" : "Collection pinned",
+      type: "success",
+    });
+  } catch (error) {
+    toastManager.add({
+      title: "Action failed",
+      description: error instanceof Error ? error.message : "Something went wrong",
+      type: "error",
+    });
+  }
+}
+
+async function handleToggleTagPin(tagId: string, isPinned: boolean, queryClient: QueryClient) {
+  try {
+    await toggleTagPin(tagId, !isPinned);
+    queryClient.invalidateQueries({queryKey: ["tags"]});
+    toastManager.add({
+      title: isPinned ? "Tag unpinned" : "Tag pinned",
+      type: "success",
+    });
+  } catch (error) {
+    toastManager.add({
+      title: "Action failed",
+      description: error instanceof Error ? error.message : "Something went wrong",
+      type: "error",
+    });
+  }
+}
 
 interface CollectionContextMenuContentProps {
   collection: Collection;
@@ -20,6 +63,7 @@ export function CollectionContextMenuContent({
   onDelete,
 }: CollectionContextMenuContentProps) {
   const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
+  const queryClient = useQueryClient();
 
   return (
     <ContextMenuContent>
@@ -64,6 +108,45 @@ export function CollectionContextMenuContent({
         </svg>
         Edit
       </ContextMenuItem>
+
+      <ContextMenuItem
+        onClick={() => handleToggleCollectionPin(collection.id, collection.is_pinned, queryClient)}>
+        {collection.is_pinned ? (
+          <>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M1.87621 1.18107C2.14427 0.928813 2.56657 0.941759 2.81892 1.20971L4.76553 3.27807L4.76619 3.27677L11.7212 10.6667H11.72L13.4856 12.5431C13.7379 12.8111 13.725 13.2334 13.4569 13.4857C13.1888 13.7381 12.7666 13.7252 12.5142 13.4571L9.88791 10.6667H8.66657V13.4213C8.66657 13.4729 8.6545 13.5242 8.63144 13.5704L8.14897 14.5353C8.08757 14.658 7.91224 14.658 7.85084 14.5353L7.36837 13.5704C7.3453 13.5241 7.33324 13.4729 7.33324 13.4213V10.6667H3.99991C3.29379 10.6666 2.60161 10.0711 2.71996 9.24093L2.76749 8.963C3.01556 7.7056 3.70633 6.61008 4.66657 5.83992L5.06175 5.53914L1.84757 2.12377C1.59541 1.85565 1.60817 1.43335 1.87621 1.18107Z"
+                fill="currentColor"
+              />
+              <path
+                d="M8.6665 1.3334C10.1391 1.33356 11.3331 2.52748 11.3332 4.00007V5.83991C12.3636 6.66634 13.0838 7.86746 13.2798 9.24092C13.3297 9.59106 13.2338 9.89852 13.0552 10.1381L5.47705 2.086C5.95713 1.62051 6.61172 1.33348 7.33317 1.3334H8.6665Z"
+                fill="currentColor"
+              />
+            </svg>
+            Unpin
+          </>
+        ) : (
+          <>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M6.83366 1.33334C5.45295 1.33334 4.33366 2.45262 4.33366 3.83334V4.66464C4.33366 5.81391 3.87711 6.91614 3.06446 7.72874L2.81344 7.9798C2.71967 8.07354 2.66699 8.20074 2.66699 8.33334V10.1667C2.66699 10.2993 2.71967 10.4265 2.81344 10.5202C2.90721 10.614 3.03439 10.6667 3.16699 10.6667H7.50033V14.1667C7.50033 14.4428 7.72419 14.6667 8.00033 14.6667C8.27646 14.6667 8.50033 14.4428 8.50033 14.1667V10.6667H12.8337C13.1098 10.6667 13.3337 10.4428 13.3337 10.1667V8.33334C13.3337 8.20074 13.281 8.07354 13.1872 7.9798L12.9362 7.72874C12.1235 6.91614 11.667 5.81391 11.667 4.66464V3.83334C11.667 2.45262 10.5477 1.33334 9.16699 1.33334H6.83366Z"
+                fill="currentColor"
+              />
+            </svg>
+            Pin
+          </>
+        )}
+      </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem variant="destructive" onClick={onDelete}>
         <svg
@@ -93,9 +176,10 @@ interface TagContextMenuContentProps {
 
 export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuContentProps) {
   const openTagDialog = useTagDialogStore((state) => state.openDialog);
+  const queryClient = useQueryClient();
   return (
     <ContextMenuContent>
-      <Link href={`/all?tag=${encodeURIComponent(tag.name)}`}>
+      <Link href={`/home?tag=${encodeURIComponent(tag.name)}`}>
         <ContextMenuItem>
           <svg
             width="16"
@@ -153,19 +237,42 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
         Copy
       </ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => console.log("Pin / Unpin tag:", tag.name)}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M6.83366 1.33334C5.45295 1.33334 4.33366 2.45262 4.33366 3.83334V4.66464C4.33366 5.81391 3.87711 6.91614 3.06446 7.72874L2.81344 7.9798C2.71967 8.07354 2.66699 8.20074 2.66699 8.33334V10.1667C2.66699 10.2993 2.71967 10.4265 2.81344 10.5202C2.90721 10.614 3.03439 10.6667 3.16699 10.6667H7.50033V14.1667C7.50033 14.4428 7.72419 14.6667 8.00033 14.6667C8.27646 14.6667 8.50033 14.4428 8.50033 14.1667V10.6667H12.8337C13.1098 10.6667 13.3337 10.4428 13.3337 10.1667V8.33334C13.3337 8.20074 13.281 8.07354 13.1872 7.9798L12.9362 7.72874C12.1235 6.91614 11.667 5.81391 11.667 4.66464V3.83334C11.667 2.45262 10.5477 1.33334 9.16699 1.33334H6.83366Z"
-            fill="currentColor"
-          />
-        </svg>
-        Pin
+      <ContextMenuItem onClick={() => handleToggleTagPin(tag.id, tag.is_pinned, queryClient)}>
+        {tag.is_pinned ? (
+          <>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M1.87621 1.18107C2.14427 0.928813 2.56657 0.941759 2.81892 1.20971L4.76553 3.27807L4.76619 3.27677L11.7212 10.6667H11.72L13.4856 12.5431C13.7379 12.8111 13.725 13.2334 13.4569 13.4857C13.1888 13.7381 12.7666 13.7252 12.5142 13.4571L9.88791 10.6667H8.66657V13.4213C8.66657 13.4729 8.6545 13.5242 8.63144 13.5704L8.14897 14.5353C8.08757 14.658 7.91224 14.658 7.85084 14.5353L7.36837 13.5704C7.3453 13.5241 7.33324 13.4729 7.33324 13.4213V10.6667H3.99991C3.29379 10.6666 2.60161 10.0711 2.71996 9.24093L2.76749 8.963C3.01556 7.7056 3.70633 6.61008 4.66657 5.83992L5.06175 5.53914L1.84757 2.12377C1.59541 1.85565 1.60817 1.43335 1.87621 1.18107Z"
+                fill="currentColor"
+              />
+              <path
+                d="M8.6665 1.3334C10.1391 1.33356 11.3331 2.52748 11.3332 4.00007V5.83991C12.3636 6.66634 13.0838 7.86746 13.2798 9.24092C13.3297 9.59106 13.2338 9.89852 13.0552 10.1381L5.47705 2.086C5.95713 1.62051 6.61172 1.33348 7.33317 1.3334H8.6665Z"
+                fill="currentColor"
+              />
+            </svg>
+            Unpin
+          </>
+        ) : (
+          <>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M6.83366 1.33334C5.45295 1.33334 4.33366 2.45262 4.33366 3.83334V4.66464C4.33366 5.81391 3.87711 6.91614 3.06446 7.72874L2.81344 7.9798C2.71967 8.07354 2.66699 8.20074 2.66699 8.33334V10.1667C2.66699 10.2993 2.71967 10.4265 2.81344 10.5202C2.90721 10.614 3.03439 10.6667 3.16699 10.6667H7.50033V14.1667C7.50033 14.4428 7.72419 14.6667 8.00033 14.6667C8.27646 14.6667 8.50033 14.4428 8.50033 14.1667V10.6667H12.8337C13.1098 10.6667 13.3337 10.4428 13.3337 10.1667V8.33334C13.3337 8.20074 13.281 8.07354 13.1872 7.9798L12.9362 7.72874C12.1235 6.91614 11.667 5.81391 11.667 4.66464V3.83334C11.667 2.45262 10.5477 1.33334 9.16699 1.33334H6.83366Z"
+                fill="currentColor"
+              />
+            </svg>
+            Pin
+          </>
+        )}
       </ContextMenuItem>
       <ContextMenuItem onClick={() => console.log("Hide / Unhide tag:", tag.name)}>
         <svg

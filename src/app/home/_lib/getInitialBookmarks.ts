@@ -83,6 +83,7 @@ export async function getInitialBookmarks({
     description: t.description,
     created_at: t.created_at,
     updated_at: t.updated_at,
+    is_pinned: !!t.is_pinned,
     name: t.name,
     count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
   }));

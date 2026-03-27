@@ -31,6 +31,7 @@ export async function getTags() {
     name: t.name,
     count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
     description: t.description,
+    is_pinned: !!t.is_pinned,
     created_at: t.created_at,
     updated_at: t.updated_at,
   }));
@@ -73,6 +74,28 @@ export async function updateTag(
   const {error} = await supabase
     .from("tags")
     .update({name: data.name, description: data.description ?? null})
+    .eq("id", tagId)
+    .eq("user_id", session.user.id);
+
+  if (error) throw error;
+
+  return {ok: true};
+}
+
+export async function toggleTagPin(tagId: string, isPinned: boolean): Promise<{ok: true}> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createClient();
+
+  const {error} = await supabase
+    .from("tags")
+    .update({is_pinned: isPinned})
     .eq("id", tagId)
     .eq("user_id", session.user.id);
 
