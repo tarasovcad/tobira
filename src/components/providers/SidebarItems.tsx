@@ -6,9 +6,10 @@ import {motion} from "framer-motion";
 import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
 import {useRouter} from "next/navigation";
+import type {Collection} from "@/app/actions/collections";
 
 interface SidebarCollectionItemProps {
-  collection: {id: string; name: string};
+  collection: Collection;
   index: number;
   isActive: boolean;
   selectionMode: boolean;
@@ -32,12 +33,13 @@ export function SidebarCollectionItem({
 
   return (
     <motion.div
-      initial={false}
+      initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
       exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      transition={{duration: 0.25, ease: "easeOut"}}>
+      transition={{duration: 0.2, ease: "easeOut"}}>
       <ContextMenu>
         <ContextMenuTrigger
+          tabIndex={0}
           onClick={() => {
             if (selectionMode) {
               onToggleSelection();
@@ -45,13 +47,24 @@ export function SidebarCollectionItem({
             }
             router.push(`/home?collection=${collection.id}`);
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (selectionMode) {
+                onToggleSelection();
+              } else {
+                router.push(`/home?collection=${collection.id}`);
+              }
+            }
+          }}
           className={cn(
             isActive
               ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
               : "text-secondary bg-transparent",
             "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
             "hover:bg-muted hover:text-foreground",
-            "cursor-pointer justify-between",
+            "cursor-pointer justify-between transition-none!",
+            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center">
             <div
@@ -68,6 +81,7 @@ export function SidebarCollectionItem({
                     checked={isSelected}
                     onCheckedChange={(checked) => onSelect(!!checked)}
                     onClick={(e) => e.stopPropagation()}
+                    tabIndex={-1}
                   />
                 </div>
               </div>
@@ -126,18 +140,29 @@ export function SidebarTagItem({
 
   return (
     <motion.div
-      initial={false}
+      initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
       exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      transition={{duration: 0.25, ease: "easeOut"}}>
+      transition={{duration: 0.2, ease: "easeOut"}}>
       <ContextMenu>
         <ContextMenuTrigger
+          tabIndex={0}
           onClick={() => {
             if (selectionMode) {
               onToggleSelection();
               return;
             }
             router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (selectionMode) {
+                onToggleSelection();
+              } else {
+                router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+              }
+            }
           }}
           className={cn(
             isActive
@@ -146,6 +171,7 @@ export function SidebarTagItem({
             "flex w-full items-center gap-2 rounded-md px-3 py-2",
             "hover:bg-muted hover:text-foreground",
             "cursor-pointer justify-between",
+            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center">
             <div
@@ -162,6 +188,7 @@ export function SidebarTagItem({
                     checked={isSelected}
                     onCheckedChange={(checked) => onSelect(!!checked)}
                     onClick={(e) => e.stopPropagation()}
+                    tabIndex={-1}
                   />
                 </div>
               </div>

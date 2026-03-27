@@ -24,6 +24,8 @@ export const NavItem = ({
         isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
         "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
         "hover:bg-muted hover:text-foreground",
+        "transition-none!",
+        "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
         className,
       )}>
       {icon && iconSide === "left" && (

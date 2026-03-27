@@ -5,9 +5,11 @@ import {
   ContextMenuSeparator,
 } from "@/components/shadcn/context-menu";
 import Link from "next/link";
+import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
+import type {Collection} from "@/app/actions/collections";
 
 interface CollectionContextMenuContentProps {
-  collection: {id: string; name: string};
+  collection: Collection;
   onDelete: () => void;
 }
 
@@ -15,6 +17,8 @@ export function CollectionContextMenuContent({
   collection,
   onDelete,
 }: CollectionContextMenuContentProps) {
+  const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
+
   return (
     <ContextMenuContent>
       <Link href={`/all?collection=${collection.id}`}>
@@ -36,7 +40,7 @@ export function CollectionContextMenuContent({
         </ContextMenuItem>
       </Link>
 
-      <ContextMenuItem onClick={() => console.log("Rename collection:", collection.name)}>
+      <ContextMenuItem onClick={() => openCollectionDialog(collection)}>
         <svg
           width="16"
           height="16"

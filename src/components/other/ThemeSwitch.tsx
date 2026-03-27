@@ -130,7 +130,7 @@ export default function ThemeToggle() {
           <button
             aria-label={label}
             className={cn(
-              "inline-flex size-7 items-center justify-center rounded-full transition-colors duration-150 ease-out [&>svg]:size-4",
+              "inline-flex size-7 cursor-pointer items-center justify-center rounded-full transition-colors duration-150 ease-out [&>svg]:size-4",
               isActive
                 ? "bg-[#F0F0F0] text-[#202020] dark:bg-[#181717]"
                 : "bg-transparent text-[#BBBBBB]",

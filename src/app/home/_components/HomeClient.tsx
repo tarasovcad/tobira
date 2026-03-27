@@ -9,7 +9,6 @@ import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
 import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {DeleteCollectionDialog} from "@/components/providers/DeleteCollectionDialog";
-import {CollectionDialog} from "@/components/providers/CollectionDialog";
 import {CollectionHeader} from "./home-client/CollectionHeader";
 import {AllItemsList} from "./home-client/AllItemsList";
 import {HomeToolbar} from "./home-client/HomeToolbar";
@@ -118,8 +117,6 @@ export function HomeClient({
     itemsToDelete,
     deleteCollectionDialogOpen,
     setDeleteCollectionDialogOpen,
-    editCollectionDialogOpen,
-    setEditCollectionDialogOpen,
     openMenu,
     openDeleteDialog,
     handleDeleteSelected,
@@ -161,7 +158,6 @@ export function HomeClient({
         <CollectionHeader
           activeCollection={activeCollection}
           currentTotalCount={currentTotalCount}
-          onEdit={() => setEditCollectionDialogOpen(true)}
           onDelete={() => setDeleteCollectionDialogOpen(true)}
         />
       )}
@@ -251,11 +247,6 @@ export function HomeClient({
         onDeleted={() => {
           router.push("/home");
         }}
-      />
-      <CollectionDialog
-        open={editCollectionDialogOpen}
-        onOpenChange={setEditCollectionDialogOpen}
-        collection={activeCollection}
       />
     </div>
   );

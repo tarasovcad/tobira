@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
-import {usePathname, useSearchParams} from "next/navigation";
+import {usePathname, useSearchParams, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
 import {buttonVariants} from "../shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
@@ -12,16 +12,27 @@ import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarCollectionItem} from "./SidebarItems";
 import {DeleteCollectionDialog} from "./DeleteCollectionDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
+import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 
 export function SidebarCollections({
   initialCollections,
-  onCreateCollection,
+  isAuthenticated = false,
 }: {
   initialCollections?: Collection[];
-  onCreateCollection?: () => void;
+  isAuthenticated?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const openDialog = useCollectionDialogStore((state) => state.openDialog);
+
+  const handleCreateCollection = () => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    openDialog();
+  };
 
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const [collectionSelectionMode, setCollectionSelectionMode] = useState(false);
@@ -79,12 +90,21 @@ export function SidebarCollections({
     <>
       <div className="px-3 pe-2">
         <div
+          tabIndex={0}
+          role="button"
           onClick={() => setCollectionsExpanded((prev) => !prev)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setCollectionsExpanded((prev) => !prev);
+            }
+          }}
           className={cn(
             "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
             "text-muted-foreground hover:bg-muted hover:text-foreground",
             "group/collections cursor-pointer text-[11px] font-semibold tracking-wider uppercase",
             "h-[37px]",
+            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">Collections</span>
@@ -122,18 +142,19 @@ export function SidebarCollections({
               selectValue={collectionsSelectValue}
               onSelectValueChange={(v) => setCollectionsSelectValue(String(v))}
               ariaLabel="Collection options"
-              triggerClassName="group-hover/collections:pointer-events-auto group-hover/collections:opacity-100"
+              triggerClassName="group-hover/collections:pointer-events-auto group-hover/collections:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
             />
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onCreateCollection?.();
+                handleCreateCollection();
               }}
               className={cn(
                 buttonVariants({variant: "ghost", size: "icon-xs"}),
                 "text-muted-foreground hover:bg-foreground/5",
                 "pointer-events-none opacity-0 transition-opacity duration-150 ease-out",
                 "group-hover/collections:pointer-events-auto group-hover/collections:opacity-100",
+                "focus-visible:pointer-events-auto focus-visible:opacity-100",
               )}>
               <svg
                 width="15"
@@ -155,17 +176,18 @@ export function SidebarCollections({
           <AnimatePresence initial={false}>
             {collectionsExpanded && collections?.length === 0 && (
               <motion.div
-                initial={false}
+                initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
                 animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
                 exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-                transition={{duration: 0.25, ease: "easeOut"}}>
+                transition={{duration: 0.2, ease: "easeOut"}}>
                 <button
-                  onClick={onCreateCollection}
+                  onClick={handleCreateCollection}
                   className={cn(
                     "text-secondary bg-transparent",
                     "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
-                    "hover:bg-muted hover:text-foreground",
+                    "hover:bg-muted hover:text-foreground transition-none!",
                     "cursor-pointer",
+                    "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
                   )}>
                   <span className="inline-flex size-5 shrink-0 items-center justify-center text-current">
                     <svg

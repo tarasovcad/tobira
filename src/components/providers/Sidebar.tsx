@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {usePathname, useSearchParams} from "next/navigation";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
@@ -11,25 +11,14 @@ import {SidebarCollections} from "./SidebarCollections";
 export function Sidebar({
   tags: initialTags,
   collections: initialCollections,
-  onCreateCollection,
   isAuthenticated = false,
 }: {
   tags?: SidebarTagsType;
   collections?: Collection[];
-  onCreateCollection?: () => void;
   isAuthenticated?: boolean;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
-
-  const handleCreateCollection = () => {
-    if (!isAuthenticated) {
-      router.push("/login");
-      return;
-    }
-    onCreateCollection?.();
-  };
 
   const activeTag =
     searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ??
@@ -65,10 +54,12 @@ export function Sidebar({
           </div>
 
           <div className="min-h-0 flex-1">
-            <ScrollArea className="**:data-[slot=scroll-area-scrollbar]:m-0.5">
+            <ScrollArea
+              className="**:data-[slot=scroll-area-scrollbar]:m-0.5"
+              viewportProps={{tabIndex: -1}}>
               <SidebarCollections
                 initialCollections={initialCollections}
-                onCreateCollection={handleCreateCollection}
+                isAuthenticated={isAuthenticated}
               />
               <div className="px-3">
                 <div className="bg-border my-4 h-px w-full" />

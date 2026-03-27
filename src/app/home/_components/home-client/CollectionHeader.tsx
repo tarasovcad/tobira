@@ -3,20 +3,21 @@
 import NumberFlow from "@number-flow/react";
 import {Button} from "@/components/coss-ui/button";
 import type {Collection} from "@/app/actions/collections";
+import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 
 interface CollectionHeaderProps {
   activeCollection: Collection;
   currentTotalCount: number;
-  onEdit: () => void;
   onDelete: () => void;
 }
 
 export function CollectionHeader({
   activeCollection,
   currentTotalCount,
-  onEdit,
   onDelete,
 }: CollectionHeaderProps) {
+  const openDialog = useCollectionDialogStore((state) => state.openDialog);
+
   return (
     <div className="border-b px-6 py-8">
       <div className="flex items-start justify-between gap-4">
@@ -42,7 +43,7 @@ export function CollectionHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onEdit}>
+          <Button variant="outline" onClick={() => openDialog(activeCollection)}>
             <svg
               width="16"
               height="16"

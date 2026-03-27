@@ -76,12 +76,21 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
     <>
       <div className="px-3 pe-2">
         <div
+          tabIndex={0}
+          role="button"
           onClick={() => setTagsExpanded((prev) => !prev)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setTagsExpanded((prev) => !prev);
+            }
+          }}
           className={cn(
             "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
             "text-muted-foreground hover:bg-muted hover:text-foreground",
             "group/tags cursor-pointer text-[11px] font-semibold tracking-wider uppercase",
             "h-[37px]",
+            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">TAGS</span>
@@ -119,7 +128,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
             selectValue={tagsSelectValue}
             onSelectValueChange={(v) => setTagsSelectValue(String(v))}
             ariaLabel="Tag options"
-            triggerClassName="group-hover/tags:pointer-events-auto group-hover/tags:opacity-100"
+            triggerClassName="group-hover/tags:pointer-events-auto group-hover/tags:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
           />
         </div>
         <div className="flex flex-col gap-0.5 pb-2">
