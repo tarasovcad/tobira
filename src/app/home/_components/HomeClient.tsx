@@ -8,6 +8,7 @@ import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
 import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {CollectionHeader} from "./home-client/CollectionHeader";
+import {TagHeader} from "./home-client/TagHeader";
 import {AllItemsList} from "./home-client/AllItemsList";
 import {HomeToolbar} from "./home-client/HomeToolbar";
 
@@ -23,10 +24,12 @@ import {useHomeShortcuts} from "../_hooks/use-home-shortcuts";
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {HomeEmptyState} from "./home-client/HomeEmptyState";
 import {CollectionNotFoundState} from "./home-client/CollectionNotFoundState";
+import {TagNotFoundState} from "./home-client/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
 import type {TypeFilter, SortMode} from "./AllItemsToolbar";
+import type {TagWithCount} from "../_types";
 
 /**
  * Main client component for the All Items / Home page.
@@ -35,11 +38,13 @@ import type {TypeFilter, SortMode} from "./AllItemsToolbar";
 export function HomeClient({
   userId,
   initialBookmarks,
+  initialTags,
   totalCount,
   serverFilters,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
+  initialTags: TagWithCount[];
   totalCount: number;
   serverFilters?: {
     tagFilter: string | null;
@@ -63,17 +68,24 @@ export function HomeClient({
   const setView = useViewOptionsStore((state) => state.setView);
 
   // ── Query Hook ──
-  const {bookmarksQuery, allBookmarks, currentTotalCount, activeCollection, isInitialLoad} =
-    useBookmarksQuery({
-      userId,
-      initialBookmarks,
-      totalCount,
-      sort,
-      tagFilter,
-      collectionFilter,
-      typeFilter,
-      isServerDataMatching,
-    });
+  const {
+    bookmarksQuery,
+    allBookmarks,
+    currentTotalCount,
+    activeCollection,
+    activeTag,
+    isInitialLoad,
+  } = useBookmarksQuery({
+    userId,
+    initialBookmarks,
+    initialTags,
+    totalCount,
+    sort,
+    tagFilter,
+    collectionFilter,
+    typeFilter,
+    isServerDataMatching,
+  });
 
   // ── Mutation Hook ──
   const {
@@ -150,6 +162,7 @@ export function HomeClient({
     resolvedBookmarks.length === 0;
 
   const isCollectionNotFound = collectionFilter && !activeCollection && !isInitialLoad;
+  const isTagNotFound = tagFilter && !activeTag && !isInitialLoad;
 
   useHomeInfiniteScroll({
     scrollAreaRootRef,
@@ -168,12 +181,14 @@ export function HomeClient({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      {activeCollection && (
+      {activeCollection ? (
         <CollectionHeader
           activeCollection={activeCollection}
           currentTotalCount={currentTotalCount}
         />
-      )}
+      ) : tagFilter && activeTag ? (
+        <TagHeader activeTag={activeTag} currentTotalCount={currentTotalCount} />
+      ) : null}
 
       {/* Toolbar */}
       <HomeToolbar
@@ -185,7 +200,7 @@ export function HomeClient({
         onSelectionEnabledChange={setSelectionEnabled}
       />
       {/* Item count */}
-      {!activeCollection && userId && (
+      {!activeCollection && !tagFilter && userId && (
         <div
           className={cn(
             "text-muted-foreground border-border flex items-center gap-1 px-6 py-3 text-sm",
@@ -198,6 +213,8 @@ export function HomeClient({
       {/* Scrollable content area */}
       {isCollectionNotFound ? (
         <CollectionNotFoundState />
+      ) : isTagNotFound ? (
+        <TagNotFoundState />
       ) : showEmptyState ? (
         <HomeEmptyState userId={userId} />
       ) : (

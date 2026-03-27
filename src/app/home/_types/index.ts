@@ -20,11 +20,24 @@ export type TagsWithCountsRow = {
   id: string;
   name: string;
   count: number | string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TagWithCount = {
+  id: string;
+  name: string;
+  count: number;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export interface UseBookmarksQueryProps {
   userId: string | null;
   initialBookmarks: Bookmark[];
+  initialTags: TagWithCount[];
   totalCount: number;
   sort: SortMode;
   tagFilter: string | null;

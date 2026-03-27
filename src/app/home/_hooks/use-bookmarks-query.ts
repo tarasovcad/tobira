@@ -7,6 +7,7 @@ import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
 import type {UseBookmarksQueryProps, BookmarkRowWithJoins} from "../_types";
+import {useMemo} from "react";
 
 /**
  * Maps the raw database response to the domain Bookmark type.
@@ -27,6 +28,7 @@ function mapBookmarkRow(row: BookmarkRowWithJoins): Bookmark {
 export function useBookmarksQuery({
   userId,
   initialBookmarks,
+  initialTags,
   totalCount,
   sort,
   tagFilter,
@@ -100,16 +102,22 @@ export function useBookmarksQuery({
     queryFn: async () => await getCollections(),
   });
 
-  const activeCollection = React.useMemo(() => {
+  const activeCollection = useMemo(() => {
     if (!collectionFilter || !collections) return null;
     return (collections as Collection[]).find((c) => c.id === collectionFilter) ?? null;
   }, [collectionFilter, collections]);
+
+  const activeTag = useMemo(() => {
+    if (!tagFilter || !initialTags) return null;
+    return initialTags.find((t) => t.name === tagFilter) ?? null;
+  }, [tagFilter, initialTags]);
 
   return {
     bookmarksQuery,
     allBookmarks,
     currentTotalCount,
     activeCollection,
+    activeTag,
     // "Initial load" is true only when we are loading and have no data yet
     isInitialLoad: bookmarksQuery.isLoading && allBookmarks.length === 0,
   };

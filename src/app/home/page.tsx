@@ -24,7 +24,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   if (!data?.user?.id) {
     return (
       <AppShell session={data} tags={[]} collections={[]}>
-        <HomeClient userId={null} initialBookmarks={[]} totalCount={0} />
+        <HomeClient userId={null} initialBookmarks={[]} initialTags={[]} totalCount={0} />
       </AppShell>
     );
   }
@@ -49,7 +49,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   ]);
 
   const {initialBookmarks, totalCount, bookmarksError, tags, tagsError} = bookmarksResult;
-  console.log("initialBookmarks", initialBookmarks);
+
   if (tagsError) console.error("Failed to fetch tags with counts:", tagsError);
 
   if (bookmarksError || tagsError) {
@@ -65,6 +65,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
       <HomeClient
         userId={userId}
         initialBookmarks={initialBookmarks}
+        initialTags={tags ?? []}
         totalCount={totalCount ?? 0}
         serverFilters={{
           tagFilter,
