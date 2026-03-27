@@ -6,8 +6,10 @@ import {Sidebar} from "./Sidebar";
 import {CollectionDialog} from "./CollectionDialog";
 import {DeleteCollectionDialog} from "./DeleteCollectionDialog";
 import {DeleteTagDialog} from "./DeleteTagDialog";
+import {TagDialog} from "./TagDialog";
 import {Header, type AppShellSession} from "./Header";
 import type {Collection} from "@/app/actions/collections";
+import type {TagWithCount} from "@/app/home/_types";
 
 const AppShell = ({
   children,
@@ -17,7 +19,7 @@ const AppShell = ({
 }: {
   children: React.ReactNode;
   session: AppShellSession;
-  tags?: {id: string; name: string; count: number}[];
+  tags?: TagWithCount[];
   collections?: Collection[];
 }) => {
   return (
@@ -31,6 +33,7 @@ const AppShell = ({
       <CollectionDialog isAuthenticated={Boolean(session)} />
       <DeleteCollectionDialog />
       <DeleteTagDialog />
+      <TagDialog />
     </main>
   );
 };

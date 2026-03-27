@@ -4,6 +4,7 @@ import NumberFlow from "@number-flow/react";
 import {Button} from "@/components/coss-ui/button";
 import type {TagWithCount} from "../../_types";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
+import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 
 interface TagHeaderProps {
   activeTag: TagWithCount;
@@ -12,6 +13,11 @@ interface TagHeaderProps {
 
 export function TagHeader({activeTag, currentTotalCount}: TagHeaderProps) {
   const openDeleteDialog = useDeleteTagDialogStore((state) => state.openDialog);
+  const openTagDialog = useTagDialogStore((state) => state.openDialog);
+
+  const handleEdit = () => {
+    openTagDialog(activeTag);
+  };
 
   const handleDelete = () => {
     openDeleteDialog([{id: activeTag.id, name: activeTag.name}]);
@@ -41,7 +47,7 @@ export function TagHeader({activeTag, currentTotalCount}: TagHeaderProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => {}}>
+          <Button variant="outline" onClick={handleEdit}>
             <svg
               width="16"
               height="16"

@@ -4,9 +4,10 @@ import {PAGE_SIZE} from "../_constants";
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
 import {getCollections} from "@/app/actions/collections";
 import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
+import {getTags} from "@/app/actions/tags";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
-import type {UseBookmarksQueryProps, BookmarkRowWithJoins} from "../_types";
+import type {UseBookmarksQueryProps, BookmarkRowWithJoins, TagWithCount} from "../_types";
 import {useMemo} from "react";
 
 /**
@@ -102,15 +103,22 @@ export function useBookmarksQuery({
     queryFn: async () => await getCollections(),
   });
 
+  // We fetch tags separately to show the active tag's metadata (e.g., description)
+  const {data: allTags} = useQuery({
+    queryKey: ["tags"],
+    queryFn: async () => await getTags(),
+    initialData: initialTags,
+  });
+
   const activeCollection = useMemo(() => {
     if (!collectionFilter || !collections) return null;
     return (collections as Collection[]).find((c) => c.id === collectionFilter) ?? null;
   }, [collectionFilter, collections]);
 
   const activeTag = useMemo(() => {
-    if (!tagFilter || !initialTags) return null;
-    return initialTags.find((t) => t.name === tagFilter) ?? null;
-  }, [tagFilter, initialTags]);
+    if (!tagFilter || !allTags) return null;
+    return (allTags as TagWithCount[]).find((t) => t.name === tagFilter) ?? null;
+  }, [tagFilter, allTags]);
 
   return {
     bookmarksQuery,

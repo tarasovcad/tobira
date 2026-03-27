@@ -6,7 +6,9 @@ import {
 } from "@/components/shadcn/context-menu";
 import Link from "next/link";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
+import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import type {Collection} from "@/app/actions/collections";
+import type {TagWithCount} from "@/app/home/_types";
 
 interface CollectionContextMenuContentProps {
   collection: Collection;
@@ -84,12 +86,13 @@ export function CollectionContextMenuContent({
 }
 
 interface TagContextMenuContentProps {
-  tag: {id: string; name: string};
+  tag: TagWithCount;
   onCopy: () => void;
   onDelete: () => void;
 }
 
 export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuContentProps) {
+  const openTagDialog = useTagDialogStore((state) => state.openDialog);
   return (
     <ContextMenuContent>
       <Link href={`/all?tag=${encodeURIComponent(tag.name)}`}>
@@ -111,7 +114,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
         </ContextMenuItem>
       </Link>
 
-      <ContextMenuItem onClick={() => console.log("Rename tag:", tag.name)}>
+      <ContextMenuItem onClick={() => openTagDialog(tag)}>
         <svg
           width="16"
           height="16"
@@ -131,7 +134,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
             fill="currentColor"
           />
         </svg>
-        Rename
+        Edit
       </ContextMenuItem>
       <ContextMenuItem onClick={onCopy}>
         <svg

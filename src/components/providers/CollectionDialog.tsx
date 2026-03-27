@@ -196,6 +196,21 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
                 <p className="text-xs text-red-500">{errors.description.message}</p>
               )}
             </div>
+            {collection && (
+              <div className="space-y-2">
+                <Label htmlFor="created_at">Created at</Label>
+                <Input
+                  id="created_at"
+                  className="text-muted-foreground opacity-90"
+                  value={new Date(collection.created_at).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                  readOnly
+                />
+              </div>
+            )}
           </form>
         </DialogPanel>
         <DialogFooter>

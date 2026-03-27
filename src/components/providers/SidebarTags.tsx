@@ -11,8 +11,9 @@ import {SidebarTagItem} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import type {TagWithCount} from "@/app/home/_types";
 
-export type SidebarTagsType = {id: string; name: string; count: number}[];
+export type SidebarTagsType = TagWithCount[];
 
 export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
   const searchParams = useSearchParams();

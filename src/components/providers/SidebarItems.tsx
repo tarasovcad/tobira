@@ -7,6 +7,7 @@ import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
 import {useRouter} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
+import type {TagWithCount} from "@/app/home/_types";
 
 interface SidebarCollectionItemProps {
   collection: Collection;
@@ -114,7 +115,7 @@ export function SidebarCollectionItem({
 }
 
 interface SidebarTagItemProps {
-  tag: {id: string; name: string; count: number};
+  tag: TagWithCount;
   index: number;
   isActive: boolean;
   selectionMode: boolean;
