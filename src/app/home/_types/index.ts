@@ -30,4 +30,5 @@ export interface UseBookmarksQueryProps {
   tagFilter: string | null;
   collectionFilter: string | null;
   typeFilter: TypeFilter;
+  isServerDataMatching?: boolean;
 }

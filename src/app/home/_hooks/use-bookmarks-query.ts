@@ -32,11 +32,8 @@ export function useBookmarksQuery({
   tagFilter,
   collectionFilter,
   typeFilter,
+  isServerDataMatching = true,
 }: UseBookmarksQueryProps) {
-  // Check if we can use the server-rendered initial data to avoid a double fetch
-  const isDefaultView =
-    sort === "recent" && !tagFilter && !collectionFilter && typeFilter === "website";
-
   const bookmarksQuery = useInfiniteQuery({
     queryKey: [
       "bookmarks",
@@ -76,7 +73,7 @@ export function useBookmarksQuery({
       return {items, nextOffset, totalCount: count ?? 0};
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset,
-    initialData: isDefaultView
+    initialData: isServerDataMatching
       ? {
           pageParams: [0],
           pages: [

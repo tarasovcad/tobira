@@ -22,9 +22,11 @@ import {useHomeShortcuts} from "../_hooks/use-home-shortcuts";
 
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {HomeEmptyState} from "./home-client/HomeEmptyState";
+import {CollectionNotFoundState} from "./home-client/CollectionNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
+import type {TypeFilter, SortMode} from "./AllItemsToolbar";
 
 /**
  * Main client component for the All Items / Home page.
@@ -34,13 +36,27 @@ export function HomeClient({
   userId,
   initialBookmarks,
   totalCount,
+  serverFilters,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
   totalCount: number;
+  serverFilters?: {
+    tagFilter: string | null;
+    collectionFilter: string | null;
+    typeFilter: TypeFilter;
+    sortFilter: SortMode;
+  };
 }) {
   const {tagFilter, collectionFilter, typeFilter, sort, handleTypeChange, handleSortChange} =
     useHomeFilters();
+
+  const isServerDataMatching = serverFilters
+    ? serverFilters.tagFilter === tagFilter &&
+      serverFilters.collectionFilter === collectionFilter &&
+      serverFilters.typeFilter === typeFilter &&
+      serverFilters.sortFilter === sort
+    : false;
 
   // ── View & filter state ──
   const view = useViewOptionsStore((state) => state.view);
@@ -56,6 +72,7 @@ export function HomeClient({
       tagFilter,
       collectionFilter,
       typeFilter,
+      isServerDataMatching,
     });
 
   // ── Mutation Hook ──
@@ -132,6 +149,8 @@ export function HomeClient({
     !animatingUrl &&
     resolvedBookmarks.length === 0;
 
+  const isCollectionNotFound = collectionFilter && !activeCollection && !isInitialLoad;
+
   useHomeInfiniteScroll({
     scrollAreaRootRef,
     bottomSentinelRef,
@@ -158,7 +177,6 @@ export function HomeClient({
 
       {/* Toolbar */}
       <HomeToolbar
-        activeCollection={activeCollection}
         typeFilter={typeFilter}
         onTypeChange={handleTypeChange}
         sort={sort}
@@ -178,7 +196,9 @@ export function HomeClient({
         </div>
       )}
       {/* Scrollable content area */}
-      {showEmptyState ? (
+      {isCollectionNotFound ? (
+        <CollectionNotFoundState />
+      ) : showEmptyState ? (
         <HomeEmptyState userId={userId} />
       ) : (
         <AllItemsList
@@ -204,6 +224,7 @@ export function HomeClient({
           openDeleteDialog={openDeleteDialog}
         />
       )}
+
       {/* ── Floating selection action bar ── */}
       <SelectionActionBar
         visible={selectionMode && selectedCount > 0}

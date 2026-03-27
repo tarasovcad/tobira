@@ -3,13 +3,11 @@
 import {cn} from "@/lib/utils";
 import ViewOptionsMenu from "../ViewOptionsMenu";
 import type {TypeFilter, SortMode} from "../AllItemsToolbar";
-import type {Collection} from "@/app/actions/collections";
 import {Button} from "@/components/coss-ui/button";
 import {AnimatePresence, motion} from "framer-motion";
 import {TypeSelect, SortSelect} from "../AllItemsToolbar";
 
 interface HomeToolbarProps {
-  activeCollection: Collection | null;
   typeFilter: TypeFilter;
   onTypeChange: (nextType: TypeFilter) => void;
   sort: SortMode;
@@ -19,7 +17,6 @@ interface HomeToolbarProps {
 }
 
 export function HomeToolbar({
-  activeCollection,
   typeFilter,
   onTypeChange,
   sort,
@@ -28,11 +25,7 @@ export function HomeToolbar({
   onSelectionEnabledChange,
 }: HomeToolbarProps) {
   return (
-    <div
-      className={cn(
-        "bg-background/90 sticky top-0 z-10 px-6 py-3 backdrop-blur",
-        activeCollection ? "" : "border-b",
-      )}>
+    <div className={cn("bg-background/90 sticky top-0 z-10 border-b px-6 py-3 backdrop-blur")}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <TypeSelect value={typeFilter} onChange={onTypeChange} />
