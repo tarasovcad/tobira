@@ -1,14 +1,12 @@
 "use client";
 
 import {useRef} from "react";
-import {useRouter} from "next/navigation";
 import NumberFlow from "@number-flow/react";
 
 // Components
 import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
 import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
-import {DeleteCollectionDialog} from "@/components/providers/DeleteCollectionDialog";
 import {CollectionHeader} from "./home-client/CollectionHeader";
 import {AllItemsList} from "./home-client/AllItemsList";
 import {HomeToolbar} from "./home-client/HomeToolbar";
@@ -41,7 +39,6 @@ export function HomeClient({
   initialBookmarks: Bookmark[];
   totalCount: number;
 }) {
-  const router = useRouter();
   const {tagFilter, collectionFilter, typeFilter, sort, handleTypeChange, handleSortChange} =
     useHomeFilters();
 
@@ -115,8 +112,6 @@ export function HomeClient({
     deleteDialogOpen,
     setDeleteDialogOpen,
     itemsToDelete,
-    deleteCollectionDialogOpen,
-    setDeleteCollectionDialogOpen,
     openMenu,
     openDeleteDialog,
     handleDeleteSelected,
@@ -158,7 +153,6 @@ export function HomeClient({
         <CollectionHeader
           activeCollection={activeCollection}
           currentTotalCount={currentTotalCount}
-          onDelete={() => setDeleteCollectionDialogOpen(true)}
         />
       )}
 
@@ -236,16 +230,6 @@ export function HomeClient({
         onDeleted={() => {
           handleClearSelection();
           setMenuOpen(false);
-        }}
-      />
-      <DeleteCollectionDialog
-        open={deleteCollectionDialogOpen}
-        onOpenChange={setDeleteCollectionDialogOpen}
-        collections={
-          activeCollection ? [{id: activeCollection.id, name: activeCollection.name}] : []
-        }
-        onDeleted={() => {
-          router.push("/home");
         }}
       />
     </div>

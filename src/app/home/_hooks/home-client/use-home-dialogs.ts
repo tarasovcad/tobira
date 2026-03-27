@@ -13,7 +13,6 @@ export function useHomeDialogs({allBookmarks, selectedIds}: UseHomeDialogsProps)
   const [menuItemId, setMenuItemId] = useState<string | undefined>(undefined);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemsToDelete, setItemsToDelete] = useState<Bookmark[]>([]);
-  const [deleteCollectionDialogOpen, setDeleteCollectionDialogOpen] = useState(false);
 
   const menuItem = menuItemId
     ? allBookmarks.find((bookmark) => bookmark.id === menuItemId)
@@ -44,8 +43,6 @@ export function useHomeDialogs({allBookmarks, selectedIds}: UseHomeDialogsProps)
     deleteDialogOpen,
     setDeleteDialogOpen,
     itemsToDelete,
-    deleteCollectionDialogOpen,
-    setDeleteCollectionDialogOpen,
     openMenu,
     openDeleteDialog,
     handleDeleteSelected,

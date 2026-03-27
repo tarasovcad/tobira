@@ -4,19 +4,16 @@ import NumberFlow from "@number-flow/react";
 import {Button} from "@/components/coss-ui/button";
 import type {Collection} from "@/app/actions/collections";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
+import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 
 interface CollectionHeaderProps {
   activeCollection: Collection;
   currentTotalCount: number;
-  onDelete: () => void;
 }
 
-export function CollectionHeader({
-  activeCollection,
-  currentTotalCount,
-  onDelete,
-}: CollectionHeaderProps) {
+export function CollectionHeader({activeCollection, currentTotalCount}: CollectionHeaderProps) {
   const openDialog = useCollectionDialogStore((state) => state.openDialog);
+  const openDeleteDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
 
   return (
     <div className="border-b px-6 py-8">
@@ -57,7 +54,11 @@ export function CollectionHeader({
             </svg>
             Edit
           </Button>
-          <Button variant="destructive-outline" onClick={onDelete}>
+          <Button
+            variant="destructive-outline"
+            onClick={() =>
+              openDeleteDialog([{id: activeCollection.id, name: activeCollection.name}])
+            }>
             <svg
               width="16"
               height="16"

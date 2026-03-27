@@ -15,19 +15,15 @@ import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {deleteCollections} from "@/app/actions/collections";
 import Spinner from "../ui/spinner";
 import {useEffect, useState} from "react";
+import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
 
-export function DeleteCollectionDialog({
-  open,
-  onOpenChange,
-  collections,
-  onDeleted,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  collections: {id: string; name: string}[];
-  onDeleted?: () => void;
-}) {
+export function DeleteCollectionDialog() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const {isOpen: open, collections, onDeleted, closeDialog} = useDeleteCollectionDialogStore();
 
   const [displayCollections, setDisplayCollections] = useState(collections);
 
@@ -60,6 +56,7 @@ export function DeleteCollectionDialog({
     if (open) {
       deleteMutation.reset();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const handleDelete = () => {
@@ -76,14 +73,19 @@ export function DeleteCollectionDialog({
           type: "success",
         });
 
-        onOpenChange(false);
+        const activeCollectionId = searchParams.get("collection");
+        if (pathname === "/home" && activeCollectionId && ids.includes(activeCollectionId)) {
+          router.push("/home");
+        }
+
+        closeDialog();
         onDeleted?.();
       },
     });
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={(val) => !val && closeDialog()}>
       <AlertDialogPopup>
         <AlertDialogHeader>
           <AlertDialogTitle>

@@ -10,9 +10,9 @@ import {getCollections} from "@/app/actions/collections";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarCollectionItem} from "./SidebarItems";
-import {DeleteCollectionDialog} from "./DeleteCollectionDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
+import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 
 export function SidebarCollections({
   initialCollections,
@@ -25,6 +25,7 @@ export function SidebarCollections({
   const searchParams = useSearchParams();
   const router = useRouter();
   const openDialog = useCollectionDialogStore((state) => state.openDialog);
+  const openDeleteDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
 
   const handleCreateCollection = () => {
     if (!isAuthenticated) {
@@ -38,9 +39,6 @@ export function SidebarCollections({
   const [collectionSelectionMode, setCollectionSelectionMode] = useState(false);
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<Set<string>>(new Set());
   const [collectionMenuOpen, setCollectionMenuOpen] = useState(false);
-  const [collectionsToDelete, setCollectionsToDelete] = useState<
-    {id: string; name: string}[] | null
-  >(null);
   const [collectionsSelectValue, setCollectionsSelectValue] = useState("all");
 
   useEffect(() => {
@@ -83,8 +81,8 @@ export function SidebarCollections({
     if (!collections) return;
     const selectedCols = collections.filter((c) => selectedCollectionIds.has(c.id));
     if (selectedCols.length === 0) return;
-    setCollectionsToDelete(selectedCols);
-  }, [selectedCollectionIds, collections]);
+    openDeleteDialog(selectedCols, handleClearCollectionSelection);
+  }, [selectedCollectionIds, collections, openDeleteDialog, handleClearCollectionSelection]);
 
   return (
     <>
@@ -236,7 +234,7 @@ export function SidebarCollections({
                       });
                     }}
                     onContextMenuDelete={() => {
-                      setCollectionsToDelete([{id: c.id, name: c.name}]);
+                      openDeleteDialog([{id: c.id, name: c.name}]);
                     }}
                   />
                 );
@@ -244,13 +242,6 @@ export function SidebarCollections({
           </AnimatePresence>
         </div>
       </div>
-
-      <DeleteCollectionDialog
-        open={collectionsToDelete !== null}
-        onOpenChange={(isOpen) => !isOpen && setCollectionsToDelete(null)}
-        collections={collectionsToDelete || []}
-        onDeleted={handleClearCollectionSelection}
-      />
 
       <SelectionActionBar
         visible={collectionSelectionMode && selectedCollectionCount > 0}
