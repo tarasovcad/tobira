@@ -13,20 +13,26 @@ import {
 import {toastManager} from "@/components/coss-ui/toast";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {deleteTags} from "@/app/actions/tags";
+import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
+import {useEffect, useState} from "react";
+import Spinner from "../ui/spinner";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {normalizeTagParam} from "@/lib/utils";
 
-export function DeleteTagDialog({
-  open,
-  onOpenChange,
-  tags,
-  onDeleted,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  tags: {id: string; name: string}[];
-  onDeleted?: () => void;
-}) {
+export function DeleteTagDialog() {
   const queryClient = useQueryClient();
-  const count = tags.length;
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const {isOpen: open, tags, onDeleted, closeDialog} = useDeleteTagDialogStore();
+
+  const [displayTags, setDisplayTags] = useState(tags);
+
+  if (tags.length > 0 && tags !== displayTags) {
+    setDisplayTags(tags);
+  }
+
+  const count = displayTags.length;
 
   const deleteMutation = useMutation({
     mutationKey: ["delete-tag"],
@@ -47,23 +53,42 @@ export function DeleteTagDialog({
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      deleteMutation.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const handleDelete = () => {
-    if (count === 0) return;
+    if (tags.length === 0) return;
 
     const ids = tags.map((t) => t.id);
-    deleteMutation.mutate(ids);
+    const tagNames = tags.map((t) => t.name.toLowerCase());
 
-    toastManager.add({
-      title: count === 1 ? "Tag deleted" : `${count} tags deleted`,
-      type: "success",
+    deleteMutation.mutate(ids, {
+      onSuccess: () => {
+        toastManager.add({
+          title: count === 1 ? "Tag deleted" : `${count} tags deleted`,
+          type: "success",
+        });
+
+        const activeTagParam = normalizeTagParam(searchParams.get("tag"));
+        if (pathname === "/home" && activeTagParam && tagNames.includes(activeTagParam)) {
+          const nextParams = new URLSearchParams(searchParams.toString());
+          nextParams.delete("tag");
+          const query = nextParams.toString();
+          router.push(query ? `/home?${query}` : "/home");
+        }
+
+        closeDialog();
+        onDeleted?.();
+      },
     });
-
-    onOpenChange(false);
-    onDeleted?.();
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={(val) => !val && closeDialog()}>
       <AlertDialogPopup>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -71,14 +96,22 @@ export function DeleteTagDialog({
           </AlertDialogTitle>
           <AlertDialogDescription>
             {count <= 1
-              ? `The tag "${tags[0]?.name}" will be permanently removed. This won't delete the bookmarks associated with it.`
+              ? `The tag "${displayTags[0]?.name}" will be permanently removed. This won't delete the bookmarks associated with it.`
               : `These ${count} tags will be permanently removed. This won't delete the bookmarks associated with them.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
-          <Button variant="destructive" onClick={handleDelete}>
-            {count <= 1 ? "Delete Tag" : `Delete ${count} Tags`}
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending || deleteMutation.isSuccess}>
+            {deleteMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
+            {deleteMutation.isSuccess
+              ? "Deleted"
+              : count <= 1
+                ? "Delete Tag"
+                : `Delete ${count} Tags`}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>

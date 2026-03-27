@@ -30,7 +30,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   }
 
   const userId = data.user.id;
-  const tagFilter = normalizeTagParam(searchParams?.tag ?? searchParams?.tab);
+  const tagFilter = normalizeTagParam(searchParams?.tag);
   const collectionFilter = searchParams?.collection ?? null;
   const typeFilter = (searchParams?.type === "media" ? "media" : "website") as TypeFilter;
   const sortFilter = resolveSortFilter(searchParams?.sort);

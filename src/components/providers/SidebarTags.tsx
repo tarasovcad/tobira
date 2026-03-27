@@ -1,21 +1,20 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
-import {usePathname, useSearchParams} from "next/navigation";
-import {cn} from "@/lib/utils";
+import {useSearchParams} from "next/navigation";
+import {cn, normalizeTagName} from "@/lib/utils";
 import {AnimatePresence} from "framer-motion";
 import {useQuery} from "@tanstack/react-query";
 import {getTags} from "@/app/actions/tags";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarTagItem} from "./SidebarItems";
-import {DeleteTagDialog} from "./DeleteTagDialog";
+import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
 
 export type SidebarTagsType = {id: string; name: string; count: number}[];
 
 export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const {copyText} = useClipboardCopy(2000, {toast: true});
 
@@ -24,7 +23,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
   const [tagSelectionMode, setTagSelectionMode] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
-  const [tagsToDelete, setTagsToDelete] = useState<{id: string; name: string}[] | null>(null);
+  const openDeleteDialog = useDeleteTagDialogStore((state) => state.openDialog);
 
   useEffect(() => {
     if (!tagSelectionMode) return;
@@ -64,13 +63,10 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
     if (!tags) return;
     const selectedTags = tags.filter((t) => selectedTagIds.has(t.id));
     if (selectedTags.length === 0) return;
-    setTagsToDelete(selectedTags);
-  }, [selectedTagIds, tags]);
+    openDeleteDialog(selectedTags, handleClearSelection);
+  }, [selectedTagIds, tags, openDeleteDialog, handleClearSelection]);
 
-  const activeTag =
-    searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ??
-    searchParams.get("tab")?.trim().replace(/\s+/g, " ").toLowerCase() ??
-    null;
+  const activeTag = searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ?? null;
 
   return (
     <>
@@ -135,8 +131,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           <AnimatePresence initial={false}>
             {tagsExpanded &&
               tags?.map((tag, index) => {
-                const isActive =
-                  pathname === "/all" && activeTag != null && activeTag === tag.name.toLowerCase();
+                const isActive = activeTag === normalizeTagName(tag.name);
                 return (
                   <SidebarTagItem
                     key={tag.id}
@@ -163,7 +158,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
                     }}
                     onCopy={() => void copyText(tag.name, tag.id)}
                     onContextMenuDelete={() => {
-                      setTagsToDelete([{id: tag.id, name: tag.name}]);
+                      openDeleteDialog([{id: tag.id, name: tag.name}]);
                     }}
                   />
                 );
@@ -171,13 +166,6 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           </AnimatePresence>
         </div>
       </div>
-
-      <DeleteTagDialog
-        open={tagsToDelete !== null}
-        onOpenChange={(isOpen) => !isOpen && setTagsToDelete(null)}
-        tags={tagsToDelete || []}
-        onDeleted={handleClearSelection}
-      />
 
       <SelectionActionBar
         visible={tagSelectionMode && selectedCount > 0}

@@ -5,6 +5,7 @@ import {AddItemDialog} from "./AddItemDialog";
 import {Sidebar} from "./Sidebar";
 import {CollectionDialog} from "./CollectionDialog";
 import {DeleteCollectionDialog} from "./DeleteCollectionDialog";
+import {DeleteTagDialog} from "./DeleteTagDialog";
 import {Header, type AppShellSession} from "./Header";
 import type {Collection} from "@/app/actions/collections";
 
@@ -29,6 +30,7 @@ const AppShell = ({
       <AddItemDialog collections={collections} isAuthenticated={Boolean(session)} />
       <CollectionDialog isAuthenticated={Boolean(session)} />
       <DeleteCollectionDialog />
+      <DeleteTagDialog />
     </main>
   );
 };

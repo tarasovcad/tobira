@@ -5,7 +5,6 @@ export type {BookmarkMetadata} from "./bookmark-metadata";
 
 export type SearchParams = {
   tag?: string;
-  tab?: string;
   collection?: string;
   type?: string;
   sort?: string;

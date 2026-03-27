@@ -3,7 +3,7 @@
 import {Button} from "@/components/coss-ui/button";
 import Link from "next/link";
 
-export function TagNotFoundState() {
+export function TagNotFoundState({tagName}: {tagName?: string | null}) {
   return (
     <div className="mx-auto flex min-h-0 max-w-[330px] flex-1 items-center justify-center px-6 py-10">
       <div className="flex max-w-md flex-col items-center text-center">
@@ -23,7 +23,9 @@ export function TagNotFoundState() {
           </svg>
         </div>
 
-        <h2 className="text-foreground text-xl font-medium tracking-tight">Tag not found</h2>
+        <h2 className="text-foreground text-xl font-medium tracking-tight">
+          Tag {tagName ? `"${tagName}" ` : ""}not found
+        </h2>
         <p className="text-muted-foreground mt-2 text-sm">
           We couldn&apos;t find this tag. It might have been deleted, or the link is incorrect
         </p>

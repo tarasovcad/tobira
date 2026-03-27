@@ -212,9 +212,9 @@ export function HomeClient({
       )}
       {/* Scrollable content area */}
       {isCollectionNotFound ? (
-        <CollectionNotFoundState />
+        <CollectionNotFoundState collectionName={collectionFilter} />
       ) : isTagNotFound ? (
-        <TagNotFoundState />
+        <TagNotFoundState tagName={tagFilter} />
       ) : showEmptyState ? (
         <HomeEmptyState userId={userId} />
       ) : (
