@@ -5,7 +5,15 @@ import Link from "next/link";
 import {useSearchParams} from "next/navigation";
 import {cn} from "@/lib/utils";
 
-const ACCOUNT_ITEMS = [
+interface SettingsItem {
+  label: string;
+  slug: string;
+  href: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+}
+
+const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "General",
     slug: "general",
@@ -70,6 +78,7 @@ const ACCOUNT_ITEMS = [
     label: "Billing",
     slug: "billing",
     href: "/settings?tab=billing",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -94,6 +103,7 @@ const ACCOUNT_ITEMS = [
     label: "Privacy",
     slug: "privacy",
     href: "/settings?tab=privacy",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -114,6 +124,7 @@ const ACCOUNT_ITEMS = [
     label: "Meta/About",
     slug: "meta",
     href: "/settings?tab=meta",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -132,11 +143,12 @@ const ACCOUNT_ITEMS = [
   },
 ];
 
-const WORKSPACE_ITEMS = [
+const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Organization",
     slug: "organization",
     href: "/settings?tab=organization",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -165,6 +177,7 @@ const WORKSPACE_ITEMS = [
     label: "Integrations",
     slug: "integrations",
     href: "/settings?tab=integrations",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -191,6 +204,7 @@ const WORKSPACE_ITEMS = [
     label: "Capture Tools",
     slug: "capture",
     href: "/settings?tab=capture",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -241,6 +255,7 @@ const WORKSPACE_ITEMS = [
     label: "Usage",
     slug: "usage",
     href: "/settings?tab=usage",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -263,6 +278,7 @@ const WORKSPACE_ITEMS = [
     label: "Knowledge Base",
     slug: "kb",
     href: "/settings?tab=kb",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -290,26 +306,43 @@ function SettingsNavItem({
   label,
   icon,
   isActive,
+  disabled,
 }: {
   href: string;
   label: string;
   icon: React.ReactNode;
   isActive: boolean;
+  disabled?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm font-medium transition-none!",
-        "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-        isActive
-          ? "text-foreground bg-muted-strong"
-          : "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
-      )}>
+  const content = (
+    <>
       <span className="inline-flex size-5 shrink-0 items-center justify-center text-current opacity-70">
         {icon}
       </span>
       {label}
+    </>
+  );
+
+  const baseStyles = cn(
+    "flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm font-medium transition-none!",
+    "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+    isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
+    disabled
+      ? "opacity-70 cursor-not-allowed select-none"
+      : !isActive && "hover:bg-muted hover:text-foreground",
+  );
+
+  if (disabled) {
+    return (
+      <div className={baseStyles} aria-disabled="true">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={href} className={baseStyles}>
+      {content}
     </Link>
   );
 }
@@ -360,6 +393,7 @@ export function SidebarSettings({onBack}: {onBack: () => void}) {
               label={item.label}
               icon={item.icon}
               isActive={currentTab === item.slug}
+              disabled={item.disabled}
             />
           ))}
         </div>
@@ -378,6 +412,7 @@ export function SidebarSettings({onBack}: {onBack: () => void}) {
               label={item.label}
               icon={item.icon}
               isActive={currentTab === item.slug}
+              disabled={item.disabled}
             />
           ))}
         </div>

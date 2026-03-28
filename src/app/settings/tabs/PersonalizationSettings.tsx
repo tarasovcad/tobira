@@ -1,5 +1,4 @@
 import React, {useState} from "react";
-import {Frame, FrameHeader, FramePanel, FrameTitle} from "@/components/coss-ui/frame";
 import {Input} from "@/components/coss-ui/input";
 import {Textarea} from "@/components/coss-ui/textarea";
 import {
@@ -13,6 +12,7 @@ import {Label} from "@/components/coss-ui/label";
 import {Avatar} from "@/components/ui/avatar";
 import {Button} from "@/components/coss-ui/button";
 import {Switch} from "@/components/ui/switch";
+import {SettingsHeader, SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
 
 const PersonalizationSettings = () => {
   const [hasChanges, setHasChanges] = useState(false);
@@ -20,28 +20,18 @@ const PersonalizationSettings = () => {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div className="space-y-0.5">
-        <h1 className="text-foreground text-xl font-[550]">Profile & AI Context</h1>
-        <p className="text-muted-foreground text-sm">
-          Manage your public identity and help the AI personalize your bookmarking experience.
-        </p>
-      </div>
+      <SettingsHeader
+        title="Profile & AI Context"
+        description="Manage your public identity and help the AI personalize your bookmarking experience."
+      />
 
       <form action="">
-        {/* ─── Section 1: Identity ─── */}
-        <Frame className="w-full">
-          <FrameHeader>
-            <FrameTitle className="text-muted-foreground text-sm font-normal">Identity</FrameTitle>
-          </FrameHeader>
-          <FramePanel className="space-y-4">
+        <div className="space-y-6">
+          {/* ─── Section 1: Identity ─── */}
+          <SettingsFrame title="Identity">
             {/* Avatar */}
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Avatar</Label>
-                <p className="text-muted-foreground max-w-[440px] text-sm">
-                  Your profile picture visible to others.
-                </p>
-              </div>
+              <SettingsLabel title="Avatar" description="Your profile picture visible to others." />
               <div className="flex items-center gap-3">
                 <Avatar
                   email="simoness.yess@gmail.com"
@@ -61,12 +51,11 @@ const PersonalizationSettings = () => {
 
             {/* Display Name */}
             <div className="flex items-center justify-between gap-8">
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <Label>Display Name</Label>
-                <p className="text-muted-foreground max-w-[440px] text-sm">
-                  What should we call you?
-                </p>
-              </div>
+              <SettingsLabel
+                className="min-w-0 flex-1"
+                title="Display Name"
+                description="What should we call you?"
+              />
               <Input className="w-64" placeholder="Your name" size="default" />
             </div>
 
@@ -74,37 +63,29 @@ const PersonalizationSettings = () => {
 
             {/* Short Bio */}
             <div className="flex items-start justify-between gap-8">
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <Label>Short Bio</Label>
-                <p className="text-muted-foreground max-w-[440px] text-sm">
-                  A brief description for your public profile or sections.
-                </p>
-              </div>
+              <SettingsLabel
+                className="min-w-0 flex-1"
+                title="Short Bio"
+                description="A brief description for your public profile or sections."
+              />
               <Textarea
                 className="w-64"
                 placeholder="Tell us a bit about yourself…"
                 maxLength={160}
               />
             </div>
-          </FramePanel>
-        </Frame>
+          </SettingsFrame>
 
-        {/* ─── Section 2: AI Personalization ─── */}
-        <Frame className="relative mt-6 w-full overflow-hidden rounded-[11px]">
-          <FrameHeader>
-            <FrameTitle className="text-muted-foreground text-sm font-normal">
-              AI Personalization
-            </FrameTitle>
-          </FrameHeader>
-          <FramePanel className="space-y-4">
+          {/* ─── Section 2: AI Personalization ─── */}
+          <SettingsFrame
+            title="AI Personalization"
+            className="relative overflow-hidden rounded-[11px]">
             {/* Primary Role */}
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Primary Role</Label>
-                <p className="text-muted-foreground max-w-[440px] text-sm">
-                  Tells the AI which lens to use when tagging your bookmarks.
-                </p>
-              </div>
+              <SettingsLabel
+                title="Primary Role"
+                description="Tells the AI which lens to use when tagging your bookmarks."
+              />
               <Input className="w-64" placeholder="Your role" size="default" />
             </div>
 
@@ -112,13 +93,11 @@ const PersonalizationSettings = () => {
 
             {/* Custom AI Context */}
             <div className="flex items-start justify-between gap-8">
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <Label>Custom AI Context</Label>
-                <p className="text-muted-foreground max-w-[440px] text-sm">
-                  Describe your workflow or what you&apos;re building. The AI uses this as a master
-                  prompt when generating tags and summaries.
-                </p>
-              </div>
+              <SettingsLabel
+                className="min-w-0 flex-1"
+                title="Custom AI Context"
+                description="Describe your workflow or what you're building. The AI uses this as a master prompt when generating tags and summaries."
+              />
               <Textarea
                 className="min-h-[92px] w-64"
                 placeholder="e.g., I am a React developer focused on performance and design systems. I prefer technical but concise tags."
@@ -130,30 +109,16 @@ const PersonalizationSettings = () => {
 
             {/* AI Optimization Toggle */}
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Enable AI Optimization</Label>
-                <p className="text-muted-foreground max-w-[440px] text-sm">
-                  Automatically use my role and context to improve link descriptions.
-                </p>
-              </div>
+              <SettingsLabel
+                title="Enable AI Optimization"
+                description="Automatically use my role and context to improve link descriptions."
+              />
               <Switch checked={true} onToggle={() => {}} size="md" className="hit-area-6" />
             </div>
-          </FramePanel>
-        </Frame>
+          </SettingsFrame>
 
-        {/* ─── Section 3: Discovery (Social Links) ─── */}
-
-        {/* isActive
-          ? "text-foreground bg-muted-strong"
-          : "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
-      )}>
-      <span className="inline-flex size-5 shrink-0 items-center justify-center text-current opacity-70"></span> */}
-
-        <Frame className="mt-6 w-full">
-          <FrameHeader>
-            <FrameTitle className="text-muted-foreground text-sm font-normal">Discovery</FrameTitle>
-          </FrameHeader>
-          <FramePanel className="space-y-4">
+          {/* ─── Section 3: Discovery (Social Links) ─── */}
+          <SettingsFrame title="Discovery">
             {/* GitHub */}
             <div className="flex items-center justify-between gap-8">
               <div className="flex items-center gap-2">
@@ -254,41 +219,30 @@ const PersonalizationSettings = () => {
               </div>
               <Input className="w-56" placeholder="https://yoursite.com" />
             </div>
-          </FramePanel>
-        </Frame>
+          </SettingsFrame>
 
-        {/* ─── Section 4: Privacy ─── */}
-        <div className="mt-6">
-          <Frame className="w-full">
-            <FrameHeader>
-              <FrameTitle className="text-muted-foreground text-sm font-normal">Privacy</FrameTitle>
-            </FrameHeader>
-            <FramePanel className="space-y-4">
-              {/* Public Profile */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Make my profile public</Label>
-                  <p className="text-muted-foreground text-sm">
-                    Allow others to see your public sections and shared collections.
-                  </p>
-                </div>
-                <Switch checked={true} onToggle={() => {}} size="md" className="hit-area-6" />
-              </div>
+          {/* ─── Section 4: Privacy ─── */}
+          <SettingsFrame title="Privacy">
+            {/* Public Profile */}
+            <div className="flex items-center justify-between">
+              <SettingsLabel
+                title="Make my profile public"
+                description="Allow others to see your public sections and shared collections."
+              />
+              <Switch checked={true} onToggle={() => {}} size="md" className="hit-area-6" />
+            </div>
 
-              <div className="bg-border h-px w-full" />
+            <div className="bg-border h-px w-full" />
 
-              {/* Show Social Links */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Display social links on public pages</Label>
-                  <p className="text-muted-foreground text-sm">
-                    Show your GitHub, X, and website to visitors of your public profile.
-                  </p>
-                </div>
-                <Switch checked={true} onToggle={() => {}} size="md" className="hit-area-6" />
-              </div>
-            </FramePanel>
-          </Frame>
+            {/* Show Social Links */}
+            <div className="flex items-center justify-between">
+              <SettingsLabel
+                title="Display social links on public pages"
+                description="Show your GitHub, X, and website to visitors of your public profile."
+              />
+              <Switch checked={true} onToggle={() => {}} size="md" className="hit-area-6" />
+            </div>
+          </SettingsFrame>
         </div>
 
         <SettingsActionBar

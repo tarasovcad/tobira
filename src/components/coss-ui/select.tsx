@@ -67,7 +67,7 @@ function SelectTrigger({
 }: SelectPrimitive.Trigger.Props & VariantProps<typeof selectTriggerVariants>) {
   return (
     <SelectPrimitive.Trigger
-      className={cn(selectTriggerVariants({size}), className)}
+      className={cn(selectTriggerVariants({size}), "cursor-pointer", className)}
       data-slot="select-trigger"
       {...props}>
       {children}

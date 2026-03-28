@@ -4,6 +4,8 @@ import React from "react";
 import {useSearchParams} from "next/navigation";
 import GeneralSettings from "./tabs/GeneralSettings";
 import PersonalizationSettings from "./tabs/PersonalizationSettings";
+import AccountSettings from "./tabs/AccountSettings";
+import DataSettings from "./tabs/DataSettings";
 
 export function SettingsContent() {
   const searchParams = useSearchParams();
@@ -16,6 +18,8 @@ export function SettingsContent() {
         <div className="mx-auto max-w-[840px]">
           {tab === "general" && <GeneralSettings />}
           {tab === "personalization" && <PersonalizationSettings />}
+          {tab === "account" && <AccountSettings />}
+          {tab === "data" && <DataSettings />}
         </div>
       </div>
     </div>
