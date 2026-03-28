@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, {useSyncExternalStore} from "react";
 
 import {useTheme} from "next-themes";
 
@@ -109,13 +109,15 @@ const themes: ThemeOption[] = [
   },
 ];
 
+/* Stable subscription functions for hydration check */
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export default function ThemeToggle() {
   const {theme, setTheme} = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
   if (!mounted) return null;
 
   return (

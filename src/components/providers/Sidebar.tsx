@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {usePathname} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarTagsType} from "./SidebarTags";
 import {SidebarMain} from "./SidebarMain";
@@ -16,7 +17,18 @@ export function Sidebar({
   collections?: Collection[];
   isAuthenticated?: boolean;
 }) {
-  const [showSettings, setShowSettings] = useState(false);
+  const pathname = usePathname();
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [showSettings, setShowSettings] = useState(pathname.startsWith("/settings"));
+
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (pathname.startsWith("/settings")) {
+      setShowSettings(true);
+    } else if (prevPathname.startsWith("/settings") && !pathname.startsWith("/settings")) {
+      setShowSettings(false);
+    }
+  }
 
   return (
     <aside className="bg-muted/30 relative h-full w-[224px] shrink-0 overflow-hidden border-r">

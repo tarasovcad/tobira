@@ -25,7 +25,7 @@ const AppShell = ({
   return (
     <main className="flex h-dvh min-h-screen flex-col">
       <Header session={session} />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-auto">
         <Sidebar tags={tags} collections={collections} isAuthenticated={Boolean(session)} />
         <div className="min-h-0 flex-1">{children}</div>
       </div>

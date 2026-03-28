@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {usePathname, useSearchParams} from "next/navigation";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
@@ -24,6 +24,7 @@ export function SidebarMain({
 }: SidebarMainProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const activeTag = searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ?? null;
 
@@ -74,7 +75,10 @@ export function SidebarMain({
       <div className="shrink-0 p-3 pt-0">
         <div className="bg-border my-4 h-px w-full" />
         <button
-          onClick={onShowSettings}
+          onClick={() => {
+            router.push("/settings?tab=general");
+            onShowSettings();
+          }}
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-none!",
             "text-secondary hover:bg-muted hover:text-foreground cursor-pointer justify-start bg-transparent",
