@@ -39,7 +39,7 @@ const DEFAULT_OPTIONS = {
   bookmarkWidth: "full" as BookmarkWidth,
   contentToggles: {
     description: true,
-    tags: true,
+    tags: false,
     source: true,
     savedDate: true,
     favorites: true,
@@ -66,7 +66,7 @@ export const useViewOptionsStore = create<ViewOptionsState>((set) => ({
   // Content
   contentToggles: {
     description: true,
-    tags: true,
+    tags: false,
     source: true,
     savedDate: true,
     avatar: true,

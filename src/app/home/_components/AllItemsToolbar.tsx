@@ -41,6 +41,18 @@ export function TypeSelect({
       <SelectPopup>
         <SelectItem value="website">Websites</SelectItem>
         <SelectItem value="media">Media</SelectItem>
+        <SelectItem value="videos" disabled>
+          Videos
+        </SelectItem>
+        <SelectItem value="documents" disabled>
+          Documents
+        </SelectItem>
+        <SelectItem value="notes" disabled>
+          Notes
+        </SelectItem>
+        <SelectItem value="people" disabled>
+          People
+        </SelectItem>
       </SelectPopup>
     </Select>
   );

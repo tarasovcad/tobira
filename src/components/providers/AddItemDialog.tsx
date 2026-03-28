@@ -227,7 +227,7 @@ export function AddItemDialog({
         <ShadcnButton
           variant="default"
           size="icon-lg"
-          className="relative z-100 size-12 rounded-full"
+          className="relative z-40 size-12 rounded-full"
           onClick={handleOpenDialogClick}>
           <svg
             width="20"

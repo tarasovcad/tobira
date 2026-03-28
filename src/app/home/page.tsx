@@ -8,7 +8,7 @@ import {getCollections} from "@/app/actions/collections";
 import {getInitialBookmarks} from "./_lib/getInitialBookmarks";
 import {normalizeTagParam} from "@/lib/utils";
 import type {SearchParams} from "./_types";
-import type {SortMode} from "./_components/AllItemsToolbar";
+import type {SortMode, TypeFilter} from "./_components/AllItemsToolbar";
 
 const resolveSortFilter = (sortParam?: string): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;
@@ -24,15 +24,15 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   if (!data?.user?.id) {
     return (
       <AppShell session={data} tags={[]} collections={[]}>
-        <HomeClient userId={null} initialBookmarks={[]} totalCount={0} />
+        <HomeClient userId={null} initialBookmarks={[]} initialTags={[]} totalCount={0} />
       </AppShell>
     );
   }
 
   const userId = data.user.id;
-  const tagFilter = normalizeTagParam(searchParams?.tag ?? searchParams?.tab);
+  const tagFilter = normalizeTagParam(searchParams?.tag);
   const collectionFilter = searchParams?.collection ?? null;
-  const typeFilter = searchParams?.type === "media" ? "media" : "website";
+  const typeFilter = (searchParams?.type === "media" ? "media" : "website") as TypeFilter;
   const sortFilter = resolveSortFilter(searchParams?.sort);
   const supabase = await createClient();
 
@@ -65,7 +65,14 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
       <HomeClient
         userId={userId}
         initialBookmarks={initialBookmarks}
+        initialTags={tags ?? []}
         totalCount={totalCount ?? 0}
+        serverFilters={{
+          tagFilter,
+          collectionFilter,
+          typeFilter,
+          sortFilter,
+        }}
       />
     </AppShell>
   );

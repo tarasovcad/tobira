@@ -9,6 +9,8 @@ import type {Bookmark} from "./types";
 import {BookmarkHoverActions} from "./_components/BookmarkHoverActions";
 import {BookmarkImage} from "./_components/BookmarkImage";
 import {BookmarkAvatar} from "./_components/BookmarkAvatar";
+import {Tag} from "@/components/ui/Tag";
+import {useState} from "react";
 
 export const ItemList = ({
   item,
@@ -36,11 +38,12 @@ export const ItemList = ({
       href={item.url}
       target="_blank"
       className={cn(
-        "group relative flex w-full cursor-pointer items-center gap-5 border-b px-6 py-5 pr-16 text-left",
+        "group relative flex w-full cursor-pointer flex-col gap-2 border-b px-6 py-5 pr-16 text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         className,
+        "transition-none!",
       )}>
       {!selectionMode && (
         <BookmarkHoverActions
@@ -54,72 +57,73 @@ export const ItemList = ({
         />
       )}
 
-      <div className="flex items-center">
-        {/* Animated checkbox slot — always rendered, width animated via grid-cols */}
-        <div
-          className={cn(
-            "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
-            selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
-          )}
-          style={{
-            transitionDelay: selectionMode ? `${Math.min(selectionIndex * 20, 120)}ms` : "0ms",
-          }}>
-          <div className="min-w-0 overflow-hidden">
-            <div className="pr-3">
-              <Checkbox
-                checked={selectedIds?.has(item.id)}
-                onCheckedChange={(next) => setSelected?.(item.id, next === true)}
-                onClick={(e) => e.stopPropagation()}
-                aria-label={`Select ${item.title}`}
-                className="focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-          </div>
-        </div>
-        <BookmarkAvatar
-          item={item}
-          className="size-9"
-          imageClassName="h-5 w-5 object-contain"
-          height={20}
-          width={20}
-          iconSize={32}
-        />
-      </div>
-
-      <div className="min-w-0 flex-1 text-[13px]">
-        <div className="text-foreground truncate text-[15px] font-semibold">{item.title}</div>
-        {(contentToggles.source || contentToggles.savedDate) && (
-          <div className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 whitespace-nowrap">
-            {contentToggles.source && <span className="min-w-0 truncate">{item.url}</span>}
-            {contentToggles.source && contentToggles.savedDate && (
-              <span className="shrink-0">-</span>
-            )}
-            {contentToggles.savedDate && (
-              <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
-            )}
-          </div>
-        )}
-        {contentToggles.description && item.description ? (
+      <div className="flex min-w-0 flex-1 items-center gap-5">
+        <div className="flex items-center">
+          {/* Animated checkbox slot — always rendered, width animated via grid-cols */}
           <div
             className={cn(
-              "text-muted-foreground line-clamp-2",
-              contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5",
-            )}>
-            {item.description}
+              "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
+              selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
+            )}
+            style={{
+              transitionDelay: selectionMode ? `${Math.min(selectionIndex * 20, 120)}ms` : "0ms",
+            }}>
+            <div className="min-w-0 overflow-hidden">
+              <div className="pr-3">
+                <Checkbox
+                  checked={selectedIds?.has(item.id)}
+                  onCheckedChange={(next) => setSelected?.(item.id, next === true)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Select ${item.title}`}
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+            </div>
           </div>
-        ) : null}
-        {contentToggles.tags && item.tags && item.tags.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {item.tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
+          <BookmarkAvatar
+            item={item}
+            className="size-9"
+            imageClassName="h-5 w-5 object-contain"
+            height={20}
+            width={20}
+            iconSize={36}
+          />
+        </div>
+
+        <div className="min-w-0 flex-1 text-[13px]">
+          <div className="text-foreground truncate text-[15px] font-[550]">{item.title}</div>
+          {(contentToggles.source || contentToggles.savedDate) && (
+            <div className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 whitespace-nowrap">
+              {contentToggles.source && <span className="min-w-0 truncate">{item.url}</span>}
+              {contentToggles.source && contentToggles.savedDate && (
+                <span className="shrink-0">-</span>
+              )}
+              {contentToggles.savedDate && (
+                <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
+              )}
+            </div>
+          )}
+          {contentToggles.description && item.description ? (
+            <div
+              className={cn(
+                "text-muted-foreground line-clamp-1",
+                contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5",
+              )}>
+              {item.description}
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      {contentToggles.tags && item.tags && item.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 pl-14">
+          {item.tags.map((tag) => (
+            <Tag key={tag} className="text-muted-foreground text-[12px]">
+              {tag}
+            </Tag>
+          ))}
+        </div>
+      )}
     </Link>
   );
 };
@@ -178,9 +182,9 @@ export const MinimalItemRow = ({
         "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 pr-12 text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
-        "transition-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         className,
+        "transition-none!",
       )}>
       {!selectionMode && (
         <BookmarkHoverActions
@@ -247,11 +251,9 @@ export const MinimalItemRow = ({
         {contentToggles.tags && item.tags && item.tags.length > 0 && (
           <div className="flex items-center gap-1">
             {item.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+              <Tag key={tag} className="text-muted-foreground text-[12px]">
                 {tag}
-              </span>
+              </Tag>
             ))}
           </div>
         )}
@@ -294,6 +296,7 @@ export const TableItemRow = ({
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         className,
+        "transition-none!",
       )}>
       {!selectionMode && (
         <BookmarkHoverActions
@@ -377,9 +380,17 @@ export const GridCard = ({
   selectedIds?: Set<string>;
   setSelected?: (id: string, checked: boolean) => void;
 }) => {
-  const {borderRadius, contentToggles} = useViewOptionsStore();
+  const {borderRadius, contentToggles, gridGap} = useViewOptionsStore();
+  const [previewOpenSignal, setPreviewOpenSignal] = useState(0);
+  const zeroGap = gridGap === "none";
+  const onlyTitle =
+    !contentToggles.source &&
+    !contentToggles.savedDate &&
+    !(contentToggles.description && item.description) &&
+    !(contentToggles.tags && item.tags && item.tags.length > 0);
+
   const radiusClass =
-    borderRadius === "none"
+    borderRadius === "none" || zeroGap
       ? "rounded-none"
       : borderRadius === "sm"
         ? "rounded-sm"
@@ -391,16 +402,21 @@ export const GridCard = ({
     <Link
       href={item.url}
       className={cn(
-        "group bg-background relative block w-full cursor-pointer overflow-hidden border text-left",
+        "group bg-background relative flex h-full w-full cursor-pointer flex-col overflow-hidden text-left",
+        zeroGap ? "border-r border-b" : "border",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         radiusClass,
+        "transition-none!",
       )}>
-      <div className="bg-muted relative aspect-16/10 w-full">
+      <div className="bg-muted relative aspect-16/10 w-full shrink-0">
         {!selectionMode && (
           <BookmarkHoverActions
             variant="glass"
+            onExpand={() => {
+              setPreviewOpenSignal((current) => current + 1);
+            }}
             onOptions={() => {
               onOpenMenu?.(item);
             }}
@@ -432,23 +448,29 @@ export const GridCard = ({
           item={item}
           type="preview"
           fill={true}
+          previewOpenSignal={previewOpenSignal}
+          disablePreviewOnClick={true}
           imageClassName="w-full h-full object-cover"
         />
       </div>
 
-      <div className="p-4 pt-3">
-        <div className="text-foreground line-clamp-1 text-sm text-[15px] font-semibold">
-          {item.title}
-        </div>
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-1 flex-col px-4",
+          onlyTitle ? "py-3" : "pt-3 pb-4",
+        )}>
+        <div className="text-foreground line-clamp-1 text-[15px] font-[550]">{item.title}</div>
         {(contentToggles.source || contentToggles.savedDate) && (
-          <div className="text-muted-foreground mt-1 flex min-w-0 items-center gap-1 text-[13px] whitespace-nowrap">
-            {contentToggles.source && <span className="min-w-0 truncate">{item.url}</span>}
-            {contentToggles.source && contentToggles.savedDate && (
-              <span className="shrink-0">-</span>
-            )}
-            {contentToggles.savedDate && (
-              <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
-            )}
+          <div className="text-muted-foreground mt-1 min-w-0 text-[13px] whitespace-nowrap">
+            <div className="flex min-w-0 items-center gap-1">
+              {contentToggles.source && <span className="min-w-0 flex-1 truncate">{item.url}</span>}
+              {contentToggles.source && contentToggles.savedDate && (
+                <span className="shrink-0">-</span>
+              )}
+              {contentToggles.savedDate && (
+                <span className="shrink-0">{formatDateAbsolute(item.created_at)}</span>
+              )}
+            </div>
           </div>
         )}
         {contentToggles.description && item.description && (
@@ -459,11 +481,9 @@ export const GridCard = ({
         {contentToggles.tags && item.tags && item.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {item.tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[11px] font-medium">
+              <Tag key={tag} className="text-muted-foreground text-[12px]">
                 {tag}
-              </span>
+              </Tag>
             ))}
           </div>
         )}
@@ -511,6 +531,7 @@ export const MediaCard = ({
         "focus-visible:bg-muted! focus-visible:outline-none",
         selectionMode && selectedIds?.has(item.id) && "bg-muted",
         radiusClass,
+        "transition-none!",
       )}
       style={{
         aspectRatio,

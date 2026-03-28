@@ -1,21 +1,21 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
-import {usePathname, useSearchParams} from "next/navigation";
-import {cn} from "@/lib/utils";
+import {useSearchParams} from "next/navigation";
+import {cn, normalizeTagName} from "@/lib/utils";
 import {AnimatePresence} from "framer-motion";
 import {useQuery} from "@tanstack/react-query";
 import {getTags} from "@/app/actions/tags";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarTagItem} from "./SidebarItems";
-import {DeleteTagDialog} from "./DeleteTagDialog";
+import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import type {TagWithCount} from "@/app/home/_types";
 
-export type SidebarTagsType = {id: string; name: string; count: number}[];
+export type SidebarTagsType = TagWithCount[];
 
 export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const {copyText} = useClipboardCopy(2000, {toast: true});
 
@@ -24,7 +24,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
   const [tagSelectionMode, setTagSelectionMode] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
-  const [tagsToDelete, setTagsToDelete] = useState<{id: string; name: string}[] | null>(null);
+  const openDeleteDialog = useDeleteTagDialogStore((state) => state.openDialog);
 
   useEffect(() => {
     if (!tagSelectionMode) return;
@@ -64,24 +64,30 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
     if (!tags) return;
     const selectedTags = tags.filter((t) => selectedTagIds.has(t.id));
     if (selectedTags.length === 0) return;
-    setTagsToDelete(selectedTags);
-  }, [selectedTagIds, tags]);
+    openDeleteDialog(selectedTags, handleClearSelection);
+  }, [selectedTagIds, tags, openDeleteDialog, handleClearSelection]);
 
-  const activeTag =
-    searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ??
-    searchParams.get("tab")?.trim().replace(/\s+/g, " ").toLowerCase() ??
-    null;
+  const activeTag = searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ?? null;
 
   return (
     <>
       <div className="px-3 pe-2">
         <div
+          tabIndex={0}
+          role="button"
           onClick={() => setTagsExpanded((prev) => !prev)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setTagsExpanded((prev) => !prev);
+            }
+          }}
           className={cn(
             "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium",
             "text-muted-foreground hover:bg-muted hover:text-foreground",
             "group/tags cursor-pointer text-[11px] font-semibold tracking-wider uppercase",
             "h-[37px]",
+            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">TAGS</span>
@@ -119,15 +125,14 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
             selectValue={tagsSelectValue}
             onSelectValueChange={(v) => setTagsSelectValue(String(v))}
             ariaLabel="Tag options"
-            triggerClassName="group-hover/tags:pointer-events-auto group-hover/tags:opacity-100"
+            triggerClassName="group-hover/tags:pointer-events-auto group-hover/tags:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
           />
         </div>
         <div className="flex flex-col gap-0.5 pb-2">
           <AnimatePresence initial={false}>
             {tagsExpanded &&
               tags?.map((tag, index) => {
-                const isActive =
-                  pathname === "/all" && activeTag != null && activeTag === tag.name.toLowerCase();
+                const isActive = activeTag === normalizeTagName(tag.name);
                 return (
                   <SidebarTagItem
                     key={tag.id}
@@ -154,7 +159,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
                     }}
                     onCopy={() => void copyText(tag.name, tag.id)}
                     onContextMenuDelete={() => {
-                      setTagsToDelete([{id: tag.id, name: tag.name}]);
+                      openDeleteDialog([{id: tag.id, name: tag.name}]);
                     }}
                   />
                 );
@@ -162,13 +167,6 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           </AnimatePresence>
         </div>
       </div>
-
-      <DeleteTagDialog
-        open={tagsToDelete !== null}
-        onOpenChange={(isOpen) => !isOpen && setTagsToDelete(null)}
-        tags={tagsToDelete || []}
-        onDeleted={handleClearSelection}
-      />
 
       <SelectionActionBar
         visible={tagSelectionMode && selectedCount > 0}

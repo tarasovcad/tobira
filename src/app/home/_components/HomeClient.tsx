@@ -1,16 +1,14 @@
 "use client";
 
 import {useRef} from "react";
-import {useRouter} from "next/navigation";
 import NumberFlow from "@number-flow/react";
 
 // Components
 import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
 import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
-import {DeleteCollectionDialog} from "@/components/providers/DeleteCollectionDialog";
-import {CollectionDialog} from "@/components/providers/CollectionDialog";
 import {CollectionHeader} from "./home-client/CollectionHeader";
+import {TagHeader} from "./home-client/TagHeader";
 import {AllItemsList} from "./home-client/AllItemsList";
 import {HomeToolbar} from "./home-client/HomeToolbar";
 
@@ -25,9 +23,13 @@ import {useHomeShortcuts} from "../_hooks/use-home-shortcuts";
 
 import {useBookmarksQuery} from "../_hooks/use-bookmarks-query";
 import {HomeEmptyState} from "./home-client/HomeEmptyState";
+import {CollectionNotFoundState} from "./home-client/CollectionNotFoundState";
+import {TagNotFoundState} from "./home-client/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
+import type {TypeFilter, SortMode} from "./AllItemsToolbar";
+import type {TagWithCount} from "../_types";
 
 /**
  * Main client component for the All Items / Home page.
@@ -36,31 +38,54 @@ import {cn} from "@/lib/utils";
 export function HomeClient({
   userId,
   initialBookmarks,
+  initialTags,
   totalCount,
+  serverFilters,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
+  initialTags: TagWithCount[];
   totalCount: number;
+  serverFilters?: {
+    tagFilter: string | null;
+    collectionFilter: string | null;
+    typeFilter: TypeFilter;
+    sortFilter: SortMode;
+  };
 }) {
-  const router = useRouter();
   const {tagFilter, collectionFilter, typeFilter, sort, handleTypeChange, handleSortChange} =
     useHomeFilters();
+
+  const isServerDataMatching = serverFilters
+    ? serverFilters.tagFilter === tagFilter &&
+      serverFilters.collectionFilter === collectionFilter &&
+      serverFilters.typeFilter === typeFilter &&
+      serverFilters.sortFilter === sort
+    : false;
 
   // ── View & filter state ──
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
 
   // ── Query Hook ──
-  const {bookmarksQuery, allBookmarks, currentTotalCount, activeCollection, isInitialLoad} =
-    useBookmarksQuery({
-      userId,
-      initialBookmarks,
-      totalCount,
-      sort,
-      tagFilter,
-      collectionFilter,
-      typeFilter,
-    });
+  const {
+    bookmarksQuery,
+    allBookmarks,
+    currentTotalCount,
+    activeCollection,
+    activeTag,
+    isInitialLoad,
+  } = useBookmarksQuery({
+    userId,
+    initialBookmarks,
+    initialTags,
+    totalCount,
+    sort,
+    tagFilter,
+    collectionFilter,
+    typeFilter,
+    isServerDataMatching,
+  });
 
   // ── Mutation Hook ──
   const {
@@ -68,6 +93,7 @@ export function HomeClient({
     handleItemRemoved,
     animatingUrl,
     animatingItemCount,
+    animatingTags,
     resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,
@@ -115,10 +141,6 @@ export function HomeClient({
     deleteDialogOpen,
     setDeleteDialogOpen,
     itemsToDelete,
-    deleteCollectionDialogOpen,
-    setDeleteCollectionDialogOpen,
-    editCollectionDialogOpen,
-    setEditCollectionDialogOpen,
     openMenu,
     openDeleteDialog,
     handleDeleteSelected,
@@ -139,6 +161,9 @@ export function HomeClient({
     !animatingUrl &&
     resolvedBookmarks.length === 0;
 
+  const isCollectionNotFound = collectionFilter && !activeCollection && !isInitialLoad;
+  const isTagNotFound = tagFilter && !activeTag && !isInitialLoad;
+
   useHomeInfiniteScroll({
     scrollAreaRootRef,
     bottomSentinelRef,
@@ -156,18 +181,17 @@ export function HomeClient({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      {activeCollection && (
+      {activeCollection ? (
         <CollectionHeader
           activeCollection={activeCollection}
           currentTotalCount={currentTotalCount}
-          onEdit={() => setEditCollectionDialogOpen(true)}
-          onDelete={() => setDeleteCollectionDialogOpen(true)}
         />
-      )}
+      ) : tagFilter && activeTag ? (
+        <TagHeader activeTag={activeTag} currentTotalCount={currentTotalCount} />
+      ) : null}
 
       {/* Toolbar */}
       <HomeToolbar
-        activeCollection={activeCollection}
         typeFilter={typeFilter}
         onTypeChange={handleTypeChange}
         sort={sort}
@@ -176,7 +200,7 @@ export function HomeClient({
         onSelectionEnabledChange={setSelectionEnabled}
       />
       {/* Item count */}
-      {!activeCollection && userId && (
+      {!activeCollection && !tagFilter && userId && (
         <div
           className={cn(
             "text-muted-foreground border-border flex items-center gap-1 px-6 py-3 text-sm",
@@ -187,7 +211,11 @@ export function HomeClient({
         </div>
       )}
       {/* Scrollable content area */}
-      {showEmptyState ? (
+      {isCollectionNotFound ? (
+        <CollectionNotFoundState collectionName={collectionFilter} />
+      ) : isTagNotFound ? (
+        <TagNotFoundState tagName={tagFilter} />
+      ) : showEmptyState ? (
         <HomeEmptyState userId={userId} />
       ) : (
         <AllItemsList
@@ -196,6 +224,7 @@ export function HomeClient({
           visibleItems={visibleItems}
           animatingUrl={animatingUrl}
           animatingItemCount={animatingItemCount}
+          animatingTags={animatingTags}
           resolvedBookmarks={resolvedBookmarks}
           isInitialLoad={isInitialLoad}
           isFetchingNextPage={isFetchingNextPage}
@@ -212,6 +241,7 @@ export function HomeClient({
           openDeleteDialog={openDeleteDialog}
         />
       )}
+
       {/* ── Floating selection action bar ── */}
       <SelectionActionBar
         visible={selectionMode && selectedCount > 0}
@@ -235,22 +265,10 @@ export function HomeClient({
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         items={itemsToDelete}
-        onDeleted={handleClearSelection}
-      />
-      <DeleteCollectionDialog
-        open={deleteCollectionDialogOpen}
-        onOpenChange={setDeleteCollectionDialogOpen}
-        collections={
-          activeCollection ? [{id: activeCollection.id, name: activeCollection.name}] : []
-        }
         onDeleted={() => {
-          router.push("/home");
+          handleClearSelection();
+          setMenuOpen(false);
         }}
-      />
-      <CollectionDialog
-        open={editCollectionDialogOpen}
-        onOpenChange={setEditCollectionDialogOpen}
-        collection={activeCollection}
       />
     </div>
   );

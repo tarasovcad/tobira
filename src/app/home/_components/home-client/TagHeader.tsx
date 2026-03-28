@@ -2,26 +2,33 @@
 
 import NumberFlow from "@number-flow/react";
 import {Button} from "@/components/coss-ui/button";
-import type {Collection} from "@/app/actions/collections";
-import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
-import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
+import type {TagWithCount} from "../../_types";
+import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
+import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 
-interface CollectionHeaderProps {
-  activeCollection: Collection;
+interface TagHeaderProps {
+  activeTag: TagWithCount;
   currentTotalCount: number;
 }
 
-export function CollectionHeader({activeCollection, currentTotalCount}: CollectionHeaderProps) {
-  const openDialog = useCollectionDialogStore((state) => state.openDialog);
-  const openDeleteDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
+export function TagHeader({activeTag, currentTotalCount}: TagHeaderProps) {
+  const openDeleteDialog = useDeleteTagDialogStore((state) => state.openDialog);
+  const openTagDialog = useTagDialogStore((state) => state.openDialog);
 
+  const handleEdit = () => {
+    openTagDialog(activeTag);
+  };
+
+  const handleDelete = () => {
+    openDeleteDialog([{id: activeTag.id, name: activeTag.name}]);
+  };
   return (
     <div className="border-b px-6 py-8">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">{activeCollection.name}</h1>
-          {activeCollection.description && (
-            <p className="text-muted-foreground text-lg">{activeCollection.description}</p>
+          <h1 className="text-3xl font-bold tracking-tight">#{activeTag.name}</h1>
+          {activeTag.description && (
+            <p className="text-muted-foreground text-lg">{activeTag.description}</p>
           )}
           <div className="text-muted-foreground flex items-center gap-4 pt-2 text-sm">
             <span>
@@ -29,8 +36,8 @@ export function CollectionHeader({activeCollection, currentTotalCount}: Collecti
             </span>
 
             <span>
-              Last updated:{" "}
-              {new Date(activeCollection.created_at).toLocaleDateString("en-US", {
+              Last updated: {` `}
+              {new Date(activeTag.updated_at).toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
                 year: "numeric",
@@ -40,7 +47,7 @@ export function CollectionHeader({activeCollection, currentTotalCount}: Collecti
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => openDialog(activeCollection)}>
+          <Button variant="outline" onClick={handleEdit}>
             <svg
               width="16"
               height="16"
@@ -54,11 +61,7 @@ export function CollectionHeader({activeCollection, currentTotalCount}: Collecti
             </svg>
             Edit
           </Button>
-          <Button
-            variant="destructive-outline"
-            onClick={() =>
-              openDeleteDialog([{id: activeCollection.id, name: activeCollection.name}])
-            }>
+          <Button variant="destructive-outline" onClick={handleDelete}>
             <svg
               width="16"
               height="16"

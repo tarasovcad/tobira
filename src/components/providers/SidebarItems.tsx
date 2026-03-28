@@ -6,15 +6,18 @@ import {motion} from "framer-motion";
 import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
 import {useRouter} from "next/navigation";
+import type {Collection} from "@/app/actions/collections";
+import type {TagWithCount} from "@/app/home/_types";
 
 interface SidebarCollectionItemProps {
-  collection: {id: string; name: string};
+  collection: Collection;
   index: number;
   isActive: boolean;
   selectionMode: boolean;
   isSelected: boolean;
   onSelect: (checked: boolean) => void;
   onToggleSelection: () => void;
+  onCopy: () => void;
   onContextMenuDelete: () => void;
 }
 
@@ -26,18 +29,21 @@ export function SidebarCollectionItem({
   isSelected,
   onSelect,
   onToggleSelection,
+  onCopy,
   onContextMenuDelete,
 }: SidebarCollectionItemProps) {
   const router = useRouter();
 
   return (
     <motion.div
-      initial={false}
+      layout="position"
+      initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
       exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      transition={{duration: 0.25, ease: "easeOut"}}>
+      transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
       <ContextMenu>
         <ContextMenuTrigger
+          tabIndex={0}
           onClick={() => {
             if (selectionMode) {
               onToggleSelection();
@@ -45,13 +51,24 @@ export function SidebarCollectionItem({
             }
             router.push(`/home?collection=${collection.id}`);
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (selectionMode) {
+                onToggleSelection();
+              } else {
+                router.push(`/home?collection=${collection.id}`);
+              }
+            }
+          }}
           className={cn(
             isActive
               ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
               : "text-secondary bg-transparent",
             "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
             "hover:bg-muted hover:text-foreground",
-            "cursor-pointer justify-between",
+            "cursor-pointer justify-between transition-none!",
+            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center">
             <div
@@ -68,6 +85,7 @@ export function SidebarCollectionItem({
                     checked={isSelected}
                     onCheckedChange={(checked) => onSelect(!!checked)}
                     onClick={(e) => e.stopPropagation()}
+                    tabIndex={-1}
                   />
                 </div>
               </div>
@@ -91,16 +109,34 @@ export function SidebarCollectionItem({
               {collection.name}
             </span>
           </div>
+          {collection.is_pinned && (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              className="text-muted-foreground/80"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M6.83366 1.33334C5.45295 1.33334 4.33366 2.45262 4.33366 3.83334V4.66464C4.33366 5.81391 3.87711 6.91614 3.06446 7.72874L2.81344 7.9798C2.71967 8.07354 2.66699 8.20074 2.66699 8.33334V10.1667C2.66699 10.2993 2.71967 10.4265 2.81344 10.5202C2.90721 10.614 3.03439 10.6667 3.16699 10.6667H7.50033V14.1667C7.50033 14.4428 7.72419 14.6667 8.00033 14.6667C8.27646 14.6667 8.50033 14.4428 8.50033 14.1667V10.6667H12.8337C13.1098 10.6667 13.3337 10.4428 13.3337 10.1667V8.33334C13.3337 8.20074 13.281 8.07354 13.1872 7.9798L12.9362 7.72874C12.1235 6.91614 11.667 5.81391 11.667 4.66464V3.83334C11.667 2.45262 10.5477 1.33334 9.16699 1.33334H6.83366Z"
+                fill="currentColor"
+              />
+            </svg>
+          )}
         </ContextMenuTrigger>
 
-        <CollectionContextMenuContent collection={collection} onDelete={onContextMenuDelete} />
+        <CollectionContextMenuContent
+          collection={collection}
+          onCopy={onCopy}
+          onDelete={onContextMenuDelete}
+        />
       </ContextMenu>
     </motion.div>
   );
 }
 
 interface SidebarTagItemProps {
-  tag: {id: string; name: string; count: number};
+  tag: TagWithCount;
   index: number;
   isActive: boolean;
   selectionMode: boolean;
@@ -126,18 +162,30 @@ export function SidebarTagItem({
 
   return (
     <motion.div
-      initial={false}
+      layout="position"
+      initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
       exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      transition={{duration: 0.25, ease: "easeOut"}}>
+      transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
       <ContextMenu>
         <ContextMenuTrigger
+          tabIndex={0}
           onClick={() => {
             if (selectionMode) {
               onToggleSelection();
               return;
             }
             router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (selectionMode) {
+                onToggleSelection();
+              } else {
+                router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+              }
+            }
           }}
           className={cn(
             isActive
@@ -146,6 +194,7 @@ export function SidebarTagItem({
             "flex w-full items-center gap-2 rounded-md px-3 py-2",
             "hover:bg-muted hover:text-foreground",
             "cursor-pointer justify-between",
+            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center">
             <div
@@ -162,6 +211,7 @@ export function SidebarTagItem({
                     checked={isSelected}
                     onCheckedChange={(checked) => onSelect(!!checked)}
                     onClick={(e) => e.stopPropagation()}
+                    tabIndex={-1}
                   />
                 </div>
               </div>
@@ -173,9 +223,25 @@ export function SidebarTagItem({
               {tag.name}
             </span>
           </div>
-          <span className="text-secondary text-sm tabular-nums">
-            <NumberFlow value={tag.count} />
-          </span>
+          <div className="flex items-center gap-1.5">
+            {tag.is_pinned && (
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                className="text-muted-foreground/80"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M6.83366 1.33334C5.45295 1.33334 4.33366 2.45262 4.33366 3.83334V4.66464C4.33366 5.81391 3.87711 6.91614 3.06446 7.72874L2.81344 7.9798C2.71967 8.07354 2.66699 8.20074 2.66699 8.33334V10.1667C2.66699 10.2993 2.71967 10.4265 2.81344 10.5202C2.90721 10.614 3.03439 10.6667 3.16699 10.6667H7.50033V14.1667C7.50033 14.4428 7.72419 14.6667 8.00033 14.6667C8.27646 14.6667 8.50033 14.4428 8.50033 14.1667V10.6667H12.8337C13.1098 10.6667 13.3337 10.4428 13.3337 10.1667V8.33334C13.3337 8.20074 13.281 8.07354 13.1872 7.9798L12.9362 7.72874C12.1235 6.91614 11.667 5.81391 11.667 4.66464V3.83334C11.667 2.45262 10.5477 1.33334 9.16699 1.33334H6.83366Z"
+                  fill="currentColor"
+                />
+              </svg>
+            )}
+            <span className="text-secondary text-sm tabular-nums">
+              <NumberFlow value={tag.count} />
+            </span>
+          </div>
         </ContextMenuTrigger>
 
         <TagContextMenuContent tag={tag} onCopy={onCopy} onDelete={onContextMenuDelete} />

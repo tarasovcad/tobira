@@ -3,8 +3,7 @@
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
 import {createClient} from "@/components/utils/supabase/server";
-
-type TagsWithCountsRow = {id: string; name: string; count: number | string | null};
+import {TagWithCount} from "../home/_types";
 
 export async function generateAiSuggestions() {
   return {
@@ -27,10 +26,14 @@ export async function getTags() {
     return [];
   }
 
-  return ((data ?? []) as TagsWithCountsRow[]).map((t) => ({
+  return ((data ?? []) as TagWithCount[]).map((t) => ({
     id: t.id,
     name: t.name,
     count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
+    description: t.description,
+    is_pinned: !!t.is_pinned,
+    created_at: t.created_at,
+    updated_at: t.updated_at,
   }));
 }
 
@@ -48,6 +51,53 @@ export async function deleteTags(tagIds: string | string[]): Promise<{ok: true}>
   const supabase = await createClient();
 
   const {error} = await supabase.from("tags").delete().in("id", ids).eq("user_id", session.user.id);
+
+  if (error) throw error;
+
+  return {ok: true};
+}
+
+export async function updateTag(
+  tagId: string,
+  data: {name: string; description?: string},
+): Promise<{ok: true}> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createClient();
+
+  const {error} = await supabase
+    .from("tags")
+    .update({name: data.name, description: data.description ?? null})
+    .eq("id", tagId)
+    .eq("user_id", session.user.id);
+
+  if (error) throw error;
+
+  return {ok: true};
+}
+
+export async function toggleTagPin(tagId: string, isPinned: boolean): Promise<{ok: true}> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createClient();
+
+  const {error} = await supabase
+    .from("tags")
+    .update({is_pinned: isPinned})
+    .eq("id", tagId)
+    .eq("user_id", session.user.id);
 
   if (error) throw error;
 

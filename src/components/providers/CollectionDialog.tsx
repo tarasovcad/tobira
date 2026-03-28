@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {
   Dialog,
   DialogPopup,
@@ -15,12 +15,14 @@ import {Input} from "@/components/coss-ui/input";
 import {Textarea} from "@/components/coss-ui/textarea";
 import {Label} from "@/components/coss-ui/label";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {createCollection, updateCollection, type Collection} from "@/app/actions/collections";
+import {createCollection, updateCollection} from "@/app/actions/collections";
 import {toastManager} from "@/components/coss-ui/toast";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {useRouter} from "next/navigation";
 import * as z from "zod";
+import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
+import Spinner from "../ui/spinner";
 
 const collectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -30,20 +32,21 @@ const collectionSchema = z.object({
 type CollectionFormValues = z.infer<typeof collectionSchema>;
 
 interface CollectionDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  collection?: Collection | null;
   isAuthenticated?: boolean;
 }
 
-export function CollectionDialog({
-  open,
-  onOpenChange,
-  collection,
-  isAuthenticated = false,
-}: CollectionDialogProps) {
+/** Reset success label after close so it doesn't flash back to "Save Changes" during exit. */
+const SUCCESS_LABEL_RESET_MS = 400;
+
+export function CollectionDialog({isAuthenticated = false}: CollectionDialogProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const {isOpen, collection, closeDialog} = useCollectionDialogStore();
+  const [submitSuccess, setSubmitSuccess] = useState<"save" | "create" | null>(null);
+
+  const onOpenChange = (val: boolean) => {
+    if (!val) closeDialog();
+  };
 
   const {
     register,
@@ -60,7 +63,7 @@ export function CollectionDialog({
   });
 
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       reset({
         name: collection?.name || "",
         description: collection?.description || "",
@@ -71,14 +74,16 @@ export function CollectionDialog({
       }, 500);
       return () => clearTimeout(t);
     }
-  }, [open, collection, reset]);
+  }, [isOpen, collection, reset]);
 
   const mutation = useMutation({
     mutationFn: createCollection,
     onSuccess: () => {
+      setSubmitSuccess("create");
       queryClient.invalidateQueries({queryKey: ["collections"]});
       toastManager.add({title: "Collection created", type: "success"});
       onOpenChange(false);
+      window.setTimeout(() => setSubmitSuccess(null), SUCCESS_LABEL_RESET_MS);
     },
     onError: (err) => {
       toastManager.add({
@@ -93,9 +98,11 @@ export function CollectionDialog({
     mutationFn: (variables: {id: string; data: {name: string; description?: string}}) =>
       updateCollection(variables.id, variables.data),
     onSuccess: () => {
+      setSubmitSuccess("save");
       queryClient.invalidateQueries({queryKey: ["collections"]});
       toastManager.add({title: "Collection updated", type: "success"});
       onOpenChange(false);
+      window.setTimeout(() => setSubmitSuccess(null), SUCCESS_LABEL_RESET_MS);
     },
     onError: (err) => {
       toastManager.add({
@@ -130,10 +137,22 @@ export function CollectionDialog({
     });
   };
 
+  const submitButtonLabel =
+    submitSuccess === "save"
+      ? "Saved"
+      : submitSuccess === "create"
+        ? "Created"
+        : collection
+          ? "Save Changes"
+          : "Create";
+
   return (
     <Dialog
-      open={open}
+      open={isOpen}
       onOpenChange={(val) => {
+        if (val) {
+          setSubmitSuccess(null);
+        }
         if (val && !collection && !isAuthenticated) {
           onOpenChange(false);
           router.push("/login");
@@ -177,6 +196,21 @@ export function CollectionDialog({
                 <p className="text-xs text-red-500">{errors.description.message}</p>
               )}
             </div>
+            {collection && (
+              <div className="space-y-2">
+                <Label htmlFor="created_at">Created at</Label>
+                <Input
+                  id="created_at"
+                  className="text-muted-foreground opacity-90"
+                  value={new Date(collection.created_at).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                  readOnly
+                />
+              </div>
+            )}
           </form>
         </DialogPanel>
         <DialogFooter>
@@ -189,10 +223,14 @@ export function CollectionDialog({
             disabled={
               mutation.isPending ||
               updateMutation.isPending ||
+              submitSuccess !== null ||
               !isValid ||
               (!!collection && !isDirty)
             }>
-            {collection ? "Save Changes" : "Create"}
+            {(mutation.isPending || updateMutation.isPending) && (
+              <Spinner className="mx-auto size-4 animate-spin" />
+            )}
+            {submitButtonLabel}
           </Button>
         </DialogFooter>
       </DialogPopup>

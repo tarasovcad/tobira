@@ -29,6 +29,7 @@ interface AllItemsListProps {
   visibleItems: Bookmark[];
   animatingUrl: string | null;
   animatingItemCount: number;
+  animatingTags?: string[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
   isFetchingNextPage: boolean;
@@ -51,6 +52,7 @@ export function AllItemsList({
   visibleItems,
   animatingUrl,
   animatingItemCount,
+  animatingTags,
   resolvedBookmarks,
   isFetchingNextPage,
   selectionMode,
@@ -121,6 +123,7 @@ export function AllItemsList({
       <AllItemsAnimatingPlaceholders
         animatingUrl={animatingUrl}
         animatingItemCount={animatingItemCount}
+        animatingTags={animatingTags}
         resolvedBookmarks={resolvedBookmarks}
         onTransitionDone={onTransitionDone}
         PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}
@@ -133,9 +136,11 @@ export function AllItemsList({
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
       <ScrollArea className="h-full" scrollbarGutter>
-        <div className={layoutConfig.containerClassName}>
-          {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
-          <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+        <div className={layoutConfig.wrapperClassName}>
+          <div className={layoutConfig.containerClassName}>
+            {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
+            <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+          </div>
         </div>
       </ScrollArea>
     </div>

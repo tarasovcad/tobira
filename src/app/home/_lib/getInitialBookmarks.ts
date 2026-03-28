@@ -1,10 +1,8 @@
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {BookmarkRowWithJoins, TagsWithCountsRow} from "../_types";
+import type {BookmarkRowWithJoins, TagsWithCountsRow, TagWithCount} from "../_types";
 import {PAGE_SIZE} from "../_constants";
 import type {SupabaseClient} from "@supabase/supabase-js";
-
-export type TagWithCount = {id: string; name: string; count: number};
 
 export async function getInitialBookmarks({
   userId,
@@ -82,6 +80,10 @@ export async function getInitialBookmarks({
 
   const tags: TagWithCount[] = ((tagsData ?? []) as TagsWithCountsRow[]).map((t) => ({
     id: t.id,
+    description: t.description,
+    created_at: t.created_at,
+    updated_at: t.updated_at,
+    is_pinned: !!t.is_pinned,
     name: t.name,
     count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
   }));

@@ -134,8 +134,12 @@ export function useMediaPreview({width, height}: UseMediaPreviewParams): UseMedi
     resetInteractiveState();
     setOpen(true);
 
+    // Wait one painted frame after mount so opening from external triggers
+    // still animates from the thumbnail rect instead of jumping to expanded.
     requestAnimationFrame(() => {
-      setExpanded(true);
+      requestAnimationFrame(() => {
+        setExpanded(true);
+      });
     });
   }, [height, resetInteractiveState, width]);
 

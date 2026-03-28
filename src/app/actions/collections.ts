@@ -10,6 +10,7 @@ export type Collection = {
   description: string | null;
   color: string | null;
   icon: string | null;
+  is_pinned: boolean;
   created_at: string;
 };
 
@@ -25,6 +26,7 @@ export async function getCollections(): Promise<Collection[]> {
     .from("collections")
     .select("*")
     .eq("user_id", session.user.id)
+    .order("is_pinned", {ascending: false})
     .order("created_at", {ascending: false});
 
   if (error) {
@@ -110,6 +112,29 @@ export async function updateCollection(
     .from("collections")
     .update(data)
     .eq("id", id)
+    .eq("user_id", session.user.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return updatedCollection as Collection;
+}
+
+export async function toggleCollectionPin(collectionId: string, isPinned: boolean) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createClient();
+  const {data: updatedCollection, error} = await supabase
+    .from("collections")
+    .update({is_pinned: isPinned})
+    .eq("id", collectionId)
     .eq("user_id", session.user.id)
     .select()
     .single();

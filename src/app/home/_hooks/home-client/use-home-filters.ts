@@ -18,7 +18,7 @@ export function useHomeFilters() {
   const pathname = usePathname();
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
 
-  const tagFilter = normalizeTagParam(searchParams.get("tag") ?? searchParams.get("tab"));
+  const tagFilter = normalizeTagParam(searchParams.get("tag"));
   const collectionFilter = searchParams.get("collection");
   const initialTypeFilter = (
     searchParams.get("type") === "media" ? "media" : "website"
