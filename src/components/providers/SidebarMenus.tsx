@@ -55,11 +55,13 @@ async function handleToggleTagPin(tagId: string, isPinned: boolean, queryClient:
 
 interface CollectionContextMenuContentProps {
   collection: Collection;
+  onCopy: () => void;
   onDelete: () => void;
 }
 
 export function CollectionContextMenuContent({
   collection,
+  onCopy,
   onDelete,
 }: CollectionContextMenuContentProps) {
   const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
@@ -107,6 +109,23 @@ export function CollectionContextMenuContent({
           />
         </svg>
         Edit
+      </ContextMenuItem>
+
+      <ContextMenuItem onClick={onCopy}>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M10.3787 2.66667H10.8337C12.2144 2.66667 13.3337 3.78595 13.3337 5.16667V12.1667C13.3337 13.5474 12.2144 14.6667 10.8337 14.6667H5.16699C3.78628 14.6667 2.66699 13.5474 2.66699 12.1667V5.16667C2.66699 3.78595 3.78628 2.66667 5.16699 2.66667H5.62201C6.04117 1.8737 6.87433 1.33333 7.83366 1.33333H8.16699C9.12633 1.33333 9.95946 1.8737 10.3787 2.66667ZM9.66699 3.83333C9.66699 3.00491 8.99539 2.33333 8.16699 2.33333H7.83366C7.00526 2.33333 6.33366 3.00491 6.33366 3.83333V4.16667C6.33366 4.25871 6.40828 4.33333 6.50033 4.33333H9.50033C9.59239 4.33333 9.66699 4.25871 9.66699 4.16667V3.83333Z"
+            fill="currentColor"
+          />
+        </svg>
+        Copy
       </ContextMenuItem>
 
       <ContextMenuItem
@@ -236,7 +255,6 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
         </svg>
         Copy
       </ContextMenuItem>
-      <ContextMenuSeparator />
       <ContextMenuItem onClick={() => handleToggleTagPin(tag.id, tag.is_pinned, queryClient)}>
         {tag.is_pinned ? (
           <>
@@ -273,26 +291,6 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
             Pin
           </>
         )}
-      </ContextMenuItem>
-      <ContextMenuItem onClick={() => console.log("Hide / Unhide tag:", tag.name)}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M2.18721 1.47979C1.99195 1.28453 1.67536 1.28453 1.4801 1.47979C1.28484 1.67505 1.28484 1.99164 1.4801 2.1869L3.59188 4.29867C2.69585 5.02201 1.88712 5.98015 1.21211 7.16474C0.916803 7.68301 0.918103 8.31881 1.21286 8.83594C2.49818 11.0909 4.27003 12.526 6.19662 13.0779C8.00092 13.5949 9.89826 13.3238 11.5804 12.2872L13.8135 14.5202C14.0087 14.7155 14.3253 14.7155 14.5205 14.5202C14.7158 14.3249 14.7158 14.0084 14.5205 13.8131L2.18721 1.47979ZM9.49866 10.2055L8.77092 9.47774C8.54032 9.59834 8.27812 9.66634 7.99972 9.66634C7.07926 9.66634 6.33306 8.92014 6.33306 7.99968C6.33306 7.72128 6.4011 7.45908 6.5217 7.22848L5.79398 6.50077C5.50332 6.92781 5.33306 7.44414 5.33306 7.99968C5.33306 9.47248 6.52698 10.6663 7.99972 10.6663C8.55526 10.6663 9.07159 10.4961 9.49866 10.2055Z"
-            fill="currentColor"
-          />
-          <path
-            d="M13.1489 11.0277C13.6793 10.489 14.1704 9.85792 14.6097 9.13679C15.0341 8.43999 15.0341 7.55999 14.6097 6.86319C12.9307 4.10716 10.4955 2.66668 7.99994 2.66666C7.09694 2.66665 6.20188 2.85523 5.34766 3.22648L13.1489 11.0277Z"
-            fill="currentColor"
-          />
-        </svg>
-        Hide
       </ContextMenuItem>
       <ContextMenuSeparator />
 

@@ -17,6 +17,7 @@ interface SidebarCollectionItemProps {
   isSelected: boolean;
   onSelect: (checked: boolean) => void;
   onToggleSelection: () => void;
+  onCopy: () => void;
   onContextMenuDelete: () => void;
 }
 
@@ -28,16 +29,18 @@ export function SidebarCollectionItem({
   isSelected,
   onSelect,
   onToggleSelection,
+  onCopy,
   onContextMenuDelete,
 }: SidebarCollectionItemProps) {
   const router = useRouter();
 
   return (
     <motion.div
+      layout="position"
       initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
       exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      transition={{duration: 0.2, ease: "easeOut"}}>
+      transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
       <ContextMenu>
         <ContextMenuTrigger
           tabIndex={0}
@@ -122,7 +125,11 @@ export function SidebarCollectionItem({
           )}
         </ContextMenuTrigger>
 
-        <CollectionContextMenuContent collection={collection} onDelete={onContextMenuDelete} />
+        <CollectionContextMenuContent
+          collection={collection}
+          onCopy={onCopy}
+          onDelete={onContextMenuDelete}
+        />
       </ContextMenu>
     </motion.div>
   );
@@ -155,10 +162,11 @@ export function SidebarTagItem({
 
   return (
     <motion.div
+      layout="position"
       initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
       exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      transition={{duration: 0.2, ease: "easeOut"}}>
+      transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
       <ContextMenu>
         <ContextMenuTrigger
           tabIndex={0}

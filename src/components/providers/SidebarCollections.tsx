@@ -13,6 +13,7 @@ import {SidebarCollectionItem} from "./SidebarItems";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
+import {useClipboardCopy} from "@/lib/useClipboardCopy";
 
 export function SidebarCollections({
   initialCollections,
@@ -26,6 +27,7 @@ export function SidebarCollections({
   const router = useRouter();
   const openDialog = useCollectionDialogStore((state) => state.openDialog);
   const openDeleteDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
+  const {copyText} = useClipboardCopy(2000, {toast: true});
 
   const handleCreateCollection = () => {
     if (!isAuthenticated) {
@@ -233,6 +235,7 @@ export function SidebarCollections({
                         return next;
                       });
                     }}
+                    onCopy={() => void copyText(c.name, c.id)}
                     onContextMenuDelete={() => {
                       openDeleteDialog([{id: c.id, name: c.name}]);
                     }}
