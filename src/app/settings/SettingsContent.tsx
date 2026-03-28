@@ -2,7 +2,7 @@
 
 import React from "react";
 import {useSearchParams} from "next/navigation";
-import GeneralSettings from "./GeneralSettings";
+import GeneralSettings from "./tabs/GeneralSettings";
 
 export function SettingsContent() {
   const searchParams = useSearchParams();
@@ -13,11 +13,11 @@ export function SettingsContent() {
       {/* Tab content */}
       <div className="mx-auto min-h-0 max-w-[840px] flex-1 overflow-auto px-5 py-12">
         {tab === "general" && <GeneralSettings />}
-        {tab !== "general" && (
+        {/* {tab !== "general" && (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
             This section is coming soon.
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
