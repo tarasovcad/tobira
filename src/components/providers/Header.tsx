@@ -24,7 +24,7 @@ export type AppShellSession = {
 export function Header({session}: {session: AppShellSession}) {
   const email = session?.user?.email ?? null;
   const router = useRouter();
-
+  console.log(email);
   const signOutMutation = useMutation({
     mutationFn: async () => {
       const res = await authClient.signOut();
