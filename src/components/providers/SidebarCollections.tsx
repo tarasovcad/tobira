@@ -14,6 +14,7 @@ import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import Spinner from "@/components/ui/spinner";
 
 export function SidebarCollections({
   initialCollections,
@@ -55,7 +56,7 @@ export function SidebarCollections({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [collectionSelectionMode]);
 
-  const {data: collections} = useQuery({
+  const {data: collections, isFetching} = useQuery({
     queryKey: ["collections"],
     queryFn: async () => await getCollections(),
     initialData: initialCollections,
@@ -108,6 +109,7 @@ export function SidebarCollections({
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">Collections</span>
+
             <span
               className={cn(
                 "inline-flex size-5 shrink-0 items-center justify-center text-current transition-transform duration-200 ease-out",
@@ -208,6 +210,7 @@ export function SidebarCollections({
                 </button>
               </motion.div>
             )}
+            {isFetching && !collections && <Spinner className="mx-auto my-5 size-4 opacity-70" />}
             {collectionsExpanded &&
               collections?.map((c, index) => {
                 const isActive = pathname === "/home" && searchParams.get("collection") === c.id;

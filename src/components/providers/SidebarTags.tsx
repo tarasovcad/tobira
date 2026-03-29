@@ -12,6 +12,7 @@ import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
 import type {TagWithCount} from "@/app/home/_types";
+import Spinner from "@/components/ui/spinner";
 
 export type SidebarTagsType = TagWithCount[];
 
@@ -38,7 +39,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tagSelectionMode]);
 
-  const {data: tags} = useQuery({
+  const {data: tags, isFetching} = useQuery({
     queryKey: ["tags"],
     queryFn: async () => await getTags(),
     initialData: initialTags,
@@ -91,6 +92,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">TAGS</span>
+
             <span
               className={cn(
                 "inline-flex size-5 shrink-0 items-center justify-center text-current transition-transform duration-200 ease-out",
@@ -129,6 +131,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           />
         </div>
         <div className="flex flex-col gap-0.5 pb-2">
+          {isFetching && !tags && <Spinner className="mx-auto my-5 size-4 opacity-70" />}
           <AnimatePresence initial={false}>
             {tagsExpanded &&
               tags?.map((tag, index) => {

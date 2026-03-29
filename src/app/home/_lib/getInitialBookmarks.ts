@@ -19,6 +19,7 @@ export async function getInitialBookmarks({
   sort?: "recent" | "oldest" | "az";
   supabase: SupabaseClient;
 }) {
+  const startTime = performance.now();
   // When filtering by tag or collection we use an inner join so only matching bookmarks are returned.
   const tagSelect = tagFilter
     ? "bookmark_tags!inner(tags!inner(name))"
@@ -88,11 +89,16 @@ export async function getInitialBookmarks({
     count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
   }));
 
-  return {
+  const result = {
     initialBookmarks,
     totalCount,
     bookmarksError,
     tags,
     tagsError,
   };
+
+  const endTime = performance.now();
+  console.log(`[Performance] getInitialBookmarks: ${(endTime - startTime).toFixed(2)}ms`);
+
+  return result;
 }
