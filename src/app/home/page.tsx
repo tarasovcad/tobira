@@ -1,4 +1,3 @@
-import {createClient} from "@/components/utils/supabase/server";
 import AppShell from "@/components/providers/AppShell";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
@@ -34,31 +33,25 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const collectionFilter = searchParams?.collection ?? null;
   const typeFilter = (searchParams?.type === "media" ? "media" : "website") as TypeFilter;
   const sortFilter = resolveSortFilter(searchParams?.sort);
-  const supabase = await createClient();
 
-  const [bookmarksResult, collections] = await Promise.all([
-    getInitialBookmarks({
-      userId,
-      tagFilter,
-      collectionFilter,
-      typeFilter,
-      sort: sortFilter,
-      supabase,
-    }),
-    getCollections(),
-  ]);
+  let bookmarksResult: Awaited<ReturnType<typeof getInitialBookmarks>>;
+  let collections: Awaited<ReturnType<typeof getCollections>>;
 
-  const {initialBookmarks, totalCount, bookmarksError, tags, tagsError} = bookmarksResult;
-
-  if (tagsError) console.error("Failed to fetch tags with counts:", tagsError);
-
-  if (bookmarksError || tagsError) {
+  try {
+    [bookmarksResult, collections] = await Promise.all([
+      getInitialBookmarks({userId, tagFilter, collectionFilter, typeFilter, sort: sortFilter}),
+      getCollections(),
+    ]);
+  } catch (err) {
+    const fallbackCollections = await getCollections().catch(() => []);
     return (
-      <AppShell session={data} collections={collections}>
-        <BookmarksLoadError error={bookmarksError} />
+      <AppShell session={data} collections={fallbackCollections}>
+        <BookmarksLoadError error={err instanceof Error ? err : null} />
       </AppShell>
     );
   }
+
+  const {initialBookmarks, totalCount, tags} = bookmarksResult;
 
   return (
     <AppShell session={data} tags={tags ?? []} collections={collections}>

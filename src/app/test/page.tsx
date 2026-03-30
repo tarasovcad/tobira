@@ -7,6 +7,7 @@ const page = async () => {
   const data = await auth.api.getSession({
     headers: await headers(),
   });
+  console.log(data);
   return <AppShell session={data}>Avatar Icon</AppShell>;
 };
 

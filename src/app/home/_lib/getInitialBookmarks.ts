@@ -1,8 +1,9 @@
-import {tagNamesFromJoin} from "@/lib/bookmark-tags";
+import {db} from "@/db";
+import {bookmarks, tags, bookmarkTags, bookmarkCollections} from "@/db/schema";
+import {and, eq, isNull, desc, asc, count, exists} from "drizzle-orm";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {BookmarkRowWithJoins, TagsWithCountsRow, TagWithCount} from "../_types";
+import type {TagWithCount} from "../_types";
 import {PAGE_SIZE} from "../_constants";
-import type {SupabaseClient} from "@supabase/supabase-js";
 
 export async function getInitialBookmarks({
   userId,
@@ -10,95 +11,157 @@ export async function getInitialBookmarks({
   collectionFilter,
   typeFilter = "website",
   sort = "recent",
-  supabase,
 }: {
   userId: string;
   tagFilter: string | null;
   collectionFilter: string | null;
   typeFilter?: "website" | "media";
   sort?: "recent" | "oldest" | "az";
-  supabase: SupabaseClient;
 }) {
   const startTime = performance.now();
-  // When filtering by tag or collection we use an inner join so only matching bookmarks are returned.
-  const tagSelect = tagFilter
-    ? "bookmark_tags!inner(tags!inner(name))"
-    : "bookmark_tags(tags(name))";
-  const collectionSelect = collectionFilter
-    ? "bookmark_collections!inner(collections(id, name))"
-    : "bookmark_collections(collections(id, name))";
-  const bookmarksSelect = `*, ${tagSelect}, ${collectionSelect}`;
 
-  let bookmarksQuery = supabase
-    .from("bookmarks")
-    .select(bookmarksSelect as "*", {count: "exact"})
-    .eq("user_id", userId)
-    .is("archived_at", null)
-    .is("deleted_at", null)
-    .eq("kind", typeFilter);
+  const baseFilters = [
+    eq(bookmarks.userId, userId),
+    isNull(bookmarks.archivedAt),
+    isNull(bookmarks.deletedAt),
+    eq(bookmarks.kind, typeFilter as "website" | "media"),
+  ];
 
   if (tagFilter) {
-    bookmarksQuery = bookmarksQuery.eq("bookmark_tags.tags.name", tagFilter);
+    baseFilters.push(
+      exists(
+        db
+          .select()
+          .from(bookmarkTags)
+          .innerJoin(tags, eq(bookmarkTags.tagId, tags.id))
+          .where(and(eq(bookmarkTags.bookmarkId, bookmarks.id), eq(tags.name, tagFilter))),
+      ),
+    );
   }
 
   if (collectionFilter) {
-    bookmarksQuery = bookmarksQuery.eq("bookmark_collections.collection_id", collectionFilter);
+    baseFilters.push(
+      exists(
+        db
+          .select()
+          .from(bookmarkCollections)
+          .where(
+            and(
+              eq(bookmarkCollections.bookmarkId, bookmarks.id),
+              eq(bookmarkCollections.collectionId, collectionFilter),
+            ),
+          ),
+      ),
+    );
   }
 
-  switch (sort) {
-    case "oldest":
-      bookmarksQuery = bookmarksQuery.order("created_at", {ascending: true});
-      break;
-    case "az":
-      bookmarksQuery = bookmarksQuery
-        .order("title", {ascending: true})
-        .order("id", {ascending: true});
-      break;
-    case "recent":
-    default:
-      bookmarksQuery = bookmarksQuery.order("created_at", {ascending: false});
-      break;
-  }
+  const orderBy = (() => {
+    switch (sort) {
+      case "oldest":
+        return [asc(bookmarks.createdAt)];
+      case "az":
+        return [asc(bookmarks.title), asc(bookmarks.id)];
+      case "recent":
+      default:
+        return [desc(bookmarks.createdAt)];
+    }
+  })();
 
-  const bookmarksPromise = bookmarksQuery.range(0, PAGE_SIZE - 1);
+  const bookmarksPromise = db.query.bookmarks.findMany({
+    where: and(...baseFilters),
+    with: {
+      bookmarkTags: {
+        with: {
+          tag: true,
+        },
+      },
+      bookmarkCollections: {
+        with: {
+          collection: true,
+        },
+      },
+    },
+    limit: PAGE_SIZE,
+    offset: 0,
+    orderBy,
+  });
 
-  const tagsPromise = supabase.rpc("get_tags_with_counts", {p_user_id: userId});
+  const totalCountPromise = db.$count(bookmarks, and(...baseFilters));
 
-  const [
-    {data: bookmarkRows, count: totalCount, error: bookmarksError},
-    {data: tagsData, error: tagsError},
-  ] = await Promise.all([bookmarksPromise, tagsPromise]);
+  // For Drizzle, we calculate tags with counts using a custom query since the RPC is gone.
+  // We use left join with bookmarks filtered in the ON clause to ensure tags with 0 bookmarks are included.
+  const tagsWithCountsPromise = db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      description: tags.description,
+      is_pinned: tags.isPinned,
+      created_at: tags.createdAt,
+      updated_at: tags.updatedAt,
+      count: count(bookmarks.id),
+    })
+    .from(tags)
+    .leftJoin(bookmarkTags, eq(tags.id, bookmarkTags.tagId))
+    .leftJoin(
+      bookmarks,
+      and(
+        eq(bookmarkTags.bookmarkId, bookmarks.id),
+        eq(bookmarks.userId, tags.userId),
+        isNull(bookmarks.archivedAt),
+        isNull(bookmarks.deletedAt),
+      ),
+    )
+    .where(eq(tags.userId, userId))
+    .groupBy(tags.id)
+    .orderBy(desc(tags.isPinned), asc(tags.name));
 
-  const rows = (bookmarkRows ?? []) as BookmarkRowWithJoins[];
+  const [bookmarkRows, totalCount, tagsData] = await Promise.all([
+    bookmarksPromise,
+    totalCountPromise,
+    tagsWithCountsPromise,
+  ]);
 
-  const initialBookmarks: Bookmark[] = rows.map(
-    ({bookmark_tags, bookmark_collections, ...row}) => ({
-      ...(row as Bookmark),
-      tags: tagNamesFromJoin(bookmark_tags),
-      collections: bookmark_collections?.map((bc) => bc.collections) ?? [],
-    }),
-  );
-
-  const tags: TagWithCount[] = ((tagsData ?? []) as TagsWithCountsRow[]).map((t) => ({
-    id: t.id,
-    description: t.description,
-    created_at: t.created_at,
-    updated_at: t.updated_at,
-    is_pinned: !!t.is_pinned,
-    name: t.name,
-    count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
+  const initialBookmarks: Bookmark[] = bookmarkRows.map((row) => ({
+    id: row.id,
+    kind: (row.kind as "website" | "media") || "website",
+    title: row.title || "",
+    description: row.description || "",
+    url: row.url,
+    user_id: row.userId,
+    preview_image: row.previewImage || "",
+    created_at: row.createdAt,
+    updated_at: row.updatedAt || row.createdAt,
+    archived_at: row.archivedAt || "",
+    deleted_at: row.deletedAt || "",
+    notes: row.notes || "",
+    metadata: row.metadata as Bookmark["metadata"],
+    tags: row.bookmarkTags
+      .map((bt) => bt.tag.name)
+      .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"})),
+    collections: row.bookmarkCollections.map((bc) => ({
+      id: bc.collection.id,
+      name: bc.collection.name,
+    })),
   }));
 
-  const result = {
-    initialBookmarks,
-    totalCount,
-    bookmarksError,
-    tags,
-    tagsError,
-  };
+  const tagsResult: TagWithCount[] = tagsData.map((t) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    is_pinned: !!t.is_pinned,
+    created_at: t.created_at,
+    updated_at: t.updated_at,
+    count: Number(t.count),
+  }));
 
   const endTime = performance.now();
   console.log(`[Performance] getInitialBookmarks: ${(endTime - startTime).toFixed(2)}ms`);
 
-  return result;
+  return {
+    initialBookmarks,
+    totalCount,
+    bookmarksError: null,
+    tags: tagsResult,
+    tagsError: null,
+  };
 }

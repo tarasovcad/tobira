@@ -2,8 +2,10 @@
 
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
-import {createClient} from "@/components/utils/supabase/server";
-import {TagWithCount} from "../home/_types";
+import {db} from "@/db";
+import {tags, bookmarkTags, bookmarks} from "@/db/schema";
+import {and, eq, isNull, count, inArray, desc, asc} from "drizzle-orm";
+import type {TagWithCount} from "../home/_types";
 
 export async function generateAiSuggestions() {
   return {
@@ -11,25 +13,42 @@ export async function generateAiSuggestions() {
   };
 }
 
-export async function getTags() {
+export async function getTags(): Promise<TagWithCount[]> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) return [];
 
-  const supabase = await createClient();
-  const {data, error} = await supabase.rpc("get_tags_with_counts", {p_user_id: session.user.id});
+  const data = await db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      description: tags.description,
+      is_pinned: tags.isPinned,
+      created_at: tags.createdAt,
+      updated_at: tags.updatedAt,
+      count: count(bookmarks.id),
+    })
+    .from(tags)
+    .leftJoin(bookmarkTags, eq(tags.id, bookmarkTags.tagId))
+    .leftJoin(
+      bookmarks,
+      and(
+        eq(bookmarkTags.bookmarkId, bookmarks.id),
+        eq(bookmarks.userId, tags.userId),
+        isNull(bookmarks.archivedAt),
+        isNull(bookmarks.deletedAt),
+      ),
+    )
+    .where(eq(tags.userId, session.user.id))
+    .groupBy(tags.id)
+    .orderBy(desc(tags.isPinned), asc(tags.name));
 
-  if (error) {
-    console.error("Failed to fetch tags with counts:", error);
-    return [];
-  }
-
-  return ((data ?? []) as TagWithCount[]).map((t) => ({
+  return data.map((t) => ({
     id: t.id,
     name: t.name,
-    count: typeof t.count === "string" ? Number(t.count) : (t.count ?? 0),
+    count: Number(t.count),
     description: t.description,
     is_pinned: !!t.is_pinned,
     created_at: t.created_at,
@@ -42,17 +61,11 @@ export async function deleteTags(tagIds: string | string[]): Promise<{ok: true}>
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
   const ids = Array.isArray(tagIds) ? tagIds : [tagIds];
 
-  const supabase = await createClient();
-
-  const {error} = await supabase.from("tags").delete().in("id", ids).eq("user_id", session.user.id);
-
-  if (error) throw error;
+  await db.delete(tags).where(and(eq(tags.userId, session.user.id), inArray(tags.id, ids)));
 
   return {ok: true};
 }
@@ -65,19 +78,12 @@ export async function updateTag(
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
-  const supabase = await createClient();
-
-  const {error} = await supabase
-    .from("tags")
-    .update({name: data.name, description: data.description ?? null})
-    .eq("id", tagId)
-    .eq("user_id", session.user.id);
-
-  if (error) throw error;
+  await db
+    .update(tags)
+    .set({name: data.name, description: data.description ?? null})
+    .where(and(eq(tags.id, tagId), eq(tags.userId, session.user.id)));
 
   return {ok: true};
 }
@@ -87,19 +93,12 @@ export async function toggleTagPin(tagId: string, isPinned: boolean): Promise<{o
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
-  const supabase = await createClient();
-
-  const {error} = await supabase
-    .from("tags")
-    .update({is_pinned: isPinned})
-    .eq("id", tagId)
-    .eq("user_id", session.user.id);
-
-  if (error) throw error;
+  await db
+    .update(tags)
+    .set({isPinned})
+    .where(and(eq(tags.id, tagId), eq(tags.userId, session.user.id)));
 
   return {ok: true};
 }

@@ -10,7 +10,7 @@ import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui
 import type {Session} from "better-auth";
 import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/coss-ui/menu";
 import {useMutation} from "@tanstack/react-query";
-import {authClient} from "@/components/utils/better-auth/auth-client";
+import {signOutAction} from "@/app/actions/auth";
 import {toastManager} from "@/components/coss-ui/toast";
 import {Avatar} from "@/components/ui/avatar";
 
@@ -24,11 +24,10 @@ export type AppShellSession = {
 export function Header({session}: {session: AppShellSession}) {
   const email = session?.user?.email ?? null;
   const router = useRouter();
-  console.log(email);
   const signOutMutation = useMutation({
     mutationFn: async () => {
-      const res = await authClient.signOut();
-      if (res.error) throw res.error;
+      const res = await signOutAction();
+      if ("error" in res && res.error) throw new Error(res.error);
       return res;
     },
     onSuccess: () => {

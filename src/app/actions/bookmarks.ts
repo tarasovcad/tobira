@@ -1,6 +1,5 @@
 "use server";
 
-import {createClient} from "@/components/utils/supabase/server";
 import {auth} from "@/lib/auth";
 import {
   extractDescriptionFromHtml,
@@ -17,6 +16,12 @@ import {headers} from "next/headers";
 import {Client} from "@upstash/qstash";
 import {randomUUID} from "crypto";
 import {createClient as createSupabaseClient, type SupabaseClient} from "@supabase/supabase-js";
+import {db} from "@/db";
+import {bookmarks, bookmarkTags, bookmarkCollections, tags} from "@/db/schema";
+import {and, eq, inArray, notInArray, asc, desc, exists, isNull} from "drizzle-orm";
+import type {Bookmark} from "@/components/bookmark/types";
+import {normalizeTagNames} from "@/lib/utils";
+
 export type AddWebsiteBookmarkResult = {
   ok: true;
   url: string;
@@ -104,6 +109,97 @@ export async function fetchUrlMetadata(
   return result;
 }
 
+/**
+ * Attach tags to a bookmark using upsert logic (replaces the attach_tags_to_bookmark RPC).
+ * Tags are created if they don't exist, then linked to the bookmark.
+ */
+async function attachTagsToBookmark(bookmarkId: string, userId: string, rawTagNames: string[]) {
+  if (!bookmarkId || !userId) {
+    throw new Error("bookmarkId and userId are required");
+  }
+
+  const cleanedTagNames = normalizeTagNames(rawTagNames);
+  if (cleanedTagNames.length === 0) return;
+
+  // Upsert tags and RETURN the IDs
+  // We use DO UPDATE so that we always get the ID back, even if it already existed.
+  const upsertedTags = await db
+    .insert(tags)
+    .values(cleanedTagNames.map((name) => ({name, userId})))
+    .onConflictDoUpdate({
+      target: [tags.userId, tags.name],
+      set: {updatedAt: new Date().toISOString()},
+    })
+    .returning({id: tags.id});
+
+  // Link to bookmark using the IDs directly from the upsert
+  if (upsertedTags.length > 0) {
+    await db
+      .insert(bookmarkTags)
+      .values(upsertedTags.map((t) => ({bookmarkId, tagId: t.id})))
+      .onConflictDoNothing();
+  }
+}
+
+/**
+ * Sync bookmark tags — replaces the sync_bookmark_tags RPC.
+ * Removes tags not in the new list, adds tags not yet attached.
+ */
+async function syncBookmarkTags(bookmarkId: string, userId: string, rawTagNames: string[]) {
+  if (!bookmarkId || !userId) {
+    throw new Error("invalid input");
+  }
+
+  // Ensure bookmark belongs to user and is not deleted
+  const [bookmarkExists] = await db
+    .select({id: bookmarks.id})
+    .from(bookmarks)
+    .where(
+      and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId), isNull(bookmarks.deletedAt)),
+    );
+
+  if (!bookmarkExists) {
+    throw new Error("bookmark not found");
+  }
+
+  const cleanedTagNames = normalizeTagNames(rawTagNames);
+
+  if (cleanedTagNames.length === 0) {
+    // Remove all existing tag links
+    await db.delete(bookmarkTags).where(eq(bookmarkTags.bookmarkId, bookmarkId));
+    return;
+  }
+
+  // Ensure tags exist (using DO NOTHING to avoid unnecessary updated_at churn)
+  await db
+    .insert(tags)
+    .values(cleanedTagNames.map((name) => ({name, userId})))
+    .onConflictDoNothing();
+
+  // Fetch the actual IDs for our desired tags
+  const desiredTags = await db
+    .select({id: tags.id})
+    .from(tags)
+    .where(and(eq(tags.userId, userId), inArray(tags.name, cleanedTagNames)));
+
+  const desiredTagIds = desiredTags.map((t) => t.id);
+
+  if (desiredTagIds.length === 0) return; // Should not happen safely
+
+  // Attach missing joins
+  await db
+    .insert(bookmarkTags)
+    .values(desiredTagIds.map((tagId) => ({bookmarkId, tagId})))
+    .onConflictDoNothing();
+
+  // Remove joins that are no longer desired
+  await db
+    .delete(bookmarkTags)
+    .where(
+      and(eq(bookmarkTags.bookmarkId, bookmarkId), notInArray(bookmarkTags.tagId, desiredTagIds)),
+    );
+}
+
 export async function addWebsiteBookmark(input: {
   url: string;
   tags?: string[];
@@ -114,9 +210,7 @@ export async function addWebsiteBookmark(input: {
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
   let normalized: URL;
   try {
@@ -132,66 +226,44 @@ export async function addWebsiteBookmark(input: {
     throw new Error(e instanceof Error ? e.message : "Failed to fetch metadata");
   }
 
-  const supabase = await createClient();
-
   const bookmarkId = randomUUID();
 
-  const {data, error} = await supabase
-    .from("bookmarks")
-    .insert({
-      id: bookmarkId,
-      url: normalized.toString(),
-      title: metadata.title ?? null,
-      user_id: session.user.id,
-      description: metadata.description ?? null,
-      kind: input.kind ?? "website",
-      preview_image: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-previews/${bookmarkId}/preview.png`,
-    })
-    .select("id")
-    .single();
+  await db.insert(bookmarks).values({
+    id: bookmarkId,
+    url: normalized.toString(),
+    title: metadata.title ?? null,
+    userId: session.user.id,
+    description: metadata.description ?? null,
+    kind: input.kind ?? "website",
+    previewImage: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-previews/${bookmarkId}/preview.png`,
+  });
 
-  if (error) throw error;
-
-  // attach tags (bookmark creation should still succeed if tagging fails)
-  const tagNames = (input.tags ?? [])
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"}));
-  if (tagNames.length > 0) {
-    const {error: tagsError} = await supabase.rpc("attach_tags_to_bookmark", {
-      p_bookmark_id: data.id,
-      p_user_id: session.user.id,
-      p_tag_names: tagNames,
-    });
-    if (tagsError) {
-      console.error("Failed to attach tags to bookmark:", tagsError);
+  // Attach tags (bookmark creation should still succeed if tagging fails)
+  if (input.tags && input.tags.length > 0) {
+    try {
+      await attachTagsToBookmark(bookmarkId, session.user.id, input.tags);
+    } catch (e) {
+      console.error("Failed to attach tags to bookmark:", e);
     }
   }
 
-  // attach to collection if provided
+  // Attach to collection if provided
   if (input.collectionId) {
-    const {error: collectionError} = await supabase.from("bookmark_collections").insert({
-      bookmark_id: data.id,
-      collection_id: input.collectionId,
-    });
-    if (collectionError) {
-      console.error("Failed to attach bookmark to collection:", collectionError);
+    try {
+      await db.insert(bookmarkCollections).values({
+        bookmarkId,
+        collectionId: input.collectionId,
+      });
+    } catch (e) {
+      console.error("Failed to attach bookmark to collection:", e);
     }
   }
-
-  const receiverUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/enrich-bookmark`;
 
   await qstash.publishJSON({
-    url: receiverUrl,
-    body: {
-      url: normalized.toString(),
-      id: data.id,
-    },
-    idempotencyKey: `bookmark-${data.id}`,
-    headers: {
-      "x-job-type": "enrich-bookmark",
-      "x-version": "v1",
-    },
+    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/enrich-bookmark`,
+    body: {url: normalized.toString(), id: bookmarkId},
+    idempotencyKey: `bookmark-${bookmarkId}`,
+    headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
     timeout: 30,
   });
 
@@ -228,7 +300,6 @@ async function processAndUploadMediaImage(
     const contentType = imageRes.headers.get("content-type") || fallbackContentType;
     let extension = contentType.split("/")[1]?.replace("jpeg", "jpg") || fallbackExtension;
 
-    // Handle cases where content-type is weird or missing but it's clearly a video
     if (
       isVideo &&
       !extension.includes("mp4") &&
@@ -242,10 +313,7 @@ async function processAndUploadMediaImage(
 
     const {error: uploadError} = await serviceRoleSupabase.storage
       .from("bookmark-media")
-      .upload(filePath, imageBuffer, {
-        contentType,
-        upsert: true,
-      });
+      .upload(filePath, imageBuffer, {contentType, upsert: true});
 
     if (uploadError) {
       console.error("Failed to upload to Supabase storage:", uploadError);
@@ -256,30 +324,6 @@ async function processAndUploadMediaImage(
   } catch (err) {
     console.error("Failed to fetch media for storage:", err);
     return mediaUrl;
-  }
-}
-
-async function attachBookmarkTags(
-  supabase: SupabaseClient,
-  bookmarkId: string,
-  userId: string,
-  tags?: string[],
-) {
-  const tagNames = (tags ?? [])
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"}));
-
-  if (tagNames.length === 0) return;
-
-  const {error} = await supabase.rpc("attach_tags_to_bookmark", {
-    p_bookmark_id: bookmarkId,
-    p_user_id: userId,
-    p_tag_names: tagNames,
-  });
-
-  if (error) {
-    console.error("Failed to attach tags to bookmark:", error);
   }
 }
 
@@ -309,18 +353,13 @@ export async function addMediaBookmark(input: {
     (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
   );
 
-  if (!isAllowedDomain) {
-    throw new Error("Domain not supported for media bookmarks");
-  }
+  if (!isAllowedDomain) throw new Error("Domain not supported for media bookmarks");
 
   const isXDomain = ["x.com", "twitter.com", "www.x.com", "www.twitter.com"].includes(hostname);
-
-  if (!isXDomain) {
+  if (!isXDomain)
     throw new Error("Only X (Twitter) URLs are currently supported for media bookmarks.");
-  }
 
   let mediaUrls: string[] = [];
-
   const extractedMetadata = await extractXMedia(normalized.toString());
 
   if (extractedMetadata?.hasMedia === false) {
@@ -331,14 +370,12 @@ export async function addMediaBookmark(input: {
     mediaUrls = extractedMetadata.mediaURLs;
   }
 
-  // Prompt user if multiple media options exist and none selected
   if (!input.selectedMediaUrls && mediaUrls.length > 1) {
     return {ok: true, url: input.url, media: mediaUrls};
   }
 
   const urlsToCreate = input.selectedMediaUrls?.length ? input.selectedMediaUrls : mediaUrls;
 
-  const supabase = await createClient();
   const serviceRoleSupabase = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -377,8 +414,8 @@ export async function addMediaBookmark(input: {
       let metadataToSave = null;
 
       if (extractedMetadata) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const {media_extended: _media_extended, ...restMetadata} = extractedMetadata;
-
         metadataToSave = {
           ...restMetadata,
           width: mediaInfo?.size?.width || null,
@@ -391,40 +428,29 @@ export async function addMediaBookmark(input: {
         id: bookmarkId,
         url: normalized.toString(),
         description: extractedMetadata?.text || null,
-        user_id: session.user.id,
-        kind: "media",
-        preview_image: previewImage,
+        userId: session.user.id,
+        kind: "media" as const,
+        previewImage,
         metadata: metadataToSave,
       };
     },
   );
 
-  const {error: insertError} = await supabase.from("bookmarks").insert(bookmarksToInsert);
-
-  if (insertError) {
-    console.error("Error creating media bookmarks:", insertError);
-    throw insertError;
-  }
+  await db.insert(bookmarks).values(bookmarksToInsert);
 
   if (input.collectionId) {
-    const collectionsToInsert = processedItems.map(({bookmarkId}) => ({
-      bookmark_id: bookmarkId,
-      collection_id: input.collectionId,
-    }));
-
-    const {error: collectionError} = await supabase
-      .from("bookmark_collections")
-      .insert(collectionsToInsert);
-
-    if (collectionError) {
-      console.error("Failed to attach bookmarks to collection:", collectionError);
-    }
+    await db
+      .insert(bookmarkCollections)
+      .values(
+        processedItems.map(({bookmarkId}) => ({bookmarkId, collectionId: input.collectionId!})),
+      )
+      .onConflictDoNothing();
   }
 
   if (input.tags && input.tags.length > 0) {
     await Promise.all(
       processedItems.map(({bookmarkId}) =>
-        attachBookmarkTags(supabase, bookmarkId, session.user.id, input.tags),
+        attachTagsToBookmark(bookmarkId, session.user.id, input.tags!),
       ),
     );
   }
@@ -445,42 +471,27 @@ export async function updateBookmark(
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
   const hasTagUpdate = updates.tags !== undefined;
 
-  // Only include fields that are actually present in the updates object
-  const updateData: Record<string, string> = {};
-  if (updates.title !== undefined) updateData.title = updates.title;
-  if (updates.description !== undefined) updateData.description = updates.description;
-  if (updates.preview_image !== undefined) updateData.preview_image = updates.preview_image;
-  if (updates.notes !== undefined) updateData.notes = updates.notes;
+  const setFields: Record<string, string | null> = {};
+  if (updates.title !== undefined) setFields.title = updates.title;
+  if (updates.description !== undefined) setFields.description = updates.description;
+  if (updates.preview_image !== undefined) setFields.previewImage = updates.preview_image;
+  if (updates.notes !== undefined) setFields.notes = updates.notes;
 
-  // If no fields to update, return early
-  if (Object.keys(updateData).length === 0 && !hasTagUpdate) {
-    return {ok: true};
+  if (Object.keys(setFields).length === 0 && !hasTagUpdate) return {ok: true};
+
+  if (Object.keys(setFields).length > 0) {
+    await db
+      .update(bookmarks)
+      .set({...setFields, updatedAt: new Date().toISOString()})
+      .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, session.user.id)));
   }
 
-  const supabase = await createClient();
-
-  // Update bookmark fields
-  const {error: updateError} = await supabase
-    .from("bookmarks")
-    .update({...updateData, updated_at: new Date().toISOString()})
-    .eq("id", bookmarkId)
-    .eq("user_id", session.user.id);
-
-  if (updateError) throw updateError;
-
   if (hasTagUpdate) {
-    const {error: tagError} = await supabase.rpc("sync_bookmark_tags", {
-      p_bookmark_id: bookmarkId,
-      p_user_id: session.user.id,
-      p_tag_names: updates.tags ?? [],
-    });
-    if (tagError) throw tagError;
+    await syncBookmarkTags(bookmarkId, session.user.id, updates.tags ?? []);
   }
 
   return {ok: true};
@@ -491,21 +502,14 @@ export async function deleteBookmarks(bookmarkIds: string | string[]): Promise<{
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
   const ids = Array.isArray(bookmarkIds) ? bookmarkIds : [bookmarkIds];
 
-  const supabase = await createClient();
-
-  const {error} = await supabase
-    .from("bookmarks")
-    .update({deleted_at: new Date().toISOString()})
-    .in("id", ids)
-    .eq("user_id", session.user.id);
-
-  if (error) throw error;
+  await db
+    .update(bookmarks)
+    .set({deletedAt: new Date().toISOString()})
+    .where(and(eq(bookmarks.userId, session.user.id), inArray(bookmarks.id, ids)));
 
   return {ok: true};
 }
@@ -515,21 +519,15 @@ export async function archiveBookmarks(bookmarkIds: string | string[]): Promise<
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
   const ids = Array.isArray(bookmarkIds) ? bookmarkIds : [bookmarkIds];
+  const now = new Date().toISOString();
 
-  const supabase = await createClient();
-
-  const {error} = await supabase
-    .from("bookmarks")
-    .update({archived_at: new Date().toISOString(), updated_at: new Date().toISOString()})
-    .in("id", ids)
-    .eq("user_id", session.user.id);
-
-  if (error) throw error;
+  await db
+    .update(bookmarks)
+    .set({archivedAt: now, updatedAt: now})
+    .where(and(eq(bookmarks.userId, session.user.id), inArray(bookmarks.id, ids)));
 
   return {ok: true};
 }
@@ -539,54 +537,31 @@ export async function resetBookmark(bookmarkId: string): Promise<{ok: true}> {
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  if (!session) throw new Error("Unauthorized");
 
-  const supabase = await createClient();
+  const [bookmark] = await db
+    .select({id: bookmarks.id, url: bookmarks.url})
+    .from(bookmarks)
+    .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, session.user.id)));
 
-  // Look up the bookmark to get its URL
-  const {data: bookmark, error: fetchError} = await supabase
-    .from("bookmarks")
-    .select("id, url")
-    .eq("id", bookmarkId)
-    .eq("user_id", session.user.id)
-    .single();
+  if (!bookmark) throw new Error("Bookmark not found");
 
-  if (fetchError || !bookmark) {
-    throw new Error("Bookmark not found");
-  }
-
-  // Re-fetch metadata (title, description) from the original URL
   const normalized = normalizeInputUrl(bookmark.url);
   const metadata = await fetchUrlMetadata(normalized, bookmark.url);
 
-  // Update the bookmark row with fresh metadata
-  const {error: updateError} = await supabase
-    .from("bookmarks")
-    .update({
+  await db
+    .update(bookmarks)
+    .set({
       title: metadata.title ?? null,
       description: metadata.description ?? null,
-      updated_at: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     })
-    .eq("id", bookmarkId)
-    .eq("user_id", session.user.id);
-
-  if (updateError) throw updateError;
-
-  // Queue a QStash job to re-fetch favicon, OG image, and screenshot
-  const receiverUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/enrich-bookmark`;
+    .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, session.user.id)));
 
   await qstash.publishJSON({
-    url: receiverUrl,
-    body: {
-      url: normalized.toString(),
-      id: bookmark.id,
-    },
-    headers: {
-      "x-job-type": "enrich-bookmark",
-      "x-version": "v1",
-    },
+    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/enrich-bookmark`,
+    body: {url: normalized.toString(), id: bookmark.id},
+    headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
     timeout: 30,
   });
 
@@ -605,64 +580,90 @@ export async function fetchBookmarksPageAction(params: {
     headers: await headers(),
   });
 
-  if (!session) {
-    throw new Error("Unauthorized");
+  if (!session) throw new Error("Unauthorized");
+
+  const userId = session.user.id;
+  const {offset, limit, sort, tagFilter, collectionFilter, typeFilter} = params;
+
+  const baseFilters = [
+    eq(bookmarks.userId, userId),
+    isNull(bookmarks.archivedAt),
+    isNull(bookmarks.deletedAt),
+    eq(bookmarks.kind, typeFilter as "website" | "media"),
+  ];
+
+  if (tagFilter) {
+    baseFilters.push(
+      exists(
+        db
+          .select()
+          .from(bookmarkTags)
+          .innerJoin(tags, eq(bookmarkTags.tagId, tags.id))
+          .where(and(eq(bookmarkTags.bookmarkId, bookmarks.id), eq(tags.name, tagFilter))),
+      ),
+    );
   }
 
-  const supabase = await createClient();
-
-  const bookmarksSelect = getBookmarksSelect(params.tagFilter, params.collectionFilter);
-
-  let q =
-    params.offset === 0
-      ? supabase.from("bookmarks").select(bookmarksSelect as "*", {count: "exact"})
-      : supabase.from("bookmarks").select(bookmarksSelect as "*");
-
-  q = q
-    .eq("user_id", session.user.id)
-    .is("archived_at", null)
-    .is("deleted_at", null)
-    .eq("kind", params.typeFilter);
-
-  if (params.tagFilter) {
-    q = q.eq("bookmark_tags.tags.name", params.tagFilter);
-  }
-  if (params.collectionFilter) {
-    q = q.eq("bookmark_collections.collection_id", params.collectionFilter);
+  if (collectionFilter) {
+    baseFilters.push(
+      exists(
+        db
+          .select()
+          .from(bookmarkCollections)
+          .where(
+            and(
+              eq(bookmarkCollections.bookmarkId, bookmarks.id),
+              eq(bookmarkCollections.collectionId, collectionFilter),
+            ),
+          ),
+      ),
+    );
   }
 
-  switch (params.sort) {
-    case "oldest":
-      q = q.order("created_at", {ascending: true});
-      break;
-    case "az":
-      q = q.order("title", {ascending: true}).order("id", {ascending: true});
-      break;
-    case "recent":
-    default:
-      q = q.order("created_at", {ascending: false});
-      break;
-  }
+  const orderBy = (() => {
+    switch (sort) {
+      case "oldest":
+        return [asc(bookmarks.createdAt)];
+      case "az":
+        return [asc(bookmarks.title), asc(bookmarks.id)];
+      default:
+        return [desc(bookmarks.createdAt)];
+    }
+  })();
 
-  const {data, count, error} = await q.range(params.offset, params.offset + params.limit - 1);
+  const rows = await db.query.bookmarks.findMany({
+    where: and(...baseFilters),
+    with: {
+      bookmarkTags: {with: {tag: true}},
+      bookmarkCollections: {with: {collection: true}},
+    },
+    limit,
+    offset,
+    orderBy,
+  });
 
-  if (error) throw error;
+  const data: Bookmark[] = rows.map((row) => ({
+    id: row.id,
+    kind: (row.kind as "website" | "media") || "website",
+    title: row.title || "",
+    description: row.description || "",
+    url: row.url,
+    user_id: row.userId,
+    preview_image: row.previewImage || "",
+    created_at: row.createdAt,
+    updated_at: row.updatedAt || row.createdAt,
+    archived_at: row.archivedAt || "",
+    deleted_at: row.deletedAt || "",
+    notes: row.notes || "",
+    metadata: row.metadata as Bookmark["metadata"],
+    tags: row.bookmarkTags
+      .map((bt) => bt.tag.name)
+      .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"})),
+    collections: row.bookmarkCollections.map((bc) => ({
+      id: bc.collection.id,
+      name: bc.collection.name,
+    })),
+  }));
 
-  return {data, count};
-}
-
-/**
- * Builds the Supabase select string based on active filters.
- * Using !inner joins for filtering ensures we only get rows that have the associated records.
- */
-function getBookmarksSelect(tagFilter: string | null, collectionFilter: string | null): string {
-  const tagsJoin = tagFilter
-    ? "bookmark_tags!inner(tags!inner(name))"
-    : "bookmark_tags(tags(name))";
-
-  const collectionsJoin = collectionFilter
-    ? "bookmark_collections!inner(collections(id, name))"
-    : "bookmark_collections(collections(id, name))";
-
-  return `*, ${tagsJoin}, ${collectionsJoin}`;
+  return {data, count: null};
 }
