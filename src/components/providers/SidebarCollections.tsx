@@ -3,6 +3,7 @@
 import React, {useEffect, useState} from "react";
 import {usePathname, useSearchParams, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
+import {useHasMounted} from "@/lib/useHasMounted";
 import {buttonVariants} from "../shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
 import {useQuery} from "@tanstack/react-query";
@@ -23,6 +24,63 @@ export function SidebarCollections({
   allCollections?: Collection[];
   isAuthenticated?: boolean;
   userId?: string;
+}) {
+  const hasMounted = useHasMounted();
+
+  if (!hasMounted) {
+    return (
+      <SidebarCollectionsContent
+        collections={allCollections ?? []}
+        isFetching={false}
+        isAuthenticated={isAuthenticated}
+      />
+    );
+  }
+
+  return (
+    <SidebarCollectionsWithQuery
+      allCollections={allCollections}
+      isAuthenticated={isAuthenticated}
+      userId={userId}
+    />
+  );
+}
+
+function SidebarCollectionsWithQuery({
+  allCollections,
+  isAuthenticated = false,
+  userId,
+}: {
+  allCollections?: Collection[];
+  isAuthenticated?: boolean;
+  userId?: string;
+}) {
+  const {data: collections = [], isFetching} = useQuery({
+    queryKey: ["collections", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return await getCollections(userId);
+    },
+    initialData: allCollections ?? [],
+  });
+
+  return (
+    <SidebarCollectionsContent
+      collections={collections}
+      isFetching={isFetching}
+      isAuthenticated={isAuthenticated}
+    />
+  );
+}
+
+function SidebarCollectionsContent({
+  collections,
+  isFetching,
+  isAuthenticated = false,
+}: {
+  collections: Collection[];
+  isFetching: boolean;
+  isAuthenticated?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -57,17 +115,8 @@ export function SidebarCollections({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [collectionSelectionMode]);
 
-  const {data: collections, isFetching} = useQuery({
-    queryKey: ["collections", userId],
-    queryFn: async () => {
-      if (!userId) return [];
-      return await getCollections(userId);
-    },
-    initialData: allCollections,
-  });
-
   const selectedCollectionCount = selectedCollectionIds.size;
-  const allCollectionsSelected = collections?.length
+  const allCollectionsSelected = collections.length
     ? selectedCollectionCount === collections.length
     : false;
 
@@ -79,13 +128,12 @@ export function SidebarCollections({
   const handleSelectAllCollections = React.useCallback(() => {
     if (allCollectionsSelected) {
       setSelectedCollectionIds(new Set());
-    } else if (collections) {
+    } else {
       setSelectedCollectionIds(new Set(collections.map((c) => c.id)));
     }
   }, [allCollectionsSelected, collections]);
 
   const handleDeleteSelectedCollections = React.useCallback(() => {
-    if (!collections) return;
     const selectedCols = collections.filter((c) => selectedCollectionIds.has(c.id));
     if (selectedCols.length === 0) return;
     openDeleteDialog(selectedCols, handleClearCollectionSelection);
@@ -180,7 +228,7 @@ export function SidebarCollections({
         </div>
         <div className="flex flex-col gap-0.5">
           <AnimatePresence initial={false}>
-            {collectionsExpanded && collections?.length === 0 && !isFetching && (
+            {collectionsExpanded && collections.length === 0 && !isFetching && (
               <motion.div
                 initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
                 animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
@@ -215,7 +263,7 @@ export function SidebarCollections({
               </motion.div>
             )}
             {isFetching &&
-              (!collections || collections.length === 0) &&
+              collections.length === 0 &&
               [1, 2, 3, 4].map((i, idx) => (
                 <SidebarCollectionSkeleton
                   key={`col-skeleton-${i}`}
@@ -223,7 +271,7 @@ export function SidebarCollections({
                 />
               ))}
             {collectionsExpanded &&
-              collections?.map((c, index) => {
+              collections.map((c, index) => {
                 const isActive = pathname === "/home" && searchParams.get("collection") === c.id;
                 return (
                   <SidebarCollectionItem
