@@ -20,9 +20,6 @@ export function ListSkeleton() {
             <div className="mt-3">
               <Skeleton className="h-4 w-80 rounded-[2px]" />
             </div>
-            <div className="mt-1.5">
-              <Skeleton className="h-4 w-64 rounded-[2px]" />
-            </div>
           </>
         )}
         {contentToggles.tags && (

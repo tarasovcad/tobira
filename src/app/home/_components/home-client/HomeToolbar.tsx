@@ -2,7 +2,7 @@
 
 import {cn} from "@/lib/utils";
 import ViewOptionsMenu from "../ViewOptionsMenu";
-import type {TypeFilter, SortMode} from "../AllItemsToolbar";
+import type {TypeFilter, SortMode} from "../../_types";
 import {Button} from "@/components/coss-ui/button";
 import {AnimatePresence, motion} from "framer-motion";
 import {TypeSelect, SortSelect} from "../AllItemsToolbar";

@@ -1,4 +1,4 @@
-import type {TypeFilter} from "../AllItemsToolbar";
+import type {TypeFilter} from "../../_types";
 import type {BorderRadius, ColumnSize, GridGap, ViewMode} from "@/store/use-view-options";
 
 export const ALL_ITEMS_SUPPORTED_VIEWS = [

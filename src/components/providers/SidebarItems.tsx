@@ -7,7 +7,25 @@ import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
 import {useRouter} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
-import type {TagWithCount} from "@/app/home/_types";
+import type {SidebarTag} from "@/app/home/_types";
+import {Skeleton} from "@/components/ui/skeleton";
+
+export function SidebarCollectionSkeleton({width}: {width?: string}) {
+  return (
+    <div className="flex w-full items-center gap-1 rounded-md px-3 py-2">
+      <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
+    </div>
+  );
+}
+
+export function SidebarTagSkeleton({width}: {width?: string}) {
+  return (
+    <div className="flex w-full items-center justify-between rounded-md px-3 py-2">
+      <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
+      <Skeleton className="ml-10 h-5 w-5 shrink-0 animate-pulse rounded-sm" />
+    </div>
+  );
+}
 
 interface SidebarCollectionItemProps {
   collection: Collection;
@@ -136,7 +154,7 @@ export function SidebarCollectionItem({
 }
 
 interface SidebarTagItemProps {
-  tag: TagWithCount;
+  tag: SidebarTag;
   index: number;
   isActive: boolean;
   selectionMode: boolean;

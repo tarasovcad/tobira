@@ -28,7 +28,7 @@ import {TagNotFoundState} from "./home-client/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
-import type {TypeFilter, SortMode} from "./AllItemsToolbar";
+import type {TypeFilter, SortMode} from "../_types";
 import type {TagWithCount} from "../_types";
 
 /**
@@ -38,13 +38,13 @@ import type {TagWithCount} from "../_types";
 export function HomeClient({
   userId,
   initialBookmarks,
-  initialTags,
+  initialActiveTag,
   totalCount,
   serverFilters,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
-  initialTags: TagWithCount[];
+  initialActiveTag: TagWithCount | null;
   totalCount: number;
   serverFilters?: {
     tagFilter: string | null;
@@ -78,7 +78,7 @@ export function HomeClient({
   } = useBookmarksQuery({
     userId,
     initialBookmarks,
-    initialTags,
+    initialActiveTag,
     totalCount,
     sort,
     tagFilter,

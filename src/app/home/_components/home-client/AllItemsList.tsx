@@ -4,7 +4,7 @@ import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import Spinner from "@/components/ui/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {TypeFilter} from "../AllItemsToolbar";
+import type {TypeFilter} from "../../_types";
 import type {ViewMode} from "@/store/use-view-options";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {

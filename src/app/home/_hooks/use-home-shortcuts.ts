@@ -1,6 +1,6 @@
 import {useEffect, useRef} from "react";
 import type {ViewMode} from "@/store/use-view-options";
-import type {TypeFilter} from "../_components/AllItemsToolbar";
+import type {TypeFilter} from "../_types";
 import {getNextAllItemsView} from "../_components/all-items-client/all-items-list-view-options";
 
 interface UseHomeShortcutsProps {

@@ -2,8 +2,7 @@
 
 import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
 
-export type TypeFilter = "website" | "media";
-export type SortMode = "recent" | "oldest" | "az";
+import type {TypeFilter, SortMode} from "../_types";
 
 function getTypeLabel(value: TypeFilter) {
   switch (value) {

@@ -17,6 +17,7 @@ import {Avatar} from "@/components/ui/avatar";
 export type AppShellSession = {
   session: Session;
   user?: {
+    id: string;
     email?: string | null;
   } | null;
 } | null;

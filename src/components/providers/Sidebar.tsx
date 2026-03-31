@@ -9,13 +9,15 @@ import {SidebarSettings} from "./SidebarSettings";
 import {AnimatePresence, motion} from "framer-motion";
 
 export function Sidebar({
-  tags: initialTags,
-  collections: initialCollections,
+  allTags,
+  allCollections,
   isAuthenticated = false,
+  userId,
 }: {
-  tags?: SidebarTagsType;
-  collections?: Collection[];
+  allTags?: SidebarTagsType;
+  allCollections?: Collection[];
   isAuthenticated?: boolean;
+  userId?: string;
 }) {
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -60,9 +62,10 @@ export function Sidebar({
               ease: "easeOut",
             }}>
             <SidebarMain
-              initialTags={initialTags}
-              initialCollections={initialCollections}
+              allTags={allTags}
+              allCollections={allCollections}
               isAuthenticated={isAuthenticated}
+              userId={userId}
               onShowSettings={() => setShowSettings(true)}
             />
           </motion.div>

@@ -9,19 +9,20 @@ import {useQuery} from "@tanstack/react-query";
 import {getCollections} from "@/app/actions/collections";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
-import {SidebarCollectionItem} from "./SidebarItems";
+import {SidebarCollectionItem, SidebarCollectionSkeleton} from "./SidebarItems";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
-import Spinner from "@/components/ui/spinner";
 
 export function SidebarCollections({
-  initialCollections,
+  allCollections,
   isAuthenticated = false,
+  userId,
 }: {
-  initialCollections?: Collection[];
+  allCollections?: Collection[];
   isAuthenticated?: boolean;
+  userId?: string;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -57,9 +58,12 @@ export function SidebarCollections({
   }, [collectionSelectionMode]);
 
   const {data: collections, isFetching} = useQuery({
-    queryKey: ["collections"],
-    queryFn: async () => await getCollections(),
-    initialData: initialCollections,
+    queryKey: ["collections", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return await getCollections(userId);
+    },
+    initialData: allCollections,
   });
 
   const selectedCollectionCount = selectedCollectionIds.size;
@@ -176,7 +180,7 @@ export function SidebarCollections({
         </div>
         <div className="flex flex-col gap-0.5">
           <AnimatePresence initial={false}>
-            {collectionsExpanded && collections?.length === 0 && (
+            {collectionsExpanded && collections?.length === 0 && !isFetching && (
               <motion.div
                 initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
                 animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
@@ -210,7 +214,14 @@ export function SidebarCollections({
                 </button>
               </motion.div>
             )}
-            {isFetching && !collections && <Spinner className="mx-auto my-5 size-4 opacity-70" />}
+            {isFetching &&
+              (!collections || collections.length === 0) &&
+              [1, 2, 3, 4].map((i, idx) => (
+                <SidebarCollectionSkeleton
+                  key={`col-skeleton-${i}`}
+                  width={["w-[60%]", "w-[40%]", "w-[75%]", "w-[50%]"][idx % 4]}
+                />
+              ))}
             {collectionsExpanded &&
               collections?.map((c, index) => {
                 const isActive = pathname === "/home" && searchParams.get("collection") === c.id;

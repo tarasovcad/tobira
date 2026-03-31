@@ -81,6 +81,7 @@ export function TagDialog() {
     onSuccess: (_, variables) => {
       setSubmitSuccess(true);
       queryClient.invalidateQueries({queryKey: ["tags"]});
+      queryClient.invalidateQueries({queryKey: ["active-tag"]});
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
 
       // If the name changed and we are currently viewing this tag, update the URL

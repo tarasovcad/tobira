@@ -5,18 +5,17 @@ import {useSearchParams} from "next/navigation";
 import {cn, normalizeTagName} from "@/lib/utils";
 import {AnimatePresence} from "framer-motion";
 import {useQuery} from "@tanstack/react-query";
-import {getTags} from "@/app/actions/tags";
+import {getSidebarTags} from "@/app/actions/tags";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
-import {SidebarTagItem} from "./SidebarItems";
+import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
-import type {TagWithCount} from "@/app/home/_types";
-import Spinner from "@/components/ui/spinner";
+import type {SidebarTag} from "@/app/home/_types";
 
-export type SidebarTagsType = TagWithCount[];
+export type SidebarTagsType = SidebarTag[];
 
-export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
+export function SidebarTags({allTags, userId}: {allTags?: SidebarTagsType; userId?: string}) {
   const searchParams = useSearchParams();
   const {copyText} = useClipboardCopy(2000, {toast: true});
 
@@ -40,9 +39,12 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
   }, [tagSelectionMode]);
 
   const {data: tags, isFetching} = useQuery({
-    queryKey: ["tags"],
-    queryFn: async () => await getTags(),
-    initialData: initialTags,
+    queryKey: ["tags", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return await getSidebarTags(userId);
+    },
+    initialData: allTags,
   });
 
   const selectedCount = selectedTagIds.size;
@@ -131,10 +133,17 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           />
         </div>
         <div className="flex flex-col gap-0.5 pb-2">
-          {isFetching && !tags && <Spinner className="mx-auto my-5 size-4 opacity-70" />}
+          {isFetching &&
+            (!tags || tags.length === 0) &&
+            [1, 2, 3, 4, 5].map((i, idx) => (
+              <SidebarTagSkeleton
+                key={`tag-skeleton-${i}`}
+                width={["w-[50%]", "w-[70%]", "w-[40%]", "w-[60%]", "w-[45%]"][idx % 5]}
+              />
+            ))}
           <AnimatePresence initial={false}>
             {tagsExpanded &&
-              tags?.map((tag, index) => {
+              allTags?.map((tag, index) => {
                 const isActive = activeTag === normalizeTagName(tag.name);
                 return (
                   <SidebarTagItem

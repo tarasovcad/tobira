@@ -10,17 +10,19 @@ import {SidebarCollections} from "./SidebarCollections";
 import {cn} from "@/lib/utils";
 
 interface SidebarMainProps {
-  initialTags?: SidebarTagsType;
-  initialCollections?: Collection[];
+  allTags?: SidebarTagsType;
+  allCollections?: Collection[];
   isAuthenticated?: boolean;
   onShowSettings: () => void;
+  userId?: string;
 }
 
 export function SidebarMain({
-  initialTags,
-  initialCollections,
+  allTags,
+  allCollections,
   isAuthenticated = false,
   onShowSettings,
+  userId,
 }: SidebarMainProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -61,14 +63,15 @@ export function SidebarMain({
             className="**:data-[slot=scroll-area-scrollbar]:m-0.5"
             viewportProps={{tabIndex: -1}}>
             <SidebarCollections
-              initialCollections={initialCollections}
+              allCollections={allCollections}
               isAuthenticated={isAuthenticated}
+              userId={userId}
             />
             <div className="px-3">
               <div className="bg-border my-4 h-px w-full" />
             </div>
 
-            <SidebarTags initialTags={initialTags} />
+            <SidebarTags allTags={allTags} userId={userId} />
           </ScrollArea>
         </div>
       </div>

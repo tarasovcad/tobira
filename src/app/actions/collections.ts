@@ -1,10 +1,10 @@
 "use server";
 
-import {auth} from "@/lib/auth";
-import {headers} from "next/headers";
 import {db} from "@/db";
 import {collections} from "@/db/schema";
 import {and, desc, eq, inArray} from "drizzle-orm";
+import {NotFoundError, UnauthorizedError} from "@/lib/errors";
+import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth-session";
 
 export type Collection = {
   id: string;
@@ -28,17 +28,21 @@ function mapCollection(row: typeof collections.$inferSelect): Collection {
   };
 }
 
-export async function getCollections(): Promise<Collection[]> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+export async function getCollections(userId?: string): Promise<Collection[]> {
+  const currentUserId = await getCurrentUserId();
 
-  if (!session) return [];
+  if (!currentUserId) {
+    return [];
+  }
+
+  if (userId && userId !== currentUserId) {
+    throw new UnauthorizedError();
+  }
 
   const data = await db
     .select()
     .from(collections)
-    .where(eq(collections.userId, session.user.id))
+    .where(eq(collections.userId, currentUserId))
     .orderBy(desc(collections.isPinned), desc(collections.createdAt));
 
   return data.map(mapCollection);
@@ -50,11 +54,7 @@ export async function createCollection(data: {
   color?: string;
   icon?: string;
 }): Promise<Collection> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) throw new Error("Unauthorized");
+  const userId = await requireAuthenticatedUserId();
 
   const [newCollection] = await db
     .insert(collections)
@@ -63,7 +63,7 @@ export async function createCollection(data: {
       description: data.description ?? null,
       color: data.color ?? null,
       icon: data.icon ?? null,
-      userId: session.user.id,
+      userId,
     })
     .returning();
 
@@ -71,17 +71,13 @@ export async function createCollection(data: {
 }
 
 export async function deleteCollections(ids: string | string[]): Promise<true> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) throw new Error("Unauthorized");
+  const userId = await requireAuthenticatedUserId();
 
   const idsArray = Array.isArray(ids) ? ids : [ids];
 
   await db
     .delete(collections)
-    .where(and(eq(collections.userId, session.user.id), inArray(collections.id, idsArray)));
+    .where(and(eq(collections.userId, userId), inArray(collections.id, idsArray)));
 
   return true;
 }
@@ -95,11 +91,7 @@ export async function updateCollection(
     icon?: string;
   },
 ): Promise<Collection> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) throw new Error("Unauthorized");
+  const userId = await requireAuthenticatedUserId();
 
   const [updated] = await db
     .update(collections)
@@ -109,8 +101,12 @@ export async function updateCollection(
       ...(data.color !== undefined && {color: data.color}),
       ...(data.icon !== undefined && {icon: data.icon}),
     })
-    .where(and(eq(collections.id, id), eq(collections.userId, session.user.id)))
+    .where(and(eq(collections.id, id), eq(collections.userId, userId)))
     .returning();
+
+  if (!updated) {
+    throw new NotFoundError("Collection", id);
+  }
 
   return mapCollection(updated);
 }
@@ -119,17 +115,17 @@ export async function toggleCollectionPin(
   collectionId: string,
   isPinned: boolean,
 ): Promise<Collection> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) throw new Error("Unauthorized");
+  const userId = await requireAuthenticatedUserId();
 
   const [updated] = await db
     .update(collections)
     .set({isPinned})
-    .where(and(eq(collections.id, collectionId), eq(collections.userId, session.user.id)))
+    .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)))
     .returning();
+
+  if (!updated) {
+    throw new NotFoundError("Collection", collectionId);
+  }
 
   return mapCollection(updated);
 }

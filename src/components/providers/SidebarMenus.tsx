@@ -8,8 +8,8 @@ import Link from "next/link";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import type {Collection} from "@/app/actions/collections";
-import type {TagWithCount} from "@/app/home/_types";
-import {toggleTagPin} from "@/app/actions/tags";
+import type {SidebarTag} from "@/app/home/_types";
+import {getTagById, toggleTagPin} from "@/app/actions/tags";
 import {toggleCollectionPin} from "@/app/actions/collections";
 import {toastManager} from "@/components/coss-ui/toast";
 import {useQueryClient} from "@tanstack/react-query";
@@ -47,6 +47,22 @@ async function handleToggleTagPin(tagId: string, isPinned: boolean, queryClient:
   } catch (error) {
     toastManager.add({
       title: "Action failed",
+      description: error instanceof Error ? error.message : "Something went wrong",
+      type: "error",
+    });
+  }
+}
+
+async function handleOpenTagDialog(
+  tagId: string,
+  openTagDialog: (tag: Awaited<ReturnType<typeof getTagById>>) => void,
+) {
+  try {
+    const tag = await getTagById(tagId);
+    openTagDialog(tag);
+  } catch (error) {
+    toastManager.add({
+      title: "Failed to load tag",
       description: error instanceof Error ? error.message : "Something went wrong",
       type: "error",
     });
@@ -188,7 +204,7 @@ export function CollectionContextMenuContent({
 }
 
 interface TagContextMenuContentProps {
-  tag: TagWithCount;
+  tag: SidebarTag;
   onCopy: () => void;
   onDelete: () => void;
 }
@@ -217,7 +233,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
         </ContextMenuItem>
       </Link>
 
-      <ContextMenuItem onClick={() => openTagDialog(tag)}>
+      <ContextMenuItem onClick={() => void handleOpenTagDialog(tag.id, openTagDialog)}>
         <svg
           width="16"
           height="16"
