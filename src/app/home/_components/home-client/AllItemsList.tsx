@@ -135,7 +135,7 @@ export function AllItemsList({
 
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
-      <ScrollArea className="h-full" scrollbarGutter>
+      <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
         <div className={layoutConfig.wrapperClassName}>
           <div className={layoutConfig.containerClassName}>
             {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}

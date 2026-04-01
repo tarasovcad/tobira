@@ -1,7 +1,7 @@
 import {randomUUID} from "crypto";
-import {createClient as createSupabaseClient, type SupabaseClient} from "@supabase/supabase-js";
 import {ALLOWED_MEDIA_DOMAINS} from "@/components/providers/constants";
 import {extractXMedia} from "@/lib/media-fetch";
+import {buildR2PublicUrl, uploadToR2} from "@/lib/storage/r2-storage";
 import {normalizeInputUrl} from "@/lib/web-fetch";
 
 type ExtractedMediaMetadata = Awaited<ReturnType<typeof extractXMedia>>;
@@ -84,15 +84,8 @@ export async function prepareMediaBookmarkCreation(input: {
   }
 
   const urlsToCreate = input.selectedMediaUrls?.length ? input.selectedMediaUrls : mediaUrls;
-  const serviceRoleSupabase = createServiceRoleSupabaseClient();
   const preparedBookmarks = await Promise.all(
-    urlsToCreate.map((mediaUrl) =>
-      prepareSingleMediaBookmark({
-        mediaUrl,
-        extractedMetadata,
-        serviceRoleSupabase,
-      }),
-    ),
+    urlsToCreate.map((mediaUrl) => prepareSingleMediaBookmark({mediaUrl, extractedMetadata})),
   );
 
   return {
@@ -112,24 +105,12 @@ export async function prepareMediaBookmarkCreation(input: {
   };
 }
 
-function createServiceRoleSupabaseClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
-}
-
 async function prepareSingleMediaBookmark(input: {
   mediaUrl: string;
   extractedMetadata: ExtractedMediaMetadata;
-  serviceRoleSupabase: SupabaseClient;
 }): Promise<PreparedMediaBookmark> {
   const bookmarkId = randomUUID();
-  const previewImage = await processAndUploadMediaImage(
-    input.mediaUrl,
-    bookmarkId,
-    input.serviceRoleSupabase,
-  );
+  const previewImage = await processAndUploadMediaImage(input.mediaUrl, bookmarkId);
 
   let uploadedThumbnailUrl = null;
   let mediaInfo: ExtractedMediaItem | null = null;
@@ -144,7 +125,6 @@ async function prepareSingleMediaBookmark(input: {
       uploadedThumbnailUrl = await processAndUploadMediaImage(
         mediaInfo.thumbnail_url,
         bookmarkId,
-        input.serviceRoleSupabase,
         "placeholder",
       );
     }
@@ -179,7 +159,6 @@ function buildMediaMetadata(
 async function processAndUploadMediaImage(
   mediaUrl: string,
   bookmarkId: string,
-  serviceRoleSupabase: SupabaseClient,
   filenamePrefix = "media",
 ): Promise<string> {
   try {
@@ -215,17 +194,14 @@ async function processAndUploadMediaImage(
       extension = fallbackExtension;
     }
 
-    const filePath = `${bookmarkId}/${filenamePrefix}.${extension}`;
-    const {error: uploadError} = await serviceRoleSupabase.storage
-      .from("bookmark-media")
-      .upload(filePath, imageBuffer, {contentType, upsert: true});
+    const objectKey = `media/${bookmarkId}/${filenamePrefix}.${extension}`;
+    await uploadToR2({
+      key: objectKey,
+      body: Buffer.from(imageBuffer),
+      contentType,
+    });
 
-    if (uploadError) {
-      console.error("Failed to upload to Supabase storage:", uploadError);
-      return mediaUrl;
-    }
-
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-media/${filePath}`;
+    return buildR2PublicUrl(objectKey);
   } catch (error) {
     console.error("Failed to fetch media for storage:", error);
     return mediaUrl;

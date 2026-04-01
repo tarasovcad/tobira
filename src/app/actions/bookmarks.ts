@@ -10,6 +10,7 @@ import {requireAuthenticatedUserId} from "@/lib/auth-session";
 import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmarkCreation} from "@/lib/bookmarks/media";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
+import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {normalizeInputUrl} from "@/lib/web-fetch";
 
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
@@ -71,7 +72,7 @@ export async function addWebsiteBookmark(input: {
     userId,
     description: metadata.description ?? null,
     kind: input.kind ?? "website",
-    previewImage: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-previews/${bookmarkId}/preview.png`,
+    previewImage: buildR2PublicUrl(`previews/${bookmarkId}/preview.png`),
   });
 
   if (input.tags && input.tags.length > 0) {
