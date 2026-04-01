@@ -68,24 +68,17 @@ export function HomeClient({
   const setView = useViewOptionsStore((state) => state.setView);
 
   // ── Query Hook ──
-  const {
-    bookmarksQuery,
-    allBookmarks,
-    currentTotalCount,
-    activeCollection,
-    activeTag,
-    isInitialLoad,
-  } = useBookmarksQuery({
-    userId,
-    initialBookmarks,
-    initialActiveTag,
-    totalCount,
-    sort,
-    tagFilter,
-    collectionFilter,
-    typeFilter,
-    isServerDataMatching,
-  });
+  const {bookmarksQuery, allBookmarks, activeCollection, activeTag, isInitialLoad} =
+    useBookmarksQuery({
+      userId,
+      initialBookmarks,
+      initialActiveTag,
+      sort,
+      tagFilter,
+      collectionFilter,
+      typeFilter,
+      isServerDataMatching,
+    });
 
   // ── Mutation Hook ──
   const {
@@ -183,12 +176,9 @@ export function HomeClient({
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {activeCollection ? (
-        <CollectionHeader
-          activeCollection={activeCollection}
-          currentTotalCount={currentTotalCount}
-        />
+        <CollectionHeader activeCollection={activeCollection} currentTotalCount={totalCount} />
       ) : tagFilter && activeTag ? (
-        <TagHeader activeTag={activeTag} currentTotalCount={currentTotalCount} />
+        <TagHeader activeTag={activeTag} currentTotalCount={totalCount} />
       ) : null}
 
       {/* Toolbar */}
@@ -208,7 +198,7 @@ export function HomeClient({
             view === "compact" && "border-b",
             view === "list" && "border-b",
           )}>
-          <NumberFlow value={currentTotalCount} /> items
+          <NumberFlow value={totalCount} /> items
         </div>
       )}
       {/* Scrollable content area */}

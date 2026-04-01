@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {
   ContextMenuContent,
@@ -12,17 +14,15 @@ import type {SidebarTag} from "@/app/home/_types";
 import {getTagById, toggleTagPin} from "@/app/actions/tags";
 import {toggleCollectionPin} from "@/app/actions/collections";
 import {toastManager} from "@/components/coss-ui/toast";
-import {useQueryClient} from "@tanstack/react-query";
-import type {QueryClient} from "@tanstack/react-query";
 
 async function handleToggleCollectionPin(
   collectionId: string,
   isPinned: boolean,
-  queryClient: QueryClient,
+  onSuccess?: () => void,
 ) {
   try {
     await toggleCollectionPin(collectionId, !isPinned);
-    queryClient.invalidateQueries({queryKey: ["collections"]});
+    onSuccess?.();
     toastManager.add({
       title: isPinned ? "Collection unpinned" : "Collection pinned",
       type: "success",
@@ -36,10 +36,10 @@ async function handleToggleCollectionPin(
   }
 }
 
-async function handleToggleTagPin(tagId: string, isPinned: boolean, queryClient: QueryClient) {
+async function handleToggleTagPin(tagId: string, isPinned: boolean, onSuccess?: () => void) {
   try {
     await toggleTagPin(tagId, !isPinned);
-    queryClient.invalidateQueries({queryKey: ["tags"]});
+    onSuccess?.();
     toastManager.add({
       title: isPinned ? "Tag unpinned" : "Tag pinned",
       type: "success",
@@ -84,11 +84,10 @@ export function CollectionContextMenuContent({
   onDelete,
 }: CollectionContextMenuContentProps) {
   const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
-  const queryClient = useQueryClient();
 
   return (
     <ContextMenuContent>
-      <Link href={`/all?collection=${collection.id}`}>
+      <Link href={`/home?collection=${collection.id}`}>
         <ContextMenuItem>
           <svg
             width="16"
@@ -148,7 +147,7 @@ export function CollectionContextMenuContent({
       </ContextMenuItem>
 
       <ContextMenuItem
-        onClick={() => handleToggleCollectionPin(collection.id, collection.is_pinned, queryClient)}>
+        onClick={() => handleToggleCollectionPin(collection.id, collection.is_pinned)}>
         {collection.is_pinned ? (
           <>
             <svg
@@ -214,7 +213,7 @@ interface TagContextMenuContentProps {
 
 export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuContentProps) {
   const openTagDialog = useTagDialogStore((state) => state.openDialog);
-  const queryClient = useQueryClient();
+
   return (
     <ContextMenuContent>
       <Link href={`/home?tag=${tag.id}`}>
@@ -274,7 +273,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
         </svg>
         Copy
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => handleToggleTagPin(tag.id, tag.is_pinned, queryClient)}>
+      <ContextMenuItem onClick={() => handleToggleTagPin(tag.id, tag.is_pinned)}>
         {tag.is_pinned ? (
           <>
             <svg

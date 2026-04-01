@@ -42,7 +42,6 @@ export interface UseBookmarksQueryProps {
   userId: string | null;
   initialBookmarks: Bookmark[];
   initialActiveTag: TagWithCount | null;
-  totalCount: number;
   sort: SortMode;
   tagFilter: string | null;
   collectionFilter: string | null;

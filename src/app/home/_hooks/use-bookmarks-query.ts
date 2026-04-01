@@ -30,7 +30,6 @@ export function useBookmarksQuery({
   userId,
   initialBookmarks,
   initialActiveTag,
-  totalCount,
   sort,
   tagFilter,
   collectionFilter,
@@ -57,11 +56,10 @@ export function useBookmarksQuery({
         return {
           items: [] as Bookmark[],
           nextOffset: undefined as number | undefined,
-          totalCount: 0,
         };
       }
 
-      const {data, count} = await fetchBookmarksPageAction({
+      const {data} = await fetchBookmarksPageAction({
         offset,
         limit: PAGE_SIZE,
         sort,
@@ -73,7 +71,7 @@ export function useBookmarksQuery({
       const items = ((data ?? []) as BookmarkRowWithJoins[]).map(mapBookmarkRow);
       const nextOffset = items.length < PAGE_SIZE ? undefined : offset + PAGE_SIZE;
 
-      return {items, nextOffset, totalCount: count ?? 0};
+      return {items, nextOffset};
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset,
     initialData: isServerDataMatching
@@ -83,7 +81,6 @@ export function useBookmarksQuery({
             {
               items: initialBookmarks,
               nextOffset: initialBookmarks.length < PAGE_SIZE ? undefined : PAGE_SIZE,
-              totalCount,
             },
           ],
         }
@@ -93,9 +90,6 @@ export function useBookmarksQuery({
   const allBookmarks = React.useMemo(() => {
     return bookmarksQuery.data?.pages.flatMap((p) => p.items) ?? [];
   }, [bookmarksQuery.data]);
-
-  // Keep track of the actual total count from the database, falling back to the initial count
-  const currentTotalCount = bookmarksQuery.data?.pages[0]?.totalCount ?? totalCount;
 
   // We fetch collections separately to show the active collection's metadata (e.g., name)
   const {data: collections} = useQuery({
@@ -123,7 +117,6 @@ export function useBookmarksQuery({
   return {
     bookmarksQuery,
     allBookmarks,
-    currentTotalCount,
     activeCollection,
     activeTag,
     // "Initial load" is true only when we are loading and have no data yet

@@ -9,6 +9,7 @@ import {useRouter} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/app/home/_types";
 import {Skeleton} from "@/components/ui/skeleton";
+import {useHasMounted} from "@/lib/useHasMounted";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (
@@ -51,6 +52,7 @@ export function SidebarCollectionItem({
   onContextMenuDelete,
 }: SidebarCollectionItemProps) {
   const router = useRouter();
+  const hasMounted = useHasMounted();
 
   return (
     <motion.div
@@ -143,11 +145,13 @@ export function SidebarCollectionItem({
           )}
         </ContextMenuTrigger>
 
-        <CollectionContextMenuContent
-          collection={collection}
-          onCopy={onCopy}
-          onDelete={onContextMenuDelete}
-        />
+        {hasMounted && (
+          <CollectionContextMenuContent
+            collection={collection}
+            onCopy={onCopy}
+            onDelete={onContextMenuDelete}
+          />
+        )}
       </ContextMenu>
     </motion.div>
   );
@@ -177,6 +181,7 @@ export function SidebarTagItem({
   onContextMenuDelete,
 }: SidebarTagItemProps) {
   const router = useRouter();
+  const hasMounted = useHasMounted();
 
   return (
     <motion.div
@@ -262,7 +267,9 @@ export function SidebarTagItem({
           </div>
         </ContextMenuTrigger>
 
-        <TagContextMenuContent tag={tag} onCopy={onCopy} onDelete={onContextMenuDelete} />
+        {hasMounted && (
+          <TagContextMenuContent tag={tag} onCopy={onCopy} onDelete={onContextMenuDelete} />
+        )}
       </ContextMenu>
     </motion.div>
   );
