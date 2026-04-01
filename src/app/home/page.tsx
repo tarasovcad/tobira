@@ -2,7 +2,6 @@ import {Suspense} from "react";
 import AppShell from "@/components/providers/AppShell";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
-import {normalizeTagParam} from "@/lib/utils";
 import type {SearchParams, SortMode, TypeFilter} from "./_types";
 import {SidebarDataWrapper} from "./_components/SidebarDataWrapper";
 import {BookmarksDataWrapper} from "./_components/BookmarksDataWrapper";
@@ -26,7 +25,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   }
 
   const userId = session.user.id;
-  const tagFilter = normalizeTagParam(searchParams?.tag);
+  const tagFilter = searchParams?.tag?.trim() || null;
   const collectionFilter = searchParams?.collection ?? null;
   const typeFilter = (searchParams?.type === "media" ? "media" : "website") as TypeFilter;
   const sortFilter = resolveSortFilter(searchParams?.sort);

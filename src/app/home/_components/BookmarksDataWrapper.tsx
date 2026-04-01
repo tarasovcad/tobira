@@ -1,6 +1,6 @@
 import {getInitialBookmarks} from "@/app/actions/bookmarks/getInitialBookmarks";
 import {getBookmarksCount} from "@/app/actions/bookmarks/getBookmarksCount";
-import {getTagByName} from "@/app/actions/tags";
+import {getTagById} from "@/app/actions/tags";
 import {HomeClient} from "./HomeClient";
 import {BookmarksLoadError} from "./BookmarksLoadError";
 import {isAppError} from "@/lib/errors";
@@ -37,7 +37,7 @@ export async function BookmarksDataWrapper({
         collectionFilter: params.collectionFilter,
         typeFilter: params.typeFilter,
       }),
-      params.tagFilter ? getTagByName(params.tagFilter, userId) : Promise.resolve(null),
+      params.tagFilter ? getTagById(params.tagFilter, userId) : Promise.resolve(null),
     ]);
 
     fetchedData = {bookmarksResult, totalCount, activeTag};

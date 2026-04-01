@@ -99,6 +99,7 @@ export function HomeClient({
     archiveMutation,
   } = useBookmarksMutations({
     tagFilter,
+    activeTagName: activeTag?.name ?? null,
     allBookmarks,
   });
 
@@ -214,7 +215,7 @@ export function HomeClient({
       {isCollectionNotFound ? (
         <CollectionNotFoundState collectionName={collectionFilter} />
       ) : isTagNotFound ? (
-        <TagNotFoundState tagName={tagFilter} />
+        <TagNotFoundState />
       ) : showEmptyState ? (
         <HomeEmptyState userId={userId} />
       ) : (

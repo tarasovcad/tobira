@@ -28,7 +28,7 @@ export function SidebarMain({
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const activeTag = searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ?? null;
+  const activeTag = searchParams.get("tag")?.trim() || null;
 
   return (
     <>

@@ -55,10 +55,13 @@ async function handleToggleTagPin(tagId: string, isPinned: boolean, queryClient:
 
 async function handleOpenTagDialog(
   tagId: string,
-  openTagDialog: (tag: Awaited<ReturnType<typeof getTagById>>) => void,
+  openTagDialog: (tag: NonNullable<Awaited<ReturnType<typeof getTagById>>>) => void,
 ) {
   try {
     const tag = await getTagById(tagId);
+    if (!tag) {
+      throw new Error("Tag not found");
+    }
     openTagDialog(tag);
   } catch (error) {
     toastManager.add({
@@ -214,7 +217,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
   const queryClient = useQueryClient();
   return (
     <ContextMenuContent>
-      <Link href={`/home?tag=${encodeURIComponent(tag.name)}`}>
+      <Link href={`/home?tag=${tag.id}`}>
         <ContextMenuItem>
           <svg
             width="16"

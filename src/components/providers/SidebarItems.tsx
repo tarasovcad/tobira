@@ -193,7 +193,7 @@ export function SidebarTagItem({
               onToggleSelection();
               return;
             }
-            router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+            router.push(`/home?tag=${tag.id}`);
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -201,7 +201,7 @@ export function SidebarTagItem({
               if (selectionMode) {
                 onToggleSelection();
               } else {
-                router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+                router.push(`/home?tag=${tag.id}`);
               }
             }
           }}

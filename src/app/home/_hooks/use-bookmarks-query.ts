@@ -4,7 +4,7 @@ import {PAGE_SIZE} from "../_constants";
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
 import {getCollections} from "@/app/actions/collections";
 import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
-import {getTagByName} from "@/app/actions/tags";
+import {getTagById} from "@/app/actions/tags";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
 import type {UseBookmarksQueryProps, BookmarkRowWithJoins} from "../_types";
@@ -108,7 +108,7 @@ export function useBookmarksQuery({
     enabled: !!userId && !!tagFilter,
     queryFn: async () => {
       if (!tagFilter) return null;
-      return await getTagByName(tagFilter);
+      return await getTagById(tagFilter);
     },
     initialData: isServerDataMatching ? initialActiveTag : undefined,
   });

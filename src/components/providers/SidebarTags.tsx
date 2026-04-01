@@ -2,7 +2,7 @@
 
 import React, {useEffect, useState} from "react";
 import {useSearchParams} from "next/navigation";
-import {cn, normalizeTagName} from "@/lib/utils";
+import {cn} from "@/lib/utils";
 import {useHasMounted} from "@/lib/useHasMounted";
 import {AnimatePresence} from "framer-motion";
 import {useQuery} from "@tanstack/react-query";
@@ -84,7 +84,7 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
     openDeleteDialog(selectedTags, handleClearSelection);
   }, [selectedTagIds, tags, openDeleteDialog, handleClearSelection]);
 
-  const activeTag = searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ?? null;
+  const activeTag = searchParams.get("tag")?.trim() || null;
 
   return (
     <>
@@ -158,7 +158,7 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
           <AnimatePresence initial={false}>
             {tagsExpanded &&
               tags.map((tag, index) => {
-                const isActive = activeTag === normalizeTagName(tag.name);
+                const isActive = activeTag === tag.id;
                 return (
                   <SidebarTagItem
                     key={tag.id}

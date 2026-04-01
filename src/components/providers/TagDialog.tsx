@@ -22,8 +22,6 @@ import {zodResolver} from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import Spinner from "../ui/spinner";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
-import {normalizeTagParam} from "@/lib/utils";
 
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -36,9 +34,6 @@ type TagFormValues = z.infer<typeof tagSchema>;
 const SUCCESS_LABEL_RESET_MS = 400;
 
 export function TagDialog() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const {isOpen, tag, closeDialog} = useTagDialogStore();
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
@@ -78,21 +73,11 @@ export function TagDialog() {
   const updateMutation = useMutation({
     mutationFn: (variables: {id: string; data: {name: string; description?: string}}) =>
       updateTag(variables.id, variables.data),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       setSubmitSuccess(true);
       queryClient.invalidateQueries({queryKey: ["tags"]});
       queryClient.invalidateQueries({queryKey: ["active-tag"]});
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-
-      // If the name changed and we are currently viewing this tag, update the URL
-      if (tag && variables.data.name !== tag.name) {
-        const activeTagParam = normalizeTagParam(searchParams.get("tag"));
-        if (activeTagParam === tag.name.toLowerCase()) {
-          const nextParams = new URLSearchParams(searchParams.toString());
-          nextParams.set("tag", variables.data.name.toLowerCase());
-          router.push(`${pathname}?${nextParams.toString()}`);
-        }
-      }
 
       toastManager.add({title: "Tag updated", type: "success"});
       onOpenChange(false);

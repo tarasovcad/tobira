@@ -123,11 +123,10 @@ export async function getTags(userId?: string): Promise<TagWithCount[]> {
   return data.map(mapTagWithCount);
 }
 
-export async function getTagByName(tagName: string, userId?: string): Promise<TagWithCount | null> {
-  const normalizedTagName = normalizeTagParam(tagName);
+export async function getTagById(tagId: string, userId?: string): Promise<TagWithCount | null> {
   const currentUserId = await getCurrentUserId();
 
-  if (!normalizedTagName || !currentUserId) {
+  if (!tagId || !currentUserId) {
     return null;
   }
 
@@ -156,46 +155,11 @@ export async function getTagByName(tagName: string, userId?: string): Promise<Ta
         isNull(bookmarks.deletedAt),
       ),
     )
-    .where(and(eq(tags.userId, currentUserId), eq(tags.name, normalizedTagName)))
+    .where(and(eq(tags.userId, currentUserId), eq(tags.id, tagId)))
     .groupBy(tags.id)
     .limit(1);
 
   return tag ? mapTagWithCount(tag) : null;
-}
-
-export async function getTagById(tagId: string): Promise<TagWithCount> {
-  const userId = await requireAuthenticatedUserId();
-
-  const [tag] = await db
-    .select({
-      id: tags.id,
-      name: tags.name,
-      description: tags.description,
-      is_pinned: tags.isPinned,
-      created_at: tags.createdAt,
-      updated_at: tags.updatedAt,
-      count: count(bookmarks.id),
-    })
-    .from(tags)
-    .leftJoin(bookmarkTags, eq(tags.id, bookmarkTags.tagId))
-    .leftJoin(
-      bookmarks,
-      and(
-        eq(bookmarkTags.bookmarkId, bookmarks.id),
-        eq(bookmarks.userId, tags.userId),
-        isNull(bookmarks.archivedAt),
-        isNull(bookmarks.deletedAt),
-      ),
-    )
-    .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
-    .groupBy(tags.id)
-    .limit(1);
-
-  if (!tag) {
-    throw new NotFoundError("Tag", tagId);
-  }
-
-  return mapTagWithCount(tag);
 }
 
 export async function deleteTags(tagIds: string | string[]): Promise<{ok: true}> {

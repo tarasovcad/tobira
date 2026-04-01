@@ -268,7 +268,7 @@ export async function fetchBookmarksPageAction(params: {
           .select()
           .from(bookmarkTags)
           .innerJoin(tags, eq(bookmarkTags.tagId, tags.id))
-          .where(and(eq(bookmarkTags.bookmarkId, bookmarks.id), eq(tags.name, tagFilter))),
+          .where(and(eq(bookmarkTags.bookmarkId, bookmarks.id), eq(tags.id, tagFilter))),
       ),
     );
   }

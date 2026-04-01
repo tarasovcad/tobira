@@ -17,7 +17,6 @@ import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useEffect, useState} from "react";
 import Spinner from "../ui/spinner";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
-import {normalizeTagParam} from "@/lib/utils";
 
 export function DeleteTagDialog() {
   const queryClient = useQueryClient();
@@ -64,7 +63,6 @@ export function DeleteTagDialog() {
     if (tags.length === 0) return;
 
     const ids = tags.map((t) => t.id);
-    const tagNames = tags.map((t) => t.name.toLowerCase());
 
     deleteMutation.mutate(ids, {
       onSuccess: () => {
@@ -73,8 +71,8 @@ export function DeleteTagDialog() {
           type: "success",
         });
 
-        const activeTagParam = normalizeTagParam(searchParams.get("tag"));
-        if (pathname === "/home" && activeTagParam && tagNames.includes(activeTagParam)) {
+        const activeTagParam = searchParams.get("tag")?.trim() || null;
+        if (pathname === "/home" && activeTagParam && ids.includes(activeTagParam)) {
           const nextParams = new URLSearchParams(searchParams.toString());
           nextParams.delete("tag");
           const query = nextParams.toString();
