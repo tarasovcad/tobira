@@ -46,10 +46,9 @@ export function Sidebar({
     <aside
       className={cn(
         "bg-muted/30 relative h-full shrink-0 overflow-hidden border-r transition-[width] duration-200 ease-linear",
-        !showSettings && !sidebarIsOpen && "w-[48px]",
       )}
       style={{
-        width: showSettings ? SIDEBAR_WIDTH : sidebarIsOpen ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON,
+        width: sidebarIsOpen ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON,
       }}>
       <AnimatePresence initial={false} mode="sync">
         {showSettings ? (
@@ -64,7 +63,7 @@ export function Sidebar({
               duration: 0.16,
               ease: "easeOut",
             }}>
-            <SidebarSettings onBack={() => setShowSettings(false)} />
+            <SidebarSettings onBack={() => setShowSettings(false)} state={contentState} />
           </motion.div>
         ) : (
           <motion.div
