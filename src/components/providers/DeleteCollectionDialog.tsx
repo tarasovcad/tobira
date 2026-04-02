@@ -17,6 +17,7 @@ import Spinner from "../ui/spinner";
 import {useEffect, useState} from "react";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {homeMetadataKeys} from "@/app/home/_hooks/use-home-metadata-query";
 
 export function DeleteCollectionDialog() {
   const queryClient = useQueryClient();
@@ -39,7 +40,7 @@ export function DeleteCollectionDialog() {
       return deleteCollections(ids);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["collections"]});
+      queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
     },
     onError: (error) => {

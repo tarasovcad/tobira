@@ -5,7 +5,7 @@ import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
-import {SidebarTags, SidebarTagsType} from "./SidebarTags";
+import {SidebarTags, type SidebarTagsType} from "./SidebarTags";
 import {SidebarCollections} from "./SidebarCollections";
 import {cn} from "@/lib/utils";
 import {
@@ -17,8 +17,8 @@ import {
 } from "@/components/coss-ui/tooltip";
 
 interface SidebarMainProps {
-  allTags?: SidebarTagsType;
   allCollections?: Collection[];
+  allTags?: SidebarTagsType;
   isAuthenticated?: boolean;
   onShowSettings: () => void;
   userId?: string;
@@ -26,8 +26,8 @@ interface SidebarMainProps {
 }
 
 export function SidebarMain({
-  allTags,
   allCollections,
+  allTags,
   isAuthenticated = false,
   onShowSettings,
   userId,
@@ -138,7 +138,9 @@ export function SidebarMain({
               <button
                 type="button"
                 onClick={() => {
-                  router.push("/settings?tab=general");
+                  if (pathname !== "/settings") {
+                    router.push("/settings?tab=general");
+                  }
                   onShowSettings();
                 }}
                 aria-label="Settings"
@@ -151,7 +153,9 @@ export function SidebarMain({
           <button
             type="button"
             onClick={() => {
-              router.push("/settings?tab=general");
+              if (pathname !== "/settings") {
+                router.push("/settings?tab=general");
+              }
               onShowSettings();
             }}
             aria-label="Settings"

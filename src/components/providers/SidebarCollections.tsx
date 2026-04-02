@@ -3,11 +3,8 @@
 import React, {useEffect, useState} from "react";
 import {usePathname, useSearchParams, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
-import {useHasMounted} from "@/lib/useHasMounted";
 import {buttonVariants} from "../shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
-import {useQuery} from "@tanstack/react-query";
-import {getCollections} from "@/app/actions/collections";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarCollectionItem, SidebarCollectionSkeleton} from "./SidebarItems";
@@ -15,6 +12,7 @@ import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import {useCollectionsQuery} from "@/app/home/_hooks/use-home-metadata-query";
 
 export function SidebarCollections({
   allCollections,
@@ -25,43 +23,9 @@ export function SidebarCollections({
   isAuthenticated?: boolean;
   userId?: string;
 }) {
-  const hasMounted = useHasMounted();
-
-  if (!hasMounted) {
-    return (
-      <SidebarCollectionsContent
-        collections={allCollections ?? []}
-        isFetching={false}
-        isAuthenticated={isAuthenticated}
-      />
-    );
-  }
-
-  return (
-    <SidebarCollectionsWithQuery
-      allCollections={allCollections}
-      isAuthenticated={isAuthenticated}
-      userId={userId}
-    />
-  );
-}
-
-function SidebarCollectionsWithQuery({
-  allCollections,
-  isAuthenticated = false,
-  userId,
-}: {
-  allCollections?: Collection[];
-  isAuthenticated?: boolean;
-  userId?: string;
-}) {
-  const {data: collections = [], isFetching} = useQuery({
-    queryKey: ["collections", userId],
-    queryFn: async () => {
-      if (!userId) return [];
-      return await getCollections(userId);
-    },
-    initialData: allCollections ?? [],
+  const {data: collections = [], isFetching} = useCollectionsQuery({
+    userId,
+    initialData: allCollections,
   });
 
   return (

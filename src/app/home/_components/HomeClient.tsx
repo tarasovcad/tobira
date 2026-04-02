@@ -251,6 +251,7 @@ export function HomeClient({
         onOpenChange={setMenuOpen}
         onDelete={openDeleteDialog}
         onArchive={handleArchive}
+        userId={userId}
       />
       <DeleteBookmarkDialog
         open={deleteDialogOpen}

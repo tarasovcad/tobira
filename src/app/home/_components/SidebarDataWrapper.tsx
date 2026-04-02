@@ -25,7 +25,7 @@ export async function SidebarDataWrapper({userId}: {userId: string}) {
     <Sidebar
       allCollections={sidebarData.allCollections}
       allTags={sidebarData.allTags}
-      isAuthenticated={true}
+      isAuthenticated
       userId={userId}
     />
   );

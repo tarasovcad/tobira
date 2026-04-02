@@ -3,7 +3,7 @@
 import {useState} from "react";
 import {usePathname} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
-import {SidebarTagsType} from "./SidebarTags";
+import type {SidebarTag} from "@/app/home/_types";
 import {SidebarMain} from "./SidebarMain";
 import {SidebarSettings} from "./SidebarSettings";
 import {AnimatePresence, motion} from "framer-motion";
@@ -15,13 +15,13 @@ const SIDEBAR_WIDTH = "224px";
 const SIDEBAR_WIDTH_ICON = "60px";
 
 export function Sidebar({
-  allTags,
   allCollections,
+  allTags,
   isAuthenticated = false,
   userId,
 }: {
-  allTags?: SidebarTagsType;
   allCollections?: Collection[];
+  allTags?: SidebarTag[];
   isAuthenticated?: boolean;
   userId?: string;
 }) {
@@ -78,8 +78,8 @@ export function Sidebar({
               ease: "easeOut",
             }}>
             <SidebarMain
-              allTags={allTags}
               allCollections={allCollections}
+              allTags={allTags}
               isAuthenticated={isAuthenticated}
               userId={userId}
               onShowSettings={() => setShowSettings(true)}

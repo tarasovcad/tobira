@@ -3,37 +3,21 @@
 import React, {useEffect, useState} from "react";
 import {useSearchParams} from "next/navigation";
 import {cn} from "@/lib/utils";
-import {useHasMounted} from "@/lib/useHasMounted";
 import {AnimatePresence} from "framer-motion";
-import {useQuery} from "@tanstack/react-query";
-import {getSidebarTags} from "@/app/actions/tags";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
 import type {SidebarTag} from "@/app/home/_types";
+import {useTagsQuery} from "@/app/home/_hooks/use-home-metadata-query";
 
 export type SidebarTagsType = SidebarTag[];
 
 export function SidebarTags({allTags, userId}: {allTags?: SidebarTagsType; userId?: string}) {
-  const hasMounted = useHasMounted();
-
-  if (!hasMounted) {
-    return <SidebarTagsContent tags={allTags ?? []} isFetching={false} />;
-  }
-
-  return <SidebarTagsWithQuery allTags={allTags} userId={userId} />;
-}
-
-function SidebarTagsWithQuery({allTags, userId}: {allTags?: SidebarTagsType; userId?: string}) {
-  const {data: tags = [], isFetching} = useQuery({
-    queryKey: ["tags", userId],
-    queryFn: async () => {
-      if (!userId) return [];
-      return await getSidebarTags(userId);
-    },
-    initialData: allTags ?? [],
+  const {data: tags = [], isFetching} = useTagsQuery({
+    userId,
+    initialData: allTags,
   });
 
   return <SidebarTagsContent tags={tags} isFetching={isFetching} />;

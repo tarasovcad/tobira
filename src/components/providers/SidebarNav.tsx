@@ -149,7 +149,7 @@ export const NAV_ITEMS: NavConfigItem[] = [
       </svg>
     ),
     label: "Unsorted",
-    // disabled: true,
+    disabled: true,
     href: "/unsorted",
   },
   {
@@ -167,7 +167,7 @@ export const NAV_ITEMS: NavConfigItem[] = [
       </svg>
     ),
     label: "Favorites",
-    // disabled: true,
+    disabled: true,
     href: "/favorites",
   },
   {
@@ -185,7 +185,7 @@ export const NAV_ITEMS: NavConfigItem[] = [
       </svg>
     ),
     label: "Graph",
-    // disabled: true,
+    disabled: true,
     href: "/graph",
   },
   {
@@ -207,7 +207,7 @@ export const NAV_ITEMS: NavConfigItem[] = [
       </svg>
     ),
     label: "Analytics",
-    // disabled: true,
+    disabled: true,
     href: "/analytics",
   },
   {
@@ -227,7 +227,7 @@ export const NAV_ITEMS: NavConfigItem[] = [
       </svg>
     ),
     label: "Sync",
-    // disabled: true,
+    disabled: true,
     href: "/sync",
   },
 ];

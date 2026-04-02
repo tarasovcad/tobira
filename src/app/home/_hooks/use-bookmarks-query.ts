@@ -2,13 +2,13 @@ import * as React from "react";
 import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
 import {PAGE_SIZE} from "../_constants";
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
-import {getCollections} from "@/app/actions/collections";
 import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
 import {getTagById} from "@/app/actions/tags";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
 import type {UseBookmarksQueryProps, BookmarkRowWithJoins} from "../_types";
 import {useMemo} from "react";
+import {collectionsQueryOptions} from "./use-home-metadata-query";
 
 /**
  * Maps the raw database response to the domain Bookmark type.
@@ -93,8 +93,7 @@ export function useBookmarksQuery({
 
   // We fetch collections separately to show the active collection's metadata (e.g., name)
   const {data: collections} = useQuery({
-    queryKey: ["collections"],
-    queryFn: async () => await getCollections(),
+    ...collectionsQueryOptions(userId),
   });
 
   const {data: activeTagData} = useQuery({

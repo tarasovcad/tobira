@@ -31,7 +31,6 @@ import {
 } from "@/app/actions/bookmarks";
 import TagsInput from "../ui/TagsInput";
 import {Label} from "../coss-ui/label";
-import type {Collection} from "@/app/actions/collections";
 import {
   Combobox,
   ComboboxEmpty,
@@ -55,13 +54,18 @@ import {ITEM_TYPES} from "./constants";
 
 import {addItemSchema, type AddItemFormValues} from "./addItemSchema";
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
+import {
+  homeMetadataKeys,
+  useCollectionsQuery,
+  useTagsQuery,
+} from "@/app/home/_hooks/use-home-metadata-query";
 
 export function AddItemDialog({
-  collections = [],
   isAuthenticated = false,
+  userId,
 }: {
-  collections?: Collection[];
   isAuthenticated?: boolean;
+  userId?: string | null;
 }) {
   const router = useRouter();
   const open = useAddItemDialogStore((state) => state.isOpen);
@@ -71,6 +75,15 @@ export function AddItemDialog({
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
+
+  const {data: collections = []} = useCollectionsQuery({
+    userId,
+    enabled: open && !!userId,
+  });
+  const {data: tags = []} = useTagsQuery({
+    userId,
+    enabled: open && !!userId,
+  });
 
   const {
     register,
@@ -132,7 +145,7 @@ export function AddItemDialog({
         type: "success",
       });
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-      queryClient.invalidateQueries({queryKey: ["tags"]});
+      queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       setTimeout(() => {
         reset();
         setStep(1);
@@ -378,6 +391,7 @@ export function AddItemDialog({
                           onValueChange={field.onChange}
                           name="tags"
                           sortOnAdd={false}
+                          availableTags={tags.map((t) => t.name)}
                         />
                       )}
                     />

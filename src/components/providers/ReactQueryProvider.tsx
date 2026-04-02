@@ -1,16 +1,7 @@
 "use client";
 
 import {QueryClient, QueryClientProvider, isServer} from "@tanstack/react-query";
-
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000,
-      },
-    },
-  });
-}
+import {makeQueryClient} from "@/lib/react-query";
 
 let browserQueryClient: QueryClient | undefined = undefined;
 

@@ -26,6 +26,7 @@ export type TagsInputProps = {
   disabled?: boolean;
   /** If provided, a hidden input will be rendered (comma-separated). */
   name?: string;
+  availableTags?: string[];
   labelClassName?: string;
   containerClassName?: string;
 };
@@ -34,8 +35,6 @@ const DEFAULT_MAX_TAGS = 10;
 const DEFAULT_MAX_TAG_LENGTH = 64;
 
 type Tag = string;
-
-const FAKE_SUGGESTIONS = ["banana", "apple", "appear", "hello world"] as const;
 
 function sortTagsAZ(input: Tag[]) {
   return [...input].sort(
@@ -70,16 +69,18 @@ function splitRawTags(raw: string, maxTagLength: number): Tag[] {
 function buildInlineSuggestion({
   inputValue,
   tags,
+  availableTags,
 }: {
   inputValue: string;
   tags: Tag[];
+  availableTags?: string[];
 }): string | null {
   // Suggest based on the *typed* prefix (including spaces).
   // Example: "hello " suggests "hello world" (suffix "world"), but "hel " suggests nothing.
   const q = inputValue.toLowerCase();
   if (!q.trim()) return null;
 
-  const match = FAKE_SUGGESTIONS.find((w) => w.startsWith(q));
+  const match = availableTags?.find((w) => w.startsWith(q));
   if (!match) return null;
   if (match.toLowerCase() === q) return null;
 
@@ -119,6 +120,7 @@ const TagsInput = ({
   label = "Add Tags",
   disabled = false,
   name,
+  availableTags,
   labelClassName,
   containerClassName,
 }: TagsInputProps) => {
@@ -133,7 +135,10 @@ const TagsInput = ({
   const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "ready">("idle");
   const [aiSuggestions, setAiSuggestions] = useState<Tag[]>([]);
 
-  const suggestion = useMemo(() => buildInlineSuggestion({inputValue, tags}), [inputValue, tags]);
+  const suggestion = useMemo(
+    () => buildInlineSuggestion({inputValue, tags, availableTags}),
+    [inputValue, tags, availableTags],
+  );
   const canAddMore = tags.length < maxTags;
 
   const maybeSort = useCallback(

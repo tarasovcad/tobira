@@ -17,6 +17,7 @@ import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useEffect, useState} from "react";
 import Spinner from "../ui/spinner";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {homeMetadataKeys} from "@/app/home/_hooks/use-home-metadata-query";
 
 export function DeleteTagDialog() {
   const queryClient = useQueryClient();
@@ -39,7 +40,7 @@ export function DeleteTagDialog() {
       return deleteTags(ids);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ["tags"]});
+      queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
     },
     onError: (error) => {

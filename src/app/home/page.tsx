@@ -3,11 +3,11 @@ import AppShell from "@/components/providers/AppShell";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
 import type {SearchParams, SortMode, TypeFilter} from "./_types";
-import {SidebarDataWrapper} from "./_components/SidebarDataWrapper";
 import {BookmarksDataWrapper} from "./_components/BookmarksDataWrapper";
-import {SidebarSkeleton} from "./_components/skeletons/SidebarSkeleton";
 import {BookmarksLoader} from "./_components/skeletons/BookmarksLoader";
+import {SidebarSkeleton} from "./_components/skeletons/SidebarSkeleton";
 import {HomeClient} from "./_components/HomeClient";
+import {SidebarDataWrapper} from "./_components/SidebarDataWrapper";
 
 const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const searchParams = await props.searchParams;

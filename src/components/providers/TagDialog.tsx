@@ -22,6 +22,7 @@ import {zodResolver} from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import Spinner from "../ui/spinner";
+import {homeMetadataKeys} from "@/app/home/_hooks/use-home-metadata-query";
 
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -75,7 +76,7 @@ export function TagDialog() {
       updateTag(variables.id, variables.data),
     onSuccess: () => {
       setSubmitSuccess(true);
-      queryClient.invalidateQueries({queryKey: ["tags"]});
+      queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       queryClient.invalidateQueries({queryKey: ["active-tag"]});
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
 
