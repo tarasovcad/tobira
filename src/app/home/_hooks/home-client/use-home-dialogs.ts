@@ -2,17 +2,18 @@
 
 import {useState} from "react";
 import type {Bookmark} from "@/components/bookmark/types";
+import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
 
 interface UseHomeDialogsProps {
   allBookmarks: Bookmark[];
   selectedIds: Set<string>;
+  onDeleted?: () => void;
 }
 
-export function useHomeDialogs({allBookmarks, selectedIds}: UseHomeDialogsProps) {
+export function useHomeDialogs({allBookmarks, selectedIds, onDeleted}: UseHomeDialogsProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuItemId, setMenuItemId] = useState<string | undefined>(undefined);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemsToDelete, setItemsToDelete] = useState<Bookmark[]>([]);
+  const openDeleteBookmarkDialog = useDeleteBookmarkDialogStore((state) => state.openDialog);
 
   const menuItem = menuItemId
     ? allBookmarks.find((bookmark) => bookmark.id === menuItemId)
@@ -24,25 +25,26 @@ export function useHomeDialogs({allBookmarks, selectedIds}: UseHomeDialogsProps)
   };
 
   const openDeleteDialog = (item: Bookmark) => {
-    setItemsToDelete([item]);
-    setDeleteDialogOpen(true);
+    openDeleteBookmarkDialog([item], () => {
+      setMenuOpen(false);
+      onDeleted?.();
+    });
   };
 
   const handleDeleteSelected = () => {
     const selectedBookmarks = allBookmarks.filter((item) => selectedIds.has(item.id));
     if (selectedBookmarks.length === 0) return;
 
-    setItemsToDelete(selectedBookmarks);
-    setDeleteDialogOpen(true);
+    openDeleteBookmarkDialog(selectedBookmarks, () => {
+      setMenuOpen(false);
+      onDeleted?.();
+    });
   };
 
   return {
     menuOpen,
     setMenuOpen,
     menuItem,
-    deleteDialogOpen,
-    setDeleteDialogOpen,
-    itemsToDelete,
     openMenu,
     openDeleteDialog,
     handleDeleteSelected,

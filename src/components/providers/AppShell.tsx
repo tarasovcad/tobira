@@ -4,6 +4,7 @@ import React from "react";
 import {AddItemDialog} from "./AddItemDialog";
 import {Sidebar} from "./Sidebar";
 import {CollectionDialog} from "./CollectionDialog";
+import {DeleteBookmarkDialog} from "./DeleteBookmarkDialog";
 import {DeleteCollectionDialog} from "./DeleteCollectionDialog";
 import {DeleteTagDialog} from "./DeleteTagDialog";
 import {TagDialog} from "./TagDialog";
@@ -27,6 +28,7 @@ const AppShell = ({
       </div>
       <AddItemDialog isAuthenticated={Boolean(session)} userId={session?.user?.id} />
       <CollectionDialog isAuthenticated={Boolean(session)} />
+      <DeleteBookmarkDialog />
       <DeleteCollectionDialog />
       <DeleteTagDialog />
       <TagDialog />

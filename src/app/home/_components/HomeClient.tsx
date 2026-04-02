@@ -5,7 +5,6 @@ import NumberFlow from "@number-flow/react";
 
 // Components
 import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
-import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {CollectionHeader} from "./home-client/CollectionHeader";
 import {TagHeader} from "./home-client/TagHeader";
@@ -128,20 +127,12 @@ export function HomeClient({
   });
 
   // ── Dialogs ──
-  const {
-    menuOpen,
-    setMenuOpen,
-    menuItem,
-    deleteDialogOpen,
-    setDeleteDialogOpen,
-    itemsToDelete,
-    openMenu,
-    openDeleteDialog,
-    handleDeleteSelected,
-  } = useHomeDialogs({
-    allBookmarks,
-    selectedIds,
-  });
+  const {menuOpen, setMenuOpen, menuItem, openMenu, openDeleteDialog, handleDeleteSelected} =
+    useHomeDialogs({
+      allBookmarks,
+      selectedIds,
+      onDeleted: handleClearSelection,
+    });
 
   // ── Refs for infinite scroll ──
   const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
@@ -229,7 +220,6 @@ export function HomeClient({
           toggleSelected={toggleSelected}
           setSelected={setSelected}
           openMenu={openMenu}
-          openDeleteDialog={openDeleteDialog}
         />
       )}
 
@@ -252,15 +242,6 @@ export function HomeClient({
         onDelete={openDeleteDialog}
         onArchive={handleArchive}
         userId={userId}
-      />
-      <DeleteBookmarkDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        items={itemsToDelete}
-        onDeleted={() => {
-          handleClearSelection();
-          setMenuOpen(false);
-        }}
       />
     </div>
   );
