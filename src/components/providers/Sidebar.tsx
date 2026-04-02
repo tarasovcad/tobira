@@ -7,6 +7,12 @@ import {SidebarTagsType} from "./SidebarTags";
 import {SidebarMain} from "./SidebarMain";
 import {SidebarSettings} from "./SidebarSettings";
 import {AnimatePresence, motion} from "framer-motion";
+import {cn} from "@/lib/utils";
+import {useSidebarStore} from "@/store/use-sidebar-store";
+import {useHasMounted} from "@/lib/useHasMounted";
+
+const SIDEBAR_WIDTH = "224px";
+const SIDEBAR_WIDTH_ICON = "60px";
 
 export function Sidebar({
   allTags,
@@ -22,6 +28,10 @@ export function Sidebar({
   const pathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [showSettings, setShowSettings] = useState(pathname.startsWith("/settings"));
+  const hasMounted = useHasMounted();
+  const isOpen = useSidebarStore((state) => state.isOpen);
+  const sidebarIsOpen = hasMounted ? isOpen : true;
+  const contentState = sidebarIsOpen ? "expanded" : "collapsed";
 
   if (pathname !== prevPathname) {
     setPrevPathname(pathname);
@@ -33,7 +43,14 @@ export function Sidebar({
   }
 
   return (
-    <aside className="bg-muted/30 relative h-full w-[224px] shrink-0 overflow-hidden border-r">
+    <aside
+      className={cn(
+        "bg-muted/30 relative h-full shrink-0 overflow-hidden border-r transition-[width] duration-200 ease-linear",
+        !showSettings && !sidebarIsOpen && "w-[48px]",
+      )}
+      style={{
+        width: showSettings ? SIDEBAR_WIDTH : sidebarIsOpen ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON,
+      }}>
       <AnimatePresence initial={false} mode="sync">
         {showSettings ? (
           <motion.div
@@ -67,6 +84,7 @@ export function Sidebar({
               isAuthenticated={isAuthenticated}
               userId={userId}
               onShowSettings={() => setShowSettings(true)}
+              state={contentState}
             />
           </motion.div>
         )}
