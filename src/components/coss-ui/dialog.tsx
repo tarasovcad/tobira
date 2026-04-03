@@ -1,7 +1,7 @@
 "use client";
 
 import {Dialog as DialogPrimitive} from "@base-ui/react/dialog";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {Button} from "@/components/coss-ui/button";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 

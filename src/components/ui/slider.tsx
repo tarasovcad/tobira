@@ -20,10 +20,10 @@ import {
   type MotionValue,
 } from "framer-motion";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import {cn} from "@/lib/utils";
-import {springs} from "@/lib/springs";
-import {fontWeights} from "@/lib/font-weight";
-import {useShape} from "@/lib/shape-context";
+import {cn} from "@/lib/utils/classnames";
+import {springs} from "@/lib/ui/springs";
+import {fontWeights} from "@/lib/utils/font-weight";
+import {useShape} from "@/lib/ui/shape-context";
 
 // ---------------------------------------------------------------------------
 // Types

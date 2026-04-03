@@ -6,7 +6,7 @@ import {MIN_ZOOM} from "./media-preview/constants";
 import {PreviewToolbar} from "./media-preview/PreviewToolbar";
 import type {MediaPreviewProps} from "./media-preview/types";
 import {useMediaPreview} from "./media-preview/useMediaPreview";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import CustomVideoPlayer from "./CustomVideoPlayer";
 import {useEffect, useState} from "react";
 

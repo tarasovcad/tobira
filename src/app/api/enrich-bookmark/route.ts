@@ -5,10 +5,40 @@ import {
   fetchResolvedOgImageUrl,
   isRecord,
   normalizeInputUrl,
-} from "@/lib/web-fetch";
+} from "@/lib/fetch/web";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 
+export async function POST(request: NextRequest) {
+  const rawBody = await request.text().catch(() => "");
+
+  const isValid = await verifyQstashRequest(request, rawBody);
+  if (!isValid) {
+    return NextResponse.json({error: "Unauthorized"}, {status: 401});
+  }
+
+  const payload = await readJobPayload(request, rawBody);
+  if (!payload.url) {
+    return NextResponse.json({error: "Missing url"}, {status: 400});
+  }
+
+  try {
+    await runEnrichment(payload.url, payload.id);
+  } catch (e) {
+    console.error("enrich-bookmark failed", e);
+  }
+
+  return NextResponse.json(
+    {success: true},
+    {
+      headers: {"cache-control": "no-store"},
+    },
+  );
+}
+
+/*
+FUNCTIONS AND HELPERS
+*/
 export const runtime = "nodejs";
 
 function getQstashReceiver() {
@@ -149,12 +179,27 @@ async function uploadPreviewToR2(
 }
 
 async function runEnrichment(inputUrl: string, id?: unknown) {
+  const startTime = performance.now();
   const normalized = normalizeInputUrl(inputUrl).toString();
 
+  console.log(`[enrich-bookmark] Starting enrichment for: ${normalized}`);
+
+  const timedFetch = async <T>(name: string, fn: Promise<T>) => {
+    const s = performance.now();
+    try {
+      return await fn;
+    } finally {
+      const e = performance.now();
+      console.log(
+        `[enrich-bookmark] -> ${name} for ${normalized} took ${((e - s) / 1000).toFixed(2)}s`,
+      );
+    }
+  };
+
   const results = await Promise.allSettled([
-    fetchBestFaviconOne(normalized),
-    fetchResolvedOgImageUrl(normalized),
-    fetchBrowserlessScreenshotDataUrl(normalized),
+    timedFetch("Favicon", fetchBestFaviconOne(normalized)),
+    timedFetch("OG Image", fetchResolvedOgImageUrl(normalized)),
+    timedFetch("Screenshot", fetchBrowserlessScreenshotDataUrl(normalized)),
   ]);
 
   const uploads: Promise<unknown>[] = [];
@@ -183,32 +228,18 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
     }
   }
 
+  const uploadStart = performance.now();
   await Promise.allSettled(uploads);
-}
+  const uploadEnd = performance.now();
 
-export async function POST(request: NextRequest) {
-  const rawBody = await request.text().catch(() => "");
-
-  const isValid = await verifyQstashRequest(request, rawBody);
-  if (!isValid) {
-    return NextResponse.json({error: "Unauthorized"}, {status: 401});
+  if (uploads.length > 0) {
+    console.log(
+      `[enrich-bookmark] Uploaded ${uploads.length} assets for ${normalized} in ${((uploadEnd - uploadStart) / 1000).toFixed(2)}s`,
+    );
   }
 
-  const payload = await readJobPayload(request, rawBody);
-  if (!payload.url) {
-    return NextResponse.json({error: "Missing url"}, {status: 400});
-  }
-
-  try {
-    await runEnrichment(payload.url, payload.id);
-  } catch (e) {
-    console.error("enrich-bookmark failed", e);
-  }
-
-  return NextResponse.json(
-    {success: true},
-    {
-      headers: {"cache-control": "no-store"},
-    },
+  const totalTime = performance.now() - startTime;
+  console.log(
+    `[enrich-bookmark] ✅ Total enrichment for ${normalized} finished in ${(totalTime / 1000).toFixed(2)}s`,
   );
 }

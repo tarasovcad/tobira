@@ -3,8 +3,8 @@
 import {db} from "@/db";
 import {collections} from "@/db/schema";
 import {and, desc, eq, inArray} from "drizzle-orm";
-import {NotFoundError, UnauthorizedError} from "@/lib/errors";
-import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth-session";
+import {NotFoundError, UnauthorizedError} from "@/lib/shared/errors";
+import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth/session";
 
 export type Collection = {
   id: string;

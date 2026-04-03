@@ -1,6 +1,6 @@
 import {createServerClient} from "@supabase/ssr";
 import {cookies, headers} from "next/headers";
-import {auth} from "@/lib/auth";
+import {auth} from "@/lib/auth/auth";
 import jwt from "jsonwebtoken";
 
 export async function createClient() {

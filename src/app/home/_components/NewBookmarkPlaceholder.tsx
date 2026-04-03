@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {Skeleton} from "@/components/coss-ui/skeleton";
-import {formatDateAbsolute} from "@/lib/formatDate";
+import {formatDateAbsolute} from "@/lib/utils/dates";
 import type {Bookmark} from "@/components/bookmark/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {useEffect} from "react";

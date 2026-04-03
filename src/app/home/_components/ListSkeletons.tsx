@@ -1,5 +1,5 @@
 import {Skeleton} from "@/components/coss-ui/skeleton";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {useViewOptionsStore} from "@/store/use-view-options";
 
 export function ListSkeleton() {

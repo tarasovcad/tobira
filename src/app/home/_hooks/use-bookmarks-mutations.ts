@@ -3,7 +3,7 @@ import {useMutation, useMutationState, useQueryClient} from "@tanstack/react-que
 import {archiveBookmarks} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/coss-ui/toast";
-import {normalizeTagName} from "@/lib/utils";
+import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
 
 /**
  * Manages mutation tracking (add/delete/archive)

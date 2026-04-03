@@ -8,7 +8,7 @@ import {
   isHtmlContentType,
   looksLikeChallengeHtml,
   normalizeInputUrl,
-} from "@/lib/web-fetch";
+} from "@/lib/fetch/web";
 
 export const runtime = "nodejs";
 

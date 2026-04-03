@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import {cn} from "@/lib/utils";
-import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import {cn} from "@/lib/utils/classnames";
+import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import type {BookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 import Link from "next/link";
 

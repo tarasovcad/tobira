@@ -1,7 +1,7 @@
 import {db} from "@/db";
 import {bookmarks, bookmarkTags, tags} from "@/db/schema";
 import {and, eq, inArray, isNull, notInArray} from "drizzle-orm";
-import {normalizeTagNames} from "@/lib/utils";
+import {normalizeTagNames} from "@/lib/bookmarks/tag-utils";
 
 export async function attachTagsToBookmark(
   bookmarkId: string,

@@ -3,8 +3,8 @@
 
 import {Redis} from "@upstash/redis";
 import {Ratelimit} from "@upstash/ratelimit";
-import {getIp} from "@/lib/ip";
-import {auth} from "@/lib/auth";
+import {getIp} from "@/lib/utils/ip";
+import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
 
 const redis = new Redis({

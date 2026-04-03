@@ -24,7 +24,7 @@ import {CollectionNotFoundState} from "./home-client/CollectionNotFoundState";
 import {TagNotFoundState} from "./home-client/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import type {TypeFilter, SortMode} from "../_types";
 import type {TagWithCount} from "../_types";
 import {AllItemsList} from "./home-client/AllItemsList";

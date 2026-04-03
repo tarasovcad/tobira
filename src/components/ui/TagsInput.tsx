@@ -13,7 +13,7 @@ import {
   type GenerateAiSuggestionsResult,
 } from "@/app/actions/generate-ai-suggestions";
 import {Tooltip, TooltipTrigger, TooltipPopup, TooltipProvider} from "@/components/coss-ui/tooltip";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {Label} from "../coss-ui/label";
 
 export type TagsInputProps = {

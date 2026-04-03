@@ -4,9 +4,9 @@ import {db} from "@/db";
 import {tags, bookmarkTags, bookmarks} from "@/db/schema";
 import {and, eq, isNull, count, inArray, desc, asc} from "drizzle-orm";
 import type {SidebarTag, TagWithCount} from "../home/_types";
-import {normalizeTagParam} from "@/lib/utils";
-import {NotFoundError, UnauthorizedError} from "@/lib/errors";
-import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth-session";
+import {normalizeTagParam} from "@/lib/bookmarks/tag-utils";
+import {NotFoundError, UnauthorizedError} from "@/lib/shared/errors";
+import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth/session";
 
 function mapTagWithCount(row: {
   id: string;

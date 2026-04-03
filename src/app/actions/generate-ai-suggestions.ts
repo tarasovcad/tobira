@@ -3,10 +3,10 @@
 import OpenAI from "openai";
 import {zodResponseFormat} from "openai/helpers/zod";
 import {z} from "zod";
-import {requireAuthenticatedUserId} from "@/lib/auth-session";
+import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
-import {normalizeTagNames} from "@/lib/utils";
-import {normalizeInputUrl} from "@/lib/web-fetch";
+import {normalizeTagNames} from "@/lib/bookmarks/tag-utils";
+import {normalizeInputUrl} from "@/lib/fetch/web";
 
 const MAX_AI_TAG_SUGGESTIONS = 10;
 const DEFAULT_AI_TAG_SUGGESTIONS = 5;

@@ -3,7 +3,7 @@
 import * as React from "react";
 import {useRef, useState, useMemo, useEffect} from "react";
 import Image from "next/image";
-import {formatDateWithTime} from "@/lib/formatDate";
+import {formatDateWithTime} from "@/lib/utils/dates";
 import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/components/coss-ui/sheet";
 import {Button} from "@/components/coss-ui/button";
 import {Separator} from "@/components/shadcn/separator";

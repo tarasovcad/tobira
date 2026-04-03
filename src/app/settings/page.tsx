@@ -1,6 +1,6 @@
 import React from "react";
 import AppShell from "@/components/providers/AppShell";
-import {auth} from "@/lib/auth";
+import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
 import {SettingsContent} from "./SettingsContent";
 import {redirect} from "next/navigation";

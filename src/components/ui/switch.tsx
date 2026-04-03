@@ -3,8 +3,8 @@
 import {forwardRef, useRef, useState, useEffect, useCallback, type HTMLAttributes} from "react";
 import {motion, useMotionValue, animate} from "framer-motion";
 import {Switch as SwitchPrimitive} from "@base-ui/react/switch";
-import {cn} from "@/lib/utils";
-import {springs} from "@/lib/springs";
+import {cn} from "@/lib/utils/classnames";
+import {springs} from "@/lib/ui/springs";
 
 interface SwitchProps extends HTMLAttributes<HTMLDivElement> {
   label?: string;

@@ -1,5 +1,5 @@
 import React from "react";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {ContextMenu, ContextMenuTrigger} from "@/components/shadcn/context-menu";
 import {motion} from "framer-motion";
@@ -9,7 +9,7 @@ import {useRouter} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/app/home/_types";
 import {Skeleton} from "@/components/ui/skeleton";
-import {useHasMounted} from "@/lib/useHasMounted";
+import {useHasMounted} from "@/lib/hooks/use-has-mounted";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (

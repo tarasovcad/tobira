@@ -2,7 +2,7 @@
 
 import {Form as FormPrimitive} from "@base-ui/react/form";
 import type React from "react";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 
 export function Form({className, ...props}: FormPrimitive.Props): React.ReactElement {
   return (

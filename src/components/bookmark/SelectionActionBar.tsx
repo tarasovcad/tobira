@@ -1,8 +1,8 @@
 "use client";
 
 import {Button} from "@/components/coss-ui/button";
-import {useHasMounted} from "@/lib/useHasMounted";
-import {cn} from "@/lib/utils";
+import {useHasMounted} from "@/lib/hooks/use-has-mounted";
+import {cn} from "@/lib/utils/classnames";
 import {motion} from "motion/react";
 import NumberFlow from "@number-flow/react";
 import {createPortal} from "react-dom";

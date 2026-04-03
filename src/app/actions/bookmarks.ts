@@ -6,12 +6,12 @@ import {db} from "@/db";
 import {bookmarks, bookmarkTags, bookmarkCollections, tags} from "@/db/schema";
 import {and, eq, inArray, asc, desc, exists, isNull} from "drizzle-orm";
 import type {Bookmark} from "@/components/bookmark/types";
-import {requireAuthenticatedUserId} from "@/lib/auth-session";
+import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmarkCreation} from "@/lib/bookmarks/media";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
-import {normalizeInputUrl} from "@/lib/web-fetch";
+import {normalizeInputUrl} from "@/lib/fetch/web";
 
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 

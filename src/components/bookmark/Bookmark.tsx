@@ -1,8 +1,8 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import {formatDateAbsolute} from "@/lib/formatDate";
-import {cn} from "@/lib/utils";
+import {formatDateAbsolute} from "@/lib/utils/dates";
+import {cn} from "@/lib/utils/classnames";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "./types";

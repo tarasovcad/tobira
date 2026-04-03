@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import MediaPreview from "@/components/ui/MediaPreview";
 import type {Bookmark} from "../types";
@@ -43,7 +43,7 @@ export const BookmarkImage = ({
       BASE_SRC = buildR2PublicUrl(`favicons/${bookmark_id}/favicon.png`);
       break;
   }
-  const MAX_RETRIES = 0; // ~24s at 2s interval
+  const MAX_RETRIES = 12; // ~24s at 2s interval
   const RETRY_MS = 2000;
 
   const [attempt, setAttempt] = useState(0);

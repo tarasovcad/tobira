@@ -2,7 +2,7 @@
 
 import React, {useEffect, useState} from "react";
 import {usePathname, useSearchParams, useRouter} from "next/navigation";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {buttonVariants} from "../shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
 import type {Collection} from "@/app/actions/collections";
@@ -11,7 +11,7 @@ import {SidebarCollectionItem, SidebarCollectionSkeleton} from "./SidebarItems";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
-import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useCollectionsQuery} from "@/app/home/_hooks/use-home-metadata-query";
 
 export function SidebarCollections({

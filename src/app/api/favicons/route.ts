@@ -4,7 +4,7 @@ import {
   fetchFaviconCandidates,
   normalizeInputUrl,
   selectBestFaviconIcon,
-} from "@/lib/web-fetch";
+} from "@/lib/fetch/web";
 
 type FaviconResult = {
   inputUrl: string;

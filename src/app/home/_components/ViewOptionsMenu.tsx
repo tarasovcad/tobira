@@ -16,7 +16,7 @@ import {
 import {Button} from "@/components/coss-ui/button";
 import {Switch} from "@/components/ui/switch";
 import {SliderComfortable} from "@/components/ui/slider";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {
   useViewOptionsStore,
   type ColumnSize,
