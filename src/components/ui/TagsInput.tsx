@@ -31,6 +31,8 @@ export type TagsInputProps = {
   /** If provided, a hidden input will be rendered (comma-separated). */
   name?: string;
   availableTags?: string[];
+  userTags?: string[];
+  userAiContext?: string | null;
   labelClassName?: string;
   containerClassName?: string;
   sourceUrl?: string;
@@ -149,6 +151,8 @@ const TagsInput = ({
   disabled = false,
   name,
   availableTags,
+  userTags,
+  userAiContext,
   labelClassName,
   containerClassName,
   sourceUrl,
@@ -297,6 +301,8 @@ const TagsInput = ({
         url: sourceUrl ?? "",
         type: itemType,
         existingTags: tags,
+        userTags,
+        userAiContext,
         maxSuggestions: Math.max(1, maxTags - tags.length),
       });
     },

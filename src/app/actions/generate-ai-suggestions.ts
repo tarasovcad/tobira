@@ -24,6 +24,8 @@ export type GenerateAiSuggestionsInput = {
   url: string;
   type: "website" | "media" | "article";
   existingTags?: string[];
+  userTags?: string[];
+  userAiContext?: string | null;
   maxSuggestions?: number;
 };
 
@@ -97,6 +99,8 @@ export async function generateAiSuggestions(
 
   const maxSuggestions = clampSuggestionCount(input.maxSuggestions);
   const existingTags = normalizeTagNames(input.existingTags ?? []);
+  const userTags = normalizeTagNames(input.userTags ?? []);
+  const userAiContext = input.userAiContext?.trim();
 
   const aiStartedAt = performance.now();
   const completion = await openaiClient.chat.completions.parse({
@@ -111,6 +115,8 @@ export async function generateAiSuggestions(
           "You generate concise bookmark tags for a personal link library.",
           "Return short, reusable tags without a leading # character.",
           "Prefer lowercase, 1-3 words, and avoid duplicates or near-duplicates.",
+          "Prefer single-word tags for most suggestions, roughly 70% of the time, unless a multi-word tag is clearly more accurate.",
+          "Prefer natural space-separated tags for multi-word phrases instead of hyphenated slugs.",
           "Use broad but useful categories, technologies, topics, and intent labels.",
           "Do not invent tags unsupported by the provided page metadata.",
         ].join(" "),
@@ -121,6 +127,10 @@ export async function generateAiSuggestions(
           `URL: ${metadata.finalUrl ?? metadata.normalizedUrl}`,
           `Title: ${title ?? "Unknown"}`,
           `Description: ${description ?? "Unknown"}`,
+          userAiContext ? `User AI context: ${userAiContext}` : null,
+          userTags.length > 0
+            ? `User tag vocabulary to prefer when relevant: ${userTags.join(", ")}`
+            : null,
           existingTags.length > 0 ? `Existing tags to avoid: ${existingTags.join(", ")}` : null,
           `Return up to ${maxSuggestions} tags.`,
         ]

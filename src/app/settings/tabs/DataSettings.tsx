@@ -1,3 +1,4 @@
+"use client";
 import React, {useState} from "react";
 import {Button} from "@/components/coss-ui/button";
 import {Checkbox} from "@/components/coss-ui/checkbox";

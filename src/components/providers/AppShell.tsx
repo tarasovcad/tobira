@@ -30,7 +30,7 @@ const AppShell = ({
       </div>
 
       {displayAddBookmarkDialog && (
-        <AddItemDialog isAuthenticated={Boolean(session)} userId={session?.user?.id} />
+        <AddItemDialog isAuthenticated={Boolean(session)} user={session?.user ?? null} />
       )}
       <CollectionDialog isAuthenticated={Boolean(session)} />
       <DeleteBookmarkDialog />

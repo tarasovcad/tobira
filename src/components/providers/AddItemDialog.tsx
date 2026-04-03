@@ -59,14 +59,20 @@ import {
   useCollectionsQuery,
   useTagsQuery,
 } from "@/app/home/_hooks/use-home-metadata-query";
+import {User as AuthUser} from "@/components/utils/better-auth/auth-client";
+
+type AddItemDialogUser = AuthUser & {
+  aiContext?: string | null;
+};
 
 export function AddItemDialog({
   isAuthenticated = false,
-  userId,
+  user,
 }: {
   isAuthenticated?: boolean;
-  userId?: string | null;
+  user?: AddItemDialogUser | null;
 }) {
+  const userId = user?.id;
   const router = useRouter();
   const open = useAddItemDialogStore((state) => state.isOpen);
   const setDialogOpen = useAddItemDialogStore((state) => state.setDialogOpen);
@@ -394,6 +400,8 @@ export function AddItemDialog({
                           name="tags"
                           sortOnAdd={false}
                           availableTags={tags.map((t) => t.name)}
+                          userTags={tags.map((t) => t.name)}
+                          userAiContext={user?.aiContext ?? null}
                           sourceUrl={watchedUrl}
                           itemType={watchedType}
                         />
