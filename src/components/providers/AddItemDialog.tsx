@@ -103,6 +103,8 @@ export function AddItemDialog({
     },
     mode: "onChange",
   });
+  const watchedUrl = watch("url");
+  const watchedType = watch("type");
 
   const addItemMutation = useMutation<
     AddWebsiteBookmarkResult | AddMediaBookmarkResult,
@@ -392,6 +394,8 @@ export function AddItemDialog({
                           name="tags"
                           sortOnAdd={false}
                           availableTags={tags.map((t) => t.name)}
+                          sourceUrl={watchedUrl}
+                          itemType={watchedType}
                         />
                       )}
                     />

@@ -1,0 +1,134 @@
+"use server";
+
+import {generateText, Output} from "ai";
+import {openai} from "@ai-sdk/openai";
+import {z} from "zod";
+import {requireAuthenticatedUserId} from "@/lib/auth-session";
+import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
+import {normalizeTagNames} from "@/lib/utils";
+import {normalizeInputUrl} from "@/lib/web-fetch";
+
+const MAX_AI_TAG_SUGGESTIONS = 10;
+const DEFAULT_AI_TAG_SUGGESTIONS = 5;
+const MAX_TAG_LENGTH = 64;
+
+const aiTagSuggestionsSchema = z.object({
+  suggestions: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(MAX_AI_TAG_SUGGESTIONS),
+});
+
+export type GenerateAiSuggestionsInput = {
+  url: string;
+  type: "website" | "media" | "article";
+  existingTags?: string[];
+  maxSuggestions?: number;
+};
+
+export type GenerateAiSuggestionsResult = {
+  suggestions: string[];
+};
+
+function formatDurationMs(durationMs: number) {
+  return `${durationMs.toFixed(1)}ms`;
+}
+
+function clampSuggestionCount(value?: number) {
+  if (!Number.isFinite(value)) return DEFAULT_AI_TAG_SUGGESTIONS;
+  const normalized = Math.floor(value as number);
+  return Math.min(MAX_AI_TAG_SUGGESTIONS, Math.max(1, normalized));
+}
+
+function normalizeGeneratedTags(rawTags: string[], existingTags: string[], maxSuggestions: number) {
+  const existing = new Set(existingTags.map((tag) => tag.toLowerCase()));
+
+  return normalizeTagNames(rawTags)
+    .map((tag) => (tag.length > MAX_TAG_LENGTH ? tag.slice(0, MAX_TAG_LENGTH) : tag))
+    .filter((tag) => {
+      const key = tag.toLowerCase();
+      if (existing.has(key)) return false;
+      existing.add(key);
+      return true;
+    })
+    .slice(0, maxSuggestions);
+}
+
+export async function generateAiSuggestions(
+  input: GenerateAiSuggestionsInput,
+): Promise<GenerateAiSuggestionsResult> {
+  const requestStartedAt = performance.now();
+  await requireAuthenticatedUserId();
+
+  if (input.type !== "website") {
+    throw new Error("AI suggestions are only available for website items.");
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Missing OPENAI_API_KEY.");
+  }
+
+  let normalizedUrl: URL;
+  try {
+    normalizedUrl = normalizeInputUrl(input.url);
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : "Invalid URL.");
+  }
+
+  const metadataStartedAt = performance.now();
+  const metadata = await fetchUrlMetadata(normalizedUrl, input.url);
+  const metadataDurationMs = performance.now() - metadataStartedAt;
+  const title = metadata.title?.trim();
+  const description = metadata.description?.trim();
+
+  if (!title && !description) {
+    const totalDurationMs = performance.now() - requestStartedAt;
+    console.log("[generateAiSuggestions] timings", {
+      metadata: formatDurationMs(metadataDurationMs),
+      ai: formatDurationMs(0),
+      total: formatDurationMs(totalDurationMs),
+      url: metadata.finalUrl ?? metadata.normalizedUrl,
+      suggestions: 0,
+    });
+
+    return {suggestions: []};
+  }
+
+  const maxSuggestions = clampSuggestionCount(input.maxSuggestions);
+  const existingTags = normalizeTagNames(input.existingTags ?? []);
+
+  const aiStartedAt = performance.now();
+  const {output} = await generateText({
+    model: openai("gpt-5-nano"),
+    output: Output.object({schema: aiTagSuggestionsSchema}),
+    temperature: 0.2,
+    system: [
+      "You generate concise bookmark tags for a personal link library.",
+      "Return short, reusable tags without a leading # character.",
+      "Prefer lowercase, 1-3 words, and avoid duplicates or near-duplicates.",
+      "Use broad but useful categories, technologies, topics, and intent labels.",
+      "Do not invent tags unsupported by the provided page metadata.",
+    ].join(" "),
+    prompt: [
+      `URL: ${metadata.finalUrl ?? metadata.normalizedUrl}`,
+      `Title: ${title ?? "Unknown"}`,
+      `Description: ${description ?? "Unknown"}`,
+      existingTags.length > 0 ? `Existing tags to avoid: ${existingTags.join(", ")}` : null,
+      `Return up to ${maxSuggestions} tags.`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  });
+  const aiDurationMs = performance.now() - aiStartedAt;
+  const suggestions = normalizeGeneratedTags(output.suggestions, existingTags, maxSuggestions);
+  const totalDurationMs = performance.now() - requestStartedAt;
+
+  console.log("[generateAiSuggestions] timings", {
+    metadata: formatDurationMs(metadataDurationMs),
+    ai: formatDurationMs(aiDurationMs),
+    total: formatDurationMs(totalDurationMs),
+    url: metadata.finalUrl ?? metadata.normalizedUrl,
+    suggestions: suggestions.length,
+  });
+
+  return {
+    suggestions,
+  };
+}

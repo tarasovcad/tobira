@@ -14,10 +14,12 @@ const AppShell = ({
   children,
   session,
   sidebar,
+  displayAddBookmarkDialog = false,
 }: {
   children: React.ReactNode;
   session: AppShellSession;
   sidebar?: React.ReactNode;
+  displayAddBookmarkDialog?: boolean;
 }) => {
   return (
     <main className="flex h-dvh min-h-screen flex-col">
@@ -26,7 +28,10 @@ const AppShell = ({
         {sidebar ?? <Sidebar isAuthenticated={Boolean(session)} userId={session?.user?.id} />}
         <div className="min-h-0 flex-1">{children}</div>
       </div>
-      <AddItemDialog isAuthenticated={Boolean(session)} userId={session?.user?.id} />
+
+      {displayAddBookmarkDialog && (
+        <AddItemDialog isAuthenticated={Boolean(session)} userId={session?.user?.id} />
+      )}
       <CollectionDialog isAuthenticated={Boolean(session)} />
       <DeleteBookmarkDialog />
       <DeleteCollectionDialog />

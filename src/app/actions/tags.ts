@@ -42,12 +42,6 @@ function mapSidebarTag(row: {
   };
 }
 
-export async function generateAiSuggestions() {
-  return {
-    suggestions: ["react", "nextjs", "typescript", "tailwind", "ui"],
-  };
-}
-
 export async function getSidebarTags(userId?: string): Promise<SidebarTag[]> {
   const currentUserId = await getCurrentUserId();
 

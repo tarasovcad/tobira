@@ -8,10 +8,14 @@ import {Button} from "@/components/coss-ui/button";
 import {Tag} from "@/components/ui/Tag";
 import {Skeleton} from "@/components/coss-ui/skeleton";
 import {useMutation} from "@tanstack/react-query";
-import {generateAiSuggestions as generateAiSuggestionsAction} from "@/app/actions/tags";
+import {
+  generateAiSuggestions as generateAiSuggestionsAction,
+  type GenerateAiSuggestionsResult,
+} from "@/app/actions/generate-ai-suggestions";
 import {Tooltip, TooltipTrigger, TooltipPopup} from "@/components/coss-ui/tooltip";
 import {cn} from "@/lib/utils";
 import {Label} from "../coss-ui/label";
+
 export type TagsInputProps = {
   value?: string[];
   defaultValue?: string[];
@@ -29,12 +33,17 @@ export type TagsInputProps = {
   availableTags?: string[];
   labelClassName?: string;
   containerClassName?: string;
+  sourceUrl?: string;
+  itemType?: "website" | "media" | "article";
+  aiEnabled?: boolean;
 };
 
 const DEFAULT_MAX_TAGS = 10;
 const DEFAULT_MAX_TAG_LENGTH = 64;
 
 type Tag = string;
+
+type AiStatus = "idle" | "loading" | "ready" | "error";
 
 function sortTagsAZ(input: Tag[]) {
   return [...input].sort(
@@ -64,6 +73,25 @@ function splitRawTags(raw: string, maxTagLength: number): Tag[] {
     .split(/[,|\n|\r]/g)
     .map((t) => normalizeTag(t, maxTagLength))
     .filter(Boolean);
+}
+
+function canGenerateFromUrl(input?: string) {
+  if (!input?.trim()) return false;
+
+  try {
+    const url = new URL(input.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function formatAiErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) return "Failed to generate suggestions.";
+
+  const message = error.message.trim();
+  if (!message) return "Failed to generate suggestions.";
+  return message.endsWith(".") ? message : `${message}.`;
 }
 
 function buildInlineSuggestion({
@@ -123,6 +151,9 @@ const TagsInput = ({
   availableTags,
   labelClassName,
   containerClassName,
+  sourceUrl,
+  itemType = "website",
+  aiEnabled = true,
 }: TagsInputProps) => {
   const {tags, setTags} = useControllableTags({value, defaultValue, onValueChange});
 
@@ -132,8 +163,9 @@ const TagsInput = ({
   const helpId = useId();
 
   // this
-  const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [aiStatus, setAiStatus] = useState<AiStatus>("idle");
   const [aiSuggestions, setAiSuggestions] = useState<Tag[]>([]);
+  const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
 
   const suggestion = useMemo(
     () => buildInlineSuggestion({inputValue, tags, availableTags}),
@@ -258,15 +290,20 @@ const TagsInput = ({
 
   // below
 
-  const aiPanelOpen = aiStatus !== "idle";
   const aiMutation = useMutation({
     mutationKey: ["generate-tag-suggestions"],
-    mutationFn: async () => {
-      return generateAiSuggestionsAction();
+    mutationFn: async (): Promise<GenerateAiSuggestionsResult> => {
+      return generateAiSuggestionsAction({
+        url: sourceUrl ?? "",
+        type: itemType,
+        existingTags: tags,
+        maxSuggestions: Math.max(1, maxTags - tags.length),
+      });
     },
     onMutate: () => {
       setAiStatus("loading");
       setAiSuggestions([]);
+      setAiErrorMessage(null);
     },
     onSuccess: (data) => {
       setAiSuggestions(data.suggestions ?? []);
@@ -275,15 +312,27 @@ const TagsInput = ({
     onError: (error) => {
       console.error("Failed to generate tag suggestions:", error);
       setAiSuggestions([]);
-      setAiStatus("ready");
+      setAiErrorMessage(formatAiErrorMessage(error));
+      setAiStatus("error");
     },
   });
 
-  const aiCanGenerate = !disabled && canAddMore && !aiMutation.isPending;
+  const hasValidAiSourceUrl = useMemo(() => canGenerateFromUrl(sourceUrl), [sourceUrl]);
+  const aiUnavailableReason = useMemo(() => {
+    if (!aiEnabled) return "AI suggestions are disabled.";
+    if (itemType !== "website") return "AI suggestions are only available for website items.";
+    if (!sourceUrl?.trim()) return "Enter a website URL first.";
+    if (!hasValidAiSourceUrl) return "Enter a valid http(s) URL first.";
+    if (!canAddMore) return `Maximum of ${maxTags} tags reached.`;
+    return null;
+  }, [aiEnabled, itemType, sourceUrl, hasValidAiSourceUrl, canAddMore, maxTags]);
+  const aiCanGenerate = !disabled && !aiMutation.isPending && aiUnavailableReason === null;
+  const aiPanelOpen = aiStatus !== "idle";
 
   const dismissAi = useCallback(() => {
     setAiStatus("idle");
     setAiSuggestions([]);
+    setAiErrorMessage(null);
     aiMutation.reset();
   }, [aiMutation]);
 
@@ -338,7 +387,7 @@ const TagsInput = ({
 
   return (
     <div className={cn("flex w-full max-w-[460px] flex-col gap-2", containerClassName)}>
-      <Label htmlFor={inputId} className="flex items-center gap-1">
+      <Label htmlFor={inputId} className={cn("flex items-center gap-1", labelClassName)}>
         {label} <span className="text-muted-foreground font-medium">(max {maxTags})</span>
         <InfoIcon />
       </Label>
@@ -391,12 +440,14 @@ const TagsInput = ({
                     variant="outline"
                     disabled={!aiCanGenerate}
                     onClick={() => aiMutation.mutate()}
-                    aria-label="Generate tag suggestions (mock AI)"
+                    aria-label="Generate AI tag suggestions"
                   />
                 }>
                 <SparklesIcon />
               </TooltipTrigger>
-              <TooltipPopup sideOffset={8}>AI suggestions</TooltipPopup>
+              <TooltipPopup sideOffset={8}>
+                {aiUnavailableReason ?? "Generate AI tag suggestions"}
+              </TooltipPopup>
             </Tooltip>
           </InputGroupAddon>
           <InputGroupAddon align="inline-end">
@@ -482,6 +533,16 @@ const TagsInput = ({
                     <Skeleton className="rounded-rounded h-6 w-14" />
                     <Skeleton className="rounded-rounded h-6 w-20" />
                   </motion.div>
+                ) : aiStatus === "error" ? (
+                  <motion.div
+                    key="ai-error"
+                    className="text-destructive mt-4 text-sm"
+                    initial={{opacity: 0, y: -2}}
+                    animate={{opacity: 1, y: 0}}
+                    exit={{opacity: 0, y: 2}}
+                    transition={{duration: 0.14, ease: "easeOut"}}>
+                    {aiErrorMessage ?? "Failed to generate suggestions."}
+                  </motion.div>
                 ) : aiSuggestions.length > 0 ? (
                   <motion.div
                     key="ai-ready"
@@ -494,6 +555,7 @@ const TagsInput = ({
                       {aiSuggestions.map((t) => (
                         <motion.button
                           key={t.toLowerCase()}
+                          type="button"
                           layout
                           disabled={disabled || !canAddMore}
                           onClick={() => addAiSuggestion(t)}
@@ -503,11 +565,11 @@ const TagsInput = ({
                           exit={{opacity: 0, scale: 0.92, y: -2, filter: "blur(3px)"}}
                           transition={{duration: 0.16, ease: "easeOut"}}>
                           <Tag
+                            displayHash={false}
                             size="md"
                             variant="outline"
                             className="border-muted-foreground/30 hover:bg-muted gap-1 border-dashed transition-colors duration-100">
-                            <PlusIcon />
-                            {t}
+                            {/* <PlusIcon /> */}+ {t}
                           </Tag>
                         </motion.button>
                       ))}
@@ -521,7 +583,8 @@ const TagsInput = ({
                     animate={{opacity: 1, y: 0}}
                     exit={{opacity: 0, y: 2}}
                     transition={{duration: 0.14, ease: "easeOut"}}>
-                    No suggestions available{canAddMore ? "." : " (max tags reached)."}
+                    No suggestions available from this page metadata
+                    {canAddMore ? "." : " (max tags reached)."}
                   </motion.div>
                 )}
               </AnimatePresence>

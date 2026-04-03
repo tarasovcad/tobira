@@ -107,6 +107,9 @@ export const bookmarks = pgTable(
     metadata: jsonb().default({}),
   },
   (table) => [
+    index("bookmarks_active_feed_idx")
+      .on(table.userId, table.kind, table.createdAt.desc())
+      .where(sql`archived_at IS NULL AND deleted_at IS NULL`),
     index("bookmarks_user_active_idx").using(
       "btree",
       table.userId.asc().nullsLast().op("text_ops"),

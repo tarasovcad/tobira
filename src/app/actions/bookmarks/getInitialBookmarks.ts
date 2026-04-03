@@ -101,11 +101,11 @@ export async function getInitialBookmarks({
   }));
 
   const endTime = performance.now();
-  logger.info("getInitialBookmarks: completed", {
-    durationMs: parseFloat((endTime - startTime).toFixed(2)),
-    userId,
-    bookmarkCount: initialBookmarks.length,
-  });
+  // logger.info("getInitialBookmarks: completed", {
+  //   durationMs: parseFloat((endTime - startTime).toFixed(2)),
+  //   userId,
+  //   bookmarkCount: initialBookmarks.length,
+  // });
 
   return {
     initialBookmarks,

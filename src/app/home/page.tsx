@@ -40,6 +40,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   return (
     <AppShell
       session={session}
+      displayAddBookmarkDialog={true}
       sidebar={
         <Suspense fallback={<SidebarSkeleton />}>
           <SidebarDataWrapper userId={userId} />
