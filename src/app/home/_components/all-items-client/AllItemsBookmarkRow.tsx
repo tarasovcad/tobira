@@ -16,7 +16,7 @@ interface AllItemsBookmarkRowProps {
   isRemoving: boolean;
   removalKind: "delete" | "archive";
   selectionMode: boolean;
-  selectedIds: Set<string>;
+  isSelected: boolean;
   animatedVariant: AllItemsAnimatedVariant;
   BookmarkItem: React.ComponentType<AllItemsBookmarkComponentProps>;
   onItemRemoved: (id: string) => void;
@@ -26,13 +26,13 @@ interface AllItemsBookmarkRowProps {
   onMenuDelete: (item: Bookmark) => void;
 }
 
-export function AllItemsBookmarkRow({
+function AllItemsBookmarkRowImpl({
   item,
   index,
   isRemoving,
   removalKind,
   selectionMode,
-  selectedIds,
+  isSelected,
   animatedVariant,
   BookmarkItem,
   onItemRemoved,
@@ -53,8 +53,11 @@ export function AllItemsBookmarkRow({
       kind={removalKind}
       className={animatedVariant === "grid" ? "flex h-full flex-col" : undefined}>
       <div
+        data-selection-mode={selectionMode}
         className={
-          animatedVariant === "grid" ? "relative flex min-h-0 flex-1 flex-col" : "relative"
+          animatedVariant === "grid"
+            ? "group/bookmark-row relative flex min-h-0 flex-1 flex-col"
+            : "group/bookmark-row relative"
         }
         onClickCapture={(e) => {
           if (!selectionMode) return;
@@ -71,12 +74,29 @@ export function AllItemsBookmarkRow({
             })
           }
           onDelete={(bookmark) => openDeleteDialog([bookmark])}
-          selectionMode={selectionMode}
           selectionIndex={index}
-          selectedIds={selectedIds}
+          isSelected={isSelected}
           setSelected={setSelected}
         />
       </div>
     </AnimatedItem>
   );
 }
+
+export const AllItemsBookmarkRow = React.memo(
+  AllItemsBookmarkRowImpl,
+  (prev, next) =>
+    prev.item === next.item &&
+    prev.index === next.index &&
+    prev.isRemoving === next.isRemoving &&
+    prev.removalKind === next.removalKind &&
+    prev.selectionMode === next.selectionMode &&
+    prev.isSelected === next.isSelected &&
+    prev.animatedVariant === next.animatedVariant &&
+    prev.BookmarkItem === next.BookmarkItem &&
+    prev.onItemRemoved === next.onItemRemoved &&
+    prev.toggleSelected === next.toggleSelected &&
+    prev.setSelected === next.setSelected &&
+    prev.onMenuArchive === next.onMenuArchive &&
+    prev.onMenuDelete === next.onMenuDelete,
+);

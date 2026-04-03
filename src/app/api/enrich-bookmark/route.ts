@@ -180,49 +180,34 @@ async function uploadPreviewToR2(
 }
 
 async function runEnrichment(inputUrl: string, id?: unknown) {
-  const startTime = performance.now();
   const normalized = normalizeInputUrl(inputUrl).toString();
 
-  console.log(`[enrich-bookmark] Starting enrichment for: ${normalized}`);
-
-  const timedFetchAndUpload = async <T>(
-    name: string,
+  const fetchAndUpload = async <T>(
     fetchPromise: Promise<T>,
     uploadFn: (data: T) => Promise<void>,
   ) => {
-    const s = performance.now();
     try {
       const data = await fetchPromise;
-      const fetchTime = performance.now();
-      console.log(
-        `[enrich-bookmark] -> ${name} for ${normalized} fetched in ${((fetchTime - s) / 1000).toFixed(2)}s`,
-      );
-
       if (data) {
         await uploadFn(data);
-        const uploadTime = performance.now();
-        console.log(
-          `[enrich-bookmark] -> ${name} for ${normalized} uploaded in ${((uploadTime - fetchTime) / 1000).toFixed(2)}s`,
-        );
       }
-    } catch (e) {
-      console.error(`[enrich-bookmark] -> ${name} for ${normalized} failed:`, e);
+    } catch {
+      return;
     }
   };
 
   await Promise.allSettled([
-    timedFetchAndUpload("Favicon", fetchBestFaviconOne(normalized), async (best) => {
+    fetchAndUpload(fetchBestFaviconOne(normalized), async (best) => {
       if (best?.url) {
         await uploadFaviconToR2(best.url, normalized, id);
       }
     }),
-    timedFetchAndUpload("OG Image", fetchResolvedOgImageUrl(normalized), async (ogUrl) => {
+    fetchAndUpload(fetchResolvedOgImageUrl(normalized), async (ogUrl) => {
       if (typeof ogUrl === "string" && ogUrl) {
         await uploadOgImageToR2(ogUrl, normalized, id);
       }
     }),
-    timedFetchAndUpload(
-      "Screenshot",
+    fetchAndUpload(
       process.env.USE_FIRECRAWL === "true"
         ? fetchFirecrawlScreenshotDataUrl(normalized)
         : fetchBrowserlessScreenshotDataUrl(normalized),
@@ -237,9 +222,4 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
       },
     ),
   ]);
-
-  const totalTime = performance.now() - startTime;
-  console.log(
-    `[enrich-bookmark] ✅ Total enrichment for ${normalized} finished in ${(totalTime / 1000).toFixed(2)}s`,
-  );
 }
