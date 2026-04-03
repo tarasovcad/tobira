@@ -1,7 +1,7 @@
 "use server";
 
-import {generateText, Output} from "ai";
-import {openai} from "@ai-sdk/openai";
+import OpenAI from "openai";
+import {zodResponseFormat} from "openai/helpers/zod";
 import {z} from "zod";
 import {requireAuthenticatedUserId} from "@/lib/auth-session";
 import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
@@ -14,6 +14,10 @@ const MAX_TAG_LENGTH = 64;
 
 const aiTagSuggestionsSchema = z.object({
   suggestions: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(MAX_AI_TAG_SUGGESTIONS),
+});
+
+const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export type GenerateAiSuggestionsInput = {
@@ -95,29 +99,44 @@ export async function generateAiSuggestions(
   const existingTags = normalizeTagNames(input.existingTags ?? []);
 
   const aiStartedAt = performance.now();
-  const {output} = await generateText({
-    model: openai("gpt-5-nano"),
-    output: Output.object({schema: aiTagSuggestionsSchema}),
-    temperature: 0.2,
-    system: [
-      "You generate concise bookmark tags for a personal link library.",
-      "Return short, reusable tags without a leading # character.",
-      "Prefer lowercase, 1-3 words, and avoid duplicates or near-duplicates.",
-      "Use broad but useful categories, technologies, topics, and intent labels.",
-      "Do not invent tags unsupported by the provided page metadata.",
-    ].join(" "),
-    prompt: [
-      `URL: ${metadata.finalUrl ?? metadata.normalizedUrl}`,
-      `Title: ${title ?? "Unknown"}`,
-      `Description: ${description ?? "Unknown"}`,
-      existingTags.length > 0 ? `Existing tags to avoid: ${existingTags.join(", ")}` : null,
-      `Return up to ${maxSuggestions} tags.`,
-    ]
-      .filter(Boolean)
-      .join("\n"),
+  const completion = await openaiClient.chat.completions.parse({
+    model: "gpt-5-nano",
+    reasoning_effort: "minimal",
+    max_completion_tokens: 120,
+    response_format: zodResponseFormat(aiTagSuggestionsSchema, "bookmark_tag_suggestions"),
+    messages: [
+      {
+        role: "system",
+        content: [
+          "You generate concise bookmark tags for a personal link library.",
+          "Return short, reusable tags without a leading # character.",
+          "Prefer lowercase, 1-3 words, and avoid duplicates or near-duplicates.",
+          "Use broad but useful categories, technologies, topics, and intent labels.",
+          "Do not invent tags unsupported by the provided page metadata.",
+        ].join(" "),
+      },
+      {
+        role: "user",
+        content: [
+          `URL: ${metadata.finalUrl ?? metadata.normalizedUrl}`,
+          `Title: ${title ?? "Unknown"}`,
+          `Description: ${description ?? "Unknown"}`,
+          existingTags.length > 0 ? `Existing tags to avoid: ${existingTags.join(", ")}` : null,
+          `Return up to ${maxSuggestions} tags.`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      },
+    ],
   });
+
   const aiDurationMs = performance.now() - aiStartedAt;
-  const suggestions = normalizeGeneratedTags(output.suggestions, existingTags, maxSuggestions);
+  const parsed = completion.choices[0]?.message.parsed;
+  const suggestions = normalizeGeneratedTags(
+    parsed?.suggestions ?? [],
+    existingTags,
+    maxSuggestions,
+  );
   const totalDurationMs = performance.now() - requestStartedAt;
 
   console.log("[generateAiSuggestions] timings", {
