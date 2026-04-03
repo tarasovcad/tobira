@@ -14,14 +14,17 @@ function CrossFade({
   delay = 0,
   skeleton,
   children,
+  className,
 }: {
   loaded: boolean;
   delay?: number;
   skeleton: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="grid w-full min-w-0 grid-cols-1 items-start *:col-start-1 *:row-start-1">
+    <div
+      className={cn("grid min-w-0 grid-cols-1 items-start *:col-start-1 *:row-start-1", className)}>
       <div
         className={cn(
           "w-full min-w-0 transition-all duration-500",
@@ -73,7 +76,7 @@ export function NewBookmarkList({
             loaded={!!bookmark?.title}
             delay={100}
             skeleton={<Skeleton className="h-[22.5px] w-48 rounded" />}>
-            <div className="text-foreground truncate text-[15px] font-semibold">
+            <div className="text-foreground truncate text-[15px] font-[550]">
               {bookmark?.title ?? url}
             </div>
           </CrossFade>
@@ -188,6 +191,7 @@ export function NewBookmarkGridCard({
         <CrossFade
           loaded={loaded}
           delay={0}
+          className="w-full"
           skeleton={<Skeleton className="absolute inset-0 size-full rounded-none" />}>
           <div className="bg-muted aspect-16/10 w-full" />
         </CrossFade>
@@ -410,7 +414,11 @@ export function NewBookmarkMediaCard({
       style={{
         aspectRatio,
       }}>
-      <CrossFade loaded={loaded} delay={0} skeleton={<Skeleton className="h-full w-full" />}>
+      <CrossFade
+        loaded={loaded}
+        delay={0}
+        className="h-full w-full"
+        skeleton={<Skeleton className="h-full w-full" />}>
         <div className="bg-muted h-full w-full" />
       </CrossFade>
     </div>

@@ -43,10 +43,22 @@ function clampSuggestionCount(value?: number) {
   return Math.min(MAX_AI_TAG_SUGGESTIONS, Math.max(1, normalized));
 }
 
+function normalizeGeneratedTagText(tag: string) {
+  const trimmed = tag.trim();
+  if (!trimmed.includes("-")) return trimmed;
+
+  // Rewrite slug-like AI outputs such as "web-development" into natural tags.
+  if (/^[a-z0-9]+(?:-[a-z0-9]+)+$/i.test(trimmed)) {
+    return trimmed.replace(/-/g, " ");
+  }
+
+  return trimmed;
+}
+
 function normalizeGeneratedTags(rawTags: string[], existingTags: string[], maxSuggestions: number) {
   const existing = new Set(existingTags.map((tag) => tag.toLowerCase()));
 
-  return normalizeTagNames(rawTags)
+  return normalizeTagNames(rawTags.map(normalizeGeneratedTagText))
     .map((tag) => (tag.length > MAX_TAG_LENGTH ? tag.slice(0, MAX_TAG_LENGTH) : tag))
     .filter((tag) => {
       const key = tag.toLowerCase();

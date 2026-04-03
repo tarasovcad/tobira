@@ -2,7 +2,10 @@ import {NextRequest, NextResponse} from "next/server";
 import {fetchBestFaviconOne} from "@/lib/fetch/web/favicon";
 import {isRecord} from "@/lib/fetch/web/http";
 import {fetchResolvedOgImageUrl} from "@/lib/fetch/web/og";
-import {fetchBrowserlessScreenshotDataUrl} from "@/lib/fetch/web/screenshot";
+import {
+  fetchBrowserlessScreenshotDataUrl,
+  fetchFirecrawlScreenshotDataUrl,
+} from "@/lib/fetch/web/screenshot";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
@@ -182,59 +185,58 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
 
   console.log(`[enrich-bookmark] Starting enrichment for: ${normalized}`);
 
-  const timedFetch = async <T>(name: string, fn: Promise<T>) => {
+  const timedFetchAndUpload = async <T>(
+    name: string,
+    fetchPromise: Promise<T>,
+    uploadFn: (data: T) => Promise<void>,
+  ) => {
     const s = performance.now();
     try {
-      return await fn;
-    } finally {
-      const e = performance.now();
+      const data = await fetchPromise;
+      const fetchTime = performance.now();
       console.log(
-        `[enrich-bookmark] -> ${name} for ${normalized} took ${((e - s) / 1000).toFixed(2)}s`,
+        `[enrich-bookmark] -> ${name} for ${normalized} fetched in ${((fetchTime - s) / 1000).toFixed(2)}s`,
       );
+
+      if (data) {
+        await uploadFn(data);
+        const uploadTime = performance.now();
+        console.log(
+          `[enrich-bookmark] -> ${name} for ${normalized} uploaded in ${((uploadTime - fetchTime) / 1000).toFixed(2)}s`,
+        );
+      }
+    } catch (e) {
+      console.error(`[enrich-bookmark] -> ${name} for ${normalized} failed:`, e);
     }
   };
 
-  const results = await Promise.allSettled([
-    timedFetch("Favicon", fetchBestFaviconOne(normalized)),
-    timedFetch("OG Image", fetchResolvedOgImageUrl(normalized)),
-    timedFetch("Screenshot", fetchBrowserlessScreenshotDataUrl(normalized)),
+  await Promise.allSettled([
+    timedFetchAndUpload("Favicon", fetchBestFaviconOne(normalized), async (best) => {
+      if (best?.url) {
+        await uploadFaviconToR2(best.url, normalized, id);
+      }
+    }),
+    timedFetchAndUpload("OG Image", fetchResolvedOgImageUrl(normalized), async (ogUrl) => {
+      if (typeof ogUrl === "string" && ogUrl) {
+        await uploadOgImageToR2(ogUrl, normalized, id);
+      }
+    }),
+    timedFetchAndUpload(
+      "Screenshot",
+      process.env.USE_FIRECRAWL === "true"
+        ? fetchFirecrawlScreenshotDataUrl(normalized)
+        : fetchBrowserlessScreenshotDataUrl(normalized),
+      async (preview) => {
+        if (
+          preview &&
+          typeof preview.dataUrl === "string" &&
+          typeof preview.contentType === "string"
+        ) {
+          await uploadPreviewToR2(preview, normalized, id);
+        }
+      },
+    ),
   ]);
-
-  const uploads: Promise<unknown>[] = [];
-
-  const faviconResult = results[0];
-  if (faviconResult?.status === "fulfilled") {
-    const best = faviconResult.value;
-    if (best?.url) {
-      uploads.push(uploadFaviconToR2(best.url, normalized, id));
-    }
-  }
-
-  const ogResult = results[1];
-  if (ogResult?.status === "fulfilled") {
-    const ogUrl = ogResult.value;
-    if (typeof ogUrl === "string" && ogUrl) {
-      uploads.push(uploadOgImageToR2(ogUrl, normalized, id));
-    }
-  }
-
-  const previewResult = results[2];
-  if (previewResult?.status === "fulfilled") {
-    const preview = previewResult.value;
-    if (preview && typeof preview.dataUrl === "string" && typeof preview.contentType === "string") {
-      uploads.push(uploadPreviewToR2(preview, normalized, id));
-    }
-  }
-
-  const uploadStart = performance.now();
-  await Promise.allSettled(uploads);
-  const uploadEnd = performance.now();
-
-  if (uploads.length > 0) {
-    console.log(
-      `[enrich-bookmark] Uploaded ${uploads.length} assets for ${normalized} in ${((uploadEnd - uploadStart) / 1000).toFixed(2)}s`,
-    );
-  }
 
   const totalTime = performance.now() - startTime;
   console.log(
