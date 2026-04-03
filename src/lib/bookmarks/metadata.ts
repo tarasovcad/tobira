@@ -1,11 +1,11 @@
 import {
   extractDescriptionFromHtml,
   extractTitleFromHtml,
-  fetchBrowserlessRenderedHtml,
-  fetchTextWithTimeout,
   isHtmlContentType,
   looksLikeChallengeHtml,
-} from "@/lib/web-fetch";
+} from "@/lib/fetch/web/html";
+import {fetchTextWithTimeout} from "@/lib/fetch/web/http";
+import {fetchBrowserlessRenderedHtml} from "@/lib/fetch/web/screenshot";
 
 export type UrlMetadataResult = {
   inputUrl: string;

@@ -13,7 +13,7 @@ import {
   MenuCheckboxItem,
 } from "@/components/coss-ui/menu";
 import {buttonVariants} from "../shadcn/button";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 
 interface SidebarSectionMenuProps {
   open: boolean;

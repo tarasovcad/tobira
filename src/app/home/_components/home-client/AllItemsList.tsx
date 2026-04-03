@@ -42,7 +42,8 @@ interface AllItemsListProps {
   onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
-  openMenu: (item: Bookmark) => void;
+  onMenuArchive: (item: Bookmark) => void;
+  onMenuDelete: (item: Bookmark) => void;
 }
 
 export function AllItemsList({
@@ -63,7 +64,8 @@ export function AllItemsList({
   onItemRemoved,
   toggleSelected,
   setSelected,
-  openMenu,
+  onMenuArchive,
+  onMenuDelete,
   isInitialLoad,
 }: AllItemsListProps) {
   const currentView = getCurrentAllItemsView(view, typeFilter);
@@ -95,25 +97,44 @@ export function AllItemsList({
 
   const skeletonCount = 12;
 
-  const content = isInitialLoad
-    ? Array.from({length: skeletonCount}, (_, index) => layoutConfig.renderSkeletonItem(index))
-    : visibleItems.map((item, index) => (
-        <AllItemsBookmarkRow
-          key={item.id}
-          item={item}
-          index={index}
-          isRemoving={removingIds.has(item.id)}
-          removalKind={removingIds.get(item.id) ?? "delete"}
-          selectionMode={selectionMode}
-          selectedIds={selectedIds}
-          animatedVariant={layoutConfig.animatedVariant}
-          BookmarkItem={layoutConfig.BookmarkItem}
-          onItemRemoved={onItemRemoved}
-          toggleSelected={toggleSelected}
-          setSelected={setSelected}
-          openMenu={openMenu}
-        />
-      ));
+  const content = useMemo(() => {
+    if (isInitialLoad) {
+      return Array.from({length: skeletonCount}, (_, index) =>
+        layoutConfig.renderSkeletonItem(index),
+      );
+    }
+
+    return visibleItems.map((item, index) => (
+      <AllItemsBookmarkRow
+        key={item.id}
+        item={item}
+        index={index}
+        isRemoving={removingIds.has(item.id)}
+        removalKind={removingIds.get(item.id) ?? "delete"}
+        selectionMode={selectionMode}
+        isSelected={selectedIds.has(item.id)}
+        animatedVariant={layoutConfig.animatedVariant}
+        BookmarkItem={layoutConfig.BookmarkItem}
+        onItemRemoved={onItemRemoved}
+        toggleSelected={toggleSelected}
+        setSelected={setSelected}
+        onMenuArchive={onMenuArchive}
+        onMenuDelete={onMenuDelete}
+      />
+    ));
+  }, [
+    isInitialLoad,
+    layoutConfig,
+    onItemRemoved,
+    onMenuArchive,
+    onMenuDelete,
+    removingIds,
+    selectedIds,
+    selectionMode,
+    setSelected,
+    toggleSelected,
+    visibleItems,
+  ]);
 
   const body = (
     <>

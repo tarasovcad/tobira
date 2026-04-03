@@ -1,7 +1,7 @@
 import * as React from "react";
 import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
 import {PAGE_SIZE} from "../_constants";
-import {tagNamesFromJoin} from "@/lib/bookmark-tags";
+import {tagNamesFromJoin} from "@/lib/bookmarks/tag-join";
 import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
 import {getTagById} from "@/app/actions/tags";
 import type {Bookmark} from "@/components/bookmark/types";

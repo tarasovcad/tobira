@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {startTransition, useCallback, useState} from "react";
 import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/coss-ui/toast";
 
@@ -29,43 +29,49 @@ export function useBookmarksSelection(visibleItems: Bookmark[], allBookmarks: Bo
   const selectedCount = activeSelectedIds.size;
   const allSelected = selectedCount > 0 && selectedCount === visibleItems.length;
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set());
     setSelectionMode(false);
-  };
+  }, []);
 
-  const setSelected = (id: string, checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
+  const setSelected = useCallback((id: string, checked: boolean) => {
+    startTransition(() => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (checked) next.add(id);
+        else next.delete(id);
+        return next;
+      });
     });
-  };
+  }, []);
 
-  const toggleSelected = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  const toggleSelected = useCallback((id: string) => {
+    startTransition(() => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
     });
-  };
+  }, []);
 
-  const setSelectionEnabled = (enabled: boolean) => {
-    setSelectionMode(enabled);
-    if (!enabled) setSelectedIds(new Set());
-  };
+  const setSelectionEnabled = useCallback((enabled: boolean) => {
+    startTransition(() => {
+      setSelectionMode(enabled);
+      if (!enabled) setSelectedIds(new Set());
+    });
+  }, []);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set(visibleItems.map((i) => i.id)));
     }
-  };
+  }, [allSelected, visibleItems]);
 
-  const handleCopySelected = () => {
+  const handleCopySelected = useCallback(() => {
     // NOTE: We look up the full bookmark objects from allBookmarks so we can extract their URLs.
     const selectedBookmarks = allBookmarks.filter((item) => activeSelectedIds.has(item.id));
     const urls = selectedBookmarks.map((item) => item.url).join("\n\n");
@@ -82,7 +88,7 @@ export function useBookmarksSelection(visibleItems: Bookmark[], allBookmarks: Bo
 
       handleClearSelection();
     }
-  };
+  }, [activeSelectedIds, allBookmarks, handleClearSelection]);
 
   return {
     selectionMode,

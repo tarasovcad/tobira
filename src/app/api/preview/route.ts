@@ -3,12 +3,15 @@ import {
   extractDescriptionFromHtml,
   extractOgImageUrlFromHtml,
   extractTitleFromHtml,
-  fetchBrowserlessRenderedHtml,
-  fetchTextWithTimeout,
   isHtmlContentType,
   looksLikeChallengeHtml,
-  normalizeInputUrl,
-} from "@/lib/web-fetch";
+} from "@/lib/fetch/web/html";
+import {fetchTextWithTimeout} from "@/lib/fetch/web/http";
+import {
+  fetchBrowserlessRenderedHtml,
+  fetchBrowserlessScreenshotDataUrl,
+} from "@/lib/fetch/web/screenshot";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 export const runtime = "nodejs";
 
@@ -24,47 +27,6 @@ type PreviewResult = {
   screenshotBytes?: number;
   screenshotError?: string;
 };
-
-async function fetchBrowserlessScreenshotDataUrl(url: string) {
-  const token = process.env.BROWSERLESS_API_KEY;
-  if (!token) {
-    throw new Error("Missing BROWSERLESS_TOKEN");
-  }
-
-  const response = await fetch(`https://production-sfo.browserless.io/screenshot?token=${token}`, {
-    method: "POST",
-    headers: {
-      "Cache-Control": "no-cache",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      url,
-      gotoOptions: {waitUntil: "networkidle0", timeout: 15000},
-      waitForSelector: {
-        selector: "body",
-        timeout: 10000,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(
-      `Browserless screenshot failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ""}`,
-    );
-  }
-
-  const contentTypeRaw = response.headers.get("content-type") ?? "image/png";
-  const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
-  const imageBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(imageBuffer).toString("base64");
-
-  return {
-    dataUrl: `data:${contentType};base64,${base64}`,
-    contentType,
-    bytes: imageBuffer.byteLength,
-  };
-}
 
 export async function GET(request: NextRequest) {
   const inputUrl = request.nextUrl.searchParams.get("url") ?? "";

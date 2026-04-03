@@ -25,12 +25,12 @@ export function TagHeader({activeTag, currentTotalCount}: TagHeaderProps) {
   return (
     <div className="border-b px-6 py-8">
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">#{activeTag.name}</h1>
+        <div className="space-y-0.5">
+          <h1 className="text-foreground text-[22px] font-[550]">#{activeTag.name}</h1>
           {activeTag.description && (
-            <p className="text-muted-foreground text-lg">{activeTag.description}</p>
+            <p className="text-muted-foreground text-sm">{activeTag.description}</p>
           )}
-          <div className="text-muted-foreground flex items-center gap-4 pt-2 text-sm">
+          <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <span>
               Items: <NumberFlow value={currentTotalCount} />
             </span>

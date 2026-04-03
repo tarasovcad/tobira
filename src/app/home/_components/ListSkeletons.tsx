@@ -1,5 +1,5 @@
 import {Skeleton} from "@/components/coss-ui/skeleton";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {useViewOptionsStore} from "@/store/use-view-options";
 
 export function ListSkeleton() {
@@ -12,7 +12,7 @@ export function ListSkeleton() {
         <Skeleton className="h-[20px] w-48 rounded-[2px]" />
         {(contentToggles.source || contentToggles.savedDate) && (
           <div className="mt-2">
-            <Skeleton className="h-3 w-32 rounded-[2px]" />
+            <Skeleton className="h-[13.5px] w-32 rounded-[2px]" />
           </div>
         )}
         {contentToggles.description && (

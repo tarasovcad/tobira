@@ -7,7 +7,7 @@ import {AnimatePresence, motion} from "framer-motion";
 import {zodResolver} from "@hookform/resolvers/zod";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import Spinner from "@/components/ui/spinner";
 import {Button} from "@/components/coss-ui/button";
 import {Button as ShadcnButton} from "@/components/shadcn/button";
@@ -59,14 +59,21 @@ import {
   useCollectionsQuery,
   useTagsQuery,
 } from "@/app/home/_hooks/use-home-metadata-query";
+import {User as AuthUser} from "@/components/utils/better-auth/auth-client";
+
+type AddItemDialogUser = AuthUser & {
+  aiContext?: string | null;
+  enableAiOptimization?: boolean;
+};
 
 export function AddItemDialog({
   isAuthenticated = false,
-  userId,
+  user,
 }: {
   isAuthenticated?: boolean;
-  userId?: string | null;
+  user?: AddItemDialogUser | null;
 }) {
+  const userId = user?.id;
   const router = useRouter();
   const open = useAddItemDialogStore((state) => state.isOpen);
   const setDialogOpen = useAddItemDialogStore((state) => state.setDialogOpen);
@@ -75,6 +82,7 @@ export function AddItemDialog({
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
+  const userAiContext = user?.enableAiOptimization ? user?.aiContext : null;
 
   const {data: collections = []} = useCollectionsQuery({
     userId,
@@ -392,8 +400,11 @@ export function AddItemDialog({
                           value={field.value}
                           onValueChange={field.onChange}
                           name="tags"
+                          label="Tags"
                           sortOnAdd={false}
                           availableTags={tags.map((t) => t.name)}
+                          userTags={tags.map((t) => t.name)}
+                          userAiContext={userAiContext}
                           sourceUrl={watchedUrl}
                           itemType={watchedType}
                         />

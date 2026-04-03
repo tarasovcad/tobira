@@ -2,13 +2,13 @@
 
 import React, {useEffect, useState} from "react";
 import {useSearchParams} from "next/navigation";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {AnimatePresence} from "framer-motion";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
-import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import type {SidebarTag} from "@/app/home/_types";
 import {useTagsQuery} from "@/app/home/_hooks/use-home-metadata-query";
 

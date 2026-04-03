@@ -1,7 +1,7 @@
 "use client";
 
 import {Dialog as DialogPrimitive} from "@base-ui/react/dialog";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {Button} from "@/components/coss-ui/button";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 
@@ -136,7 +136,7 @@ function DialogFooter({
 function DialogTitle({className, ...props}: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
-      className={cn("font-heading text-xl leading-none font-semibold", className)}
+      className={cn("text-xl leading-none font-[550]", className)}
       data-slot="dialog-title"
       {...props}
     />

@@ -1,7 +1,7 @@
 import {getCollections} from "@/app/actions/collections";
 import {getSidebarTags} from "@/app/actions/tags";
 import {Sidebar} from "@/components/providers/Sidebar";
-import {logger} from "@/lib/logger";
+import {logger} from "@/lib/shared/logger";
 
 export async function SidebarDataWrapper({userId}: {userId: string}) {
   let sidebarData = null;

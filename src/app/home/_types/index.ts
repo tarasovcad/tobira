@@ -1,5 +1,5 @@
 import type {Bookmark} from "@/components/bookmark/types";
-import type {BookmarkTagJoinRow} from "@/lib/bookmark-tags";
+import type {BookmarkTagJoinRow} from "@/lib/bookmarks/tag-join";
 export type TypeFilter = "website" | "media";
 export type SortMode = "recent" | "oldest" | "az";
 export type {BookmarkMetadata} from "./bookmark-metadata";

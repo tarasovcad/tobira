@@ -1,8 +1,8 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import {formatDateAbsolute} from "@/lib/formatDate";
-import {cn} from "@/lib/utils";
+import {formatDateAbsolute} from "@/lib/utils/dates";
+import {cn} from "@/lib/utils/classnames";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "./types";
@@ -10,27 +10,35 @@ import {BookmarkHoverActions} from "./_components/BookmarkHoverActions";
 import {BookmarkImage} from "./_components/BookmarkImage";
 import {BookmarkAvatar} from "./_components/BookmarkAvatar";
 import {Tag} from "@/components/ui/Tag";
-import {useState} from "react";
 
-export const ItemList = ({
-  item,
-  onOpenMenu,
-  onDelete,
-  className,
-  selectionMode,
-  selectionIndex = 0,
-  selectedIds,
-  setSelected,
-}: {
+interface BookmarkItemProps {
   item: Bookmark;
   onOpenMenu?: (item: Bookmark) => void;
   onDelete?: (item: Bookmark) => void;
   className?: string;
-  selectionMode?: boolean;
   selectionIndex?: number;
-  selectedIds?: Set<string>;
+  isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;
-}) => {
+}
+
+const selectionModeHoverActionsClass =
+  "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
+
+const selectionModeCheckboxClass =
+  "group-data-[selection-mode=true]/bookmark-row:grid-cols-[1fr] group-data-[selection-mode=true]/bookmark-row:opacity-100";
+
+const selectionModeOverlayClass =
+  "group-data-[selection-mode=true]/bookmark-row:scale-100 group-data-[selection-mode=true]/bookmark-row:opacity-100";
+
+function ItemListImpl({
+  item,
+  onOpenMenu,
+  onDelete,
+  className,
+  selectionIndex = 0,
+  isSelected = false,
+  setSelected,
+}: BookmarkItemProps) {
   const {contentToggles} = useViewOptionsStore();
 
   return (
@@ -41,37 +49,34 @@ export const ItemList = ({
         "group relative flex w-full cursor-pointer flex-col gap-2 border-b px-6 py-5 pr-16 text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
-        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        isSelected && "bg-muted",
         className,
         "transition-none!",
       )}>
-      {!selectionMode && (
-        <BookmarkHoverActions
-          className="top-4 right-4"
-          onOptions={() => {
-            onOpenMenu?.(item);
-          }}
-          onDelete={() => {
-            onDelete?.(item);
-          }}
-        />
-      )}
+      <BookmarkHoverActions
+        className={cn("top-4 right-4", selectionModeHoverActionsClass)}
+        onOptions={() => {
+          onOpenMenu?.(item);
+        }}
+        onDelete={() => {
+          onDelete?.(item);
+        }}
+      />
 
       <div className="flex min-w-0 flex-1 items-center gap-5">
         <div className="flex items-center">
-          {/* Animated checkbox slot — always rendered, width animated via grid-cols */}
           <div
             className={cn(
-              "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
-              selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
+              "grid shrink-0 grid-cols-[0fr] items-center opacity-0 transition-[grid-template-columns,opacity] duration-200 ease-out",
+              selectionModeCheckboxClass,
             )}
             style={{
-              transitionDelay: selectionMode ? `${Math.min(selectionIndex * 20, 120)}ms` : "0ms",
+              transitionDelay: `${Math.min(selectionIndex * 20, 120)}ms`,
             }}>
             <div className="min-w-0 overflow-hidden">
               <div className="pr-3">
                 <Checkbox
-                  checked={selectedIds?.has(item.id)}
+                  checked={isSelected}
                   onCheckedChange={(next) => setSelected?.(item.id, next === true)}
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Select ${item.title}`}
@@ -126,7 +131,9 @@ export const ItemList = ({
       )}
     </Link>
   );
-};
+}
+
+export const ItemList = React.memo(ItemListImpl);
 
 export function getDomainName(url: string): string {
   try {
@@ -152,25 +159,15 @@ export function getTableBookmarkColumnsClass(showSource: boolean, showSavedDate:
   return "md:grid-cols-[auto_minmax(0,1fr)]";
 }
 
-export const MinimalItemRow = ({
+function MinimalItemRowImpl({
   item,
   onOpenMenu,
   onDelete,
   className,
-  selectionMode,
   selectionIndex = 0,
-  selectedIds,
+  isSelected = false,
   setSelected,
-}: {
-  item: Bookmark;
-  onOpenMenu?: (item: Bookmark) => void;
-  onDelete?: (item: Bookmark) => void;
-  className?: string;
-  selectionMode?: boolean;
-  selectionIndex?: number;
-  selectedIds?: Set<string>;
-  setSelected?: (id: string, checked: boolean) => void;
-}) => {
+}: BookmarkItemProps) {
   const {contentToggles} = useViewOptionsStore();
   const domain = getDomainName(item.url);
 
@@ -182,36 +179,33 @@ export const MinimalItemRow = ({
         "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 pr-12 text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
-        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        isSelected && "bg-muted",
         className,
         "transition-none!",
       )}>
-      {!selectionMode && (
-        <BookmarkHoverActions
-          className="top-1.5 right-2"
-          onOptions={() => {
-            onOpenMenu?.(item);
-          }}
-          onDelete={() => {
-            onDelete?.(item);
-          }}
-        />
-      )}
+      <BookmarkHoverActions
+        className={cn("top-1.5 right-2", selectionModeHoverActionsClass)}
+        onOptions={() => {
+          onOpenMenu?.(item);
+        }}
+        onDelete={() => {
+          onDelete?.(item);
+        }}
+      />
 
-      {/* Checkbox + letter avatar */}
       <div className="flex shrink-0 items-center">
         <div
           className={cn(
-            "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
-            selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
+            "grid shrink-0 grid-cols-[0fr] items-center opacity-0 transition-[grid-template-columns,opacity] duration-200 ease-out",
+            selectionModeCheckboxClass,
           )}
           style={{
-            transitionDelay: selectionMode ? `${Math.min(selectionIndex * 20, 120)}ms` : "0ms",
+            transitionDelay: `${Math.min(selectionIndex * 20, 120)}ms`,
           }}>
           <div className="min-w-0 overflow-hidden">
             <div className="pr-2">
               <Checkbox
-                checked={selectedIds?.has(item.id)}
+                checked={isSelected}
                 onCheckedChange={(next) => setSelected?.(item.id, next === true)}
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`Select ${item.title}`}
@@ -223,7 +217,7 @@ export const MinimalItemRow = ({
         <BookmarkAvatar
           item={item}
           letterClassName="size-[18px]"
-          imageContainerClassName="size-[18px] border-none bg-transparent rounded-none"
+          imageContainerClassName="size-[18px] rounded-none border-none bg-transparent"
           imageClassName="h-[18px] w-[18px] object-contain"
           skeletonClassName="bg-transparent"
           height={18}
@@ -232,10 +226,8 @@ export const MinimalItemRow = ({
         />
       </div>
 
-      {/* Title */}
       <span className="text-foreground min-w-0 flex-1 truncate text-[13.5px]">{item.title}</span>
 
-      {/* Right side: domain + date + tags */}
       <div className="flex shrink-0 items-center gap-2">
         {(contentToggles.source || contentToggles.savedDate) && (
           <div className="text-muted-foreground hidden items-center gap-1 text-[12px] sm:flex">
@@ -260,27 +252,19 @@ export const MinimalItemRow = ({
       </div>
     </Link>
   );
-};
+}
 
-export const TableItemRow = ({
+export const MinimalItemRow = React.memo(MinimalItemRowImpl);
+
+function TableItemRowImpl({
   item,
   onOpenMenu,
   onDelete,
   className,
-  selectionMode,
   selectionIndex = 0,
-  selectedIds,
+  isSelected = false,
   setSelected,
-}: {
-  item: Bookmark;
-  onOpenMenu?: (item: Bookmark) => void;
-  onDelete?: (item: Bookmark) => void;
-  className?: string;
-  selectionMode?: boolean;
-  selectionIndex?: number;
-  selectedIds?: Set<string>;
-  setSelected?: (id: string, checked: boolean) => void;
-}) => {
+}: BookmarkItemProps) {
   const {contentToggles} = useViewOptionsStore();
   const showSource = contentToggles.source;
   const showSavedDate = contentToggles.savedDate;
@@ -294,35 +278,33 @@ export const TableItemRow = ({
         getTableBookmarkColumnsClass(showSource, showSavedDate),
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
-        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        isSelected && "bg-muted",
         className,
         "transition-none!",
       )}>
-      {!selectionMode && (
-        <BookmarkHoverActions
-          className="top-2.5 right-2"
-          onOptions={() => {
-            onOpenMenu?.(item);
-          }}
-          onDelete={() => {
-            onDelete?.(item);
-          }}
-        />
-      )}
+      <BookmarkHoverActions
+        className={cn("top-2.5 right-2", selectionModeHoverActionsClass)}
+        onOptions={() => {
+          onOpenMenu?.(item);
+        }}
+        onDelete={() => {
+          onDelete?.(item);
+        }}
+      />
 
       <div className="flex items-center">
         <div
           className={cn(
-            "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
-            selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
+            "grid shrink-0 grid-cols-[0fr] items-center opacity-0 transition-[grid-template-columns,opacity] duration-200 ease-out",
+            selectionModeCheckboxClass,
           )}
           style={{
-            transitionDelay: selectionMode ? `${Math.min(selectionIndex * 20, 120)}ms` : "0ms",
+            transitionDelay: `${Math.min(selectionIndex * 20, 120)}ms`,
           }}>
           <div className="min-w-0 overflow-hidden">
             <div className="pr-2">
               <Checkbox
-                checked={selectedIds?.has(item.id)}
+                checked={isSelected}
                 onCheckedChange={(next) => setSelected?.(item.id, next === true)}
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`Select ${item.title}`}
@@ -361,27 +343,20 @@ export const TableItemRow = ({
       )}
     </Link>
   );
-};
+}
 
-export const GridCard = ({
+export const TableItemRow = React.memo(TableItemRowImpl);
+
+function GridCardImpl({
   item,
   onOpenMenu,
   onDelete,
-  selectionMode,
   selectionIndex = 0,
-  selectedIds,
+  isSelected = false,
   setSelected,
-}: {
-  item: Bookmark;
-  onOpenMenu?: (item: Bookmark) => void;
-  onDelete?: (item: Bookmark) => void;
-  selectionMode?: boolean;
-  selectionIndex?: number;
-  selectedIds?: Set<string>;
-  setSelected?: (id: string, checked: boolean) => void;
-}) => {
+}: BookmarkItemProps) {
   const {borderRadius, contentToggles, gridGap} = useViewOptionsStore();
-  const [previewOpenSignal, setPreviewOpenSignal] = useState(0);
+  const [previewOpenSignal, setPreviewOpenSignal] = React.useState(0);
   const zeroGap = gridGap === "none";
   const onlyTitle =
     !contentToggles.source &&
@@ -406,36 +381,35 @@ export const GridCard = ({
         zeroGap ? "border-r border-b" : "border",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
-        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        isSelected && "bg-muted",
         radiusClass,
         "transition-none!",
       )}>
       <div className="bg-muted relative aspect-16/10 w-full shrink-0">
-        {!selectionMode && (
-          <BookmarkHoverActions
-            variant="glass"
-            onExpand={() => {
-              setPreviewOpenSignal((current) => current + 1);
-            }}
-            onOptions={() => {
-              onOpenMenu?.(item);
-            }}
-            onDelete={() => {
-              onDelete?.(item);
-            }}
-          />
-        )}
+        <BookmarkHoverActions
+          variant="glass"
+          className={selectionModeHoverActionsClass}
+          onExpand={() => {
+            setPreviewOpenSignal((current) => current + 1);
+          }}
+          onOptions={() => {
+            onOpenMenu?.(item);
+          }}
+          onDelete={() => {
+            onDelete?.(item);
+          }}
+        />
 
         <div
           className={cn(
-            "absolute top-2 left-2 z-20",
-            selectionMode ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0",
+            "pointer-events-none absolute top-2 left-2 z-20 scale-90 opacity-0",
+            selectionModeOverlayClass,
           )}
           style={{
-            transitionDelay: selectionMode ? `${Math.min(selectionIndex * 15, 120)}ms` : "0ms",
+            transitionDelay: `${Math.min(selectionIndex * 15, 120)}ms`,
           }}>
           <Checkbox
-            checked={selectedIds?.has(item.id)}
+            checked={isSelected}
             onCheckedChange={(next) => setSelected?.(item.id, next === true)}
             onClick={(e) => e.stopPropagation()}
             aria-label={`Select ${item.title}`}
@@ -450,7 +424,7 @@ export const GridCard = ({
           fill={true}
           previewOpenSignal={previewOpenSignal}
           disablePreviewOnClick={true}
-          imageClassName="w-full h-full object-cover"
+          imageClassName="h-full w-full object-cover"
         />
       </div>
 
@@ -490,25 +464,18 @@ export const GridCard = ({
       </div>
     </Link>
   );
-};
+}
 
-export const MediaCard = ({
+export const GridCard = React.memo(GridCardImpl);
+
+function MediaCardImpl({
   item,
   onOpenMenu,
   onDelete,
-  selectionMode,
   selectionIndex = 0,
-  selectedIds,
+  isSelected = false,
   setSelected,
-}: {
-  item: Bookmark;
-  onOpenMenu?: (item: Bookmark) => void;
-  onDelete?: (item: Bookmark) => void;
-  selectionMode?: boolean;
-  selectionIndex?: number;
-  selectedIds?: Set<string>;
-  setSelected?: (id: string, checked: boolean) => void;
-}) => {
+}: BookmarkItemProps) {
   const {borderRadius, gridGap} = useViewOptionsStore();
   const radiusClass =
     borderRadius === "none"
@@ -529,35 +496,34 @@ export const MediaCard = ({
         gridGap !== "none" && "border",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! focus-visible:outline-none",
-        selectionMode && selectedIds?.has(item.id) && "bg-muted",
+        isSelected && "bg-muted",
         radiusClass,
         "transition-none!",
       )}
       style={{
         aspectRatio,
       }}>
-      {!selectionMode && (
-        <BookmarkHoverActions
-          variant="glass"
-          onOptions={() => {
-            onOpenMenu?.(item);
-          }}
-          onDelete={() => {
-            onDelete?.(item);
-          }}
-        />
-      )}
+      <BookmarkHoverActions
+        variant="glass"
+        className={selectionModeHoverActionsClass}
+        onOptions={() => {
+          onOpenMenu?.(item);
+        }}
+        onDelete={() => {
+          onDelete?.(item);
+        }}
+      />
 
       <div
         className={cn(
-          "absolute top-2 left-2 z-20",
-          selectionMode ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0",
+          "pointer-events-none absolute top-2 left-2 z-20 scale-90 opacity-0",
+          selectionModeOverlayClass,
         )}
         style={{
-          transitionDelay: selectionMode ? `${Math.min(selectionIndex * 15, 120)}ms` : "0ms",
+          transitionDelay: `${Math.min(selectionIndex * 15, 120)}ms`,
         }}>
         <Checkbox
-          checked={selectedIds?.has(item.id)}
+          checked={isSelected}
           onCheckedChange={(next) => setSelected?.(item.id, next === true)}
           onClick={(e) => e.stopPropagation()}
           aria-label={`Select ${item.title}`}
@@ -572,26 +538,10 @@ export const MediaCard = ({
         fill={true}
         width={item.metadata?.width ?? 1200}
         height={item.metadata?.height ?? 1200}
-        imageClassName="w-full h-full object-cover"
+        imageClassName="h-full w-full object-cover"
       />
-
-      {/* <div className="p-3">
-        <div className="text-foreground line-clamp-2 text-[14px] font-medium leading-tight">
-          {item.title}
-        </div>
-        <div className="text-muted-foreground mt-1 flex items-center gap-2 text-[12px]">
-          <div className="relative size-4 overflow-hidden rounded-full border">
-             <BookmarkImage
-               bookmark_id={item.id}
-               item={item}
-               type="favicon"
-               fill={true}
-               imageClassName="object-cover"
-             />
-          </div>
-          <span className="truncate">{item.url ? (() => { try { return new URL(item.url).hostname } catch(e) { return item.url } })() : "Unknown"}</span>
-        </div>
-      </div> */}
     </div>
   );
-};
+}
+
+export const MediaCard = React.memo(MediaCardImpl);

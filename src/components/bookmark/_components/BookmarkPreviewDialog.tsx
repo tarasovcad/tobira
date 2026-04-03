@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {
   Dialog,
   DialogPopup,

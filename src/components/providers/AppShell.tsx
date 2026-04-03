@@ -2,6 +2,7 @@
 
 import React from "react";
 import {AddItemDialog} from "./AddItemDialog";
+import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
 import {Sidebar} from "./Sidebar";
 import {CollectionDialog} from "./CollectionDialog";
 import {DeleteBookmarkDialog} from "./DeleteBookmarkDialog";
@@ -30,8 +31,9 @@ const AppShell = ({
       </div>
 
       {displayAddBookmarkDialog && (
-        <AddItemDialog isAuthenticated={Boolean(session)} userId={session?.user?.id} />
+        <AddItemDialog isAuthenticated={Boolean(session)} user={session?.user ?? null} />
       )}
+      <BookmarkMenu userId={session?.user?.id ?? null} />
       <CollectionDialog isAuthenticated={Boolean(session)} />
       <DeleteBookmarkDialog />
       <DeleteCollectionDialog />

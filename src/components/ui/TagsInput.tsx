@@ -12,8 +12,8 @@ import {
   generateAiSuggestions as generateAiSuggestionsAction,
   type GenerateAiSuggestionsResult,
 } from "@/app/actions/generate-ai-suggestions";
-import {Tooltip, TooltipTrigger, TooltipPopup} from "@/components/coss-ui/tooltip";
-import {cn} from "@/lib/utils";
+import {Tooltip, TooltipTrigger, TooltipPopup, TooltipProvider} from "@/components/coss-ui/tooltip";
+import {cn} from "@/lib/utils/classnames";
 import {Label} from "../coss-ui/label";
 
 export type TagsInputProps = {
@@ -31,6 +31,8 @@ export type TagsInputProps = {
   /** If provided, a hidden input will be rendered (comma-separated). */
   name?: string;
   availableTags?: string[];
+  userTags?: string[];
+  userAiContext?: string | null;
   labelClassName?: string;
   containerClassName?: string;
   sourceUrl?: string;
@@ -149,6 +151,8 @@ const TagsInput = ({
   disabled = false,
   name,
   availableTags,
+  userTags,
+  userAiContext,
   labelClassName,
   containerClassName,
   sourceUrl,
@@ -296,8 +300,10 @@ const TagsInput = ({
       return generateAiSuggestionsAction({
         url: sourceUrl ?? "",
         type: itemType,
-        existingTags: tags,
-        maxSuggestions: Math.max(1, maxTags - tags.length),
+        existingTags: [],
+        userTags,
+        userAiContext,
+        maxSuggestions: DEFAULT_MAX_TAGS,
       });
     },
     onMutate: () => {
@@ -318,16 +324,30 @@ const TagsInput = ({
   });
 
   const hasValidAiSourceUrl = useMemo(() => canGenerateFromUrl(sourceUrl), [sourceUrl]);
+
   const aiUnavailableReason = useMemo(() => {
-    if (!aiEnabled) return "AI suggestions are disabled.";
-    if (itemType !== "website") return "AI suggestions are only available for website items.";
-    if (!sourceUrl?.trim()) return "Enter a website URL first.";
-    if (!hasValidAiSourceUrl) return "Enter a valid http(s) URL first.";
-    if (!canAddMore) return `Maximum of ${maxTags} tags reached.`;
+    if (!aiEnabled) return "AI suggestions are disabled";
+    if (itemType !== "website") return "AI suggestions are only available for website items";
+    if (!sourceUrl?.trim()) return "Enter a website URL first";
+    if (!hasValidAiSourceUrl) return "Enter a valid http(s) URL first";
+    if (!canAddMore) return `Maximum of ${maxTags} tags reached`;
     return null;
   }, [aiEnabled, itemType, sourceUrl, hasValidAiSourceUrl, canAddMore, maxTags]);
+
   const aiCanGenerate = !disabled && !aiMutation.isPending && aiUnavailableReason === null;
   const aiPanelOpen = aiStatus !== "idle";
+  const selectedAiSuggestions = useMemo(
+    () => new Set(tags.map((tag) => normalizeTag(tag, maxTagLength).toLowerCase())),
+    [maxTagLength, tags],
+  );
+  const enabledAiSuggestions = useMemo(
+    () =>
+      aiSuggestions.filter((suggestion) => {
+        const normalized = normalizeTag(suggestion, maxTagLength).toLowerCase();
+        return normalized.length > 0 && !selectedAiSuggestions.has(normalized);
+      }),
+    [aiSuggestions, maxTagLength, selectedAiSuggestions],
+  );
 
   const dismissAi = useCallback(() => {
     setAiStatus("idle");
@@ -353,7 +373,6 @@ const TagsInput = ({
     (raw: string) => {
       const added = addNormalizedTag(raw);
       if (!added) return;
-      setAiSuggestions((prev) => prev.filter((t) => t.toLowerCase() !== raw.toLowerCase()));
       inputRef.current?.focus();
     },
     [addNormalizedTag],
@@ -367,7 +386,7 @@ const TagsInput = ({
     const remaining = Math.max(0, maxTags - tags.length);
     const toAdd: Tag[] = [];
 
-    for (const raw of aiSuggestions) {
+    for (const raw of enabledAiSuggestions) {
       const next = normalizeTag(raw, maxTagLength);
       if (!next) continue;
       const key = next.toLowerCase();
@@ -379,11 +398,8 @@ const TagsInput = ({
 
     if (toAdd.length === 0) return;
     setTags(maybeSort([...tags, ...toAdd]));
-    setAiSuggestions((prev) =>
-      prev.filter((t) => !toAdd.some((a) => a.toLowerCase() === t.toLowerCase())),
-    );
     inputRef.current?.focus();
-  }, [aiSuggestions, canAddMore, disabled, maxTagLength, maxTags, maybeSort, setTags, tags]);
+  }, [canAddMore, disabled, enabledAiSuggestions, maxTagLength, maxTags, maybeSort, setTags, tags]);
 
   return (
     <div className={cn("flex w-full max-w-[460px] flex-col gap-2", containerClassName)}>
@@ -432,23 +448,27 @@ const TagsInput = ({
             />
           </div>
           <InputGroupAddon align="inline-end">
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    size="icon-xs"
-                    variant="outline"
-                    disabled={!aiCanGenerate}
-                    onClick={() => aiMutation.mutate()}
-                    aria-label="Generate AI tag suggestions"
-                  />
-                }>
-                <SparklesIcon />
-              </TooltipTrigger>
-              <TooltipPopup sideOffset={8}>
-                {aiUnavailableReason ?? "Generate AI tag suggestions"}
-              </TooltipPopup>
-            </Tooltip>
+            <TooltipProvider delay={50}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size="icon-xs"
+                      variant="outline"
+                      onClick={() => aiCanGenerate && aiMutation.mutate()}
+                      aria-label="Generate AI tag suggestions"
+                      aria-disabled={!aiCanGenerate}
+                      tabIndex={!aiCanGenerate ? -1 : 0}
+                      className={cn(!aiCanGenerate && "cursor-default opacity-64")}
+                    />
+                  }>
+                  <SparklesIcon className={cn(!aiCanGenerate && "opacity-80")} />
+                </TooltipTrigger>
+                <TooltipPopup sideOffset={8} size="sm">
+                  {aiUnavailableReason ?? "Generate AI tag suggestions"}
+                </TooltipPopup>
+              </Tooltip>
+            </TooltipProvider>
           </InputGroupAddon>
           <InputGroupAddon align="inline-end">
             <Button
@@ -461,8 +481,7 @@ const TagsInput = ({
           </InputGroupAddon>
         </InputGroup>
         <div id={helpId} className="sr-only">
-          Type a tag and press Enter or comma to add. Paste comma/newline-separated tags to add
-          multiple.
+          Type a tag and press Enter to add.
         </div>
         {name ? <input type="hidden" name={name} value={tags.join(",")} /> : null}
 
@@ -504,7 +523,10 @@ const TagsInput = ({
                     size="xs"
                     variant="outline"
                     disabled={
-                      disabled || aiStatus !== "ready" || aiSuggestions.length === 0 || !canAddMore
+                      disabled ||
+                      aiStatus !== "ready" ||
+                      enabledAiSuggestions.length === 0 ||
+                      !canAddMore
                     }
                     onClick={addAllAiSuggestions}>
                     Add all
@@ -552,27 +574,38 @@ const TagsInput = ({
                     exit={{opacity: 0, y: 4, filter: "blur(4px)"}}
                     transition={{duration: 0.16, ease: "easeOut"}}>
                     <AnimatePresence initial={false} mode="popLayout">
-                      {aiSuggestions.map((t) => (
-                        <motion.button
-                          key={t.toLowerCase()}
-                          type="button"
-                          layout
-                          disabled={disabled || !canAddMore}
-                          onClick={() => addAiSuggestion(t)}
-                          className="cursor-pointer"
-                          initial={{opacity: 0, scale: 0.92, y: -2, filter: "blur(3px)"}}
-                          animate={{opacity: 1, scale: 1, y: 0, filter: "blur(0px)"}}
-                          exit={{opacity: 0, scale: 0.92, y: -2, filter: "blur(3px)"}}
-                          transition={{duration: 0.16, ease: "easeOut"}}>
-                          <Tag
-                            displayHash={false}
-                            size="md"
-                            variant="outline"
-                            className="border-muted-foreground/30 hover:bg-muted gap-1 border-dashed transition-colors duration-100">
-                            {/* <PlusIcon /> */}+ {t}
-                          </Tag>
-                        </motion.button>
-                      ))}
+                      {aiSuggestions.map((t) => {
+                        const normalized = normalizeTag(t, maxTagLength).toLowerCase();
+                        const suggestionDisabled =
+                          disabled || !canAddMore || selectedAiSuggestions.has(normalized);
+
+                        return (
+                          <motion.button
+                            key={t.toLowerCase()}
+                            type="button"
+                            layout
+                            disabled={suggestionDisabled}
+                            onClick={() => addAiSuggestion(t)}
+                            className={cn("cursor-pointer", suggestionDisabled && "cursor-default")}
+                            initial={{opacity: 0, scale: 0.92, y: -2, filter: "blur(3px)"}}
+                            animate={{opacity: 1, scale: 1, y: 0, filter: "blur(0px)"}}
+                            exit={{opacity: 0, scale: 0.92, y: -2, filter: "blur(3px)"}}
+                            transition={{duration: 0.16, ease: "easeOut"}}>
+                            <Tag
+                              displayHash={false}
+                              size="md"
+                              variant="outline"
+                              className={cn(
+                                "gap-1 border-dashed transition-colors duration-100",
+                                suggestionDisabled
+                                  ? "border-muted-foreground/20 text-muted-foreground/60 opacity-70"
+                                  : "border-muted-foreground/30 hover:bg-muted",
+                              )}>
+                              + {t}
+                            </Tag>
+                          </motion.button>
+                        );
+                      })}
                     </AnimatePresence>
                   </motion.div>
                 ) : (
@@ -674,19 +707,6 @@ function SparklesIcon({className}: {className?: string}) {
           <rect width="16" height="16" fill="currentColor" />
         </clipPath>
       </defs>
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M6 1.5C6.2071 1.5 6.375 1.6679 6.375 1.875V5.625H10.125C10.3321 5.625 10.5 5.7929 10.5 6C10.5 6.2071 10.3321 6.375 10.125 6.375H6.375V10.125C6.375 10.3321 6.2071 10.5 6 10.5C5.7929 10.5 5.625 10.3321 5.625 10.125V6.375H1.875C1.6679 6.375 1.5 6.2071 1.5 6C1.5 5.7929 1.6679 5.625 1.875 5.625H5.625V1.875C5.625 1.6679 5.7929 1.5 6 1.5Z"
-        fill="currentColor"
-      />
     </svg>
   );
 }

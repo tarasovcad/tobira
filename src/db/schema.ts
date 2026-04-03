@@ -79,6 +79,9 @@ export const user = pgTable(
     email: text().notNull(),
     emailVerified: boolean().notNull(),
     image: text(),
+    aiContext: text(),
+    enableAiOptimization: boolean().default(true),
+
     createdAt: timestamp({withTimezone: true, mode: "string"})
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),

@@ -1,10 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
-import {
-  BestIcon,
-  fetchFaviconCandidates,
-  normalizeInputUrl,
-  selectBestFaviconIcon,
-} from "@/lib/web-fetch";
+import {BestIcon, fetchFaviconCandidates, selectBestFaviconIcon} from "@/lib/fetch/web/favicon";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 type FaviconResult = {
   inputUrl: string;

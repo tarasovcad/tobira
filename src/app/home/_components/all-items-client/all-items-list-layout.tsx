@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {
   GridCard,
   ItemList,
@@ -27,9 +27,8 @@ export interface AllItemsBookmarkComponentProps {
   onOpenMenu?: (item: Bookmark) => void;
   onDelete?: (item: Bookmark) => void;
   className?: string;
-  selectionMode?: boolean;
   selectionIndex?: number;
-  selectedIds?: Set<string>;
+  isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;
 }
 

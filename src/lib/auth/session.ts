@@ -1,6 +1,6 @@
 import {headers} from "next/headers";
-import {auth} from "@/lib/auth";
-import {UnauthorizedError} from "@/lib/errors";
+import {auth} from "@/lib/auth/auth";
+import {UnauthorizedError} from "@/lib/shared/errors";
 
 export async function getCurrentUserId() {
   const session = await auth.api.getSession({

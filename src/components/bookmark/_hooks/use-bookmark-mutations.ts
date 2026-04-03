@@ -8,7 +8,7 @@ import {
 import {toastManager} from "@/components/coss-ui/toast";
 import {UseFormReturn} from "react-hook-form";
 import {BookmarkFormValues} from "../_utils/bookmark-schema";
-import {getErrorMessage} from "@/lib/errors";
+import {getErrorMessage} from "@/lib/shared/errors";
 
 export function useBookmarkMutations({
   onOpenChange,

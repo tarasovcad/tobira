@@ -4,8 +4,8 @@ import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
 import {getBookmarkFilters} from "./filters";
 import type {TypeFilter} from "@/app/home/_types";
-import {DatabaseError} from "@/lib/errors";
-import {logger} from "@/lib/logger";
+import {DatabaseError} from "@/lib/shared/errors";
+import {logger} from "@/lib/shared/logger";
 
 export async function getBookmarksCount({
   userId,

@@ -1,3 +1,4 @@
+"use client";
 import React, {useState} from "react";
 import {Input} from "@/components/coss-ui/input";
 import {Textarea} from "@/components/coss-ui/textarea";

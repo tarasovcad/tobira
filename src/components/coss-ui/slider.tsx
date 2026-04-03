@@ -1,7 +1,7 @@
 "use client";
 
 import {Slider as SliderPrimitive} from "@base-ui/react/slider";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 
 function Slider({className, ...props}: SliderPrimitive.Root.Props) {
   return (

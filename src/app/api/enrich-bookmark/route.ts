@@ -1,14 +1,45 @@
 import {NextRequest, NextResponse} from "next/server";
+import {fetchBestFaviconOne} from "@/lib/fetch/web/favicon";
+import {isRecord} from "@/lib/fetch/web/http";
+import {fetchResolvedOgImageUrl} from "@/lib/fetch/web/og";
 import {
-  fetchBestFaviconOne,
   fetchBrowserlessScreenshotDataUrl,
-  fetchResolvedOgImageUrl,
-  isRecord,
-  normalizeInputUrl,
-} from "@/lib/web-fetch";
+  fetchFirecrawlScreenshotDataUrl,
+} from "@/lib/fetch/web/screenshot";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 
+export async function POST(request: NextRequest) {
+  const rawBody = await request.text().catch(() => "");
+
+  const isValid = await verifyQstashRequest(request, rawBody);
+  if (!isValid) {
+    return NextResponse.json({error: "Unauthorized"}, {status: 401});
+  }
+
+  const payload = await readJobPayload(request, rawBody);
+  if (!payload.url) {
+    return NextResponse.json({error: "Missing url"}, {status: 400});
+  }
+
+  try {
+    await runEnrichment(payload.url, payload.id);
+  } catch (e) {
+    console.error("enrich-bookmark failed", e);
+  }
+
+  return NextResponse.json(
+    {success: true},
+    {
+      headers: {"cache-control": "no-store"},
+    },
+  );
+}
+
+/*
+FUNCTIONS AND HELPERS
+*/
 export const runtime = "nodejs";
 
 function getQstashReceiver() {
@@ -151,64 +182,44 @@ async function uploadPreviewToR2(
 async function runEnrichment(inputUrl: string, id?: unknown) {
   const normalized = normalizeInputUrl(inputUrl).toString();
 
-  const results = await Promise.allSettled([
-    fetchBestFaviconOne(normalized),
-    fetchResolvedOgImageUrl(normalized),
-    fetchBrowserlessScreenshotDataUrl(normalized),
+  const fetchAndUpload = async <T>(
+    fetchPromise: Promise<T>,
+    uploadFn: (data: T) => Promise<void>,
+  ) => {
+    try {
+      const data = await fetchPromise;
+      if (data) {
+        await uploadFn(data);
+      }
+    } catch {
+      return;
+    }
+  };
+
+  await Promise.allSettled([
+    fetchAndUpload(fetchBestFaviconOne(normalized), async (best) => {
+      if (best?.url) {
+        await uploadFaviconToR2(best.url, normalized, id);
+      }
+    }),
+    fetchAndUpload(fetchResolvedOgImageUrl(normalized), async (ogUrl) => {
+      if (typeof ogUrl === "string" && ogUrl) {
+        await uploadOgImageToR2(ogUrl, normalized, id);
+      }
+    }),
+    fetchAndUpload(
+      process.env.USE_FIRECRAWL === "true"
+        ? fetchFirecrawlScreenshotDataUrl(normalized)
+        : fetchBrowserlessScreenshotDataUrl(normalized),
+      async (preview) => {
+        if (
+          preview &&
+          typeof preview.dataUrl === "string" &&
+          typeof preview.contentType === "string"
+        ) {
+          await uploadPreviewToR2(preview, normalized, id);
+        }
+      },
+    ),
   ]);
-
-  const uploads: Promise<unknown>[] = [];
-
-  const faviconResult = results[0];
-  if (faviconResult?.status === "fulfilled") {
-    const best = faviconResult.value;
-    if (best?.url) {
-      uploads.push(uploadFaviconToR2(best.url, normalized, id));
-    }
-  }
-
-  const ogResult = results[1];
-  if (ogResult?.status === "fulfilled") {
-    const ogUrl = ogResult.value;
-    if (typeof ogUrl === "string" && ogUrl) {
-      uploads.push(uploadOgImageToR2(ogUrl, normalized, id));
-    }
-  }
-
-  const previewResult = results[2];
-  if (previewResult?.status === "fulfilled") {
-    const preview = previewResult.value;
-    if (preview && typeof preview.dataUrl === "string" && typeof preview.contentType === "string") {
-      uploads.push(uploadPreviewToR2(preview, normalized, id));
-    }
-  }
-
-  await Promise.allSettled(uploads);
-}
-
-export async function POST(request: NextRequest) {
-  const rawBody = await request.text().catch(() => "");
-
-  const isValid = await verifyQstashRequest(request, rawBody);
-  if (!isValid) {
-    return NextResponse.json({error: "Unauthorized"}, {status: 401});
-  }
-
-  const payload = await readJobPayload(request, rawBody);
-  if (!payload.url) {
-    return NextResponse.json({error: "Missing url"}, {status: 400});
-  }
-
-  try {
-    await runEnrichment(payload.url, payload.id);
-  } catch (e) {
-    console.error("enrich-bookmark failed", e);
-  }
-
-  return NextResponse.json(
-    {success: true},
-    {
-      headers: {"cache-control": "no-store"},
-    },
-  );
 }

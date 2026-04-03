@@ -2,11 +2,11 @@
 
 import React from "react";
 import ThemeSwitch from "../other/ThemeSwitch";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
-import type {Session} from "better-auth";
+import type {Session} from "@/components/utils/better-auth/auth-client";
 import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/coss-ui/menu";
 import {useMutation} from "@tanstack/react-query";
 import {signOutAction} from "@/app/actions/auth";
@@ -15,13 +15,7 @@ import {Avatar} from "@/components/ui/avatar";
 import {useSidebarStore} from "@/store/use-sidebar-store";
 import {Button, buttonVariants} from "../coss-ui/button";
 
-export type AppShellSession = {
-  session: Session;
-  user?: {
-    id: string;
-    email?: string | null;
-  } | null;
-} | null;
+export type AppShellSession = Session | null;
 
 export function Header({session}: {session: AppShellSession}) {
   const email = session?.user?.email ?? null;

@@ -3,7 +3,7 @@
 import {Tooltip as TooltipPrimitive} from "@base-ui/react/tooltip";
 import {cva, type VariantProps} from "class-variance-authority";
 
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 
 const TooltipCreateHandle = TooltipPrimitive.createHandle;
 
@@ -51,7 +51,7 @@ function TooltipPopup({
       <TooltipPrimitive.Positioner
         align={align}
         anchor={anchor}
-        className="z-50 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom,transform] data-instant:transition-none"
+        className="z-150 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom,transform] data-instant:transition-none"
         data-slot="tooltip-positioner"
         side={side}
         sideOffset={sideOffset}>
@@ -106,7 +106,7 @@ function TooltipPopupBlur({
       <TooltipPrimitive.Positioner
         align={align}
         anchor={anchor}
-        className="z-50 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom,transform] data-instant:transition-none"
+        className="z-150 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom,transform] data-instant:transition-none"
         data-slot="tooltip-positioner"
         side={side}
         sideOffset={sideOffset}>

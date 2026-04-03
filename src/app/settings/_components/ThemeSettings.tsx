@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useSyncExternalStore} from "react";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {useTheme} from "next-themes";
 
 /* ─── Light theme preview icon ─── */

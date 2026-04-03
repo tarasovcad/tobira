@@ -7,8 +7,8 @@ import {getBookmarkFilters} from "./filters";
 import type {Bookmark} from "@/components/bookmark/types";
 import {PAGE_SIZE} from "@/app/home/_constants";
 import type {TypeFilter, SortMode} from "@/app/home/_types";
-import {DatabaseError} from "@/lib/errors";
-import {logger} from "@/lib/logger";
+import {DatabaseError} from "@/lib/shared/errors";
+import {logger} from "@/lib/shared/logger";
 
 export async function getInitialBookmarks({
   userId,

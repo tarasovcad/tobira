@@ -1,6 +1,6 @@
 import {Suspense} from "react";
 import AppShell from "@/components/providers/AppShell";
-import {auth} from "@/lib/auth";
+import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
 import type {SearchParams, SortMode, TypeFilter} from "./_types";
 import {BookmarksDataWrapper} from "./_components/BookmarksDataWrapper";

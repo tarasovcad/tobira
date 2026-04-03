@@ -1,8 +1,8 @@
 import {randomUUID} from "crypto";
 import {ALLOWED_MEDIA_DOMAINS} from "@/components/providers/constants";
-import {extractXMedia} from "@/lib/media-fetch";
+import {extractXMedia} from "@/lib/fetch/media";
 import {buildR2PublicUrl, uploadToR2} from "@/lib/storage/r2-storage";
-import {normalizeInputUrl} from "@/lib/web-fetch";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 type ExtractedMediaMetadata = Awaited<ReturnType<typeof extractXMedia>>;
 

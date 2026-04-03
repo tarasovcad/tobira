@@ -1,7 +1,7 @@
 "use client";
 
 import {Toast} from "@base-ui/react/toast";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 import {buttonVariants} from "@/components/coss-ui/button";
 import Spinner from "@/components/ui/spinner";
 

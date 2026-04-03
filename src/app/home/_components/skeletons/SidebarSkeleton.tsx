@@ -2,7 +2,7 @@
 
 import {NAV_ITEMS, NavItem} from "@/components/providers/SidebarNav";
 import {SidebarCollectionSkeleton, SidebarTagSkeleton} from "@/components/providers/SidebarItems";
-import {cn} from "@/lib/utils";
+import {cn} from "@/lib/utils/classnames";
 
 export function SidebarSkeleton() {
   return (

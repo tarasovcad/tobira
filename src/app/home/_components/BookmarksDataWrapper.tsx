@@ -3,8 +3,8 @@ import {getBookmarksCount} from "@/app/actions/bookmarks/getBookmarksCount";
 import {getTagById} from "@/app/actions/tags";
 import {HomeClient} from "./HomeClient";
 import {BookmarksLoadError} from "./BookmarksLoadError";
-import {isAppError} from "@/lib/errors";
-import {logger} from "@/lib/logger";
+import {isAppError} from "@/lib/shared/errors";
+import {logger} from "@/lib/shared/logger";
 import type {TypeFilter, SortMode} from "../_types";
 
 export async function BookmarksDataWrapper({

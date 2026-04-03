@@ -1,12 +1,12 @@
 "use server";
 
-import {generateText, Output} from "ai";
-import {openai} from "@ai-sdk/openai";
+import OpenAI from "openai";
+import {zodResponseFormat} from "openai/helpers/zod";
 import {z} from "zod";
-import {requireAuthenticatedUserId} from "@/lib/auth-session";
+import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
-import {normalizeTagNames} from "@/lib/utils";
-import {normalizeInputUrl} from "@/lib/web-fetch";
+import {normalizeTagNames} from "@/lib/bookmarks/tag-utils";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 const MAX_AI_TAG_SUGGESTIONS = 10;
 const DEFAULT_AI_TAG_SUGGESTIONS = 5;
@@ -16,10 +16,16 @@ const aiTagSuggestionsSchema = z.object({
   suggestions: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(MAX_AI_TAG_SUGGESTIONS),
 });
 
+const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export type GenerateAiSuggestionsInput = {
   url: string;
   type: "website" | "media" | "article";
   existingTags?: string[];
+  userTags?: string[];
+  userAiContext?: string | null;
   maxSuggestions?: number;
 };
 
@@ -37,10 +43,22 @@ function clampSuggestionCount(value?: number) {
   return Math.min(MAX_AI_TAG_SUGGESTIONS, Math.max(1, normalized));
 }
 
+function normalizeGeneratedTagText(tag: string) {
+  const trimmed = tag.trim();
+  if (!trimmed.includes("-")) return trimmed;
+
+  // Rewrite slug-like AI outputs such as "web-development" into natural tags.
+  if (/^[a-z0-9]+(?:-[a-z0-9]+)+$/i.test(trimmed)) {
+    return trimmed.replace(/-/g, " ");
+  }
+
+  return trimmed;
+}
+
 function normalizeGeneratedTags(rawTags: string[], existingTags: string[], maxSuggestions: number) {
   const existing = new Set(existingTags.map((tag) => tag.toLowerCase()));
 
-  return normalizeTagNames(rawTags)
+  return normalizeTagNames(rawTags.map(normalizeGeneratedTagText))
     .map((tag) => (tag.length > MAX_TAG_LENGTH ? tag.slice(0, MAX_TAG_LENGTH) : tag))
     .filter((tag) => {
       const key = tag.toLowerCase();
@@ -93,31 +111,54 @@ export async function generateAiSuggestions(
 
   const maxSuggestions = clampSuggestionCount(input.maxSuggestions);
   const existingTags = normalizeTagNames(input.existingTags ?? []);
+  const userTags = normalizeTagNames(input.userTags ?? []);
+  const userAiContext = input.userAiContext?.trim();
 
   const aiStartedAt = performance.now();
-  const {output} = await generateText({
-    model: openai("gpt-5-nano"),
-    output: Output.object({schema: aiTagSuggestionsSchema}),
-    temperature: 0.2,
-    system: [
-      "You generate concise bookmark tags for a personal link library.",
-      "Return short, reusable tags without a leading # character.",
-      "Prefer lowercase, 1-3 words, and avoid duplicates or near-duplicates.",
-      "Use broad but useful categories, technologies, topics, and intent labels.",
-      "Do not invent tags unsupported by the provided page metadata.",
-    ].join(" "),
-    prompt: [
-      `URL: ${metadata.finalUrl ?? metadata.normalizedUrl}`,
-      `Title: ${title ?? "Unknown"}`,
-      `Description: ${description ?? "Unknown"}`,
-      existingTags.length > 0 ? `Existing tags to avoid: ${existingTags.join(", ")}` : null,
-      `Return up to ${maxSuggestions} tags.`,
-    ]
-      .filter(Boolean)
-      .join("\n"),
+  const completion = await openaiClient.chat.completions.parse({
+    model: "gpt-5-nano",
+    reasoning_effort: "minimal",
+    max_completion_tokens: 120,
+    response_format: zodResponseFormat(aiTagSuggestionsSchema, "bookmark_tag_suggestions"),
+    messages: [
+      {
+        role: "system",
+        content: [
+          "You generate concise bookmark tags for a personal link library.",
+          "Return short, reusable tags without a leading # character.",
+          "Prefer lowercase, 1-3 words, and avoid duplicates or near-duplicates.",
+          "Prefer single-word tags for most suggestions, roughly 70% of the time, unless a multi-word tag is clearly more accurate.",
+          "Prefer natural space-separated tags for multi-word phrases instead of hyphenated slugs.",
+          "Use broad but useful categories, technologies, topics, and intent labels.",
+          "Do not invent tags unsupported by the provided page metadata.",
+        ].join(" "),
+      },
+      {
+        role: "user",
+        content: [
+          `URL: ${metadata.finalUrl ?? metadata.normalizedUrl}`,
+          `Title: ${title ?? "Unknown"}`,
+          `Description: ${description ?? "Unknown"}`,
+          userAiContext ? `User AI context: ${userAiContext}` : null,
+          userTags.length > 0
+            ? `User tag vocabulary to prefer when relevant: ${userTags.join(", ")}`
+            : null,
+          existingTags.length > 0 ? `Existing tags to avoid: ${existingTags.join(", ")}` : null,
+          `Return up to ${maxSuggestions} tags.`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      },
+    ],
   });
+
   const aiDurationMs = performance.now() - aiStartedAt;
-  const suggestions = normalizeGeneratedTags(output.suggestions, existingTags, maxSuggestions);
+  const parsed = completion.choices[0]?.message.parsed;
+  const suggestions = normalizeGeneratedTags(
+    parsed?.suggestions ?? [],
+    existingTags,
+    maxSuggestions,
+  );
   const totalDurationMs = performance.now() - requestStartedAt;
 
   console.log("[generateAiSuggestions] timings", {
