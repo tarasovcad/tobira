@@ -35,7 +35,7 @@ interface BookmarkMetaProps {
   maxTags?: number;
 }
 
-export function BookmarkMeta({
+function BookmarkMetaImpl({
   title,
   url,
   createdAt,
@@ -100,3 +100,5 @@ export function BookmarkMeta({
     </>
   );
 }
+
+export const BookmarkMeta = React.memo(BookmarkMetaImpl);

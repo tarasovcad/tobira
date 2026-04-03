@@ -1,5 +1,6 @@
 "use client";
 
+import {useCallback} from "react";
 import type {Bookmark} from "@/components/bookmark/types";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
@@ -14,14 +15,17 @@ export function useHomeDialogs({allBookmarks, selectedIds, onDeleted}: UseHomeDi
   const openDeleteBookmarkDialog = useDeleteBookmarkDialogStore((state) => state.openDialog);
   const closeMenu = useBookmarkMenuStore((state) => state.closeMenu);
 
-  const openDeleteDialog = (item: Bookmark) => {
-    openDeleteBookmarkDialog([item], () => {
-      closeMenu();
-      onDeleted?.();
-    });
-  };
+  const openDeleteDialog = useCallback(
+    (item: Bookmark) => {
+      openDeleteBookmarkDialog([item], () => {
+        closeMenu();
+        onDeleted?.();
+      });
+    },
+    [closeMenu, onDeleted, openDeleteBookmarkDialog],
+  );
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     const selectedBookmarks = allBookmarks.filter((item) => selectedIds.has(item.id));
     if (selectedBookmarks.length === 0) return;
 
@@ -29,7 +33,7 @@ export function useHomeDialogs({allBookmarks, selectedIds, onDeleted}: UseHomeDi
       closeMenu();
       onDeleted?.();
     });
-  };
+  }, [allBookmarks, closeMenu, onDeleted, openDeleteBookmarkDialog, selectedIds]);
 
   return {
     openDeleteDialog,

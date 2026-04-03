@@ -1,28 +1,19 @@
 "use client";
 
+import * as React from "react";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils/classnames";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import MediaPreview from "@/components/ui/MediaPreview";
 import type {Bookmark} from "../types";
 
-export const BookmarkImage = ({
-  bookmark_id,
-  item,
-  type,
-  previewOpenSignal,
-  disablePreviewOnClick,
-  divClassName,
-  imageClassName,
-  skeletonClassName,
-  height,
-  width,
-  fallbackClassName,
-  fill,
-}: {
+interface BookmarkImageProps {
   bookmark_id: string;
   item: Bookmark;
   type: "preview" | "favicon" | "og";
+  sizes?: string;
+  quality?: number;
+  loading?: "eager" | "lazy";
   previewOpenSignal?: number;
   disablePreviewOnClick?: boolean;
   divClassName?: string;
@@ -32,40 +23,65 @@ export const BookmarkImage = ({
   width?: number;
   fallbackClassName?: string;
   fill?: boolean;
-}) => {
-  let BASE_SRC = "";
+}
+
+function BookmarkImageImpl({
+  bookmark_id,
+  item,
+  type,
+  sizes,
+  quality,
+  loading,
+  previewOpenSignal,
+  disablePreviewOnClick,
+  divClassName,
+  imageClassName,
+  skeletonClassName,
+  height,
+  width,
+  fallbackClassName,
+  fill,
+}: BookmarkImageProps) {
+  let baseSrc = "";
 
   switch (type) {
     case "preview":
-      BASE_SRC = item.preview_image ?? "";
+      baseSrc = item.preview_image ?? "";
       break;
     case "favicon":
-      BASE_SRC = buildR2PublicUrl(`favicons/${bookmark_id}/favicon.png`);
+      baseSrc = buildR2PublicUrl(`favicons/${bookmark_id}/favicon.png`);
       break;
   }
-  const MAX_RETRIES = 12; // ~24s at 2s interval
-  const RETRY_MS = 2000;
+
+  const maxRetries = 12;
+  const retryMs = 2000;
+  const imageWidth = width ?? 1200;
+  const imageHeight = height ?? 1200;
+  const imageLoading = loading ?? "lazy";
+  const imageQuality = quality ?? (type === "preview" ? 50 : 60);
+  const imageSizes =
+    sizes ??
+    (type === "favicon"
+      ? `${imageWidth}px`
+      : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw");
 
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
-  const isVideo =
-    BASE_SRC.toLowerCase().endsWith(".mp4") || BASE_SRC.toLowerCase().endsWith(".mov");
-
-  const hasValidImage = !!BASE_SRC && status === "loaded";
+  const isVideo = baseSrc.toLowerCase().endsWith(".mp4") || baseSrc.toLowerCase().endsWith(".mov");
+  const hasValidImage = !!baseSrc && status === "loaded";
   const showFallbackInPreview = type === "preview" && !hasValidImage;
 
-  // If the image 404s (still uploading), retry with a cache-busting query param.
   useEffect(() => {
     if (status !== "error") return;
-    if (attempt >= MAX_RETRIES) return;
+    if (attempt >= maxRetries) return;
 
-    const t = window.setTimeout(() => {
-      setAttempt((a) => a + 1);
+    const timer = window.setTimeout(() => {
+      setAttempt((current) => current + 1);
       setStatus("loading");
-    }, RETRY_MS);
+    }, retryMs);
 
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(timer);
   }, [attempt, status]);
 
   return (
@@ -74,7 +90,12 @@ export const BookmarkImage = ({
         fill ? "absolute inset-0" : "relative",
         "grid place-items-center",
         divClassName,
-      )}>
+      )}
+      style={
+        !fill && imageWidth > 0 && imageHeight > 0
+          ? {aspectRatio: `${imageWidth} / ${imageHeight}`}
+          : undefined
+      }>
       {status !== "loaded" ? (
         <div
           className={cn(
@@ -97,7 +118,6 @@ export const BookmarkImage = ({
         </div>
       ) : null}
 
-      {/* Cache-busted favicon attempts. Keep hidden until loaded to avoid alt text flashes. */}
       <div
         className={cn(
           fill ? "absolute inset-0" : "relative h-full w-full",
@@ -106,10 +126,13 @@ export const BookmarkImage = ({
           skeletonClassName,
         )}>
         <MediaPreview
-          src={`${BASE_SRC}?v=${attempt}`}
+          src={`${baseSrc}?v=${attempt}`}
           alt={`${bookmark_id} ${type}`}
-          width={width ?? 1200}
-          height={height ?? 1200}
+          width={imageWidth}
+          height={imageHeight}
+          sizes={imageSizes}
+          quality={imageQuality}
+          loading={imageLoading}
           openSignal={previewOpenSignal}
           disableClickToOpen={disablePreviewOnClick}
           addZoom={!isVideo && hasValidImage}
@@ -121,8 +144,7 @@ export const BookmarkImage = ({
             "transition-opacity duration-300 ease-in-out",
             imageClassName,
           )}
-          buttonClassName="flex items-center justify-center h-full w-full"
-          unoptimized={!isVideo ? true : undefined}
+          buttonClassName="flex h-full w-full items-center justify-center"
           onLoad={!isVideo ? () => setStatus("loaded") : undefined}
           onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
           onError={() => setStatus("error")}
@@ -130,4 +152,26 @@ export const BookmarkImage = ({
       </div>
     </div>
   );
-};
+}
+
+export const BookmarkImage = React.memo(BookmarkImageImpl, (prev, next) => {
+  return (
+    prev.bookmark_id === next.bookmark_id &&
+    prev.type === next.type &&
+    prev.sizes === next.sizes &&
+    prev.quality === next.quality &&
+    prev.loading === next.loading &&
+    prev.previewOpenSignal === next.previewOpenSignal &&
+    prev.disablePreviewOnClick === next.disablePreviewOnClick &&
+    prev.divClassName === next.divClassName &&
+    prev.imageClassName === next.imageClassName &&
+    prev.skeletonClassName === next.skeletonClassName &&
+    prev.height === next.height &&
+    prev.width === next.width &&
+    prev.fallbackClassName === next.fallbackClassName &&
+    prev.fill === next.fill &&
+    prev.item.id === next.item.id &&
+    prev.item.preview_image === next.item.preview_image &&
+    prev.item.metadata?.thumbnail_url === next.item.metadata?.thumbnail_url
+  );
+});

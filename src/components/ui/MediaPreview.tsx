@@ -16,6 +16,9 @@ export default function MediaPreview({
   alt,
   width = 1200,
   height = 1200,
+  sizes,
+  quality,
+  loading = "lazy",
   openSignal,
   disableClickToOpen = false,
   className,
@@ -97,6 +100,9 @@ export default function MediaPreview({
                   alt={alt}
                   width={width}
                   height={height}
+                  sizes={sizes}
+                  quality={quality}
+                  loading={loading}
                   className={cn(className, "absolute inset-0 h-full w-full object-cover")}
                   unoptimized={unoptimized}
                   onLoad={onCanPlay}
@@ -113,6 +119,7 @@ export default function MediaPreview({
                 playing={isHovered}
                 muted
                 playsInline
+                preload="metadata"
                 showMainPlayIcon={false}
                 minimal={true}
                 onCanPlay={onCanPlay}
@@ -127,6 +134,9 @@ export default function MediaPreview({
             alt={alt}
             width={width}
             height={height}
+            sizes={sizes}
+            quality={quality}
+            loading={loading}
             className={className}
             unoptimized={unoptimized}
             onLoad={onLoad}

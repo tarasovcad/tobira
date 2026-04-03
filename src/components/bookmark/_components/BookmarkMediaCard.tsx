@@ -64,6 +64,9 @@ function BookmarkMediaCardImpl({
         item={item}
         type="preview"
         fill={true}
+        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+        quality={50}
+        loading="lazy"
         width={item.metadata?.width ?? 1200}
         height={item.metadata?.height ?? 1200}
         imageClassName="h-full w-full object-cover"

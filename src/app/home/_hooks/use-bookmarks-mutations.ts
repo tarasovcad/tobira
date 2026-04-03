@@ -1,4 +1,4 @@
-import {useState, useEffect, useMemo} from "react";
+import {useState, useEffect, useMemo, useCallback} from "react";
 import {useMutation, useMutationState, useQueryClient} from "@tanstack/react-query";
 import {archiveBookmarks} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/types";
@@ -72,18 +72,20 @@ export function useBookmarksMutations({
   // ── Exit-animation state ──
   const [animatedOutIds, setAnimatedOutIds] = useState<Set<string>>(new Set());
 
-  const archives = archivingIds
-    .filter((id) => !animatedOutIds.has(id))
-    .map((id) => [id, "archive"] as const);
-  const deletes = deletingIds
-    .filter((id) => !animatedOutIds.has(id))
-    .map((id) => [id, "delete"] as const);
+  const removingIds = useMemo(() => {
+    const archives = archivingIds
+      .filter((id) => !animatedOutIds.has(id))
+      .map((id) => [id, "archive"] as const);
+    const deletes = deletingIds
+      .filter((id) => !animatedOutIds.has(id))
+      .map((id) => [id, "delete"] as const);
 
-  const removingIds = new Map([...archives, ...deletes]);
+    return new Map([...archives, ...deletes]);
+  }, [animatedOutIds, archivingIds, deletingIds]);
 
-  const handleItemRemoved = (id: string) => {
+  const handleItemRemoved = useCallback((id: string) => {
     setAnimatedOutIds((prev) => new Set(prev).add(id));
-  };
+  }, []);
 
   // ── New-bookmark animation state ──
   const [animatingUrl, setAnimatingUrl] = useState<string | null>(null);
@@ -135,9 +137,9 @@ export function useBookmarksMutations({
     }
   }, [animatingUrl, latestAdd?.status, resolvedBookmarks]);
 
-  const handleTransitionDone = () => {
+  const handleTransitionDone = useCallback(() => {
     setAnimatingUrl(null);
-  };
+  }, []);
 
   // ── Archive Mutation ──
   const archiveMutation = useMutation({

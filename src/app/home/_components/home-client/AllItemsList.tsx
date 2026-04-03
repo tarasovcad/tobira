@@ -1,5 +1,5 @@
 "use client";
-import {useMemo} from "react";
+import {useCallback, useMemo} from "react";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import Spinner from "@/components/ui/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
@@ -96,6 +96,13 @@ export function AllItemsList({
   );
 
   const skeletonCount = 12;
+  const bookmarkItemComponent = layoutConfig.BookmarkItem;
+  const animatedVariant = layoutConfig.animatedVariant;
+
+  const getItemSelectionIndex = useCallback(
+    (index: number) => (selectionMode ? index : 0),
+    [selectionMode],
+  );
 
   const content = useMemo(() => {
     if (isInitialLoad) {
@@ -108,13 +115,13 @@ export function AllItemsList({
       <AllItemsBookmarkRow
         key={item.id}
         item={item}
-        index={index}
+        selectionIndex={getItemSelectionIndex(index)}
         isRemoving={removingIds.has(item.id)}
         removalKind={removingIds.get(item.id) ?? "delete"}
         selectionMode={selectionMode}
         isSelected={selectedIds.has(item.id)}
-        animatedVariant={layoutConfig.animatedVariant}
-        BookmarkItem={layoutConfig.BookmarkItem}
+        animatedVariant={animatedVariant}
+        BookmarkItem={bookmarkItemComponent}
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
@@ -125,6 +132,9 @@ export function AllItemsList({
   }, [
     isInitialLoad,
     layoutConfig,
+    bookmarkItemComponent,
+    animatedVariant,
+    getItemSelectionIndex,
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,

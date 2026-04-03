@@ -22,6 +22,9 @@ export type MediaPreviewProps = {
   alt: string;
   width?: number;
   height?: number;
+  sizes?: string;
+  quality?: number;
+  loading?: "eager" | "lazy";
   openSignal?: number;
   disableClickToOpen?: boolean;
   className?: string;

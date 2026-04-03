@@ -1,5 +1,6 @@
 "use client";
 
+import {useCallback} from "react";
 import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/coss-ui/toast";
 
@@ -16,16 +17,19 @@ export function useHomeArchiveActions({
   onArchiveSingleDone,
   onArchiveSelectedDone,
 }: UseHomeArchiveActionsProps) {
-  const handleArchive = (item: Bookmark) => {
-    archive(item.id);
-    onArchiveSingleDone();
-    toastManager.add({
-      title: "Bookmark archived",
-      type: "success",
-    });
-  };
+  const handleArchive = useCallback(
+    (item: Bookmark) => {
+      archive(item.id);
+      onArchiveSingleDone();
+      toastManager.add({
+        title: "Bookmark archived",
+        type: "success",
+      });
+    },
+    [archive, onArchiveSingleDone],
+  );
 
-  const handleArchiveSelected = () => {
+  const handleArchiveSelected = useCallback(() => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
 
@@ -35,7 +39,7 @@ export function useHomeArchiveActions({
       type: "success",
     });
     onArchiveSelectedDone();
-  };
+  }, [archive, onArchiveSelectedDone, selectedIds]);
 
   return {
     handleArchive,

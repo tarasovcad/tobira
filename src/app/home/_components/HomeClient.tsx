@@ -1,6 +1,6 @@
 "use client";
 
-import {useRef} from "react";
+import {useMemo, useRef} from "react";
 import NumberFlow from "@number-flow/react";
 
 // Components
@@ -96,12 +96,18 @@ export function HomeClient({
   });
 
   // ── Derived visible items ──
-  const visibleItems = allBookmarks.filter((item) => {
-    const isBeingRemoved = removingIds.has(item.id);
-    const isDuplicateOfResolved = resolvedBookmarks.some((b) => b.id === item.id);
+  const visibleItems = useMemo(() => {
+    if (allBookmarks.length === 0) return [];
 
-    return !isBeingRemoved && !isDuplicateOfResolved;
-  });
+    const resolvedIds = new Set(resolvedBookmarks.map((bookmark) => bookmark.id));
+
+    return allBookmarks.filter((item) => {
+      const isBeingRemoved = removingIds.has(item.id);
+      const isDuplicateOfResolved = resolvedIds.has(item.id);
+
+      return !isBeingRemoved && !isDuplicateOfResolved;
+    });
+  }, [allBookmarks, removingIds, resolvedBookmarks]);
 
   // ── Selection Hook ──
   const {

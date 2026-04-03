@@ -75,6 +75,9 @@ function BookmarkGridCardImpl({
           item={item}
           type="preview"
           fill={true}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          quality={50}
+          loading="lazy"
           previewOpenSignal={previewOpenSignal}
           disablePreviewOnClick={true}
           imageClassName="h-full w-full object-cover"

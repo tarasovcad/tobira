@@ -12,7 +12,7 @@ import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-s
 
 interface AllItemsBookmarkRowProps {
   item: Bookmark;
-  index: number;
+  selectionIndex: number;
   isRemoving: boolean;
   removalKind: "delete" | "archive";
   selectionMode: boolean;
@@ -28,7 +28,7 @@ interface AllItemsBookmarkRowProps {
 
 function AllItemsBookmarkRowImpl({
   item,
-  index,
+  selectionIndex,
   isRemoving,
   removalKind,
   selectionMode,
@@ -43,6 +43,27 @@ function AllItemsBookmarkRowImpl({
 }: AllItemsBookmarkRowProps) {
   const openMenu = useBookmarkMenuStore((state) => state.openMenu);
   const openDeleteDialog = useDeleteBookmarkDialogStore((state) => state.openDialog);
+  const handleRowClickCapture = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!selectionMode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSelected(item.id);
+    },
+    [item.id, selectionMode, toggleSelected],
+  );
+  const handleOpenMenu = React.useCallback(
+    (bookmark: Bookmark) =>
+      openMenu(bookmark, {
+        onArchive: onMenuArchive,
+        onDelete: onMenuDelete,
+      }),
+    [onMenuArchive, onMenuDelete, openMenu],
+  );
+  const handleDelete = React.useCallback(
+    (bookmark: Bookmark) => openDeleteDialog([bookmark]),
+    [openDeleteDialog],
+  );
 
   return (
     <AnimatedItem
@@ -59,22 +80,12 @@ function AllItemsBookmarkRowImpl({
             ? "group/bookmark-row relative flex min-h-0 flex-1 flex-col"
             : "group/bookmark-row relative"
         }
-        onClickCapture={(e) => {
-          if (!selectionMode) return;
-          e.preventDefault();
-          e.stopPropagation();
-          toggleSelected(item.id);
-        }}>
+        onClickCapture={handleRowClickCapture}>
         <BookmarkItem
           item={item}
-          onOpenMenu={(bookmark) =>
-            openMenu(bookmark, {
-              onArchive: onMenuArchive,
-              onDelete: onMenuDelete,
-            })
-          }
-          onDelete={(bookmark) => openDeleteDialog([bookmark])}
-          selectionIndex={index}
+          onOpenMenu={handleOpenMenu}
+          onDelete={handleDelete}
+          selectionIndex={selectionIndex}
           isSelected={isSelected}
           setSelected={setSelected}
         />
@@ -87,7 +98,7 @@ export const AllItemsBookmarkRow = React.memo(
   AllItemsBookmarkRowImpl,
   (prev, next) =>
     prev.item === next.item &&
-    prev.index === next.index &&
+    prev.selectionIndex === next.selectionIndex &&
     prev.isRemoving === next.isRemoving &&
     prev.removalKind === next.removalKind &&
     prev.selectionMode === next.selectionMode &&

@@ -1,7 +1,7 @@
 import * as React from "react";
 import {cn} from "@/lib/utils/classnames";
 
-export function BookmarkHoverActions({
+function BookmarkHoverActionsImpl({
   className,
   variant = "default",
   onExpand,
@@ -125,3 +125,5 @@ export function BookmarkHoverActions({
     </div>
   );
 }
+
+export const BookmarkHoverActions = React.memo(BookmarkHoverActionsImpl);
