@@ -6,7 +6,7 @@ import {z} from "zod";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
 import {normalizeTagNames} from "@/lib/bookmarks/tag-utils";
-import {normalizeInputUrl} from "@/lib/fetch/web";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 const MAX_AI_TAG_SUGGESTIONS = 10;
 const DEFAULT_AI_TAG_SUGGESTIONS = 5;

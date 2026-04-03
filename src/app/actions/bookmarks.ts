@@ -11,7 +11,7 @@ import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata
 import {prepareMediaBookmarkCreation} from "@/lib/bookmarks/media";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
-import {normalizeInputUrl} from "@/lib/fetch/web";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 

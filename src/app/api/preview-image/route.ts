@@ -1,5 +1,7 @@
 import {NextRequest, NextResponse} from "next/server";
-import {fetchTextWithTimeout, normalizeInputUrl, stripWrappingQuotes} from "@/lib/fetch/web";
+import {stripWrappingQuotes} from "@/lib/fetch/web/html";
+import {fetchTextWithTimeout} from "@/lib/fetch/web/http";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 type PreviewImageResult = {
   inputUrl: string;

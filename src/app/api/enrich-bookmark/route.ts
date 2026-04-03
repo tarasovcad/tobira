@@ -1,11 +1,9 @@
 import {NextRequest, NextResponse} from "next/server";
-import {
-  fetchBestFaviconOne,
-  fetchBrowserlessScreenshotDataUrl,
-  fetchResolvedOgImageUrl,
-  isRecord,
-  normalizeInputUrl,
-} from "@/lib/fetch/web";
+import {fetchBestFaviconOne} from "@/lib/fetch/web/favicon";
+import {isRecord} from "@/lib/fetch/web/http";
+import {fetchResolvedOgImageUrl} from "@/lib/fetch/web/og";
+import {fetchBrowserlessScreenshotDataUrl} from "@/lib/fetch/web/screenshot";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 
