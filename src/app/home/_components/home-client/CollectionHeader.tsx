@@ -19,11 +19,11 @@ export function CollectionHeader({activeCollection, currentTotalCount}: Collecti
     <div className="border-b px-6 py-8">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">{activeCollection.name}</h1>
+          <h1 className="text-foreground text-[22px] font-[550]">{activeCollection.name}</h1>
           {activeCollection.description && (
-            <p className="text-muted-foreground text-lg">{activeCollection.description}</p>
+            <p className="text-muted-foreground text-sm">{activeCollection.description}</p>
           )}
-          <div className="text-muted-foreground flex items-center gap-4 pt-2 text-sm">
+          <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <span>
               Items: <NumberFlow value={currentTotalCount} />
             </span>

@@ -63,6 +63,7 @@ import {User as AuthUser} from "@/components/utils/better-auth/auth-client";
 
 type AddItemDialogUser = AuthUser & {
   aiContext?: string | null;
+  enableAiOptimization?: boolean;
 };
 
 export function AddItemDialog({
@@ -81,6 +82,7 @@ export function AddItemDialog({
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
+  const userAiContext = user?.enableAiOptimization ? user?.aiContext : null;
 
   const {data: collections = []} = useCollectionsQuery({
     userId,
@@ -398,10 +400,11 @@ export function AddItemDialog({
                           value={field.value}
                           onValueChange={field.onChange}
                           name="tags"
+                          label="Tags"
                           sortOnAdd={false}
                           availableTags={tags.map((t) => t.name)}
                           userTags={tags.map((t) => t.name)}
-                          userAiContext={user?.aiContext ?? null}
+                          userAiContext={userAiContext}
                           sourceUrl={watchedUrl}
                           itemType={watchedType}
                         />

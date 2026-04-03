@@ -1,9 +1,11 @@
 "use client";
 
 import {Button} from "@/components/coss-ui/button";
+import {useHasMounted} from "@/lib/useHasMounted";
 import {cn} from "@/lib/utils";
 import {motion} from "motion/react";
 import NumberFlow from "@number-flow/react";
+import {createPortal} from "react-dom";
 
 export function SelectionActionBar({
   visible,
@@ -17,6 +19,7 @@ export function SelectionActionBar({
   displayArchive = true,
   displayFavorite = true,
   displayCopy = true,
+  className,
 }: {
   visible: boolean;
   selectedCount: number;
@@ -29,12 +32,16 @@ export function SelectionActionBar({
   displayArchive?: boolean;
   displayFavorite?: boolean;
   displayCopy?: boolean;
+  className?: string;
 }) {
-  return (
+  const hasMounted = useHasMounted();
+
+  const content = (
     <div
       className={cn(
         "pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center transition-all duration-200 ease-out",
         visible ? "pointer-events-auto translate-y-0 opacity-100" : "translate-y-3 opacity-0",
+        className,
       )}>
       <motion.div
         layout
@@ -156,4 +163,11 @@ export function SelectionActionBar({
       </motion.div>
     </div>
   );
+
+  if (!hasMounted) {
+    return null;
+  }
+
+  // Render outside transformed sidebar ancestors so fixed positioning stays viewport-relative.
+  return createPortal(content, document.body);
 }
