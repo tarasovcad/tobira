@@ -1,5 +1,8 @@
 "use client";
 
+import {useEffect, useState} from "react";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {deleteBookmarks} from "@/app/actions/bookmarks";
 import {Button} from "@/components/coss-ui/button";
 import {
   AlertDialog,
@@ -10,24 +13,21 @@ import {
   AlertDialogPopup,
   AlertDialogTitle,
 } from "@/components/coss-ui/alert-dialog";
-import type {Bookmark} from "@/components/bookmark/types";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {deleteBookmarks} from "@/app/actions/bookmarks";
 import {toastManager} from "@/components/coss-ui/toast";
+import Spinner from "../ui/spinner";
+import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
 
-export function DeleteBookmarkDialog({
-  open,
-  onOpenChange,
-  items,
-  onDeleted,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  items: Bookmark[];
-  onDeleted?: () => void;
-}) {
+export function DeleteBookmarkDialog() {
   const queryClient = useQueryClient();
-  const count = items.length;
+  const {isOpen: open, items, onDeleted, closeDialog} = useDeleteBookmarkDialogStore();
+
+  const [displayItems, setDisplayItems] = useState(items);
+
+  if (items.length > 0 && items !== displayItems) {
+    setDisplayItems(items);
+  }
+
+  const count = displayItems.length;
 
   const deleteMutation = useMutation({
     mutationKey: ["delete-bookmark"],
@@ -48,23 +48,33 @@ export function DeleteBookmarkDialog({
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      deleteMutation.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const handleDelete = () => {
-    if (count === 0) return;
+    if (items.length === 0) return;
 
     const ids = items.map((item) => item.id);
-    deleteMutation.mutate(ids);
 
-    toastManager.add({
-      title: count === 1 ? "Bookmark deleted" : `${count} bookmarks deleted`,
-      type: "success",
+    deleteMutation.mutate(ids, {
+      onSuccess: () => {
+        toastManager.add({
+          title: count === 1 ? "Bookmark deleted" : `${count} bookmarks deleted`,
+          type: "success",
+        });
+
+        closeDialog();
+        onDeleted?.();
+      },
     });
-
-    onOpenChange(false);
-    onDeleted?.();
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && closeDialog()}>
       <AlertDialogPopup>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -78,8 +88,16 @@ export function DeleteBookmarkDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
-          <Button variant="destructive" onClick={handleDelete}>
-            {count <= 1 ? "Delete Bookmark" : `Delete ${count} Bookmarks`}
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending || deleteMutation.isSuccess}>
+            {deleteMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
+            {deleteMutation.isSuccess
+              ? "Deleted"
+              : count <= 1
+                ? "Delete Bookmark"
+                : `Delete ${count} Bookmarks`}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>

@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {
   ContextMenuContent,
@@ -8,21 +10,19 @@ import Link from "next/link";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import type {Collection} from "@/app/actions/collections";
-import type {TagWithCount} from "@/app/home/_types";
-import {toggleTagPin} from "@/app/actions/tags";
+import type {SidebarTag} from "@/app/home/_types";
+import {getTagById, toggleTagPin} from "@/app/actions/tags";
 import {toggleCollectionPin} from "@/app/actions/collections";
 import {toastManager} from "@/components/coss-ui/toast";
-import {useQueryClient} from "@tanstack/react-query";
-import type {QueryClient} from "@tanstack/react-query";
 
 async function handleToggleCollectionPin(
   collectionId: string,
   isPinned: boolean,
-  queryClient: QueryClient,
+  onSuccess?: () => void,
 ) {
   try {
     await toggleCollectionPin(collectionId, !isPinned);
-    queryClient.invalidateQueries({queryKey: ["collections"]});
+    onSuccess?.();
     toastManager.add({
       title: isPinned ? "Collection unpinned" : "Collection pinned",
       type: "success",
@@ -36,10 +36,10 @@ async function handleToggleCollectionPin(
   }
 }
 
-async function handleToggleTagPin(tagId: string, isPinned: boolean, queryClient: QueryClient) {
+async function handleToggleTagPin(tagId: string, isPinned: boolean, onSuccess?: () => void) {
   try {
     await toggleTagPin(tagId, !isPinned);
-    queryClient.invalidateQueries({queryKey: ["tags"]});
+    onSuccess?.();
     toastManager.add({
       title: isPinned ? "Tag unpinned" : "Tag pinned",
       type: "success",
@@ -47,6 +47,25 @@ async function handleToggleTagPin(tagId: string, isPinned: boolean, queryClient:
   } catch (error) {
     toastManager.add({
       title: "Action failed",
+      description: error instanceof Error ? error.message : "Something went wrong",
+      type: "error",
+    });
+  }
+}
+
+async function handleOpenTagDialog(
+  tagId: string,
+  openTagDialog: (tag: NonNullable<Awaited<ReturnType<typeof getTagById>>>) => void,
+) {
+  try {
+    const tag = await getTagById(tagId);
+    if (!tag) {
+      throw new Error("Tag not found");
+    }
+    openTagDialog(tag);
+  } catch (error) {
+    toastManager.add({
+      title: "Failed to load tag",
       description: error instanceof Error ? error.message : "Something went wrong",
       type: "error",
     });
@@ -65,11 +84,10 @@ export function CollectionContextMenuContent({
   onDelete,
 }: CollectionContextMenuContentProps) {
   const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
-  const queryClient = useQueryClient();
 
   return (
     <ContextMenuContent>
-      <Link href={`/all?collection=${collection.id}`}>
+      <Link href={`/home?collection=${collection.id}`}>
         <ContextMenuItem>
           <svg
             width="16"
@@ -129,7 +147,7 @@ export function CollectionContextMenuContent({
       </ContextMenuItem>
 
       <ContextMenuItem
-        onClick={() => handleToggleCollectionPin(collection.id, collection.is_pinned, queryClient)}>
+        onClick={() => handleToggleCollectionPin(collection.id, collection.is_pinned)}>
         {collection.is_pinned ? (
           <>
             <svg
@@ -188,17 +206,17 @@ export function CollectionContextMenuContent({
 }
 
 interface TagContextMenuContentProps {
-  tag: TagWithCount;
+  tag: SidebarTag;
   onCopy: () => void;
   onDelete: () => void;
 }
 
 export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuContentProps) {
   const openTagDialog = useTagDialogStore((state) => state.openDialog);
-  const queryClient = useQueryClient();
+
   return (
     <ContextMenuContent>
-      <Link href={`/home?tag=${encodeURIComponent(tag.name)}`}>
+      <Link href={`/home?tag=${tag.id}`}>
         <ContextMenuItem>
           <svg
             width="16"
@@ -217,7 +235,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
         </ContextMenuItem>
       </Link>
 
-      <ContextMenuItem onClick={() => openTagDialog(tag)}>
+      <ContextMenuItem onClick={() => void handleOpenTagDialog(tag.id, openTagDialog)}>
         <svg
           width="16"
           height="16"
@@ -255,7 +273,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
         </svg>
         Copy
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => handleToggleTagPin(tag.id, tag.is_pinned, queryClient)}>
+      <ContextMenuItem onClick={() => handleToggleTagPin(tag.id, tag.is_pinned)}>
         {tag.is_pinned ? (
           <>
             <svg

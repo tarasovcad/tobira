@@ -10,9 +10,11 @@ import {normalizeTagName} from "@/lib/utils";
  */
 export function useBookmarksMutations({
   tagFilter,
+  activeTagName,
   allBookmarks,
 }: {
   tagFilter: string | null;
+  activeTagName: string | null;
   allBookmarks: Bookmark[];
 }) {
   const queryClient = useQueryClient();
@@ -45,7 +47,10 @@ export function useBookmarksMutations({
   const inputUrl = latestAdd?.inputUrl;
   const latestAddAppliesToCurrentFilter =
     tagFilter === null ||
-    (latestAdd?.inputTags ?? []).some((t) => normalizeTagName(t) === (tagFilter ?? ""));
+    (!!activeTagName &&
+      (latestAdd?.inputTags ?? []).some(
+        (t) => normalizeTagName(t) === normalizeTagName(activeTagName),
+      ));
 
   // ── Delete/Archive mutation tracking ──
   const deletingIds = useMutationState({

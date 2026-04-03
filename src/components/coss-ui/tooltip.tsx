@@ -1,6 +1,7 @@
 "use client";
 
 import {Tooltip as TooltipPrimitive} from "@base-ui/react/tooltip";
+import {cva, type VariantProps} from "class-variance-authority";
 
 import {cn} from "@/lib/utils";
 
@@ -14,6 +15,21 @@ function TooltipTrigger(props: TooltipPrimitive.Trigger.Props) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
 }
 
+const tooltipPopupVariants = cva(
+  "bg-popover text-popover-foreground relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) rounded-md border text-balance shadow-md/5 transition-[width,height,scale,opacity] not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-md)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:scale-98 data-ending-style:opacity-0 data-instant:duration-0 data-starting-style:scale-98 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+  {
+    defaultVariants: {
+      size: "sm",
+    },
+    variants: {
+      size: {
+        md: "text-sm/5",
+        sm: "text-xs",
+      },
+    },
+  },
+);
+
 function TooltipPopup({
   className,
   align = "center",
@@ -21,13 +37,15 @@ function TooltipPopup({
   side = "top",
   anchor,
   children,
+  size,
   ...props
-}: TooltipPrimitive.Popup.Props & {
-  align?: TooltipPrimitive.Positioner.Props["align"];
-  side?: TooltipPrimitive.Positioner.Props["side"];
-  sideOffset?: TooltipPrimitive.Positioner.Props["sideOffset"];
-  anchor?: TooltipPrimitive.Positioner.Props["anchor"];
-}) {
+}: TooltipPrimitive.Popup.Props &
+  VariantProps<typeof tooltipPopupVariants> & {
+    align?: TooltipPrimitive.Positioner.Props["align"];
+    side?: TooltipPrimitive.Positioner.Props["side"];
+    sideOffset?: TooltipPrimitive.Positioner.Props["sideOffset"];
+    anchor?: TooltipPrimitive.Positioner.Props["anchor"];
+  }) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Positioner
@@ -38,10 +56,7 @@ function TooltipPopup({
         side={side}
         sideOffset={sideOffset}>
         <TooltipPrimitive.Popup
-          className={cn(
-            "bg-popover text-popover-foreground relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) rounded-md border text-xs text-balance shadow-md/5 transition-[width,height,scale,opacity] not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-md)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:scale-98 data-ending-style:opacity-0 data-instant:duration-0 data-starting-style:scale-98 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
-            className,
-          )}
+          className={cn(tooltipPopupVariants({className, size}))}
           data-slot="tooltip-popup"
           {...props}>
           <TooltipPrimitive.Viewport
@@ -55,6 +70,21 @@ function TooltipPopup({
   );
 }
 
+const tooltipPopupBlurVariants = cva(
+  "relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) items-center rounded-lg border border-white/20 bg-black/30 font-medium text-white shadow-2xl backdrop-blur-2xl transition-[width,height,scale,opacity] data-ending-style:scale-95 data-ending-style:opacity-0 data-instant:duration-0 data-starting-style:scale-95 data-starting-style:opacity-0 dark:border-white/10 dark:bg-white/10",
+  {
+    defaultVariants: {
+      size: "sm",
+    },
+    variants: {
+      size: {
+        md: "text-sm",
+        sm: "text-[13px]",
+      },
+    },
+  },
+);
+
 function TooltipPopupBlur({
   className,
   align = "center",
@@ -62,13 +92,15 @@ function TooltipPopupBlur({
   side = "top",
   anchor,
   children,
+  size,
   ...props
-}: TooltipPrimitive.Popup.Props & {
-  align?: TooltipPrimitive.Positioner.Props["align"];
-  side?: TooltipPrimitive.Positioner.Props["side"];
-  sideOffset?: TooltipPrimitive.Positioner.Props["sideOffset"];
-  anchor?: TooltipPrimitive.Positioner.Props["anchor"];
-}) {
+}: TooltipPrimitive.Popup.Props &
+  VariantProps<typeof tooltipPopupBlurVariants> & {
+    align?: TooltipPrimitive.Positioner.Props["align"];
+    side?: TooltipPrimitive.Positioner.Props["side"];
+    sideOffset?: TooltipPrimitive.Positioner.Props["sideOffset"];
+    anchor?: TooltipPrimitive.Positioner.Props["anchor"];
+  }) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Positioner
@@ -79,10 +111,7 @@ function TooltipPopupBlur({
         side={side}
         sideOffset={sideOffset}>
         <TooltipPrimitive.Popup
-          className={cn(
-            "relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) items-center rounded-lg border border-white/20 bg-black/30 text-[13px] font-medium text-white shadow-2xl backdrop-blur-2xl transition-[width,height,scale,opacity] data-ending-style:scale-95 data-ending-style:opacity-0 data-instant:duration-0 data-starting-style:scale-95 data-starting-style:opacity-0 dark:border-white/10 dark:bg-white/10",
-            className,
-          )}
+          className={cn(tooltipPopupBlurVariants({className, size}))}
           data-slot="tooltip-popup"
           {...props}>
           <TooltipPrimitive.Viewport

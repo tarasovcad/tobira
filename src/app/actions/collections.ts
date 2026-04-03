@@ -1,8 +1,10 @@
 "use server";
 
-import {auth} from "@/lib/auth";
-import {headers} from "next/headers";
-import {createClient} from "@/components/utils/supabase/server";
+import {db} from "@/db";
+import {collections} from "@/db/schema";
+import {and, desc, eq, inArray} from "drizzle-orm";
+import {NotFoundError, UnauthorizedError} from "@/lib/errors";
+import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth-session";
 
 export type Collection = {
   id: string;
@@ -14,27 +16,36 @@ export type Collection = {
   created_at: string;
 };
 
-export async function getCollections(): Promise<Collection[]> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+function mapCollection(row: typeof collections.$inferSelect): Collection {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? null,
+    color: row.color ?? null,
+    icon: row.icon ?? null,
+    is_pinned: !!row.isPinned,
+    created_at: row.createdAt ?? "",
+  };
+}
 
-  if (!session) return [];
+export async function getCollections(userId?: string): Promise<Collection[]> {
+  const currentUserId = await getCurrentUserId();
 
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from("collections")
-    .select("*")
-    .eq("user_id", session.user.id)
-    .order("is_pinned", {ascending: false})
-    .order("created_at", {ascending: false});
-
-  if (error) {
-    console.error("Failed to fetch collections:", error);
+  if (!currentUserId) {
     return [];
   }
 
-  return data as Collection[];
+  if (userId && userId !== currentUserId) {
+    throw new UnauthorizedError();
+  }
+
+  const data = await db
+    .select()
+    .from(collections)
+    .where(eq(collections.userId, currentUserId))
+    .orderBy(desc(collections.isPinned), desc(collections.createdAt));
+
+  return data.map(mapCollection);
 }
 
 export async function createCollection(data: {
@@ -42,51 +53,32 @@ export async function createCollection(data: {
   description?: string;
   color?: string;
   icon?: string;
-}) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+}): Promise<Collection> {
+  const userId = await requireAuthenticatedUserId();
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+  const [newCollection] = await db
+    .insert(collections)
+    .values({
+      name: data.name,
+      description: data.description ?? null,
+      color: data.color ?? null,
+      icon: data.icon ?? null,
+      userId,
+    })
+    .returning();
 
-  const supabase = await createClient();
-  const {data: newCollection, error} = await supabase
-    .from("collections")
-    .insert([
-      {
-        ...data,
-        user_id: session.user.id,
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return newCollection as Collection;
+  return mapCollection(newCollection);
 }
 
-export async function deleteCollections(ids: string | string[]) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+export async function deleteCollections(ids: string | string[]): Promise<true> {
+  const userId = await requireAuthenticatedUserId();
 
   const idsArray = Array.isArray(ids) ? ids : [ids];
 
-  const supabase = await createClient();
-  const {error} = await supabase
-    .from("collections")
-    .delete()
-    .in("id", idsArray)
-    .eq("user_id", session.user.id);
+  await db
+    .delete(collections)
+    .where(and(eq(collections.userId, userId), inArray(collections.id, idsArray)));
 
-  if (error) throw error;
   return true;
 }
 
@@ -98,48 +90,42 @@ export async function updateCollection(
     color?: string;
     icon?: string;
   },
-) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+): Promise<Collection> {
+  const userId = await requireAuthenticatedUserId();
 
-  if (!session) {
-    throw new Error("Unauthorized");
+  const [updated] = await db
+    .update(collections)
+    .set({
+      ...(data.name !== undefined && {name: data.name}),
+      ...(data.description !== undefined && {description: data.description}),
+      ...(data.color !== undefined && {color: data.color}),
+      ...(data.icon !== undefined && {icon: data.icon}),
+    })
+    .where(and(eq(collections.id, id), eq(collections.userId, userId)))
+    .returning();
+
+  if (!updated) {
+    throw new NotFoundError("Collection", id);
   }
 
-  const supabase = await createClient();
-  const {data: updatedCollection, error} = await supabase
-    .from("collections")
-    .update(data)
-    .eq("id", id)
-    .eq("user_id", session.user.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return updatedCollection as Collection;
+  return mapCollection(updated);
 }
 
-export async function toggleCollectionPin(collectionId: string, isPinned: boolean) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+export async function toggleCollectionPin(
+  collectionId: string,
+  isPinned: boolean,
+): Promise<Collection> {
+  const userId = await requireAuthenticatedUserId();
 
-  if (!session) {
-    throw new Error("Unauthorized");
+  const [updated] = await db
+    .update(collections)
+    .set({isPinned})
+    .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)))
+    .returning();
+
+  if (!updated) {
+    throw new NotFoundError("Collection", collectionId);
   }
 
-  const supabase = await createClient();
-  const {data: updatedCollection, error} = await supabase
-    .from("collections")
-    .update({is_pinned: isPinned})
-    .eq("id", collectionId)
-    .eq("user_id", session.user.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return updatedCollection as Collection;
+  return mapCollection(updated);
 }

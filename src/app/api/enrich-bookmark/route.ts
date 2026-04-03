@@ -6,22 +6,10 @@ import {
   isRecord,
   normalizeInputUrl,
 } from "@/lib/web-fetch";
-import {createClient as createSupabaseAdminClient} from "@supabase/supabase-js";
+import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 
 export const runtime = "nodejs";
-
-function getSupabaseAdmin() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  }
-
-  return createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
-    auth: {persistSession: false, autoRefreshToken: false, detectSessionInUrl: false},
-  });
-}
 
 function getQstashReceiver() {
   const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -83,20 +71,15 @@ function computeSafeKey(normalizedUrl: string, id?: unknown) {
   return safeKey;
 }
 
-async function uploadBytesToSupabase(opts: {
-  bucket: string;
-  objectPath: string;
-  bytes: Buffer;
-  contentType: string;
-}) {
-  const supabase = getSupabaseAdmin();
-  const upload = await supabase.storage
-    .from(opts.bucket)
-    .upload(opts.objectPath, opts.bytes, {contentType: opts.contentType, upsert: true});
-  if (upload.error) throw upload.error;
+async function uploadBytesToR2(opts: {objectKey: string; bytes: Buffer; contentType: string}) {
+  await uploadToR2({
+    key: opts.objectKey,
+    body: opts.bytes,
+    contentType: opts.contentType,
+  });
 }
 
-async function uploadFaviconToSupabase(bestIconUrl: string, normalizedUrl: string, id?: unknown) {
+async function uploadFaviconToR2(bestIconUrl: string, normalizedUrl: string, id?: unknown) {
   const iconRes = await fetch(bestIconUrl, {
     method: "GET",
     redirect: "follow",
@@ -110,17 +93,16 @@ async function uploadFaviconToSupabase(bestIconUrl: string, normalizedUrl: strin
   const iconBuffer = Buffer.from(await iconRes.arrayBuffer());
 
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectPath = `${safeKey}/favicon.png`;
+  const objectKey = `favicons/${safeKey}/favicon.png`;
 
-  await uploadBytesToSupabase({
-    bucket: "bookmark-favicons",
-    objectPath,
+  await uploadBytesToR2({
+    objectKey,
     bytes: iconBuffer,
     contentType,
   });
 }
 
-async function uploadOgImageToSupabase(ogImageUrl: string, normalizedUrl: string, id?: unknown) {
+async function uploadOgImageToR2(ogImageUrl: string, normalizedUrl: string, id?: unknown) {
   const res = await fetch(ogImageUrl, {
     method: "GET",
     redirect: "follow",
@@ -134,11 +116,10 @@ async function uploadOgImageToSupabase(ogImageUrl: string, normalizedUrl: string
   const bytes = Buffer.from(await res.arrayBuffer());
 
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectPath = `${safeKey}/og.png`;
+  const objectKey = `previews/${safeKey}/og.png`;
 
-  await uploadBytesToSupabase({
-    bucket: "bookmark-previews",
-    objectPath,
+  await uploadBytesToR2({
+    objectKey,
     bytes,
     contentType,
   });
@@ -151,18 +132,17 @@ function decodeBase64DataUrl(dataUrl: string) {
   return Buffer.from(base64, "base64");
 }
 
-async function uploadPreviewToSupabase(
+async function uploadPreviewToR2(
   screenshot: {dataUrl: string; contentType: string},
   normalizedUrl: string,
   id?: unknown,
 ) {
   const bytes = decodeBase64DataUrl(screenshot.dataUrl);
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectPath = `${safeKey}/preview.png`;
+  const objectKey = `previews/${safeKey}/preview.png`;
 
-  await uploadBytesToSupabase({
-    bucket: "bookmark-previews",
-    objectPath,
+  await uploadBytesToR2({
+    objectKey,
     bytes,
     contentType: screenshot.contentType || "image/png",
   });
@@ -183,7 +163,7 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
   if (faviconResult?.status === "fulfilled") {
     const best = faviconResult.value;
     if (best?.url) {
-      uploads.push(uploadFaviconToSupabase(best.url, normalized, id));
+      uploads.push(uploadFaviconToR2(best.url, normalized, id));
     }
   }
 
@@ -191,7 +171,7 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
   if (ogResult?.status === "fulfilled") {
     const ogUrl = ogResult.value;
     if (typeof ogUrl === "string" && ogUrl) {
-      uploads.push(uploadOgImageToSupabase(ogUrl, normalized, id));
+      uploads.push(uploadOgImageToR2(ogUrl, normalized, id));
     }
   }
 
@@ -199,7 +179,7 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
   if (previewResult?.status === "fulfilled") {
     const preview = previewResult.value;
     if (preview && typeof preview.dataUrl === "string" && typeof preview.contentType === "string") {
-      uploads.push(uploadPreviewToSupabase(preview, normalized, id));
+      uploads.push(uploadPreviewToR2(preview, normalized, id));
     }
   }
 

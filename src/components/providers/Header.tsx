@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import {Button, buttonVariants} from "../shadcn/button";
 import ThemeSwitch from "../other/ThemeSwitch";
 import {cn} from "@/lib/utils";
 import {useRouter} from "next/navigation";
@@ -10,13 +9,16 @@ import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui
 import type {Session} from "better-auth";
 import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/coss-ui/menu";
 import {useMutation} from "@tanstack/react-query";
-import {authClient} from "@/components/utils/better-auth/auth-client";
+import {signOutAction} from "@/app/actions/auth";
 import {toastManager} from "@/components/coss-ui/toast";
 import {Avatar} from "@/components/ui/avatar";
+import {useSidebarStore} from "@/store/use-sidebar-store";
+import {Button, buttonVariants} from "../coss-ui/button";
 
 export type AppShellSession = {
   session: Session;
   user?: {
+    id: string;
     email?: string | null;
   } | null;
 } | null;
@@ -24,11 +26,12 @@ export type AppShellSession = {
 export function Header({session}: {session: AppShellSession}) {
   const email = session?.user?.email ?? null;
   const router = useRouter();
-
+  const isOpen = useSidebarStore((state) => state.isOpen);
+  const toggleSidebar = useSidebarStore((state) => state.toggleSidebar);
   const signOutMutation = useMutation({
     mutationFn: async () => {
-      const res = await authClient.signOut();
-      if (res.error) throw res.error;
+      const res = await signOutAction();
+      if ("error" in res && res.error) throw new Error(res.error);
       return res;
     },
     onSuccess: () => {
@@ -48,29 +51,59 @@ export function Header({session}: {session: AppShellSession}) {
   return (
     <div className="bg-muted/30 flex items-center justify-between border-b px-6 py-3.5">
       <div className="text-foreground flex flex-1">
-        <Link
-          href="/home"
-          className="hit-area-2 hover:bg-muted-strong/80 rounded-md p-1 transition-colors duration-50 ease-out">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M11.7862 0.000241294C11.8353 0.000425892 11.8353 0.000425892 11.8854 0.000614218C15.1718 0.0150247 18.2202 1.32681 20.5329 3.65089C20.8526 3.97892 21.1418 4.3262 21.417 4.69184C21.4368 4.71778 21.4567 4.74373 21.4771 4.77046C22.6487 6.30574 22.6487 6.30574 22.6487 6.75496C15.568 6.75496 8.48722 6.75496 1.19189 6.75496C1.24397 6.59898 1.28486 6.48035 1.36077 6.341C1.37818 6.30902 1.39559 6.27704 1.41353 6.2441C1.4415 6.19379 1.4415 6.19379 1.47004 6.14247C1.48953 6.10735 1.50902 6.07222 1.52911 6.03604C1.94511 5.29578 2.45756 4.61342 3.0197 3.97769C3.0379 3.95701 3.05611 3.93632 3.07486 3.91502C3.54055 3.38926 4.05096 2.90563 4.61453 2.48558C4.66554 2.44753 4.71633 2.40919 4.76695 2.37063C6.21871 1.2659 7.91378 0.537698 9.70261 0.198618C9.75401 0.18884 9.80541 0.179061 9.85837 0.168987C10.501 0.0519745 11.133 -0.00417293 11.7862 0.000241294Z"
-              fill="currentColor"
-            />
-            <path
-              d="M0.0907762 10.7285C3.31272 10.7285 6.53467 10.7285 9.85425 10.7285C9.85425 15.1081 9.85425 19.4877 9.85425 24C7.12633 23.6978 4.42004 21.9765 2.71475 19.8658C2.62198 19.7485 2.53181 19.6294 2.44198 19.51C2.42143 19.4829 2.40088 19.4559 2.37971 19.428C2.06519 19.0125 1.78702 18.5856 1.53529 18.1296C1.48894 18.0459 1.4416 17.9628 1.39403 17.8797C0.805026 16.8331 0.415185 15.6574 0.192894 14.481C0.183529 14.4315 0.174163 14.382 0.164514 14.3309C0.0470974 13.6686 -0.00253184 13.0092 0.000683479 12.337C0.00111314 12.2306 0.000682934 12.1242 0.000177558 12.0178C0.000230214 11.9476 0.000332306 11.8773 0.000488894 11.8071C0.000327559 11.7766 0.000166224 11.7461 0 11.7146C0.00273878 11.3789 0.0506431 11.0687 0.0907762 10.7285Z"
-              fill="currentColor"
-            />
-            <path
-              d="M14.0264 10.7285C17.2477 10.7285 20.4691 10.7285 23.788 10.7285C23.88 11.5081 23.88 11.5081 23.8797 11.8001C23.8799 11.8335 23.8801 11.8669 23.8804 11.9013C23.8808 12.0071 23.8806 12.1128 23.8802 12.2186C23.8801 12.2552 23.88 12.2917 23.8799 12.3294C23.878 12.9164 23.8453 13.4866 23.7482 14.0663C23.742 14.1074 23.7358 14.1484 23.7294 14.1908C23.2796 17.1693 21.5816 19.969 19.1662 21.7749C19.1391 21.7953 19.112 21.8158 19.084 21.8369C18.6674 22.1506 18.2393 22.4279 17.7821 22.6789C17.6981 22.7251 17.6148 22.7723 17.5315 22.8198C16.5531 23.3673 15.1699 24 14.0264 24C14.0264 19.6204 14.0264 15.2408 14.0264 10.7285Z"
-              fill="currentColor"
-            />
-          </svg>
-        </Link>
+        <div className="group relative">
+          <div className="rounded-md p-1 transition-opacity duration-150 ease-out group-hover:opacity-0">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M11.7862 0.000241294C11.8353 0.000425892 11.8353 0.000425892 11.8854 0.000614218C15.1718 0.0150247 18.2202 1.32681 20.5329 3.65089C20.8526 3.97892 21.1418 4.3262 21.417 4.69184C21.4368 4.71778 21.4567 4.74373 21.4771 4.77046C22.6487 6.30574 22.6487 6.30574 22.6487 6.75496C15.568 6.75496 8.48722 6.75496 1.19189 6.75496C1.24397 6.59898 1.28486 6.48035 1.36077 6.341C1.37818 6.30902 1.39559 6.27704 1.41353 6.2441C1.4415 6.19379 1.4415 6.19379 1.47004 6.14247C1.48953 6.10735 1.50902 6.07222 1.52911 6.03604C1.94511 5.29578 2.45756 4.61342 3.0197 3.97769C3.0379 3.95701 3.05611 3.93632 3.07486 3.91502C3.54055 3.38926 4.05096 2.90563 4.61453 2.48558C4.66554 2.44753 4.71633 2.40919 4.76695 2.37063C6.21871 1.2659 7.91378 0.537698 9.70261 0.198618C9.75401 0.18884 9.80541 0.179061 9.85837 0.168987C10.501 0.0519745 11.133 -0.00417293 11.7862 0.000241294Z"
+                fill="currentColor"
+              />
+              <path
+                d="M0.0907762 10.7285C3.31272 10.7285 6.53467 10.7285 9.85425 10.7285C9.85425 15.1081 9.85425 19.4877 9.85425 24C7.12633 23.6978 4.42004 21.9765 2.71475 19.8658C2.62198 19.7485 2.53181 19.6294 2.44198 19.51C2.42143 19.4829 2.40088 19.4559 2.37971 19.428C2.06519 19.0125 1.78702 18.5856 1.53529 18.1296C1.48894 18.0459 1.4416 17.9628 1.39403 17.8797C0.805026 16.8331 0.415185 15.6574 0.192894 14.481C0.183529 14.4315 0.174163 14.382 0.164514 14.3309C0.0470974 13.6686 -0.00253184 13.0092 0.000683479 12.337C0.00111314 12.2306 0.000682934 12.1242 0.000177558 12.0178C0.000230214 11.9476 0.000332306 11.8773 0.000488894 11.8071C0.000327559 11.7766 0.000166224 11.7461 0 11.7146C0.00273878 11.3789 0.0506431 11.0687 0.0907762 10.7285Z"
+                fill="currentColor"
+              />
+              <path
+                d="M14.0264 10.7285C17.2477 10.7285 20.4691 10.7285 23.788 10.7285C23.88 11.5081 23.88 11.5081 23.8797 11.8001C23.8799 11.8335 23.8801 11.8669 23.8804 11.9013C23.8808 12.0071 23.8806 12.1128 23.8802 12.2186C23.8801 12.2552 23.88 12.2917 23.8799 12.3294C23.878 12.9164 23.8453 13.4866 23.7482 14.0663C23.742 14.1074 23.7358 14.1484 23.7294 14.1908C23.2796 17.1693 21.5816 19.969 19.1662 21.7749C19.1391 21.7953 19.112 21.8158 19.084 21.8369C18.6674 22.1506 18.2393 22.4279 17.7821 22.6789C17.6981 22.7251 17.6148 22.7723 17.5315 22.8198C16.5531 23.3673 15.1699 24 14.0264 24C14.0264 19.6204 14.0264 15.2408 14.0264 10.7285Z"
+                fill="currentColor"
+              />
+            </svg>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+            title={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+            className={cn(
+              // buttonVariants({variant: "ghost", size: null}),
+              "focus-visible:ring-ring focus-visible:ring-offset-background relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border text-base font-medium whitespace-nowrap transition-shadow outline-none before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] focus-visible:ring-2 focus-visible:ring-offset-1 disabled:pointer-events-none sm:text-sm pointer-coarse:after:absolute pointer-coarse:after:size-full pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 [&_svg]:pointer-events-none [&_svg]:-mx-0.5 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4",
+              "absolute inset-0 h-full w-full opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 focus-visible:opacity-100",
+              "text-foreground/90 data-pressed:bg-accent! [:hover,[data-pressed]]:bg-accent! border-transparent",
+            )}>
+            <svg
+              className="size-[22px]"
+              width="22"
+              height="22"
+              viewBox="0 0 22 22"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M6.41667 2.75C4.39162 2.75 2.75 4.39162 2.75 6.41667V15.5833C2.75 17.6083 4.39162 19.25 6.41667 19.25V2.75Z"
+                fill="currentColor"
+              />
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M8.25 19.25H15.5833C17.6083 19.25 19.25 17.6083 19.25 15.5833V6.41667C19.25 4.39162 17.6083 2.75 15.5833 2.75H8.25V19.25ZM15.3148 8.51848C15.6728 8.87647 15.6728 9.45688 15.3148 9.81484L14.1297 11L15.3148 12.1852C15.6728 12.5431 15.6728 13.1236 15.3148 13.4815C14.9569 13.8395 14.3765 13.8395 14.0185 13.4815L12.1852 11.6482C11.8272 11.2902 11.8272 10.7098 12.1852 10.3518L14.0185 8.51848C14.3765 8.16051 14.9569 8.16051 15.3148 8.51848Z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <InputGroup className="w-full max-w-[340px]">
         <InputGroupInput

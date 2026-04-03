@@ -12,11 +12,13 @@ import {getErrorMessage} from "@/lib/errors";
 
 export function useBookmarkMutations({
   onOpenChange,
-  originalValuesRef,
+  originalValues,
+  setOriginalValues,
   form,
 }: {
   onOpenChange: (open: boolean) => void;
-  originalValuesRef: React.RefObject<BookmarkFormValues>;
+  originalValues: BookmarkFormValues;
+  setOriginalValues?: (values: BookmarkFormValues) => void;
   form: UseFormReturn<BookmarkFormValues>;
 }) {
   const queryClient = useQueryClient();
@@ -34,9 +36,11 @@ export function useBookmarkMutations({
       onOpenChange(false);
 
       //  lock in the latest form values so close/reset doesn't revert them
-      const prev = originalValuesRef.current;
+      const prev = originalValues;
       const nextValues = form.getValues();
-      originalValuesRef.current = nextValues;
+      if (setOriginalValues) {
+        setOriginalValues(nextValues);
+      }
       form.reset(nextValues);
 
       return {prev};
@@ -56,7 +60,9 @@ export function useBookmarkMutations({
       });
 
       if (ctx?.prev) {
-        originalValuesRef.current = ctx.prev;
+        if (setOriginalValues) {
+          setOriginalValues(ctx.prev);
+        }
         form.reset(ctx.prev);
       }
 

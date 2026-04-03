@@ -7,6 +7,7 @@ import type {
   AllItemsAnimatedVariant,
   AllItemsBookmarkComponentProps,
 } from "./all-items-list-layout";
+import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
 
 interface AllItemsBookmarkRowProps {
   item: Bookmark;
@@ -21,7 +22,6 @@ interface AllItemsBookmarkRowProps {
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
   openMenu: (item: Bookmark) => void;
-  openDeleteDialog: (item: Bookmark) => void;
 }
 
 export function AllItemsBookmarkRow({
@@ -37,8 +37,9 @@ export function AllItemsBookmarkRow({
   toggleSelected,
   setSelected,
   openMenu,
-  openDeleteDialog,
 }: AllItemsBookmarkRowProps) {
+  const openDeleteDialog = useDeleteBookmarkDialogStore((state) => state.openDialog);
+
   return (
     <AnimatedItem
       id={item.id}
@@ -60,7 +61,7 @@ export function AllItemsBookmarkRow({
         <BookmarkItem
           item={item}
           onOpenMenu={openMenu}
-          onDelete={openDeleteDialog}
+          onDelete={(bookmark) => openDeleteDialog([bookmark])}
           selectionMode={selectionMode}
           selectionIndex={index}
           selectedIds={selectedIds}

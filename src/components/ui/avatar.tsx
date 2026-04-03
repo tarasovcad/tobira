@@ -546,13 +546,14 @@ function AvatarImpl({
 
       {showUserIcon ? (
         <span
-          className="absolute bottom-[2.85px] left-1/2 z-10 -translate-x-1/2"
+          className="absolute left-1/2 z-10 -translate-x-1/2"
           style={{
+            bottom: dimension * (2.85 / 28),
             filter: "drop-shadow(0 1px 8px rgba(15, 23, 42, 0.24))",
           }}>
           <svg
-            width="14"
-            height="16"
+            width={dimension * (14 / 28)}
+            height={dimension * (16 / 28)}
             viewBox="0 0 14 16"
             fill="none"
             xmlns="http://www.w3.org/2000/svg">

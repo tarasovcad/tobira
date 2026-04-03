@@ -9,11 +9,15 @@ function ScrollArea({
   children,
   scrollFade = false,
   scrollbarGutter = false,
+  hideScrollbar = false,
+  hideFocusRing = false,
   viewportProps,
   ...props
 }: ScrollAreaPrimitive.Root.Props & {
   scrollFade?: boolean;
   scrollbarGutter?: boolean;
+  hideScrollbar?: boolean;
+  hideFocusRing?: boolean;
   viewportProps?: React.ComponentProps<typeof ScrollAreaPrimitive.Viewport>;
 }) {
   return (
@@ -21,7 +25,10 @@ function ScrollArea({
       <ScrollAreaPrimitive.Viewport
         {...viewportProps}
         className={cn(
-          "transition-shadows focus-visible:ring-ring focus-visible:ring-offset-background h-full rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-has-overflow-x:overscroll-x-contain",
+          "transition-shadows h-full rounded-[inherit] outline-none data-has-overflow-x:overscroll-x-contain",
+          !hideFocusRing &&
+            "focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-1",
+          hideScrollbar && "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           scrollFade &&
             "mask-t-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-start)))] mask-r-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-end)))] mask-b-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-end)))] mask-l-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-start)))] [--fade-size:1.5rem]",
           scrollbarGutter && "data-has-overflow-x:pb-2.5 data-has-overflow-y:pe-2.5",
@@ -30,8 +37,12 @@ function ScrollArea({
         data-slot="scroll-area-viewport">
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar orientation="vertical" />
-      <ScrollBar orientation="horizontal" />
+      {!hideScrollbar && (
+        <>
+          <ScrollBar orientation="vertical" />
+          <ScrollBar orientation="horizontal" />
+        </>
+      )}
       <ScrollAreaPrimitive.Corner data-slot="scroll-area-corner" />
     </ScrollAreaPrimitive.Root>
   );

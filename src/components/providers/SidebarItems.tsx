@@ -7,7 +7,26 @@ import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
 import {useRouter} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
-import type {TagWithCount} from "@/app/home/_types";
+import type {SidebarTag} from "@/app/home/_types";
+import {Skeleton} from "@/components/ui/skeleton";
+import {useHasMounted} from "@/lib/useHasMounted";
+
+export function SidebarCollectionSkeleton({width}: {width?: string}) {
+  return (
+    <div className="flex w-full items-center gap-1 rounded-md px-3 py-2">
+      <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
+    </div>
+  );
+}
+
+export function SidebarTagSkeleton({width}: {width?: string}) {
+  return (
+    <div className="flex w-full items-center justify-between rounded-md px-3 py-2">
+      <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
+      <Skeleton className="ml-10 h-5 w-5 shrink-0 animate-pulse rounded-sm" />
+    </div>
+  );
+}
 
 interface SidebarCollectionItemProps {
   collection: Collection;
@@ -33,6 +52,7 @@ export function SidebarCollectionItem({
   onContextMenuDelete,
 }: SidebarCollectionItemProps) {
   const router = useRouter();
+  const hasMounted = useHasMounted();
 
   return (
     <motion.div
@@ -125,18 +145,20 @@ export function SidebarCollectionItem({
           )}
         </ContextMenuTrigger>
 
-        <CollectionContextMenuContent
-          collection={collection}
-          onCopy={onCopy}
-          onDelete={onContextMenuDelete}
-        />
+        {hasMounted && (
+          <CollectionContextMenuContent
+            collection={collection}
+            onCopy={onCopy}
+            onDelete={onContextMenuDelete}
+          />
+        )}
       </ContextMenu>
     </motion.div>
   );
 }
 
 interface SidebarTagItemProps {
-  tag: TagWithCount;
+  tag: SidebarTag;
   index: number;
   isActive: boolean;
   selectionMode: boolean;
@@ -159,6 +181,7 @@ export function SidebarTagItem({
   onContextMenuDelete,
 }: SidebarTagItemProps) {
   const router = useRouter();
+  const hasMounted = useHasMounted();
 
   return (
     <motion.div
@@ -175,7 +198,7 @@ export function SidebarTagItem({
               onToggleSelection();
               return;
             }
-            router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+            router.push(`/home?tag=${tag.id}`);
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -183,7 +206,7 @@ export function SidebarTagItem({
               if (selectionMode) {
                 onToggleSelection();
               } else {
-                router.push(`/home?tag=${encodeURIComponent(tag.name)}`);
+                router.push(`/home?tag=${tag.id}`);
               }
             }
           }}
@@ -244,7 +267,9 @@ export function SidebarTagItem({
           </div>
         </ContextMenuTrigger>
 
-        <TagContextMenuContent tag={tag} onCopy={onCopy} onDelete={onContextMenuDelete} />
+        {hasMounted && (
+          <TagContextMenuContent tag={tag} onCopy={onCopy} onDelete={onContextMenuDelete} />
+        )}
       </ContextMenu>
     </motion.div>
   );

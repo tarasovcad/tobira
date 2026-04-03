@@ -23,6 +23,7 @@ import {useRouter} from "next/navigation";
 import * as z from "zod";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import Spinner from "../ui/spinner";
+import {homeMetadataKeys} from "@/app/home/_hooks/use-home-metadata-query";
 
 const collectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -80,7 +81,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     mutationFn: createCollection,
     onSuccess: () => {
       setSubmitSuccess("create");
-      queryClient.invalidateQueries({queryKey: ["collections"]});
+      queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
       toastManager.add({title: "Collection created", type: "success"});
       onOpenChange(false);
       window.setTimeout(() => setSubmitSuccess(null), SUCCESS_LABEL_RESET_MS);
@@ -99,7 +100,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
       updateCollection(variables.id, variables.data),
     onSuccess: () => {
       setSubmitSuccess("save");
-      queryClient.invalidateQueries({queryKey: ["collections"]});
+      queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
       toastManager.add({title: "Collection updated", type: "success"});
       onOpenChange(false);
       window.setTimeout(() => setSubmitSuccess(null), SUCCESS_LABEL_RESET_MS);

@@ -2,9 +2,8 @@
 
 import {useState} from "react";
 import {useSearchParams, useRouter, usePathname} from "next/navigation";
-import {normalizeTagParam} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import type {TypeFilter, SortMode} from "../../_components/AllItemsToolbar";
+import type {TypeFilter, SortMode} from "../../_types";
 import {getDefaultAllItemsView} from "../../_components/all-items-client/all-items-list-view-options";
 
 const resolveSortFilter = (sortParam: string | null): SortMode => {
@@ -18,11 +17,9 @@ export function useHomeFilters() {
   const pathname = usePathname();
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
 
-  const tagFilter = normalizeTagParam(searchParams.get("tag"));
+  const tagFilter = searchParams.get("tag")?.trim() || null;
   const collectionFilter = searchParams.get("collection");
-  const initialTypeFilter = (
-    searchParams.get("type") === "media" ? "media" : "website"
-  ) as TypeFilter;
+  const initialTypeFilter = (searchParams.get("type") ?? "website") as TypeFilter;
   const initialSort = resolveSortFilter(searchParams.get("sort"));
 
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(initialTypeFilter);

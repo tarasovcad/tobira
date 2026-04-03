@@ -4,6 +4,8 @@ import "./globals.css";
 import {ThemeProvider} from "@/components/providers/ThemeProvider";
 import {ReactQueryProvider} from "@/components/providers/ReactQueryProvider";
 import {AnchoredToastProvider, ToastProvider} from "@/components/coss-ui/toast";
+import {Analytics} from "@vercel/analytics/react";
+import {SpeedInsights} from "@vercel/speed-insights/next";
 
 const inter = Inter({subsets: ["latin"], variable: "--font-sans"});
 
@@ -23,6 +25,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} antialiased`} suppressHydrationWarning>
+      <Analytics />
+      <SpeedInsights />
       <body>
         <ThemeProvider
           attribute="class"

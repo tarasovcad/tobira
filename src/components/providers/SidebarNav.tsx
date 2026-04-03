@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
+import {TooltipTrigger} from "@/components/coss-ui/tooltip";
 
 export const NavItem = ({
   isActive,
@@ -10,6 +11,8 @@ export const NavItem = ({
   className,
   iconSide = "left",
   disabled,
+  collapsed = false,
+  tooltipHandle,
 }: {
   isActive: boolean;
   icon?: React.ReactNode;
@@ -18,7 +21,11 @@ export const NavItem = ({
   className?: string;
   iconSide?: "left" | "right";
   disabled?: boolean;
+  collapsed?: boolean;
+  tooltipHandle?: React.ComponentProps<typeof TooltipTrigger>["handle"];
 }) => {
+  const TooltipLabel = () => <span>{label}</span>;
+
   const content = (
     <>
       {icon && iconSide === "left" && (
@@ -26,7 +33,13 @@ export const NavItem = ({
           {icon}
         </span>
       )}
-      <span className="">{label}</span>
+      <span
+        className={cn(
+          "truncate overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-25 ease-linear",
+          collapsed ? "ml-0 max-w-0 opacity-0" : "ml-2 opacity-100",
+        )}>
+        {label}
+      </span>
       {icon && iconSide === "right" && (
         <span className="inline-flex size-5 shrink-0 items-center justify-center text-current">
           {icon}
@@ -37,8 +50,9 @@ export const NavItem = ({
 
   const baseStyles = cn(
     isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
-    "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
-    "transition-none!",
+    "flex w-full items-center rounded-md py-2 text-sm font-medium",
+    collapsed ? "justify-start px-2" : "justify-start px-3",
+    "transition-[padding] duration-50 ease-linear",
     "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
     disabled
       ? "opacity-70 cursor-not-allowed select-none"
@@ -47,10 +61,34 @@ export const NavItem = ({
   );
 
   if (disabled) {
+    if (tooltipHandle) {
+      return (
+        <TooltipTrigger
+          className="after:absolute after:left-full after:h-full after:w-2"
+          handle={tooltipHandle}
+          payload={TooltipLabel}
+          render={<div className={baseStyles} aria-disabled="true" />}>
+          {content}
+        </TooltipTrigger>
+      );
+    }
+
     return (
       <div className={baseStyles} aria-disabled="true">
         {content}
       </div>
+    );
+  }
+
+  if (tooltipHandle) {
+    return (
+      <TooltipTrigger
+        className="after:absolute after:left-full after:h-full after:w-2"
+        handle={tooltipHandle}
+        payload={TooltipLabel}
+        render={<Link href={href} className={baseStyles} />}>
+        {content}
+      </TooltipTrigger>
     );
   }
 
@@ -61,7 +99,14 @@ export const NavItem = ({
   );
 };
 
-export const NAV_ITEMS = [
+type NavConfigItem = {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  disabled?: boolean;
+};
+
+export const NAV_ITEMS: NavConfigItem[] = [
   {
     icon: (
       <svg

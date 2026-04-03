@@ -1,11 +1,26 @@
 "use client";
 
-import React from "react";
+import React, {useMemo} from "react";
 import Link from "next/link";
 import {useSearchParams} from "next/navigation";
 import {cn} from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipCreateHandle,
+  TooltipPopup,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/coss-ui/tooltip";
 
-const ACCOUNT_ITEMS = [
+interface SettingsItem {
+  label: string;
+  slug: string;
+  href: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+}
+
+const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "General",
     slug: "general",
@@ -70,6 +85,7 @@ const ACCOUNT_ITEMS = [
     label: "Billing",
     slug: "billing",
     href: "/settings?tab=billing",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -94,6 +110,7 @@ const ACCOUNT_ITEMS = [
     label: "Privacy",
     slug: "privacy",
     href: "/settings?tab=privacy",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -114,6 +131,7 @@ const ACCOUNT_ITEMS = [
     label: "Meta/About",
     slug: "meta",
     href: "/settings?tab=meta",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -132,11 +150,12 @@ const ACCOUNT_ITEMS = [
   },
 ];
 
-const WORKSPACE_ITEMS = [
+const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Organization",
     slug: "organization",
     href: "/settings?tab=organization",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -165,6 +184,7 @@ const WORKSPACE_ITEMS = [
     label: "Integrations",
     slug: "integrations",
     href: "/settings?tab=integrations",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -191,6 +211,7 @@ const WORKSPACE_ITEMS = [
     label: "Capture Tools",
     slug: "capture",
     href: "/settings?tab=capture",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -241,6 +262,7 @@ const WORKSPACE_ITEMS = [
     label: "Usage",
     slug: "usage",
     href: "/settings?tab=usage",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -263,6 +285,7 @@ const WORKSPACE_ITEMS = [
     label: "Knowledge Base",
     slug: "kb",
     href: "/settings?tab=kb",
+    disabled: true,
     icon: (
       <svg
         width="20"
@@ -290,98 +313,210 @@ function SettingsNavItem({
   label,
   icon,
   isActive,
+  disabled,
+  collapsed = false,
+  tooltipHandle,
 }: {
   href: string;
   label: string;
   icon: React.ReactNode;
   isActive: boolean;
+  disabled?: boolean;
+  collapsed?: boolean;
+  tooltipHandle?: React.ComponentProps<typeof TooltipTrigger>["handle"];
 }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm font-medium transition-none!",
-        "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-        isActive
-          ? "text-foreground bg-muted-strong"
-          : "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
-      )}>
+  const TooltipLabel = () => <span>{label}</span>;
+
+  const content = (
+    <>
       <span className="inline-flex size-5 shrink-0 items-center justify-center text-current opacity-70">
         {icon}
       </span>
-      {label}
+      <span
+        className={cn(
+          "truncate overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-25 ease-linear",
+          collapsed ? "ml-0 max-w-0 opacity-0" : "ml-2 opacity-100",
+        )}>
+        {label}
+      </span>
+    </>
+  );
+
+  const baseStyles = cn(
+    "flex w-full items-center rounded-md py-1.5 text-sm font-medium",
+    collapsed ? "justify-start px-2" : "justify-start px-3",
+    "transition-[padding] duration-50 ease-linear",
+    "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+    isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
+    disabled
+      ? "opacity-70 cursor-not-allowed select-none"
+      : !isActive && "hover:bg-muted hover:text-foreground",
+  );
+
+  if (disabled) {
+    if (tooltipHandle) {
+      return (
+        <TooltipTrigger
+          className="after:absolute after:left-full after:h-full after:w-2"
+          handle={tooltipHandle}
+          payload={TooltipLabel}
+          render={<div className={baseStyles} aria-disabled="true" />}>
+          {content}
+        </TooltipTrigger>
+      );
+    }
+
+    return (
+      <div className={baseStyles} aria-disabled="true">
+        {content}
+      </div>
+    );
+  }
+
+  if (tooltipHandle) {
+    return (
+      <TooltipTrigger
+        className="after:absolute after:left-full after:h-full after:w-2"
+        handle={tooltipHandle}
+        payload={TooltipLabel}
+        render={<Link href={href} className={baseStyles} />}>
+        {content}
+      </TooltipTrigger>
+    );
+  }
+
+  return (
+    <Link href={href} className={baseStyles}>
+      {content}
     </Link>
   );
 }
 
-export function SidebarSettings({onBack}: {onBack: () => void}) {
+export function SidebarSettings({
+  onBack,
+  state,
+}: {
+  onBack: () => void;
+  state: "expanded" | "collapsed";
+}) {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab") || "general";
+  const isCollapsed = state === "collapsed";
+  const navTooltipHandle = useMemo(() => TooltipCreateHandle<React.ComponentType>(), []);
+  const BackTooltipContent = () => <span>Back to app</span>;
 
   return (
-    <div className="flex h-full flex-col px-3 py-3">
-      {/* Back to app button */}
-      <button
-        onClick={onBack}
-        className={cn(
-          "mb-2 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
-          "text-secondary bg-transparent transition-none!",
-          "hover:bg-muted hover:text-foreground",
-          "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-        )}>
-        <span className="inline-flex size-5 shrink-0 items-center justify-center">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M10.3447 3.96967C10.6376 3.67678 11.1123 3.67678 11.4052 3.96967C11.6981 4.26257 11.6981 4.73732 11.4052 5.03022L7.43549 8.99993L11.4052 12.9697C11.6981 13.2626 11.6981 13.7373 11.4052 14.0303C11.1123 14.3231 10.6376 14.3231 10.3447 14.0303L5.84467 9.53025C5.55178 9.2373 5.55178 8.76255 5.84467 8.46968L10.3447 3.96967Z"
-              fill="currentColor"
-            />
-          </svg>
-        </span>
-        Settings
-      </button>
+    <TooltipProvider>
+      <div className="flex h-full flex-col px-3 py-3">
+        {isCollapsed ? (
+          <TooltipTrigger
+            className="after:absolute after:left-full after:h-full after:w-2"
+            handle={navTooltipHandle}
+            payload={BackTooltipContent}
+            render={
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Back to app"
+                className={cn(
+                  "mb-2 flex w-full cursor-pointer items-center rounded-md py-2 text-sm font-medium",
+                  "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
+                  "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                  "justify-start px-2 transition-[padding] duration-50 ease-linear",
+                )}
+              />
+            }>
+            <span className="inline-flex size-5 shrink-0 items-center justify-center">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M10.3447 3.96967C10.6376 3.67678 11.1123 3.67678 11.4052 3.96967C11.6981 4.26257 11.6981 4.73732 11.4052 5.03022L7.43549 8.99993L11.4052 12.9697C11.6981 13.2626 11.6981 13.7373 11.4052 14.0303C11.1123 14.3231 10.6376 14.3231 10.3447 14.0303L5.84467 9.53025C5.55178 9.2373 5.55178 8.76255 5.84467 8.46968L10.3447 3.96967Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+          </TooltipTrigger>
+        ) : (
+          <button
+            type="button"
+            onClick={onBack}
+            className={cn(
+              "mb-2 flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-sm font-medium",
+              "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
+              "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+            )}>
+            <span className="inline-flex size-5 shrink-0 items-center justify-center">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M10.3447 3.96967C10.6376 3.67678 11.1123 3.67678 11.4052 3.96967C11.6981 4.26257 11.6981 4.73732 11.4052 5.03022L7.43549 8.99993L11.4052 12.9697C11.6981 13.2626 11.6981 13.7373 11.4052 14.0303C11.1123 14.3231 10.6376 14.3231 10.3447 14.0303L5.84467 9.53025C5.55178 9.2373 5.55178 8.76255 5.84467 8.46968L10.3447 3.96967Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            <span className="ml-2">Settings</span>
+          </button>
+        )}
 
-      {/* <div className="bg-border mb-3 h-px w-full" /> */}
-
-      <div className="flex-1 overflow-y-auto pb-4">
-        {/* Account Section */}
-        <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
-          Account
-        </div>
-        <div className="flex flex-col gap-0.5">
-          {ACCOUNT_ITEMS.map((item) => (
-            <SettingsNavItem
-              key={item.slug}
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-              isActive={currentTab === item.slug}
-            />
-          ))}
-        </div>
-        <div className="px-3">
-          <div className="bg-border my-4 h-px w-full" />
-        </div>
-        {/* Workspace Section */}
-        <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
-          Workspace
-        </div>
-        <div className="flex flex-col gap-0.5">
-          {WORKSPACE_ITEMS.map((item) => (
-            <SettingsNavItem
-              key={item.slug}
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-              isActive={currentTab === item.slug}
-            />
-          ))}
+        <div className="flex-1 overflow-y-auto pb-4">
+          {!isCollapsed && (
+            <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
+              Account
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {ACCOUNT_ITEMS.map((item) => (
+              <SettingsNavItem
+                key={item.slug}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                isActive={currentTab === item.slug}
+                disabled={item.disabled}
+                collapsed={isCollapsed}
+                tooltipHandle={isCollapsed ? navTooltipHandle : undefined}
+              />
+            ))}
+          </div>
+          <div className="px-3">
+            <div className="bg-border my-4 h-px w-full" />
+          </div>
+          {!isCollapsed && (
+            <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
+              Workspace
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {WORKSPACE_ITEMS.map((item) => (
+              <SettingsNavItem
+                key={item.slug}
+                href={item.href}
+                label={item.label}
+                icon={item.icon}
+                isActive={currentTab === item.slug}
+                disabled={item.disabled}
+                collapsed={isCollapsed}
+                tooltipHandle={isCollapsed ? navTooltipHandle : undefined}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+      <Tooltip handle={navTooltipHandle}>
+        {({payload: Payload}) => (
+          <TooltipPopup side="right" align="center" sideOffset={6} size="md">
+            {Payload !== undefined && isCollapsed && <Payload />}
+          </TooltipPopup>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 }

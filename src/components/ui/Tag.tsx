@@ -7,10 +7,23 @@ import {cn} from "@/lib/utils";
 export interface TagProps extends React.ComponentProps<typeof Badge> {
   onRemove?: () => void;
   disabled?: boolean;
+  displayHash?: boolean;
 }
 
 export const Tag = React.forwardRef<HTMLSpanElement, TagProps>(
-  ({children, onRemove, disabled, className, variant = "outline", size = "md", ...props}, ref) => {
+  (
+    {
+      children,
+      displayHash = true,
+      onRemove,
+      disabled,
+      className,
+      variant = "outline",
+      size = "md",
+      ...props
+    },
+    ref,
+  ) => {
     return (
       <Badge
         ref={ref}
@@ -18,7 +31,8 @@ export const Tag = React.forwardRef<HTMLSpanElement, TagProps>(
         size={size}
         className={cn("bg-muted", onRemove && "gap-0!", className)}
         {...props}>
-        # {children}
+        {displayHash && "# "}
+        {children}
         {onRemove && (
           <button
             type="button"

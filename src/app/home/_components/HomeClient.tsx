@@ -5,7 +5,6 @@ import NumberFlow from "@number-flow/react";
 
 // Components
 import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
-import {DeleteBookmarkDialog} from "./home-client/DeleteBookmarkDialog";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {CollectionHeader} from "./home-client/CollectionHeader";
 import {TagHeader} from "./home-client/TagHeader";
@@ -28,7 +27,7 @@ import {TagNotFoundState} from "./home-client/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
-import type {TypeFilter, SortMode} from "./AllItemsToolbar";
+import type {TypeFilter, SortMode} from "../_types";
 import type {TagWithCount} from "../_types";
 
 /**
@@ -38,13 +37,13 @@ import type {TagWithCount} from "../_types";
 export function HomeClient({
   userId,
   initialBookmarks,
-  initialTags,
+  initialActiveTag,
   totalCount,
   serverFilters,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
-  initialTags: TagWithCount[];
+  initialActiveTag: TagWithCount | null;
   totalCount: number;
   serverFilters?: {
     tagFilter: string | null;
@@ -68,24 +67,17 @@ export function HomeClient({
   const setView = useViewOptionsStore((state) => state.setView);
 
   // ── Query Hook ──
-  const {
-    bookmarksQuery,
-    allBookmarks,
-    currentTotalCount,
-    activeCollection,
-    activeTag,
-    isInitialLoad,
-  } = useBookmarksQuery({
-    userId,
-    initialBookmarks,
-    initialTags,
-    totalCount,
-    sort,
-    tagFilter,
-    collectionFilter,
-    typeFilter,
-    isServerDataMatching,
-  });
+  const {bookmarksQuery, allBookmarks, activeCollection, activeTag, isInitialLoad} =
+    useBookmarksQuery({
+      userId,
+      initialBookmarks,
+      initialActiveTag,
+      sort,
+      tagFilter,
+      collectionFilter,
+      typeFilter,
+      isServerDataMatching,
+    });
 
   // ── Mutation Hook ──
   const {
@@ -99,6 +91,7 @@ export function HomeClient({
     archiveMutation,
   } = useBookmarksMutations({
     tagFilter,
+    activeTagName: activeTag?.name ?? null,
     allBookmarks,
   });
 
@@ -134,20 +127,12 @@ export function HomeClient({
   });
 
   // ── Dialogs ──
-  const {
-    menuOpen,
-    setMenuOpen,
-    menuItem,
-    deleteDialogOpen,
-    setDeleteDialogOpen,
-    itemsToDelete,
-    openMenu,
-    openDeleteDialog,
-    handleDeleteSelected,
-  } = useHomeDialogs({
-    allBookmarks,
-    selectedIds,
-  });
+  const {menuOpen, setMenuOpen, menuItem, openMenu, openDeleteDialog, handleDeleteSelected} =
+    useHomeDialogs({
+      allBookmarks,
+      selectedIds,
+      onDeleted: handleClearSelection,
+    });
 
   // ── Refs for infinite scroll ──
   const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
@@ -182,12 +167,9 @@ export function HomeClient({
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {activeCollection ? (
-        <CollectionHeader
-          activeCollection={activeCollection}
-          currentTotalCount={currentTotalCount}
-        />
+        <CollectionHeader activeCollection={activeCollection} currentTotalCount={totalCount} />
       ) : tagFilter && activeTag ? (
-        <TagHeader activeTag={activeTag} currentTotalCount={currentTotalCount} />
+        <TagHeader activeTag={activeTag} currentTotalCount={totalCount} />
       ) : null}
 
       {/* Toolbar */}
@@ -207,14 +189,14 @@ export function HomeClient({
             view === "compact" && "border-b",
             view === "list" && "border-b",
           )}>
-          <NumberFlow value={currentTotalCount} /> items
+          <NumberFlow value={totalCount} /> items
         </div>
       )}
       {/* Scrollable content area */}
       {isCollectionNotFound ? (
         <CollectionNotFoundState collectionName={collectionFilter} />
       ) : isTagNotFound ? (
-        <TagNotFoundState tagName={tagFilter} />
+        <TagNotFoundState />
       ) : showEmptyState ? (
         <HomeEmptyState userId={userId} />
       ) : (
@@ -238,7 +220,6 @@ export function HomeClient({
           toggleSelected={toggleSelected}
           setSelected={setSelected}
           openMenu={openMenu}
-          openDeleteDialog={openDeleteDialog}
         />
       )}
 
@@ -260,15 +241,7 @@ export function HomeClient({
         onOpenChange={setMenuOpen}
         onDelete={openDeleteDialog}
         onArchive={handleArchive}
-      />
-      <DeleteBookmarkDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        items={itemsToDelete}
-        onDeleted={() => {
-          handleClearSelection();
-          setMenuOpen(false);
-        }}
+        userId={userId}
       />
     </div>
   );

@@ -1,25 +1,55 @@
 "use client";
 
 import {useState} from "react";
+import {usePathname} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
-import {SidebarTagsType} from "./SidebarTags";
+import type {SidebarTag} from "@/app/home/_types";
 import {SidebarMain} from "./SidebarMain";
 import {SidebarSettings} from "./SidebarSettings";
 import {AnimatePresence, motion} from "framer-motion";
+import {cn} from "@/lib/utils";
+import {useSidebarStore} from "@/store/use-sidebar-store";
+import {useHasMounted} from "@/lib/useHasMounted";
+
+const SIDEBAR_WIDTH = "224px";
+const SIDEBAR_WIDTH_ICON = "60px";
 
 export function Sidebar({
-  tags: initialTags,
-  collections: initialCollections,
+  allCollections,
+  allTags,
   isAuthenticated = false,
+  userId,
 }: {
-  tags?: SidebarTagsType;
-  collections?: Collection[];
+  allCollections?: Collection[];
+  allTags?: SidebarTag[];
   isAuthenticated?: boolean;
+  userId?: string;
 }) {
-  const [showSettings, setShowSettings] = useState(false);
+  const pathname = usePathname();
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [showSettings, setShowSettings] = useState(pathname.startsWith("/settings"));
+  const hasMounted = useHasMounted();
+  const isOpen = useSidebarStore((state) => state.isOpen);
+  const sidebarIsOpen = hasMounted ? isOpen : true;
+  const contentState = sidebarIsOpen ? "expanded" : "collapsed";
+
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (pathname.startsWith("/settings")) {
+      setShowSettings(true);
+    } else if (prevPathname.startsWith("/settings") && !pathname.startsWith("/settings")) {
+      setShowSettings(false);
+    }
+  }
 
   return (
-    <aside className="bg-muted/30 relative h-full w-[224px] shrink-0 overflow-hidden border-r">
+    <aside
+      className={cn(
+        "bg-muted/30 relative h-full shrink-0 overflow-hidden border-r transition-[width] duration-200 ease-linear",
+      )}
+      style={{
+        width: sidebarIsOpen ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON,
+      }}>
       <AnimatePresence initial={false} mode="sync">
         {showSettings ? (
           <motion.div
@@ -33,7 +63,7 @@ export function Sidebar({
               duration: 0.16,
               ease: "easeOut",
             }}>
-            <SidebarSettings onBack={() => setShowSettings(false)} />
+            <SidebarSettings onBack={() => setShowSettings(false)} state={contentState} />
           </motion.div>
         ) : (
           <motion.div
@@ -48,10 +78,12 @@ export function Sidebar({
               ease: "easeOut",
             }}>
             <SidebarMain
-              initialTags={initialTags}
-              initialCollections={initialCollections}
+              allCollections={allCollections}
+              allTags={allTags}
               isAuthenticated={isAuthenticated}
+              userId={userId}
               onShowSettings={() => setShowSettings(true)}
+              state={contentState}
             />
           </motion.div>
         )}

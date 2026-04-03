@@ -5,21 +5,45 @@ import {usePathname, useSearchParams, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
 import {buttonVariants} from "../shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
-import {useQuery} from "@tanstack/react-query";
-import {getCollections} from "@/app/actions/collections";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
-import {SidebarCollectionItem} from "./SidebarItems";
+import {SidebarCollectionItem, SidebarCollectionSkeleton} from "./SidebarItems";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
+import {useCollectionsQuery} from "@/app/home/_hooks/use-home-metadata-query";
 
 export function SidebarCollections({
-  initialCollections,
+  allCollections,
+  isAuthenticated = false,
+  userId,
+}: {
+  allCollections?: Collection[];
+  isAuthenticated?: boolean;
+  userId?: string;
+}) {
+  const {data: collections = [], isFetching} = useCollectionsQuery({
+    userId,
+    initialData: allCollections,
+  });
+
+  return (
+    <SidebarCollectionsContent
+      collections={collections}
+      isFetching={isFetching}
+      isAuthenticated={isAuthenticated}
+    />
+  );
+}
+
+function SidebarCollectionsContent({
+  collections,
+  isFetching,
   isAuthenticated = false,
 }: {
-  initialCollections?: Collection[];
+  collections: Collection[];
+  isFetching: boolean;
   isAuthenticated?: boolean;
 }) {
   const pathname = usePathname();
@@ -55,14 +79,8 @@ export function SidebarCollections({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [collectionSelectionMode]);
 
-  const {data: collections} = useQuery({
-    queryKey: ["collections"],
-    queryFn: async () => await getCollections(),
-    initialData: initialCollections,
-  });
-
   const selectedCollectionCount = selectedCollectionIds.size;
-  const allCollectionsSelected = collections?.length
+  const allCollectionsSelected = collections.length
     ? selectedCollectionCount === collections.length
     : false;
 
@@ -74,13 +92,12 @@ export function SidebarCollections({
   const handleSelectAllCollections = React.useCallback(() => {
     if (allCollectionsSelected) {
       setSelectedCollectionIds(new Set());
-    } else if (collections) {
+    } else {
       setSelectedCollectionIds(new Set(collections.map((c) => c.id)));
     }
   }, [allCollectionsSelected, collections]);
 
   const handleDeleteSelectedCollections = React.useCallback(() => {
-    if (!collections) return;
     const selectedCols = collections.filter((c) => selectedCollectionIds.has(c.id));
     if (selectedCols.length === 0) return;
     openDeleteDialog(selectedCols, handleClearCollectionSelection);
@@ -108,6 +125,7 @@ export function SidebarCollections({
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">Collections</span>
+
             <span
               className={cn(
                 "inline-flex size-5 shrink-0 items-center justify-center text-current transition-transform duration-200 ease-out",
@@ -174,7 +192,7 @@ export function SidebarCollections({
         </div>
         <div className="flex flex-col gap-0.5">
           <AnimatePresence initial={false}>
-            {collectionsExpanded && collections?.length === 0 && (
+            {collectionsExpanded && collections.length === 0 && !isFetching && (
               <motion.div
                 initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
                 animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
@@ -208,8 +226,16 @@ export function SidebarCollections({
                 </button>
               </motion.div>
             )}
+            {isFetching &&
+              collections.length === 0 &&
+              [1, 2, 3, 4].map((i, idx) => (
+                <SidebarCollectionSkeleton
+                  key={`col-skeleton-${i}`}
+                  width={["w-[60%]", "w-[40%]", "w-[75%]", "w-[50%]"][idx % 4]}
+                />
+              ))}
             {collectionsExpanded &&
-              collections?.map((c, index) => {
+              collections.map((c, index) => {
                 const isActive = pathname === "/home" && searchParams.get("collection") === c.id;
                 return (
                   <SidebarCollectionItem

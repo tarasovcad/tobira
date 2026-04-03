@@ -2,13 +2,13 @@ import * as React from "react";
 import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
 import {PAGE_SIZE} from "../_constants";
 import {tagNamesFromJoin} from "@/lib/bookmark-tags";
-import {getCollections} from "@/app/actions/collections";
 import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
-import {getTags} from "@/app/actions/tags";
+import {getTagById} from "@/app/actions/tags";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
-import type {UseBookmarksQueryProps, BookmarkRowWithJoins, TagWithCount} from "../_types";
+import type {UseBookmarksQueryProps, BookmarkRowWithJoins} from "../_types";
 import {useMemo} from "react";
+import {collectionsQueryOptions} from "./use-home-metadata-query";
 
 /**
  * Maps the raw database response to the domain Bookmark type.
@@ -29,8 +29,7 @@ function mapBookmarkRow(row: BookmarkRowWithJoins): Bookmark {
 export function useBookmarksQuery({
   userId,
   initialBookmarks,
-  initialTags,
-  totalCount,
+  initialActiveTag,
   sort,
   tagFilter,
   collectionFilter,
@@ -57,11 +56,10 @@ export function useBookmarksQuery({
         return {
           items: [] as Bookmark[],
           nextOffset: undefined as number | undefined,
-          totalCount: 0,
         };
       }
 
-      const {data, count} = await fetchBookmarksPageAction({
+      const {data} = await fetchBookmarksPageAction({
         offset,
         limit: PAGE_SIZE,
         sort,
@@ -73,7 +71,7 @@ export function useBookmarksQuery({
       const items = ((data ?? []) as BookmarkRowWithJoins[]).map(mapBookmarkRow);
       const nextOffset = items.length < PAGE_SIZE ? undefined : offset + PAGE_SIZE;
 
-      return {items, nextOffset, totalCount: count ?? 0};
+      return {items, nextOffset};
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset,
     initialData: isServerDataMatching
@@ -83,7 +81,6 @@ export function useBookmarksQuery({
             {
               items: initialBookmarks,
               nextOffset: initialBookmarks.length < PAGE_SIZE ? undefined : PAGE_SIZE,
-              totalCount,
             },
           ],
         }
@@ -94,20 +91,19 @@ export function useBookmarksQuery({
     return bookmarksQuery.data?.pages.flatMap((p) => p.items) ?? [];
   }, [bookmarksQuery.data]);
 
-  // Keep track of the actual total count from the database, falling back to the initial count
-  const currentTotalCount = bookmarksQuery.data?.pages[0]?.totalCount ?? totalCount;
-
   // We fetch collections separately to show the active collection's metadata (e.g., name)
   const {data: collections} = useQuery({
-    queryKey: ["collections"],
-    queryFn: async () => await getCollections(),
+    ...collectionsQueryOptions(userId),
   });
 
-  // We fetch tags separately to show the active tag's metadata (e.g., description)
-  const {data: allTags} = useQuery({
-    queryKey: ["tags"],
-    queryFn: async () => await getTags(),
-    initialData: initialTags,
+  const {data: activeTagData} = useQuery({
+    queryKey: ["active-tag", userId, tagFilter],
+    enabled: !!userId && !!tagFilter,
+    queryFn: async () => {
+      if (!tagFilter) return null;
+      return await getTagById(tagFilter);
+    },
+    initialData: isServerDataMatching ? initialActiveTag : undefined,
   });
 
   const activeCollection = useMemo(() => {
@@ -115,15 +111,11 @@ export function useBookmarksQuery({
     return (collections as Collection[]).find((c) => c.id === collectionFilter) ?? null;
   }, [collectionFilter, collections]);
 
-  const activeTag = useMemo(() => {
-    if (!tagFilter || !allTags) return null;
-    return (allTags as TagWithCount[]).find((t) => t.name === tagFilter) ?? null;
-  }, [tagFilter, allTags]);
+  const activeTag = tagFilter ? (activeTagData ?? null) : null;
 
   return {
     bookmarksQuery,
     allBookmarks,
-    currentTotalCount,
     activeCollection,
     activeTag,
     // "Initial load" is true only when we are loading and have no data yet

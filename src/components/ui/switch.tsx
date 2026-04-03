@@ -12,20 +12,72 @@ interface SwitchProps extends HTMLAttributes<HTMLDivElement> {
   checked: boolean;
   onToggle: () => void;
   disabled?: boolean;
+  size?: "sm" | "md" | "lg";
 }
 
-const TRACK_WIDTH = 34;
-const TRACK_HEIGHT = 20;
-const THUMB_SIZE = 16;
-const THUMB_OFFSET = 2;
-const THUMB_TRAVEL = TRACK_WIDTH - THUMB_SIZE - THUMB_OFFSET * 2;
-const PILL_EXTEND = 2;
-const PRESS_EXTEND = 4;
-const PRESS_SHRINK = 4;
+const SWITCH_SIZES = {
+  sm: {
+    TRACK_WIDTH: 28,
+    TRACK_HEIGHT: 16,
+    THUMB_SIZE: 12,
+    THUMB_OFFSET: 2,
+    PILL_EXTEND: 2,
+    PRESS_EXTEND: 3,
+    PRESS_SHRINK: 2,
+  },
+  md: {
+    TRACK_WIDTH: 34,
+    TRACK_HEIGHT: 20,
+    THUMB_SIZE: 16,
+    THUMB_OFFSET: 2,
+    PILL_EXTEND: 2,
+    PRESS_EXTEND: 4,
+    PRESS_SHRINK: 4,
+  },
+  lg: {
+    TRACK_WIDTH: 38,
+    TRACK_HEIGHT: 22,
+    THUMB_SIZE: 18,
+    THUMB_OFFSET: 2,
+    PILL_EXTEND: 2,
+    PRESS_EXTEND: 4,
+    PRESS_SHRINK: 4,
+  },
+};
+
+const SIZES_CLASSES = {
+  sm: {
+    label: "text-xs",
+    container: "gap-2 px-2 py-1.5",
+  },
+  md: {
+    label: "text-[13px]",
+    container: "gap-2.5 px-3 py-2",
+  },
+  lg: {
+    label: "text-sm",
+    container: "gap-3 px-4 py-2.5",
+  },
+};
+
 const DRAG_DEAD_ZONE = 2;
 
 const Switch = forwardRef<HTMLDivElement, SwitchProps>(
-  ({label, checked, onToggle, disabled = false, className, labelClassName, ...props}, ref) => {
+  (
+    {label, checked, onToggle, disabled = false, className, labelClassName, size = "md", ...props},
+    ref,
+  ) => {
+    const {
+      TRACK_WIDTH,
+      TRACK_HEIGHT,
+      THUMB_SIZE,
+      THUMB_OFFSET,
+      PILL_EXTEND,
+      PRESS_EXTEND,
+      PRESS_SHRINK,
+    } = SWITCH_SIZES[size];
+
+    const THUMB_TRAVEL = TRACK_WIDTH - THUMB_SIZE - THUMB_OFFSET * 2;
     const [hasMounted, setHasMounted] = useState(false);
     const [hovered, setHovered] = useState(false);
     const [pressed, setPressed] = useState(false);
@@ -101,7 +153,7 @@ const Switch = forwardRef<HTMLDivElement, SwitchProps>(
         const rawX = pointerStart.current.originX + delta;
         motionX.set(Math.max(dragMin, Math.min(dragMax, rawX)));
       },
-      [motionX],
+      [motionX, THUMB_OFFSET, THUMB_SIZE, PRESS_EXTEND, TRACK_WIDTH],
     );
 
     const handlePointerUp = useCallback(() => {
@@ -134,13 +186,23 @@ const Switch = forwardRef<HTMLDivElement, SwitchProps>(
       }
 
       pointerStart.current = null;
-    }, [checked, onToggle, motionX]);
+    }, [
+      checked,
+      onToggle,
+      motionX,
+      THUMB_OFFSET,
+      THUMB_SIZE,
+      PRESS_EXTEND,
+      TRACK_WIDTH,
+      THUMB_TRAVEL,
+    ]);
 
     return (
       <div
         ref={ref}
         className={cn(
-          "relative z-10 flex cursor-pointer touch-none items-center gap-2.5 px-3 py-2 select-none",
+          "relative z-10 flex cursor-pointer touch-none items-center select-none",
+          SIZES_CLASSES[size].container,
           disabled && "pointer-events-none opacity-60",
           className,
         )}
@@ -202,8 +264,8 @@ const Switch = forwardRef<HTMLDivElement, SwitchProps>(
         {label && (
           <span
             className={cn(
-              "text-[13px] transition-[color] duration-80",
-
+              "transition-[color] duration-80",
+              SIZES_CLASSES[size].label,
               checked ? "text-foreground" : "text-muted-foreground",
               labelClassName,
             )}>

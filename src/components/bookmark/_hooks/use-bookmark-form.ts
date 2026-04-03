@@ -57,7 +57,8 @@ export function useBookmarkForm(item: Bookmark | undefined, open: boolean) {
     defaultValues: initialValues,
   });
 
-  const originalValuesRef = useRef<BookmarkFormValues>(initialValues);
+  const [originalValues, setOriginalValues] = useState<BookmarkFormValues>(initialValues);
+
   const [prevItemId, setPrevItemId] = useState(item?.id);
   const closeTimerId = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -66,8 +67,7 @@ export function useBookmarkForm(item: Bookmark | undefined, open: boolean) {
     const values = itemToFormValues(item);
     form.reset(values);
 
-    // eslint-disable-next-line react-hooks/refs
-    originalValuesRef.current = values;
+    setOriginalValues(values);
     setPrevItemId(item.id);
   }
 
@@ -76,7 +76,7 @@ export function useBookmarkForm(item: Bookmark | undefined, open: boolean) {
     if (!open) {
       if (closeTimerId.current) clearTimeout(closeTimerId.current);
       closeTimerId.current = setTimeout(() => {
-        form.reset(originalValuesRef.current);
+        form.reset(originalValues);
         closeTimerId.current = null;
       }, CLOSE_RESET_DELAY_MS);
     }
@@ -86,15 +86,13 @@ export function useBookmarkForm(item: Bookmark | undefined, open: boolean) {
         clearTimeout(closeTimerId.current);
       }
     };
-  }, [open, form]);
+  }, [open, form, originalValues]);
 
   const currentValues = useWatch({control: form.control});
   const hasChanges = useMemo(
-    () =>
-      // eslint-disable-next-line react-hooks/refs
-      !!item && valuesHaveChanged(currentValues as BookmarkFormValues, originalValuesRef.current),
-    [currentValues, item],
+    () => !!item && valuesHaveChanged(currentValues as BookmarkFormValues, originalValues),
+    [currentValues, item, originalValues],
   );
 
-  return {form, originalValuesRef, currentValues, hasChanges};
+  return {form, originalValues, setOriginalValues, currentValues, hasChanges};
 }

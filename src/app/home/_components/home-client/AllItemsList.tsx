@@ -4,7 +4,7 @@ import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import Spinner from "@/components/ui/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {TypeFilter} from "../AllItemsToolbar";
+import type {TypeFilter} from "../../_types";
 import type {ViewMode} from "@/store/use-view-options";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {
@@ -43,7 +43,6 @@ interface AllItemsListProps {
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
   openMenu: (item: Bookmark) => void;
-  openDeleteDialog: (item: Bookmark) => void;
 }
 
 export function AllItemsList({
@@ -65,7 +64,6 @@ export function AllItemsList({
   toggleSelected,
   setSelected,
   openMenu,
-  openDeleteDialog,
   isInitialLoad,
 }: AllItemsListProps) {
   const currentView = getCurrentAllItemsView(view, typeFilter);
@@ -114,7 +112,6 @@ export function AllItemsList({
           toggleSelected={toggleSelected}
           setSelected={setSelected}
           openMenu={openMenu}
-          openDeleteDialog={openDeleteDialog}
         />
       ));
 
@@ -135,7 +132,7 @@ export function AllItemsList({
 
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
-      <ScrollArea className="h-full" scrollbarGutter>
+      <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
         <div className={layoutConfig.wrapperClassName}>
           <div className={layoutConfig.containerClassName}>
             {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}

@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
+import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import MediaPreview from "@/components/ui/MediaPreview";
 import type {Bookmark} from "../types";
 
@@ -39,10 +40,10 @@ export const BookmarkImage = ({
       BASE_SRC = item.preview_image ?? "";
       break;
     case "favicon":
-      BASE_SRC = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/bookmark-favicons/${bookmark_id}/favicon.png`;
+      BASE_SRC = buildR2PublicUrl(`favicons/${bookmark_id}/favicon.png`);
       break;
   }
-  const MAX_RETRIES = 12; // ~24s at 2s interval
+  const MAX_RETRIES = 0; // ~24s at 2s interval
   const RETRY_MS = 2000;
 
   const [attempt, setAttempt] = useState(0);

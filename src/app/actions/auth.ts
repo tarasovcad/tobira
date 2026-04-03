@@ -92,3 +92,17 @@ export async function verifyOtpAction(email: string, otp: string) {
 
   return {success: true};
 }
+
+export async function signOutAction() {
+  try {
+    await auth.api.signOut({
+      headers: await headers(),
+    });
+    return {success: true};
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to sign out",
+    };
+  }
+}

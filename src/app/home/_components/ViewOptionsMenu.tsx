@@ -26,7 +26,7 @@ import {
   type BorderRadius,
   type BookmarkWidth,
 } from "@/store/use-view-options";
-import type {TypeFilter} from "./AllItemsToolbar";
+import type {TypeFilter} from "../_types";
 import {
   getCurrentAllItemsView,
   isAllItemsViewSelectable,

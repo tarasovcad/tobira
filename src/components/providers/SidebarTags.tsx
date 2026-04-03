@@ -2,20 +2,28 @@
 
 import React, {useEffect, useState} from "react";
 import {useSearchParams} from "next/navigation";
-import {cn, normalizeTagName} from "@/lib/utils";
+import {cn} from "@/lib/utils";
 import {AnimatePresence} from "framer-motion";
-import {useQuery} from "@tanstack/react-query";
-import {getTags} from "@/app/actions/tags";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
-import {SidebarTagItem} from "./SidebarItems";
+import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/useClipboardCopy";
-import type {TagWithCount} from "@/app/home/_types";
+import type {SidebarTag} from "@/app/home/_types";
+import {useTagsQuery} from "@/app/home/_hooks/use-home-metadata-query";
 
-export type SidebarTagsType = TagWithCount[];
+export type SidebarTagsType = SidebarTag[];
 
-export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
+export function SidebarTags({allTags, userId}: {allTags?: SidebarTagsType; userId?: string}) {
+  const {data: tags = [], isFetching} = useTagsQuery({
+    userId,
+    initialData: allTags,
+  });
+
+  return <SidebarTagsContent tags={tags} isFetching={isFetching} />;
+}
+
+function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetching: boolean}) {
   const searchParams = useSearchParams();
   const {copyText} = useClipboardCopy(2000, {toast: true});
 
@@ -38,14 +46,8 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tagSelectionMode]);
 
-  const {data: tags} = useQuery({
-    queryKey: ["tags"],
-    queryFn: async () => await getTags(),
-    initialData: initialTags,
-  });
-
   const selectedCount = selectedTagIds.size;
-  const allSelected = tags?.length ? selectedCount === tags.length : false;
+  const allSelected = tags.length ? selectedCount === tags.length : false;
 
   const handleClearSelection = React.useCallback(() => {
     setSelectedTagIds(new Set());
@@ -55,19 +57,18 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
   const handleSelectAll = React.useCallback(() => {
     if (allSelected) {
       setSelectedTagIds(new Set());
-    } else if (tags) {
+    } else {
       setSelectedTagIds(new Set(tags.map((t) => t.id)));
     }
   }, [allSelected, tags]);
 
   const handleDeleteSelected = React.useCallback(() => {
-    if (!tags) return;
     const selectedTags = tags.filter((t) => selectedTagIds.has(t.id));
     if (selectedTags.length === 0) return;
     openDeleteDialog(selectedTags, handleClearSelection);
   }, [selectedTagIds, tags, openDeleteDialog, handleClearSelection]);
 
-  const activeTag = searchParams.get("tag")?.trim().replace(/\s+/g, " ").toLowerCase() ?? null;
+  const activeTag = searchParams.get("tag")?.trim() || null;
 
   return (
     <>
@@ -91,6 +92,7 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">TAGS</span>
+
             <span
               className={cn(
                 "inline-flex size-5 shrink-0 items-center justify-center text-current transition-transform duration-200 ease-out",
@@ -129,10 +131,18 @@ export function SidebarTags({initialTags}: {initialTags?: SidebarTagsType}) {
           />
         </div>
         <div className="flex flex-col gap-0.5 pb-2">
+          {isFetching &&
+            tags.length === 0 &&
+            [1, 2, 3, 4, 5].map((i, idx) => (
+              <SidebarTagSkeleton
+                key={`tag-skeleton-${i}`}
+                width={["w-[50%]", "w-[70%]", "w-[40%]", "w-[60%]", "w-[45%]"][idx % 5]}
+              />
+            ))}
           <AnimatePresence initial={false}>
             {tagsExpanded &&
-              tags?.map((tag, index) => {
-                const isActive = activeTag === normalizeTagName(tag.name);
+              tags.map((tag, index) => {
+                const isActive = activeTag === tag.id;
                 return (
                   <SidebarTagItem
                     key={tag.id}
