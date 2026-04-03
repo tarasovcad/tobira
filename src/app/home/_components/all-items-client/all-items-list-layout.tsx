@@ -2,13 +2,11 @@
 
 import * as React from "react";
 import {cn} from "@/lib/utils/classnames";
-import {
-  GridCard,
-  ItemList,
-  MediaCard,
-  MinimalItemRow,
-  TableItemRow,
-} from "@/components/bookmark/Bookmark";
+import {GridCard} from "@/components/bookmark/_components/BookmarkGridCard";
+import {ItemList} from "@/components/bookmark/_components/BookmarkListRow";
+import {MediaCard} from "@/components/bookmark/_components/BookmarkMediaCard";
+import {MinimalItemRow} from "@/components/bookmark/_components/BookmarkCompactRow";
+import {TableItemRow} from "@/components/bookmark/_components/BookmarkTableRow";
 import type {Bookmark} from "@/components/bookmark/types";
 import {GridSkeleton, ListSkeleton, MediaSkeleton} from "../ListSkeletons";
 import {

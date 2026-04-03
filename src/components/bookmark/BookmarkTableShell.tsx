@@ -3,7 +3,7 @@
 import * as React from "react";
 import {cn} from "@/lib/utils/classnames";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {getTableBookmarkColumnsClass} from "./Bookmark";
+import {getTableBookmarkColumnsClass} from "./_components/BookmarkTableRow";
 
 export function BookmarkTableShell({children}: {children: React.ReactNode}) {
   const contentToggles = useViewOptionsStore((state) => state.contentToggles);
