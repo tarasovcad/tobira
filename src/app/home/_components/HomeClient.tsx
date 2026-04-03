@@ -4,11 +4,9 @@ import {useRef} from "react";
 import NumberFlow from "@number-flow/react";
 
 // Components
-import {BookmarkMenu} from "@/components/bookmark/BookmarkMenu";
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {CollectionHeader} from "./home-client/CollectionHeader";
 import {TagHeader} from "./home-client/TagHeader";
-import {AllItemsList} from "./home-client/AllItemsList";
 import {HomeToolbar} from "./home-client/HomeToolbar";
 
 // Hooks
@@ -29,6 +27,8 @@ import type {Bookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
 import type {TypeFilter, SortMode} from "../_types";
 import type {TagWithCount} from "../_types";
+import {AllItemsList} from "./home-client/AllItemsList";
+import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 
 /**
  * Main client component for the All Items / Home page.
@@ -127,12 +127,12 @@ export function HomeClient({
   });
 
   // ── Dialogs ──
-  const {menuOpen, setMenuOpen, menuItem, openMenu, openDeleteDialog, handleDeleteSelected} =
-    useHomeDialogs({
-      allBookmarks,
-      selectedIds,
-      onDeleted: handleClearSelection,
-    });
+  const {openDeleteDialog, handleDeleteSelected} = useHomeDialogs({
+    allBookmarks,
+    selectedIds,
+    onDeleted: handleClearSelection,
+  });
+  const closeMenu = useBookmarkMenuStore((state) => state.closeMenu);
 
   // ── Refs for infinite scroll ──
   const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
@@ -160,7 +160,7 @@ export function HomeClient({
   const {handleArchive, handleArchiveSelected} = useHomeArchiveActions({
     selectedIds,
     archive: archiveMutation.mutate,
-    onArchiveSingleDone: () => setMenuOpen(false),
+    onArchiveSingleDone: closeMenu,
     onArchiveSelectedDone: handleClearSelection,
   });
 
@@ -219,7 +219,8 @@ export function HomeClient({
           onItemRemoved={handleItemRemoved}
           toggleSelected={toggleSelected}
           setSelected={setSelected}
-          openMenu={openMenu}
+          onMenuArchive={handleArchive}
+          onMenuDelete={openDeleteDialog}
         />
       )}
 
@@ -233,15 +234,6 @@ export function HomeClient({
         onCopy={handleCopySelected}
         onArchive={handleArchiveSelected}
         onDelete={handleDeleteSelected}
-      />
-      {/* Portalled overlays */}
-      <BookmarkMenu
-        item={menuItem}
-        open={menuOpen}
-        onOpenChange={setMenuOpen}
-        onDelete={openDeleteDialog}
-        onArchive={handleArchive}
-        userId={userId}
       />
     </div>
   );

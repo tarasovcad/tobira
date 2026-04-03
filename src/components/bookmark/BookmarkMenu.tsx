@@ -8,7 +8,6 @@ import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/compon
 import {Button} from "@/components/coss-ui/button";
 import {Separator} from "@/components/shadcn/separator";
 import {Textarea} from "@/components/coss-ui/textarea";
-import type {Bookmark} from "@/components/bookmark/types";
 import TagsInput from "@/components/ui/TagsInput";
 import {useCollectionsQuery, useTagsQuery} from "@/app/home/_hooks/use-home-metadata-query";
 import {SearchIcon} from "lucide-react";
@@ -32,22 +31,15 @@ import {BookmarkPreviewDialog} from "./_components/BookmarkPreviewDialog";
 import {BookmarkMenuActions} from "./_components/BookmarkMenuActions";
 import {BookmarkDetails} from "./_components/BookmarkDetails";
 import CustomVideoPlayer from "@/components/ui/CustomVideoPlayer";
+import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 
-export function BookmarkMenu({
-  item,
-  onOpenChange,
-  open,
-  onDelete,
-  onArchive,
-  userId,
-}: {
-  item?: Bookmark;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-  onDelete?: (item: Bookmark) => void;
-  onArchive?: (item: Bookmark) => void;
-  userId: string | null;
-}) {
+export function BookmarkMenu({userId}: {userId: string | null}) {
+  const item = useBookmarkMenuStore((state) => state.item);
+  const open = useBookmarkMenuStore((state) => state.isOpen);
+  const onDelete = useBookmarkMenuStore((state) => state.onDelete);
+  const onArchive = useBookmarkMenuStore((state) => state.onArchive);
+  const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
+
   const data = useMemo(() => {
     return {
       title: item?.title,
@@ -106,7 +98,7 @@ export function BookmarkMenu({
   }, [open]);
 
   const {updateMutation, archiveMutation, resetMutation} = useBookmarkMutations({
-    onOpenChange,
+    onOpenChange: setMenuOpen,
     originalValues,
     setOriginalValues,
     form,
@@ -139,7 +131,7 @@ export function BookmarkMenu({
     }
 
     if (Object.keys(updates).length === 0) {
-      onOpenChange(false);
+      setMenuOpen(false);
       return;
     }
 
@@ -187,7 +179,7 @@ export function BookmarkMenu({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={setMenuOpen}>
         <SheetContent side="right" className="max-w-[560px]">
           <form
             onSubmit={form.handleSubmit(onSubmit)}

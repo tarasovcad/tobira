@@ -42,7 +42,8 @@ interface AllItemsListProps {
   onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
-  openMenu: (item: Bookmark) => void;
+  onMenuArchive: (item: Bookmark) => void;
+  onMenuDelete: (item: Bookmark) => void;
 }
 
 export function AllItemsList({
@@ -63,7 +64,8 @@ export function AllItemsList({
   onItemRemoved,
   toggleSelected,
   setSelected,
-  openMenu,
+  onMenuArchive,
+  onMenuDelete,
   isInitialLoad,
 }: AllItemsListProps) {
   const currentView = getCurrentAllItemsView(view, typeFilter);
@@ -111,7 +113,8 @@ export function AllItemsList({
           onItemRemoved={onItemRemoved}
           toggleSelected={toggleSelected}
           setSelected={setSelected}
-          openMenu={openMenu}
+          onMenuArchive={onMenuArchive}
+          onMenuDelete={onMenuDelete}
         />
       ));
 
