@@ -40,4 +40,6 @@ export type MediaPreviewProps = {
   showFallback?: boolean;
   /** Content to render in the overlay when showFallback is true (e.g. placeholder icon) */
   fallback?: ReactNode;
+  /** Callback triggered when the preview overlay opens or closes */
+  onOpenChange?: (open: boolean) => void;
 };

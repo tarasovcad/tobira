@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
-import {useRef, useState, useMemo, useEffect} from "react";
-import Image from "next/image";
+import {useState, useMemo, useEffect, useCallback} from "react";
+import {Controller} from "react-hook-form";
 import {formatDateWithTime} from "@/lib/utils/dates";
+import {BookmarkImage} from "./_components/BookmarkImage";
 import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/components/coss-ui/sheet";
 import {Button} from "@/components/coss-ui/button";
 import {Separator} from "@/components/shadcn/separator";
@@ -23,14 +23,12 @@ import {
 } from "@/components/coss-ui/combobox";
 import {SelectButton, Select} from "@/components/coss-ui/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
-
 import {type BookmarkFormValues, normalizeTagsForCompare} from "./_utils/bookmark-schema";
 import {useBookmarkForm} from "./_hooks/use-bookmark-form";
 import {useBookmarkMutations} from "./_hooks/use-bookmark-mutations";
 import {BookmarkPreviewDialog} from "./_components/BookmarkPreviewDialog";
 import {BookmarkMenuActions} from "./_components/BookmarkMenuActions";
 import {BookmarkDetails} from "./_components/BookmarkDetails";
-import CustomVideoPlayer from "@/components/ui/CustomVideoPlayer";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 
 export function BookmarkMenu({userId}: {userId: string | null}) {
@@ -60,6 +58,14 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
     item,
     open,
   );
+  const {
+    control,
+    handleSubmit,
+    getValues,
+    reset,
+    setValue,
+    formState: {errors, isValid},
+  } = form;
 
   const {data: collections = []} = useCollectionsQuery({
     userId,
@@ -79,9 +85,6 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
       })),
     [collections],
   );
-
-  const titleElRef = useRef<HTMLHeadingElement | null>(null);
-  const descriptionElRef = useRef<HTMLDivElement | null>(null);
 
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [selectedPreview, setSelectedPreview] = useState<"og" | "preview">("preview");
@@ -103,111 +106,139 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
     setOriginalValues,
     form,
   });
+  const {mutate: updateBookmark, isPending: isUpdating} = updateMutation;
+  const {mutate: archiveBookmark, isPending: isArchiving} = archiveMutation;
+  const {mutate: resetBookmark, isPending: isResetting} = resetMutation;
 
-  const onSubmit = (values: BookmarkFormValues) => {
-    if (!item) return;
+  const onSubmit = useCallback(
+    (values: BookmarkFormValues) => {
+      if (!item) return;
 
-    // Only include fields that have actually changed
-    const updates: UpdateBookmarkData = {};
+      // Only include fields that have actually changed
+      const updates: UpdateBookmarkData = {};
 
-    if ((values.title ?? "") !== (originalValues.title ?? "")) {
-      updates.title = values.title;
-    }
+      if ((values.title ?? "") !== (originalValues.title ?? "")) {
+        updates.title = values.title;
+      }
 
-    if ((values.description ?? "") !== (originalValues.description ?? "")) {
-      updates.description = values.description;
-    }
+      if ((values.description ?? "") !== (originalValues.description ?? "")) {
+        updates.description = values.description;
+      }
 
-    if ((values.preview_image ?? "") !== (originalValues.preview_image ?? "")) {
-      updates.preview_image = values.preview_image;
-    }
+      if ((values.preview_image ?? "") !== (originalValues.preview_image ?? "")) {
+        updates.preview_image = values.preview_image;
+      }
 
-    if ((values.notes ?? "") !== (originalValues.notes ?? "")) {
-      updates.notes = values.notes ?? "";
-    }
+      if ((values.notes ?? "") !== (originalValues.notes ?? "")) {
+        updates.notes = values.notes ?? "";
+      }
 
-    if (normalizeTagsForCompare(values.tags) !== normalizeTagsForCompare(originalValues.tags)) {
-      updates.tags = values.tags ?? [];
-    }
+      if (normalizeTagsForCompare(values.tags) !== normalizeTagsForCompare(originalValues.tags)) {
+        updates.tags = values.tags ?? [];
+      }
 
-    if (Object.keys(updates).length === 0) {
-      setMenuOpen(false);
-      return;
-    }
+      if ((values.collectionId ?? null) !== (originalValues.collectionId ?? null)) {
+        updates.collectionId = values.collectionId ?? null;
+      }
 
-    updateMutation.mutate({bookmarkId: item.id, updates});
-  };
+      if (Object.keys(updates).length === 0) {
+        setMenuOpen(false);
+        return;
+      }
 
-  const handleReset = () => {
+      updateBookmark({bookmarkId: item.id, updates});
+    },
+    [item, originalValues, setMenuOpen, updateBookmark],
+  );
+
+  const handleReset = useCallback(() => {
     if (item) {
-      resetMutation.mutate(item.id);
+      resetBookmark(item.id);
     }
-  };
+  }, [item, resetBookmark]);
 
-  const handleArchive = () => {
+  const handleClearChanges = useCallback(() => {
+    reset(originalValues);
+  }, [originalValues, reset]);
+
+  const handleArchive = useCallback(() => {
     if (item) {
       if (onArchive) {
         onArchive(item);
       } else {
-        archiveMutation.mutate(item.id);
+        archiveBookmark(item.id);
       }
     }
-  };
+  }, [archiveBookmark, item, onArchive]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (item && onDelete) {
       onDelete(item);
     }
-  };
+  }, [item, onDelete]);
 
   // Derive both OG and Preview URLs from whatever is currently saved
-  const currentImageUrl = item?.preview_image ?? "";
+  const currentImageUrl = currentValues.preview_image ?? item?.preview_image ?? "";
   const ogImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/og.png");
   const previewImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/preview.png");
 
-  const isMedia = item?.kind === "media";
-  const headerSrc = currentValues.preview_image ?? "";
-  const isVideoHeader =
-    isMedia &&
-    (headerSrc.toLowerCase().endsWith(".mp4") || headerSrc.toLowerCase().endsWith(".mov"));
+  const handlePreviewClick = useCallback(() => {
+    const currentUrl = getValues("preview_image");
+    setSelectedPreview(currentUrl?.endsWith("og.png") ? "og" : "preview");
+    setPreviewDialogOpen(true);
+  }, [getValues]);
 
-  const handleSavePreview = () => {
+  const handleSavePreview = useCallback(() => {
     const newUrl = selectedPreview === "og" ? ogImageUrl : previewImageUrl;
-    form.setValue("preview_image", newUrl, {shouldDirty: true});
+    setValue("preview_image", newUrl, {shouldDirty: true, shouldValidate: true});
     setPreviewDialogOpen(false);
-  };
+  }, [ogImageUrl, previewImageUrl, selectedPreview, setValue]);
+
+  const actionProps = useMemo(
+    () => ({
+      onArchive: handleArchive,
+      isArchiving,
+      kind: item?.kind,
+      onPreviewClick: handlePreviewClick,
+      onReset: handleReset,
+      isResetting,
+      onDelete: handleDelete,
+    }),
+    [
+      handleArchive,
+      isArchiving,
+      item?.kind,
+      handlePreviewClick,
+      handleReset,
+      isResetting,
+      handleDelete,
+    ],
+  );
+
+  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isResetting;
 
   return (
     <>
       <Sheet open={open} onOpenChange={setMenuOpen}>
-        <SheetContent side="right" className="max-w-[560px]">
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex h-full flex-col overflow-hidden">
+        <SheetContent
+          side="right"
+          className="max-w-[560px]"
+          scrollFadeTop={false}
+          scrollFadeBottom={false}
+          scrollFadeLeft={false}
+          scrollFadeRight={false}>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex h-full flex-col overflow-hidden">
             <div className="min-h-0 flex-1">
               <SheetPanel className="p-0 pt-0!">
                 {item?.id ? (
-                  <div className="bg-muted relative aspect-video w-full border-b">
-                    {isVideoHeader ? (
-                      <CustomVideoPlayer
-                        src={headerSrc}
-                        poster={item?.metadata?.thumbnail_url}
-                        className="h-full w-full"
-                        videoClassName="h-full w-full object-cover"
-                        loop
-                        muted
-                        playsInline
-                        minimal
-                        showMainPlayIcon
-                      />
-                    ) : (
-                      <Image
-                        src={headerSrc}
-                        alt={currentValues.title ?? "Bookmark preview"}
-                        fill
-                        className="object-cover"
-                      />
-                    )}
+                  <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
+                    <BookmarkImage
+                      bookmark_id={item.id}
+                      item={{...item, preview_image: currentValues.preview_image ?? ""}}
+                      type="preview"
+                      fill
+                      imageClassName="object-cover"
+                    />
                   </div>
                 ) : (
                   <div className="bg-muted aspect-video w-full border-b" />
@@ -216,61 +247,47 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
                 <div className="p-6">
                   {item?.kind === "website" && (
                     <SheetHeader className="p-0">
-                      <SheetTitle
-                        key={`title-${item?.id}`}
-                        ref={titleElRef}
-                        contentEditable
-                        spellCheck={false}
-                        suppressContentEditableWarning
-                        onInput={(e) => {
-                          const newTitle = e.currentTarget.textContent ?? "";
-                          form.setValue("title", newTitle, {shouldDirty: true});
-                        }}
-                        onBlur={(e) => {
-                          const newTitle = e.currentTarget.textContent ?? "";
-                          form.setValue("title", newTitle, {shouldDirty: true});
-                        }}
-                        className="text-foreground/95 text-lg font-semibold focus:ring-0 focus:ring-offset-0 focus:outline-none">
-                        {item?.title}
+                      <SheetTitle className="contents">
+                        <Controller
+                          name="title"
+                          control={control}
+                          render={({field}) => (
+                            <Textarea
+                              {...field}
+                              unstyled
+                              spellCheck={false}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              error={errors.title?.message}
+                              className="text-foreground flex w-full bg-transparent p-0 text-lg font-[550] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
+                            />
+                          )}
+                        />
                       </SheetTitle>
                     </SheetHeader>
                   )}
 
-                  <BookmarkMenuActions
-                    onArchive={handleArchive}
-                    isArchiving={archiveMutation.isPending}
-                    kind={item?.kind}
-                    onPreviewClick={() => {
-                      const currentUrl = form.getValues("preview_image");
-                      setSelectedPreview(currentUrl?.endsWith("og.png") ? "og" : "preview");
-                      setPreviewDialogOpen(true);
-                    }}
-                    onReset={handleReset}
-                    isResetting={resetMutation.isPending}
-                    onDelete={handleDelete}
-                  />
+                  <BookmarkMenuActions {...actionProps} />
                 </div>
 
                 <Separator />
 
                 <div className="p-6">
-                  <div
-                    key={`description-${item?.id}`}
-                    ref={descriptionElRef}
-                    contentEditable
-                    spellCheck={false}
-                    suppressContentEditableWarning
-                    onInput={(e) => {
-                      const newDescription = e.currentTarget.textContent ?? "";
-                      form.setValue("description", newDescription, {shouldDirty: true});
-                    }}
-                    onBlur={(e) => {
-                      const newDescription = e.currentTarget.textContent ?? "";
-                      form.setValue("description", newDescription, {shouldDirty: true});
-                    }}
-                    className="text-muted-foreground text-[15px] focus:ring-0 focus:ring-offset-0 focus:outline-none">
-                    {item?.description}
-                  </div>
+                  <Controller
+                    name="description"
+                    control={control}
+                    render={({field}) => (
+                      <Textarea
+                        {...field}
+                        unstyled
+                        spellCheck={false}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        error={errors.description?.message}
+                        className="text-muted-foreground flex w-full bg-transparent p-0 text-[15px] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
+                      />
+                    )}
+                  />
                 </div>
 
                 <Separator />
@@ -288,80 +305,114 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
 
                 <Separator />
 
-                <div className="p-6 text-[15px]">
-                  <div className="mb-3 font-semibold">Collection</div>
-                  <Combobox
-                    items={collectionItems}
-                    value={
-                      collectionItems.find((ci) => ci.value === currentValues.collectionId) ?? null
-                    }
-                    onValueChange={(val) =>
-                      form.setValue("collectionId", val?.value ?? null, {shouldDirty: true})
-                    }>
-                    <Select>
-                      <ComboboxTrigger render={<SelectButton />}>
-                        <ComboboxValue placeholder="Select a collection" />
-                      </ComboboxTrigger>
-                    </Select>
-                    <ComboboxPopup aria-label="Select a collection" className="w-(--anchor-width)">
-                      <div className="border-b p-2">
-                        <ComboboxInput
-                          className="rounded-md before:rounded-[calc(var(--radius-md)-1px)]"
-                          placeholder="Search collections..."
-                          showTrigger={false}
-                          startAddon={<SearchIcon className="size-4" />}
-                        />
-                      </div>
-                      <ComboboxEmpty>No collections found.</ComboboxEmpty>
-                      <ComboboxList>
-                        {(ci) => (
-                          <ComboboxItem key={ci.value} value={ci}>
-                            {ci.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxPopup>
-                  </Combobox>
-                </div>
+                <div className="p-6 text-sm">
+                  <div className="text-foreground mb-3 text-[15px] font-[550]">Collection</div>
+                  <Controller
+                    name="collectionId"
+                    control={control}
+                    render={({field}) => {
+                      const selectedCollection =
+                        collectionItems.find((ci) => ci.value === field.value) ?? null;
 
-                <Separator />
-
-                <div className="p-6 text-[15px]">
-                  <TagsInput
-                    value={currentValues.tags ?? []}
-                    onValueChange={(next) => form.setValue("tags", next, {shouldDirty: true})}
-                    label="Tags"
-                    placeholder="Add tags..."
-                    availableTags={tags.map((t) => t.name)}
-                    labelClassName="text-[15px] font-semibold"
-                    containerClassName="max-w-full gap-3"
+                      return (
+                        <Combobox
+                          items={collectionItems}
+                          value={selectedCollection}
+                          onValueChange={(val) => field.onChange(val?.value ?? null)}>
+                          <Select>
+                            <ComboboxTrigger render={<SelectButton />}>
+                              <ComboboxValue placeholder="Select a collection" />
+                            </ComboboxTrigger>
+                          </Select>
+                          <ComboboxPopup
+                            aria-label="Select a collection"
+                            className="w-(--anchor-width)">
+                            <div className="border-b p-2">
+                              <ComboboxInput
+                                className="rounded-md before:rounded-[calc(var(--radius-md)-1px)]"
+                                placeholder="Search collections..."
+                                showTrigger={false}
+                                startAddon={<SearchIcon className="size-4" />}
+                              />
+                            </div>
+                            <ComboboxEmpty>No collections found.</ComboboxEmpty>
+                            <ComboboxList>
+                              {(ci) => (
+                                <ComboboxItem key={ci.value} value={ci}>
+                                  {ci.label}
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                          </ComboboxPopup>
+                        </Combobox>
+                      );
+                    }}
                   />
                 </div>
 
                 <Separator />
 
                 <div className="p-6 text-[15px]">
-                  <div className="font-semibold">Notes</div>
+                  <Controller
+                    name="tags"
+                    control={control}
+                    render={({field}) => (
+                      <>
+                        <TagsInput
+                          value={field.value ?? []}
+                          onValueChange={field.onChange}
+                          label="Tags"
+                          placeholder="Add tags..."
+                          availableTags={tags.map((t) => t.name)}
+                          labelClassName="text-[15px]! font-[550]"
+                          containerClassName="max-w-full gap-3"
+                        />
+                        {errors.tags?.message ? (
+                          <div className="text-destructive mt-2 text-sm">{errors.tags.message}</div>
+                        ) : null}
+                      </>
+                    )}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="p-6 text-[15px]">
+                  <div className="text-foreground text-[15px] font-[550]">Notes</div>
                   <div className="mt-3">
-                    <Textarea
-                      placeholder="Write personal notes..."
-                      value={currentValues.notes ?? ""}
-                      onChange={(e) => form.setValue("notes", e.target.value, {shouldDirty: true})}
-                      className="sm:text-[15px]"
+                    <Controller
+                      name="notes"
+                      control={control}
+                      render={({field}) => (
+                        <Textarea
+                          {...field}
+                          placeholder="Write personal notes..."
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          error={errors.notes?.message}
+                          className="sm:text-[15px]"
+                        />
+                      )}
                     />
                   </div>
                 </div>
               </SheetPanel>
             </div>
-            {hasChanges ? (
-              <div className="bg-background sticky bottom-0 border-t px-6 py-4">
-                <div className="flex justify-end">
-                  <Button variant="default" type="submit">
-                    Submit
-                  </Button>
-                </div>
+
+            <div className="bg-background sticky bottom-0 border-t px-6 py-4">
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={handleClearChanges}
+                  disabled={isResetting || !hasChanges}>
+                  Cancel
+                </Button>
+                <Button variant="default" type="submit" disabled={disableSubmit || isResetting}>
+                  Submit
+                </Button>
               </div>
-            ) : null}
+            </div>
           </form>
         </SheetContent>
       </Sheet>

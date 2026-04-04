@@ -5,6 +5,7 @@ import {
   resetBookmark,
   UpdateBookmarkData,
 } from "@/app/actions/bookmarks";
+import {homeMetadataKeys} from "@/app/home/_hooks/use-home-metadata-query";
 import {toastManager} from "@/components/coss-ui/toast";
 import {UseFormReturn} from "react-hook-form";
 import {BookmarkFormValues} from "../_utils/bookmark-schema";
@@ -25,7 +26,8 @@ export function useBookmarkMutations({
 
   const invalidateBookmarkQueries = () => {
     queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-    queryClient.invalidateQueries({queryKey: ["tags"]});
+    queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
+    queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
   };
 
   const updateMutation = useMutation({

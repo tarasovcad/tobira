@@ -1,4 +1,4 @@
-import {useState, useMemo, useRef, useEffect} from "react";
+import {useState, useMemo, useRef, useEffect, useCallback} from "react";
 import {useForm, useWatch} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {
@@ -11,6 +11,7 @@ import type {Bookmark} from "@/components/bookmark/types";
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const EMPTY_VALUES: BookmarkFormValues = {
+  kind: "website",
   title: "",
   description: "",
   preview_image: "",
@@ -25,6 +26,7 @@ const CLOSE_RESET_DELAY_MS = 500;
 
 function itemToFormValues(item: Bookmark): BookmarkFormValues {
   return {
+    kind: item.kind,
     title: item.title,
     description: item.description,
     preview_image: item.preview_image,
@@ -50,26 +52,36 @@ function valuesHaveChanged(current: BookmarkFormValues, original: BookmarkFormVa
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useBookmarkForm(item: Bookmark | undefined, open: boolean) {
+  const itemId = item?.id ?? null;
   const initialValues = item ? itemToFormValues(item) : EMPTY_VALUES;
 
   const form = useForm<BookmarkFormValues>({
     resolver: zodResolver(bookmarkFormSchema),
     defaultValues: initialValues,
+    mode: "onChange",
   });
 
-  const [originalValues, setOriginalValues] = useState<BookmarkFormValues>(initialValues);
-
-  const [prevItemId, setPrevItemId] = useState(item?.id);
+  const [originalState, setOriginalState] = useState(() => ({
+    itemId,
+    values: initialValues,
+  }));
   const closeTimerId = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevItemId = useRef(itemId);
 
-  // Reset form when the edited item changes
-  if (item && item.id !== prevItemId) {
-    const values = itemToFormValues(item);
-    form.reset(values);
+  useEffect(() => {
+    if (prevItemId.current !== itemId) {
+      prevItemId.current = itemId;
+      form.reset(initialValues);
+    }
+  }, [form, initialValues, item, itemId]);
 
-    setOriginalValues(values);
-    setPrevItemId(item.id);
-  }
+  const originalValues = originalState.itemId === itemId ? originalState.values : initialValues;
+  const setOriginalValues = useCallback(
+    (values: BookmarkFormValues) => {
+      setOriginalState({itemId, values});
+    },
+    [itemId],
+  );
 
   // Reset form after dialog closes (delayed to allow close animation)
   useEffect(() => {
@@ -88,9 +100,10 @@ export function useBookmarkForm(item: Bookmark | undefined, open: boolean) {
     };
   }, [open, form, originalValues]);
 
-  const currentValues = useWatch({control: form.control});
+  const currentValues =
+    (useWatch({control: form.control}) as BookmarkFormValues | undefined) ?? originalValues;
   const hasChanges = useMemo(
-    () => !!item && valuesHaveChanged(currentValues as BookmarkFormValues, originalValues),
+    () => !!item && valuesHaveChanged(currentValues, originalValues),
     [currentValues, item, originalValues],
   );
 

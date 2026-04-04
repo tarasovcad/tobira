@@ -14,6 +14,7 @@ import {usePreviewEffects} from "./usePreviewEffects";
 type UseMediaPreviewParams = {
   width: number;
   height: number;
+  onOpenChange?: (open: boolean) => void;
 };
 
 type UseMediaPreviewResult = {
@@ -41,7 +42,11 @@ type UseMediaPreviewResult = {
 };
 
 // Encapsulates all interaction and viewport state for MediaPreview.
-export function useMediaPreview({width, height}: UseMediaPreviewParams): UseMediaPreviewResult {
+export function useMediaPreview({
+  width,
+  height,
+  onOpenChange,
+}: UseMediaPreviewParams): UseMediaPreviewResult {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -133,6 +138,7 @@ export function useMediaPreview({width, height}: UseMediaPreviewParams): UseMedi
     setCloseRequested(false);
     resetInteractiveState();
     setOpen(true);
+    onOpenChange?.(true);
 
     // Wait one painted frame after mount so opening from external triggers
     // still animates from the thumbnail rect instead of jumping to expanded.
@@ -141,7 +147,7 @@ export function useMediaPreview({width, height}: UseMediaPreviewParams): UseMedi
         setExpanded(true);
       });
     });
-  }, [height, resetInteractiveState, width]);
+  }, [height, resetInteractiveState, onOpenChange, width]);
 
   const closePreview = useCallback(() => {
     if (!open || closeRequested) return;
@@ -157,9 +163,10 @@ export function useMediaPreview({width, height}: UseMediaPreviewParams): UseMedi
 
     window.setTimeout(() => {
       setOpen(false);
+      onOpenChange?.(false);
       setCloseRequested(false);
     }, OVERLAY_TRANSITION_MS);
-  }, [closeRequested, open, resetInteractiveState]);
+  }, [closeRequested, open, resetInteractiveState, onOpenChange]);
 
   const handleZoomControlClick = useCallback(() => {
     if (zoom > MIN_ZOOM) {

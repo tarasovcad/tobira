@@ -17,6 +17,8 @@ export function usePreviewEffects({
     const overlay = overlayRef.current;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
         onEscape();
       }
     };
@@ -25,13 +27,13 @@ export function usePreviewEffects({
     };
 
     document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, {capture: true});
     overlay?.addEventListener("wheel", preventScroll, {passive: false});
     overlay?.addEventListener("touchmove", preventScroll, {passive: false});
 
     return () => {
       document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onKeyDown, {capture: true});
       overlay?.removeEventListener("wheel", preventScroll);
       overlay?.removeEventListener("touchmove", preventScroll);
     };

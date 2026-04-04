@@ -8,6 +8,10 @@ function ScrollArea({
   className,
   children,
   scrollFade = false,
+  scrollFadeTop,
+  scrollFadeBottom,
+  scrollFadeLeft,
+  scrollFadeRight,
   scrollbarGutter = false,
   hideScrollbar = false,
   hideFocusRing = false,
@@ -15,11 +19,20 @@ function ScrollArea({
   ...props
 }: ScrollAreaPrimitive.Root.Props & {
   scrollFade?: boolean;
+  scrollFadeTop?: boolean;
+  scrollFadeBottom?: boolean;
+  scrollFadeLeft?: boolean;
+  scrollFadeRight?: boolean;
   scrollbarGutter?: boolean;
   hideScrollbar?: boolean;
   hideFocusRing?: boolean;
   viewportProps?: React.ComponentProps<typeof ScrollAreaPrimitive.Viewport>;
 }) {
+  const fadeTop = scrollFadeTop ?? scrollFade;
+  const fadeBottom = scrollFadeBottom ?? scrollFade;
+  const fadeLeft = scrollFadeLeft ?? scrollFade;
+  const fadeRight = scrollFadeRight ?? scrollFade;
+
   return (
     <ScrollAreaPrimitive.Root className={cn("size-full min-h-0", className)} {...props}>
       <ScrollAreaPrimitive.Viewport
@@ -29,8 +42,15 @@ function ScrollArea({
           !hideFocusRing &&
             "focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-1",
           hideScrollbar && "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          scrollFade &&
-            "mask-t-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-start)))] mask-r-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-end)))] mask-b-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-end)))] mask-l-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-start)))] [--fade-size:1.5rem]",
+          (fadeTop || fadeBottom || fadeLeft || fadeRight) && "[--fade-size:1.5rem]",
+          fadeTop &&
+            "mask-t-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-start)))]",
+          fadeBottom &&
+            "mask-b-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-end)))]",
+          fadeLeft &&
+            "mask-l-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-start)))]",
+          fadeRight &&
+            "mask-r-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-end)))]",
           scrollbarGutter && "data-has-overflow-x:pb-2.5 data-has-overflow-y:pe-2.5",
           viewportProps?.className,
         )}
@@ -56,7 +76,7 @@ function ScrollBar({
   return (
     <ScrollAreaPrimitive.Scrollbar
       className={cn(
-        "m-1 flex opacity-0 transition-opacity delay-300 data-hovering:opacity-100 data-hovering:delay-0 data-hovering:duration-100 data-scrolling:opacity-100 data-scrolling:delay-0 data-scrolling:duration-100 data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:flex-col data-[orientation=vertical]:w-1.5",
+        "z-50 m-1 flex opacity-0 transition-opacity delay-300 data-hovering:opacity-100 data-hovering:delay-0 data-hovering:duration-100 data-scrolling:opacity-100 data-scrolling:delay-0 data-scrolling:duration-100 data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:flex-col data-[orientation=vertical]:w-1.5",
         className,
       )}
       data-slot="scroll-area-scrollbar"

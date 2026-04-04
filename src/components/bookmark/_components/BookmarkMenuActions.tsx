@@ -14,7 +14,7 @@ interface BookmarkMenuActionsProps {
   kind?: "website" | "media";
 }
 
-export function BookmarkMenuActions({
+function BookmarkMenuActionsImpl({
   onArchive,
   isArchiving,
   onPreviewClick,
@@ -130,3 +130,5 @@ export function BookmarkMenuActions({
     </div>
   );
 }
+
+export const BookmarkMenuActions = React.memo(BookmarkMenuActionsImpl);

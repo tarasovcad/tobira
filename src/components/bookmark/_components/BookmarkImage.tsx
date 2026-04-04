@@ -23,6 +23,7 @@ interface BookmarkImageProps {
   width?: number;
   fallbackClassName?: string;
   fill?: boolean;
+  onPreviewOpenChange?: (open: boolean) => void;
 }
 
 function BookmarkImageImpl({
@@ -41,6 +42,7 @@ function BookmarkImageImpl({
   width,
   fallbackClassName,
   fill,
+  onPreviewOpenChange,
 }: BookmarkImageProps) {
   let baseSrc = "";
 
@@ -145,6 +147,7 @@ function BookmarkImageImpl({
             imageClassName,
           )}
           buttonClassName="flex h-full w-full items-center justify-center"
+          onOpenChange={onPreviewOpenChange}
           onLoad={!isVideo ? () => setStatus("loaded") : undefined}
           onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
           onError={() => setStatus("error")}
@@ -170,6 +173,7 @@ export const BookmarkImage = React.memo(BookmarkImageImpl, (prev, next) => {
     prev.width === next.width &&
     prev.fallbackClassName === next.fallbackClassName &&
     prev.fill === next.fill &&
+    prev.onPreviewOpenChange === next.onPreviewOpenChange &&
     prev.item.id === next.item.id &&
     prev.item.preview_image === next.item.preview_image &&
     prev.item.metadata?.thumbnail_url === next.item.metadata?.thumbnail_url

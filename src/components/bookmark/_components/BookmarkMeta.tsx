@@ -62,7 +62,7 @@ function BookmarkMetaImpl({
 
   return (
     <>
-      <div className={titleClassName}>{title}</div>
+      {title ? <div className={titleClassName}>{title}</div> : null}
 
       {hasMetaRow ? (
         <div className={sourceRowClassName}>

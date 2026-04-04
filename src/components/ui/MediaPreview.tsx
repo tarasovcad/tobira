@@ -33,6 +33,7 @@ export default function MediaPreview({
   poster,
   showFallback = false,
   fallback,
+  onOpenChange,
 }: MediaPreviewProps & {poster?: string}) {
   const [isHovered, setIsHovered] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -59,7 +60,7 @@ export default function MediaPreview({
     handleMediaPointerCancel,
     handleMediaClick,
     handleToggleFullscreen,
-  } = useMediaPreview({width, height});
+  } = useMediaPreview({width, height, onOpenChange});
 
   useEffect(() => {
     if (!openSignal) return;

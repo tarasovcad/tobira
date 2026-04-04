@@ -9,6 +9,7 @@ import type {Bookmark} from "@/components/bookmark/types";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmarkCreation} from "@/lib/bookmarks/media";
+import {syncBookmarkCollection} from "@/lib/bookmarks/collections";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
@@ -34,6 +35,7 @@ export type UpdateBookmarkData = {
   preview_image?: string;
   notes?: string;
   tags?: string[];
+  collectionId?: string | null;
 };
 
 const qstash = new Client({
@@ -164,6 +166,7 @@ export async function updateBookmark(
 ): Promise<{ok: true}> {
   const userId = await requireAuthenticatedUserId();
   const hasTagUpdate = updates.tags !== undefined;
+  const hasCollectionUpdate = updates.collectionId !== undefined;
 
   const setFields: Record<string, string | null> = {};
   if (updates.title !== undefined) setFields.title = updates.title;
@@ -171,9 +174,10 @@ export async function updateBookmark(
   if (updates.preview_image !== undefined) setFields.previewImage = updates.preview_image;
   if (updates.notes !== undefined) setFields.notes = updates.notes;
 
-  if (Object.keys(setFields).length === 0 && !hasTagUpdate) return {ok: true};
+  if (Object.keys(setFields).length === 0 && !hasTagUpdate && !hasCollectionUpdate)
+    return {ok: true};
 
-  if (Object.keys(setFields).length > 0) {
+  if (Object.keys(setFields).length > 0 || hasTagUpdate || hasCollectionUpdate) {
     await db
       .update(bookmarks)
       .set({...setFields, updatedAt: new Date().toISOString()})
@@ -182,6 +186,10 @@ export async function updateBookmark(
 
   if (hasTagUpdate) {
     await syncBookmarkTags(bookmarkId, userId, updates.tags ?? []);
+  }
+
+  if (hasCollectionUpdate) {
+    await syncBookmarkCollection(bookmarkId, userId, updates.collectionId ?? null);
   }
 
   return {ok: true};

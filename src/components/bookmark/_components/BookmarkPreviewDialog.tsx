@@ -25,7 +25,7 @@ interface BookmarkPreviewDialogProps {
   onSave: () => void;
 }
 
-export function BookmarkPreviewDialog({
+function BookmarkPreviewDialogImpl({
   open,
   onOpenChange,
   ogImageUrl,
@@ -94,3 +94,5 @@ export function BookmarkPreviewDialog({
     </Dialog>
   );
 }
+
+export const BookmarkPreviewDialog = React.memo(BookmarkPreviewDialogImpl);

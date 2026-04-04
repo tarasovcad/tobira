@@ -17,7 +17,7 @@ interface BookmarkDetailsProps {
   showUpdated: boolean;
 }
 
-export function BookmarkDetails({
+function BookmarkDetailsImpl({
   source,
   type,
   kind,
@@ -41,8 +41,8 @@ export function BookmarkDetails({
   };
 
   return (
-    <div className="p-6 text-[15px]">
-      <div className="font-semibold">Details</div>
+    <div className="p-6 text-[14px]">
+      <div className="text-foreground text-[15px] font-[550]">Details</div>
 
       <div className="mt-3 grid grid-cols-[120px_1fr] gap-y-3">
         <div className="text-muted-foreground">Source</div>
@@ -125,3 +125,5 @@ export function BookmarkDetails({
     </div>
   );
 }
+
+export const BookmarkDetails = React.memo(BookmarkDetailsImpl);

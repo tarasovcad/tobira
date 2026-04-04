@@ -2,7 +2,7 @@
 
 import React, {useState} from "react";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {useForm, Controller} from "react-hook-form";
+import {useForm, Controller, useWatch} from "react-hook-form";
 import {AnimatePresence, motion} from "framer-motion";
 import {zodResolver} from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -100,7 +100,7 @@ export function AddItemDialog({
     reset,
     trigger,
     formState: {errors, isValid},
-    watch,
+    getValues,
   } = useForm<AddItemFormValues>({
     resolver: zodResolver(addItemSchema),
     defaultValues: {
@@ -111,8 +111,8 @@ export function AddItemDialog({
     },
     mode: "onChange",
   });
-  const watchedUrl = watch("url");
-  const watchedType = watch("type");
+  const watchedUrl = useWatch({control, name: "url"});
+  const watchedType = useWatch({control, name: "type"});
 
   const addItemMutation = useMutation<
     AddWebsiteBookmarkResult | AddMediaBookmarkResult,
@@ -292,28 +292,8 @@ export function AddItemDialog({
                         type="url"
                         placeholder="https://example.com"
                         {...register("url")}
-                        aria-invalid={!!errors.url}
+                        error={errors.url?.message}
                       />
-                      {errors.url ? (
-                        <div
-                          className="text-destructive flex items-center gap-1.5 text-sm"
-                          role="alert">
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path
-                              fillRule="evenodd"
-                              clipRule="evenodd"
-                              d="M7.99967 1.33333C11.6815 1.33333 14.6663 4.31809 14.6663 7.99999C14.6663 11.6819 11.6815 14.6667 7.99967 14.6667C4.31777 14.6667 1.33301 11.6819 1.33301 7.99999C1.33301 4.31809 4.31777 1.33333 7.99967 1.33333ZM7.99967 9.73306C7.55787 9.73306 7.19954 10.0914 7.19954 10.5332C7.19961 10.9749 7.55787 11.3333 7.99967 11.3333C8.44147 11.3333 8.79974 10.975 8.79981 10.5332C8.79981 10.0914 8.44147 9.73306 7.99967 9.73306ZM7.99967 4.66666C7.46867 4.66667 7.05821 5.13198 7.12401 5.65885L7.43781 8.17059C7.47327 8.45399 7.71407 8.66666 7.99967 8.66666C8.28527 8.66666 8.52607 8.45399 8.56154 8.17059L8.87601 5.65885C8.94174 5.13201 8.53061 4.66666 7.99967 4.66666Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-                          {errors.url.message}
-                        </div>
-                      ) : null}
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -469,7 +449,7 @@ export function AddItemDialog({
                 type="button"
                 disabled={selectedMediaUrls.length === 0 || addItemMutation.isPending}
                 onClick={() => {
-                  const data = watch();
+                  const data = getValues();
                   addItemMutation.mutate({
                     url: data.url,
                     tags: data.tags,
