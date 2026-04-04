@@ -194,10 +194,10 @@ function guessTypeFromUrl(url: string) {
 function typeRank(mime?: string) {
   const t = (mime ?? "").toLowerCase();
   if (t.includes("png")) return 5;
-  if (t.includes("svg")) return 4;
-  if (t.includes("icon") || t.includes("ico")) return 3;
-  if (t.includes("webp")) return 2;
-  if (t.includes("jpeg") || t.includes("jpg")) return 1;
+  if (t.includes("icon") || t.includes("ico")) return 4;
+  if (t.includes("webp")) return 3;
+  if (t.includes("jpeg") || t.includes("jpg")) return 2;
+  if (t.includes("svg")) return 1;
   return 0;
 }
 

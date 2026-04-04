@@ -9,6 +9,7 @@ import {
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
+import sharp from "sharp";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text().catch(() => "");
@@ -117,19 +118,24 @@ async function uploadFaviconToR2(bestIconUrl: string, normalizedUrl: string, id?
     cache: "no-store",
     headers: {"user-agent": "void-enrich-bookmark/1.0"},
   });
+
   if (!iconRes.ok) return;
 
   const contentTypeRaw = iconRes.headers.get("content-type") ?? "image/png";
   const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
   const iconBuffer = Buffer.from(await iconRes.arrayBuffer());
+  const shouldRasterizeSvg = contentType.toLowerCase() === "image/svg+xml";
+  console.log(shouldRasterizeSvg, "shouldRasterizeSvg");
+  const bytes = shouldRasterizeSvg ? await sharp(iconBuffer).png().toBuffer() : iconBuffer;
+  const uploadContentType = shouldRasterizeSvg ? "image/png" : contentType;
 
   const safeKey = computeSafeKey(normalizedUrl, id);
   const objectKey = `favicons/${safeKey}/favicon.png`;
 
   await uploadBytesToR2({
     objectKey,
-    bytes: iconBuffer,
-    contentType,
+    bytes,
+    contentType: uploadContentType,
   });
 }
 
