@@ -30,6 +30,7 @@ import {BookmarkPreviewDialog} from "./_components/BookmarkPreviewDialog";
 import {BookmarkMenuActions} from "./_components/BookmarkMenuActions";
 import {BookmarkDetails} from "./_components/BookmarkDetails";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
+import Spinner from "../ui/spinner";
 
 export function BookmarkMenu({userId}: {userId: string | null}) {
   const item = useBookmarkMenuStore((state) => state.item);
@@ -37,6 +38,7 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
   const onDelete = useBookmarkMenuStore((state) => state.onDelete);
   const onArchive = useBookmarkMenuStore((state) => state.onArchive);
   const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
+  const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
 
   const data = useMemo(() => {
     return {
@@ -105,6 +107,15 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
     originalValues,
     setOriginalValues,
     form,
+    onItemReset: ({title, description, updatedAt}) => {
+      if (!item) return;
+      setMenuItem({
+        ...item,
+        title,
+        description,
+        updated_at: updatedAt,
+      });
+    },
   });
   const {mutate: updateBookmark, isPending: isUpdating} = updateMutation;
   const {mutate: archiveBookmark, isPending: isArchiving} = archiveMutation;
@@ -142,13 +153,12 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
       }
 
       if (Object.keys(updates).length === 0) {
-        setMenuOpen(false);
         return;
       }
 
       updateBookmark({bookmarkId: item.id, updates});
     },
-    [item, originalValues, setMenuOpen, updateBookmark],
+    [item, originalValues, updateBookmark],
   );
 
   const handleReset = useCallback(() => {
@@ -364,6 +374,9 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
                           label="Tags"
                           placeholder="Add tags..."
                           availableTags={tags.map((t) => t.name)}
+                          userTags={tags.map((t) => t.name)}
+                          sourceUrl={item?.url}
+                          itemType={item?.kind ?? "website"}
                           labelClassName="text-[15px]! font-[550]"
                           containerClassName="max-w-full gap-3"
                         />
@@ -377,7 +390,7 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
 
                 <Separator />
 
-                <div className="p-6 text-[15px]">
+                <div className="p-6 text-[14px]">
                   <div className="text-foreground text-[15px] font-[550]">Notes</div>
                   <div className="mt-3">
                     <Controller
@@ -409,7 +422,8 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
                   Cancel
                 </Button>
                 <Button variant="default" type="submit" disabled={disableSubmit || isResetting}>
-                  Submit
+                  {isUpdating && <Spinner className="size-4" />}
+                  Save
                 </Button>
               </div>
             </div>

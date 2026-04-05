@@ -16,11 +16,13 @@ export function useBookmarkMutations({
   originalValues,
   setOriginalValues,
   form,
+  onItemReset,
 }: {
   onOpenChange: (open: boolean) => void;
   originalValues: BookmarkFormValues;
   setOriginalValues?: (values: BookmarkFormValues) => void;
   form: UseFormReturn<BookmarkFormValues>;
+  onItemReset?: (next: {title: string; description: string; updatedAt: string}) => void;
 }) {
   const queryClient = useQueryClient();
 
@@ -34,9 +36,6 @@ export function useBookmarkMutations({
     mutationFn: (input: {bookmarkId: string; updates: UpdateBookmarkData}) =>
       updateBookmark(input.bookmarkId, input.updates),
     onMutate: async () => {
-      // Close immediately, don't wait for response
-      onOpenChange(false);
-
       //  lock in the latest form values so close/reset doesn't revert them
       const prev = originalValues;
       const nextValues = form.getValues();
@@ -98,7 +97,23 @@ export function useBookmarkMutations({
 
   const resetMutation = useMutation({
     mutationFn: (id: string) => resetBookmark(id),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      const nextValues = {
+        ...form.getValues(),
+        title: result.title,
+        description: result.description,
+      };
+
+      if (setOriginalValues) {
+        setOriginalValues(nextValues);
+      }
+      form.reset(nextValues);
+      onItemReset?.({
+        title: result.title,
+        description: result.description,
+        updatedAt: result.updatedAt,
+      });
+
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       toastManager.add({
         title: "Bookmark reset",

@@ -12,6 +12,7 @@ interface BookmarkMenuState extends BookmarkMenuCallbacks {
   openMenu: (item: Bookmark, options?: BookmarkMenuCallbacks) => void;
   closeMenu: () => void;
   setMenuOpen: (isOpen: boolean) => void;
+  setItem: (item?: Bookmark) => void;
 }
 
 export const useBookmarkMenuStore = create<BookmarkMenuState>((set) => ({
@@ -28,4 +29,5 @@ export const useBookmarkMenuStore = create<BookmarkMenuState>((set) => ({
     }),
   closeMenu: () => set({isOpen: false}),
   setMenuOpen: (isOpen) => set({isOpen}),
+  setItem: (item) => set({item}),
 }));

@@ -220,7 +220,12 @@ export async function archiveBookmarks(bookmarkIds: string | string[]): Promise<
   return {ok: true};
 }
 
-export async function resetBookmark(bookmarkId: string): Promise<{ok: true}> {
+export async function resetBookmark(bookmarkId: string): Promise<{
+  ok: true;
+  title: string;
+  description: string;
+  updatedAt: string;
+}> {
   const userId = await requireAuthenticatedUserId();
 
   const [bookmark] = await db
@@ -233,12 +238,14 @@ export async function resetBookmark(bookmarkId: string): Promise<{ok: true}> {
   const normalized = normalizeInputUrl(bookmark.url);
   const metadata = await fetchUrlMetadata(normalized, bookmark.url);
 
+  const updatedAt = new Date().toISOString();
+
   await db
     .update(bookmarks)
     .set({
       title: metadata.title ?? null,
       description: metadata.description ?? null,
-      updatedAt: new Date().toISOString(),
+      updatedAt,
     })
     .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId)));
 
@@ -249,7 +256,12 @@ export async function resetBookmark(bookmarkId: string): Promise<{ok: true}> {
     timeout: 30,
   });
 
-  return {ok: true};
+  return {
+    ok: true,
+    title: metadata.title ?? "",
+    description: metadata.description ?? "",
+    updatedAt,
+  };
 }
 
 export async function fetchBookmarksPageAction(params: {

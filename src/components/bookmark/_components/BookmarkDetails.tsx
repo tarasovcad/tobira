@@ -99,19 +99,6 @@ function BookmarkDetailsImpl({
           </>
         )}
 
-        {collections.length > 0 && (
-          <>
-            <div className="text-muted-foreground">Collection</div>
-            <div className="flex flex-wrap gap-1">
-              {collections.map((c) => (
-                <span key={c.id} className="">
-                  {c.name}
-                </span>
-              ))}
-            </div>
-          </>
-        )}
-
         <div className="text-muted-foreground">Saved</div>
         <div>{saved}</div>
 
