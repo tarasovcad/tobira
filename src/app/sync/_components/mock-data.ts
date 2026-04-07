@@ -1,0 +1,73 @@
+import type {SyncProvider, SyncSummary} from "./types";
+
+export const MOCK_PROVIDERS: SyncProvider[] = [
+  {
+    id: "raindrop",
+    name: "Raindrop.io",
+    description: "Import your Raindrop collections, bookmarks, and tags.",
+    importTypes: ["bookmarks"],
+    status: "connected",
+    lastSync: "2 hours ago",
+    routingHint: "Imports to All Items",
+    itemCount: 1284,
+    connectLabel: "Connect",
+    reconnectLabel: "Reconnect",
+  },
+  {
+    id: "pocket",
+    name: "Pocket",
+    description: "Sync saved articles and videos from your Pocket library.",
+    importTypes: ["articles", "videos"],
+    status: "error",
+    lastSync: "3 days ago",
+    routingHint: "Imports to All Items",
+    itemCount: 432,
+    connectLabel: "Connect",
+    reconnectLabel: "Reconnect",
+  },
+  {
+    id: "readwise",
+    name: "Readwise",
+    description: "Pull in highlights and notes from books, articles, and podcasts.",
+    importTypes: ["highlights", "notes", "articles"],
+    status: "disconnected",
+    routingHint: "Imports to All Items",
+    connectLabel: "Connect",
+    reconnectLabel: "Reconnect",
+  },
+  {
+    id: "rss",
+    name: "RSS Feeds",
+    description: "Subscribe to any RSS or Atom feed and import new entries automatically.",
+    importTypes: ["rss", "articles"],
+    status: "disconnected",
+    connectLabel: "Add Feed",
+    reconnectLabel: "Reconnect",
+  },
+  {
+    id: "twitter",
+    name: "X / Twitter",
+    description: "Save bookmarked tweets and threads directly to your library.",
+    importTypes: ["bookmarks"],
+    status: "coming_soon",
+    connectLabel: "Connect",
+    reconnectLabel: "Reconnect",
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    description: "Import pages and databases from your Notion workspace.",
+    importTypes: ["notes", "articles"],
+    status: "coming_soon",
+    connectLabel: "Connect",
+    reconnectLabel: "Reconnect",
+  },
+];
+
+export const MOCK_SUMMARY: SyncSummary = {
+  connectedProviders: MOCK_PROVIDERS.filter((p) => p.status === "connected").length,
+  totalProviders: MOCK_PROVIDERS.filter((p) => p.status !== "coming_soon").length,
+  lastSyncStatus: "warning",
+  lastSyncLabel: "3 days ago",
+  totalItems: MOCK_PROVIDERS.reduce((sum, p) => sum + (p.itemCount ?? 0), 0),
+};
