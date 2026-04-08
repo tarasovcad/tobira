@@ -1,10 +1,11 @@
 "use client";
 import React, {useState} from "react";
 import {Button} from "@/components/coss-ui/button";
-import {SettingsHeader, SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
+import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
 import Link from "next/link";
+import {PageHeader} from "@/components/ui/page/PageHeader";
 
 const AccountSettings = () => {
   const [hasChanges, setHasChanges] = useState(false);
@@ -12,7 +13,7 @@ const AccountSettings = () => {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <SettingsHeader
+      <PageHeader
         title="Account & Security"
         description="Manage your account details, security settings, and data access."
       />

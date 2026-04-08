@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/coss-ui/select";
-import {SettingsHeader, SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
+import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
 import {Label} from "@/components/coss-ui/label";
+import {PageHeader} from "@/components/ui/page/PageHeader";
 
 const exportFormats = [
   {label: "JSON (Recommended)", value: "json"},
@@ -32,7 +33,7 @@ const DataSettings = () => {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <SettingsHeader
+      <PageHeader
         title="Data Management"
         description="Manage your data portability, storage snapshots, and automated cleanup rules."
       />

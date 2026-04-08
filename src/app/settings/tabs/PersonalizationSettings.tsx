@@ -13,7 +13,8 @@ import {Label} from "@/components/coss-ui/label";
 import {Avatar} from "@/components/ui/avatar";
 import {Button} from "@/components/coss-ui/button";
 import {Switch} from "@/components/ui/switch";
-import {SettingsHeader, SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
+import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
+import {PageHeader} from "@/components/ui/page/PageHeader";
 
 const PersonalizationSettings = () => {
   const [hasChanges, setHasChanges] = useState(false);
@@ -21,7 +22,7 @@ const PersonalizationSettings = () => {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <SettingsHeader
+      <PageHeader
         title="Profile & AI Context"
         description="Manage your public identity and help the AI personalize your bookmarking experience."
       />

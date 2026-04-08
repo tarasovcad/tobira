@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from "@/components/coss-ui/select";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
-import {SettingsHeader, SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
+import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
+import {PageHeader} from "@/components/ui/page/PageHeader";
 
 const fontItems = [
   {label: "Inter", value: "inter"},
@@ -29,7 +30,7 @@ const GeneralSettings = () => {
   return (
     <div className="space-y-10">
       {/* title */}
-      <SettingsHeader
+      <PageHeader
         title="Preferences"
         description="Manage your Tobira preferences, account, and workspace settings"
       />

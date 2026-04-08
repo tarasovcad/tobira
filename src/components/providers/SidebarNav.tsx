@@ -227,7 +227,7 @@ export const NAV_ITEMS: NavConfigItem[] = [
       </svg>
     ),
     label: "Sync",
-    disabled: true,
+    disabled: false,
     href: "/sync",
   },
 ];

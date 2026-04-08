@@ -3,21 +3,6 @@ import {Frame, FrameHeader, FramePanel, FrameTitle} from "@/components/coss-ui/f
 import {Label} from "@/components/coss-ui/label";
 import {cn} from "@/lib/utils/classnames";
 
-export const SettingsHeader = ({
-  title,
-  description,
-}: {
-  title: React.ReactNode;
-  description: React.ReactNode;
-}) => {
-  return (
-    <div className="space-y-0.5">
-      <h1 className="text-foreground text-xl font-[550]">{title}</h1>
-      <p className="text-muted-foreground text-sm">{description}</p>
-    </div>
-  );
-};
-
 export const SettingsFrame = ({
   title,
   children,
