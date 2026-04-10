@@ -1,0 +1,66 @@
+"use client";
+
+import {useState} from "react";
+
+import {Button} from "@/components/coss-ui/button";
+import {Form} from "@/components/coss-ui/form";
+import {
+  Sheet,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetPanel,
+  SheetPopup,
+  SheetTitle,
+} from "@/components/coss-ui/sheet";
+import {useSyncSetupStore} from "@/store/use-sync-setup-store";
+
+import {SetupStepper, type SetupStep} from "./SetupStepper";
+
+export default function SyncSetupSheet() {
+  const {isOpen, setIsOpen, provider} = useSyncSetupStore();
+  const [currentStep, setCurrentStep] = useState<SetupStep>(1);
+
+  const cancelButtonText = ["Cancel", "Back", "Back", "Back"];
+  const handleSubmitButtonText = ["Connect", "Next", "Next", "Finish"];
+
+  const handleCancelButton = () => {
+    if (currentStep === 1) {
+      setIsOpen(false);
+    } else {
+      setCurrentStep((currentStep - 1) as SetupStep);
+    }
+  };
+
+  const handleSubmitButton = () => {
+    if (currentStep === 4) {
+      setIsOpen(false);
+    } else {
+      setCurrentStep((currentStep + 1) as SetupStep);
+    }
+  };
+
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetPopup>
+        <Form className="contents">
+          <SheetHeader>
+            <SheetTitle>{provider?.name} setup</SheetTitle>
+            <SheetDescription>Step {currentStep} of 4</SheetDescription>
+          </SheetHeader>
+          <SheetPanel className="grid gap-4 p-0">
+            <div className="border-border border-y">
+              <SetupStepper currentStep={currentStep} />
+            </div>
+          </SheetPanel>
+          <SheetFooter>
+            <Button variant="ghost" onClick={handleCancelButton}>
+              {cancelButtonText[currentStep - 1]}
+            </Button>
+            <Button onClick={handleSubmitButton}>{handleSubmitButtonText[currentStep - 1]}</Button>
+          </SheetFooter>
+        </Form>
+      </SheetPopup>
+    </Sheet>
+  );
+}

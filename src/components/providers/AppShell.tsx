@@ -10,6 +10,7 @@ import {DeleteCollectionDialog} from "./DeleteCollectionDialog";
 import {DeleteTagDialog} from "./DeleteTagDialog";
 import {TagDialog} from "./TagDialog";
 import {Header, type AppShellSession} from "./Header";
+import SyncSetupSheet from "@/app/sync/_components/SyncSetupSheet";
 
 const AppShell = ({
   children,
@@ -39,6 +40,7 @@ const AppShell = ({
       <DeleteCollectionDialog />
       <DeleteTagDialog />
       <TagDialog />
+      <SyncSetupSheet />
     </main>
   );
 };

@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import {PageHeader} from "@/components/ui/page/PageHeader";
 import {Tabs, TabsList, TabsPanel, TabsTab} from "@/components/coss-ui/tabs";
@@ -5,12 +6,14 @@ import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui
 import {Button} from "@/components/coss-ui/button";
 import Image from "next/image";
 import {ArrowUpRightIcon} from "lucide-react";
+import {useSyncSetupStore} from "@/store/use-sync-setup-store";
 
 type Provider = {
   name: string;
   image: string;
   description: string;
   types: string[];
+  color: string;
 };
 
 const PROVIDERS = [
@@ -19,72 +22,84 @@ const PROVIDERS = [
     image: "https://thesvg.org/icons/x/default.svg",
     description: "Import saved posts, links, and media you want to keep organized in Tobira.",
     types: ["Social", "Bookmarks", "Media"],
+    color: "#000000",
   },
   {
     name: "Reddit",
     image: "https://thesvg.org/icons/reddit/default.svg",
     description: "Bring in saved posts, image threads, and useful links from your account.",
     types: ["Social", "Bookmarks", "Media"],
+    color: "#FF4500",
   },
   {
     name: "Dribbble",
     image: "https://thesvg.org/icons/dribbble/default.svg",
     description: "Import liked or saved shots into your media and inspiration collections.",
     types: ["Media", "Design", "Inspiration"],
+    color: "#EA4C89",
   },
   {
     name: "Chrome",
     image: "https://thesvg.org/icons/google-chrome/default.svg",
     description: "Import bookmark folders and saved links from your Chrome browser.",
     types: ["Browsers", "Bookmarks", "Links"],
+    color: "#4285F4",
   },
   {
     name: "Arc",
     image: "https://thesvg.org/icons/arc/default.svg",
     description: "Bring over saved tabs, pinned spaces, and browsing sessions.",
     types: ["Browsers", "Tabs", "Reading"],
+    color: "#8B5CF6",
   },
   {
     name: "Dia",
     image: "https://thesvg.org/icons/globe/default.svg",
     description: "Import saved tabs and reading flows from Dia for quick capture into Tobira.",
     types: ["Browsers", "Tabs", "Reading"],
+    color: "#06B6D4",
   },
   {
     name: "Pinterest",
     image: "https://thesvg.org/icons/pinterest/default.svg",
     description: "Sync boards and saved pins into media-first collections inside Tobira.",
     types: ["Media", "Inspiration", "Social"],
+    color: "#E60023",
   },
   {
     name: "YouTube",
     image: "https://thesvg.org/icons/youtube/default.svg",
     description: "Import watch-later videos, playlists, and saved references.",
     types: ["Media", "Video", "Bookmarks"],
+    color: "#FF0000",
   },
   {
     name: "Firefox",
     image: "https://thesvg.org/icons/firefox/default.svg",
     description: "Import bookmarks and reading-list style saves from Firefox.",
     types: ["Browsers", "Bookmarks", "Reading"],
+    color: "#FF7139",
   },
   {
     name: "Safari",
     image: "https://thesvg.org/icons/safari/default.svg",
     description: "Bring bookmarks and reading list items from Safari into Tobira.",
     types: ["Browsers", "Bookmarks", "Reading"],
+    color: "#006CFF",
   },
   {
     name: "Pocket",
     image: "https://thesvg.org/icons/pocket/default.svg",
     description: "Import read-later saves and article queues for long-form content capture.",
     types: ["Reading", "Bookmarks", "Links"],
+    color: "#EF4056",
   },
   {
     name: "Raindrop",
     image: "https://thesvg.org/icons/bookmark/default.svg",
     description: "Migrate organized bookmarks, collections, and saved links into Tobira.",
     types: ["Bookmarks", "Collections", "Links"],
+    color: "#0069FF",
   },
 ] satisfies Provider[];
 
@@ -193,14 +208,17 @@ function Stat({label, value}: {label: string; value: string}) {
 }
 
 function ProviderCard({provider}: {provider: Provider}) {
+  const openSyncSetup = useSyncSetupStore((state) => state.open);
+
   return (
-    <div className="border-border bg-card text-card-foreground flex w-full flex-col gap-4 rounded-lg border p-5">
+    <div
+      className="border-border text-card-foreground relative flex w-full flex-col gap-4 rounded-lg border p-5"
+      style={{
+        background: `radial-gradient(ellipse at 120% -20%, ${provider.color}12 0%, transparent 55%), var(--card)`,
+      }}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <Image src={provider.image} alt={provider.name} width={24} height={24} />
-        {/* <div className="border-border/60 text-foreground/80 rounded-md border px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase">
-          Connected
-        </div> */}
       </div>
 
       {/* Content */}
@@ -214,11 +232,15 @@ function ProviderCard({provider}: {provider: Provider}) {
         <div className="text-muted-foreground/70 font-mono text-[13px] tracking-wide">
           {provider.types.join(" · ")}
         </div>
-        <Button variant="outline" size="default" className="group w-full">
+        <Button
+          variant="outline"
+          size="default"
+          className="group w-full"
+          onClick={() => openSyncSetup(provider)}>
           Connect{" "}
           <ArrowUpRightIcon
             className="size-4 text-current opacity-100 transition-transform duration-200 ease-out group-hover:translate-x-px group-hover:-translate-y-px"
-            strokeWidth={2.3}
+            strokeWidth={2}
           />
         </Button>
       </div>

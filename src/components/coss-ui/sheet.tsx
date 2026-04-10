@@ -171,7 +171,7 @@ function SheetFooter({
 function SheetTitle({className, ...props}: SheetPrimitive.Title.Props) {
   return (
     <SheetPrimitive.Title
-      className={cn("font-heading text-xl leading-none font-semibold", className)}
+      className={cn("font-heading text-lg leading-none font-medium", className)}
       data-slot="sheet-title"
       {...props}
     />
