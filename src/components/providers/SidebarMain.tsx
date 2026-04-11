@@ -7,7 +7,7 @@ import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
 import {SidebarTags, type SidebarTagsType} from "./SidebarTags";
 import {SidebarCollections} from "./SidebarCollections";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {
   Tooltip,
   TooltipCreateHandle,

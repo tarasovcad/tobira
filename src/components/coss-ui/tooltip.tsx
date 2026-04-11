@@ -3,7 +3,7 @@
 import {Tooltip as TooltipPrimitive} from "@base-ui/react/tooltip";
 import {cva, type VariantProps} from "class-variance-authority";
 
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 const TooltipCreateHandle = TooltipPrimitive.createHandle;
 

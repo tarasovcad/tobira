@@ -1,6 +1,6 @@
 "use client";
 
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {AnimatePresence, motion} from "motion/react";
 import {Fragment} from "react";
 

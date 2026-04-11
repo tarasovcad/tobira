@@ -2,7 +2,7 @@
 
 import React, {useEffect, useState} from "react";
 import {useSearchParams} from "next/navigation";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {AnimatePresence} from "framer-motion";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";

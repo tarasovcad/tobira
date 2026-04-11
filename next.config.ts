@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
         hostname: "pub-37dc11bd0a0647d296d3cfa6eacbf787.r2.dev",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "thesvg.org",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "pbs.twimg.com",
+        pathname: "/**",
+      },
     ],
   },
 };

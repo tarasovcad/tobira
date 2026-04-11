@@ -20,7 +20,7 @@ import {
   type MotionValue,
 } from "framer-motion";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {springs} from "@/lib/ui/springs";
 import {fontWeights} from "@/lib/utils/font-weight";
 import {useShape} from "@/lib/ui/shape-context";
@@ -150,7 +150,7 @@ function ValueDisplay({
     if (editingIndex === index) {
       return (
         <span className="inline-grid text-[13px]">
-          {/* Ghost for layout stability — widest possible value */}
+          {/* Ghost for layout stability â€” widest possible value */}
           <span
             className="invisible col-start-1 row-start-1"
             style={{fontVariationSettings: fontWeights.medium}}
@@ -193,7 +193,7 @@ function ValueDisplay({
   };
 
   const widestValue = isRange
-    ? `${label ? `${label}: ` : ""}${formatValue(max)} — ${formatValue(max)}`
+    ? `${label ? `${label}: ` : ""}${formatValue(max)} â€” ${formatValue(max)}`
     : `${label ? `${label}: ` : ""}${formatValue(max)}`;
 
   return (
@@ -205,7 +205,7 @@ function ValueDisplay({
       style={{
         fontVariationSettings: isInteracting ? fontWeights.medium : fontWeights.normal,
       }}>
-      {/* Invisible ghost — reserves width of widest possible value */}
+      {/* Invisible ghost â€” reserves width of widest possible value */}
       <span
         className="invisible col-start-1 row-start-1 whitespace-nowrap"
         style={{fontVariationSettings: fontWeights.medium}}
@@ -217,7 +217,7 @@ function ValueDisplay({
         {isRange ? (
           <>
             {renderValue(0)}
-            <span className="text-muted-foreground/50 mx-1">—</span>
+            <span className="text-muted-foreground/50 mx-1">â€”</span>
             {renderValue(1)}
           </>
         ) : (
@@ -626,7 +626,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
       />
     );
 
-    // --- Render visual thumb (not Radix — purely visual) ---
+    // --- Render visual thumb (not Radix â€” purely visual) ---
     const renderVisualThumb = (index: number) => {
       const motionX = index === 0 ? motionX0 : motionX1;
       return (
@@ -732,7 +732,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
             </AnimatePresence>
           )}
 
-          {/* Radix Slider — invisible, provides ARIA + keyboard nav */}
+          {/* Radix Slider â€” invisible, provides ARIA + keyboard nav */}
           <SliderPrimitive.Root
             value={values}
             onValueChange={handleRadixChange}
@@ -777,7 +777,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}>
-            {/* Extended hit area — 8px beyond each edge */}
+            {/* Extended hit area â€” 8px beyond each edge */}
             <div
               className={cn("absolute", disabled ? "cursor-not-allowed" : "cursor-ew-resize")}
               style={{left: -8, right: -8, top: 0, bottom: 0}}
@@ -856,7 +856,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
               />
             </motion.div>
 
-            {/* Step dots — masked so filled side is hidden */}
+            {/* Step dots â€” masked so filled side is hidden */}
             {stepDots.length > 0 && (
               <motion.div
                 className="pointer-events-none absolute right-0 left-0"
@@ -1038,7 +1038,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
         const el = containerRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        // Use clientWidth (padding box) — CSS % and absolute left/width are relative to it
+        // Use clientWidth (padding box) â€” CSS % and absolute left/width are relative to it
         const w = el.clientWidth;
         const borderLeft = rect.width - w > 0 ? (rect.width - w) / 2 : 0;
         const x = clientX - rect.left - borderLeft;
@@ -1060,7 +1060,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
         const snappedPercent = max === min ? 0 : (snappedVal - min) / (max - min);
         const snappedX = snappedPercent * w;
 
-        // Current handle position — for pips, match the visual fill edge offset
+        // Current handle position â€” for pips, match the visual fill edge offset
         const currentPercent = fillPercent.get();
         let handleX: number;
         if (variant === "pips") {
@@ -1208,7 +1208,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
           if (disabled || dragging.current || handleDragging.current) return;
           computeHoverPreview(e.clientX);
         }}>
-        {/* Extended hit area — 8px beyond each edge */}
+        {/* Extended hit area â€” 8px beyond each edge */}
         <div
           className={cn("absolute", disabled ? "cursor-not-allowed" : "cursor-ew-resize")}
           style={{left: -8, right: -8, top: 0, bottom: 0}}
@@ -1216,7 +1216,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
         />
-        {/* Hover value tooltip — outside overflow-hidden container */}
+        {/* Hover value tooltip â€” outside overflow-hidden container */}
         <AnimatePresence>
           {showTooltip && hoverPreview && showHoverTooltip && !isPressed && (
             <motion.div
@@ -1297,7 +1297,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
             }}
           />
 
-          {/* Pips: dots layer — z-[1] */}
+          {/* Pips: dots layer â€” z-[1] */}
           {variant === "pips" && (
             <motion.div
               className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-between px-3"
@@ -1327,7 +1327,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
             </motion.div>
           )}
 
-          {/* Pips: label + value BG layer — z-[2] (occludes dots behind text) */}
+          {/* Pips: label + value BG layer â€” z-[2] (occludes dots behind text) */}
           {variant === "pips" && (
             <div
               className="pointer-events-none absolute inset-0 z-[2] flex items-center px-2"
@@ -1345,7 +1345,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
             </div>
           )}
 
-          {/* Pips: fill — z-[3] */}
+          {/* Pips: fill â€” z-[3] */}
           {variant === "pips" && (
             <motion.div
               className="pointer-events-none absolute top-0 bottom-0 left-0 z-[3]"
@@ -1356,7 +1356,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
             />
           )}
 
-          {/* Pips: handle line — z-[3] */}
+          {/* Pips: handle line â€” z-[3] */}
           {variant === "pips" && (
             <motion.div
               className="pointer-events-none absolute z-[3] rounded-full"
@@ -1378,7 +1378,7 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
             />
           )}
 
-          {/* Pips: label + value text layer — z-[4] */}
+          {/* Pips: label + value text layer â€” z-[4] */}
           {variant === "pips" && (
             <div className="pointer-events-none absolute inset-0 z-[4] flex items-center px-2">
               {label && (

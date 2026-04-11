@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {GridCard} from "@/components/bookmark/_components/BookmarkGridCard";
 import {ItemList} from "@/components/bookmark/_components/BookmarkListRow";
 import {MediaCard} from "@/components/bookmark/_components/BookmarkMediaCard";

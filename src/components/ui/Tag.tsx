@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {Badge} from "@/components/coss-ui/badge";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 export interface TagProps extends React.ComponentProps<typeof Badge> {
   onRemove?: () => void;

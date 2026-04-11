@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {Button} from "@/components/coss-ui/button";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 interface BookmarkMenuActionsProps {
   onArchive: () => void;

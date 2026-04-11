@@ -3,7 +3,7 @@
 import * as React from "react";
 import {Dialog as SheetPrimitive} from "@base-ui/react/dialog";
 
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {Button} from "@/components/shadcn/button";
 import {HugeiconsIcon} from "@hugeicons/react";
 import {Cancel01Icon} from "@hugeicons/core-free-icons";

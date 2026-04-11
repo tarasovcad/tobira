@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {BookmarkAvatar} from "./BookmarkAvatar";
 import {BookmarkHoverActions} from "./BookmarkHoverActions";

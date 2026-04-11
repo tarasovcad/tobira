@@ -1,4 +1,4 @@
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "../types";
 import {BookmarkImage} from "./BookmarkImage";

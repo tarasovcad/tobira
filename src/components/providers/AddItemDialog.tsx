@@ -7,7 +7,7 @@ import {AnimatePresence, motion} from "framer-motion";
 import {zodResolver} from "@hookform/resolvers/zod";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import Spinner from "@/components/ui/spinner";
 import {Button} from "@/components/coss-ui/button";
 import {Button as ShadcnButton} from "@/components/shadcn/button";

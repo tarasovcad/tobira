@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {useEffect, useState} from "react";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import MediaPreview from "@/components/ui/MediaPreview";
 import type {Bookmark} from "../types";

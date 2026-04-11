@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {Checkbox} from "@/components/coss-ui/checkbox";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 const selectionModeCheckboxClass =
   "group-data-[selection-mode=true]/bookmark-row:grid-cols-[1fr] group-data-[selection-mode=true]/bookmark-row:opacity-100";

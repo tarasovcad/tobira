@@ -1,6 +1,6 @@
 "use client";
 
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import ViewOptionsMenu from "../ViewOptionsMenu";
 import type {TypeFilter, SortMode} from "../../_types";
 import {Button} from "@/components/coss-ui/button";

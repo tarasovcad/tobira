@@ -2,7 +2,7 @@
 
 import React from "react";
 import ThemeSwitch from "../other/ThemeSwitch";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";

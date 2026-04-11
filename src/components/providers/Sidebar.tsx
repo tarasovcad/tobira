@@ -7,7 +7,7 @@ import type {SidebarTag} from "@/app/home/_types";
 import {SidebarMain} from "./SidebarMain";
 import {SidebarSettings} from "./SidebarSettings";
 import {AnimatePresence, motion} from "framer-motion";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {useSidebarStore} from "@/store/use-sidebar-store";
 import {useHasMounted} from "@/lib/hooks/use-has-mounted";
 

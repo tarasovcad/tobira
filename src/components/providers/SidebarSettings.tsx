@@ -3,7 +3,7 @@
 import React, {useMemo} from "react";
 import Link from "next/link";
 import {useSearchParams} from "next/navigation";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {
   Tooltip,
   TooltipCreateHandle,

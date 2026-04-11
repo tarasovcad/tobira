@@ -1,5 +1,5 @@
 import React from "react";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {Checkbox} from "@/components/coss-ui/checkbox";
 import {ContextMenu, ContextMenuTrigger} from "@/components/shadcn/context-menu";
 import {motion} from "framer-motion";

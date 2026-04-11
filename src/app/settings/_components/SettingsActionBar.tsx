@@ -1,7 +1,7 @@
 "use client";
 
 import {Button} from "@/components/coss-ui/button";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {motion} from "motion/react";
 import NumberFlow from "@number-flow/react";
 import Spinner from "@/components/ui/spinner";

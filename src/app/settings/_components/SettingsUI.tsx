@@ -1,7 +1,7 @@
 import React from "react";
 import {Frame, FrameHeader, FramePanel, FrameTitle} from "@/components/coss-ui/frame";
 import {Label} from "@/components/coss-ui/label";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 export const SettingsFrame = ({
   title,

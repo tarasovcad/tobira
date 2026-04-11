@@ -24,7 +24,7 @@ import {CollectionNotFoundState} from "./home-client/CollectionNotFoundState";
 import {TagNotFoundState} from "./home-client/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import type {TypeFilter, SortMode} from "../_types";
 import type {TagWithCount} from "../_types";
 import {AllItemsList} from "./home-client/AllItemsList";
@@ -62,11 +62,11 @@ export function HomeClient({
       serverFilters.sortFilter === sort
     : false;
 
-  // ── View & filter state ──
+  // â”€â”€ View & filter state â”€â”€
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
 
-  // ── Query Hook ──
+  // â”€â”€ Query Hook â”€â”€
   const {bookmarksQuery, allBookmarks, activeCollection, activeTag, isInitialLoad} =
     useBookmarksQuery({
       userId,
@@ -79,7 +79,7 @@ export function HomeClient({
       isServerDataMatching,
     });
 
-  // ── Mutation Hook ──
+  // â”€â”€ Mutation Hook â”€â”€
   const {
     removingIds,
     handleItemRemoved,
@@ -95,7 +95,7 @@ export function HomeClient({
     allBookmarks,
   });
 
-  // ── Derived visible items ──
+  // â”€â”€ Derived visible items â”€â”€
   const visibleItems = useMemo(() => {
     if (allBookmarks.length === 0) return [];
 
@@ -109,7 +109,7 @@ export function HomeClient({
     });
   }, [allBookmarks, removingIds, resolvedBookmarks]);
 
-  // ── Selection Hook ──
+  // â”€â”€ Selection Hook â”€â”€
   const {
     selectionMode,
     selectedIds,
@@ -123,7 +123,7 @@ export function HomeClient({
     handleCopySelected,
   } = useBookmarksSelection(visibleItems, allBookmarks);
 
-  // ── Keyboard shortcuts ──
+  // â”€â”€ Keyboard shortcuts â”€â”€
   useHomeShortcuts({
     selectionMode,
     handleClearSelection,
@@ -132,7 +132,7 @@ export function HomeClient({
     setView,
   });
 
-  // ── Dialogs ──
+  // â”€â”€ Dialogs â”€â”€
   const {openDeleteDialog, handleDeleteSelected} = useHomeDialogs({
     allBookmarks,
     selectedIds,
@@ -140,7 +140,7 @@ export function HomeClient({
   });
   const closeMenu = useBookmarkMenuStore((state) => state.closeMenu);
 
-  // ── Refs for infinite scroll ──
+  // â”€â”€ Refs for infinite scroll â”€â”€
   const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
   const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -230,7 +230,7 @@ export function HomeClient({
         />
       )}
 
-      {/* ── Floating selection action bar ── */}
+      {/* â”€â”€ Floating selection action bar â”€â”€ */}
       <SelectionActionBar
         visible={selectionMode && selectedCount > 0}
         selectedCount={selectedCount}

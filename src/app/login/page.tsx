@@ -14,7 +14,7 @@ import Spinner from "@/components/ui/spinner";
 import {InputOTP, InputOTPGroup, InputOTPSlot} from "@/components/other/InputOtp";
 import {authClient} from "@/components/utils/better-auth/auth-client";
 import {toastManager} from "@/components/coss-ui/toast";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {sendOtpAction, verifyOtpAction} from "@/app/actions/auth";
 
 const emailFormSchema = z.object({

@@ -137,7 +137,7 @@ export const SyncContent = () => {
               <div className="">
                 <Tabs defaultValue="all">
                   <div className="flex items-center justify-between gap-2">
-                    <TabsList className="flex items-center gap-2">
+                    <TabsList className="flex items-center gap-2 border-b" variant="underline">
                       <TabsTab value="all">All</TabsTab>
                       <TabsTab value="social">Social</TabsTab>
                       <TabsTab value="browsers">Browsers</TabsTab>
@@ -229,7 +229,7 @@ function ProviderCard({provider}: {provider: Provider}) {
 
       {/* Meta & Action */}
       <div className="space-y-4">
-        <div className="text-muted-foreground/70 font-mono text-[13px] tracking-wide">
+        <div className="text-muted-foreground/80 font-mono text-[13px] tracking-wide">
           {provider.types.join(" · ")}
         </div>
         <Button

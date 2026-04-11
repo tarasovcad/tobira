@@ -5,7 +5,7 @@ import {AnimatePresence, motion, MotionConfig, TargetAndTransition} from "motion
 import {OTPInput, OTPInputContext as OTPInputContextBase} from "input-otp";
 import {tv} from "tailwind-variants";
 
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 type InputOTPSlotSize = "sm" | "md" | "lg";
 type InputOTPVariant = "bordered" | "underlined";

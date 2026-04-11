@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {formatDateAbsolute} from "@/lib/utils/dates";
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 import {Tag} from "@/components/ui/Tag";
 
 export function getDomainName(url: string): string {

@@ -4,7 +4,7 @@ import React, {useSyncExternalStore} from "react";
 
 import {useTheme} from "next-themes";
 
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 type ThemeKey = "light" | "dark" | "system";
 

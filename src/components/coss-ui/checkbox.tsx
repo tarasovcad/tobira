@@ -3,7 +3,7 @@
 import {Checkbox as CheckboxPrimitive} from "@base-ui/react/checkbox";
 import {motion, type Variants} from "motion/react";
 
-import {cn} from "@/lib/utils/classnames";
+import {cn} from "@/lib/utils";
 
 const CHECK_VARIANTS: Variants = {
   unchecked: {
