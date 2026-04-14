@@ -1,0 +1,504 @@
+"use client";
+
+import {useState} from "react";
+import Image from "next/image";
+import {cn} from "@/lib/utils";
+import {Button} from "@/components/coss-ui/button";
+import {Alert, AlertDescription, AlertTitle} from "@/components/coss-ui/alert";
+import {useSyncSetupStore} from "@/store/use-sync-setup-store";
+import {Slider} from "@/components/ui/slider";
+import {CircleAlertIcon} from "@/components/coss-ui/toast";
+
+type SyncMethod = "oauth" | "extension" | "cookies" | "export" | "har";
+
+interface MethodDef {
+  id: SyncMethod;
+  label: string;
+  badge?: string;
+  badgeVariant?: "recommended" | "stable";
+  icon: ({className}: {className?: string}) => React.ReactNode;
+  disabled?: boolean;
+}
+
+const SYNC_METHODS: MethodDef[] = [
+  {
+    id: "extension",
+    label: "Extension + GraphQL",
+    badge: "Recommended",
+    badgeVariant: "recommended",
+    icon: ({className}) => (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        className={className}
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M9.66667 2.6665V2.33317C9.66667 1.4127 8.92047 0.666504 8 0.666504C7.07953 0.666504 6.33333 1.4127 6.33333 2.33317V2.6665H3.83333C2.8208 2.6665 2 3.48732 2 4.49984V5.99984C2 6.18393 2.14927 6.33317 2.33333 6.33317C3.2538 6.33317 4 7.07937 4 7.99984C4 8.9203 3.2538 9.6665 2.33333 9.6665C2.14927 9.6665 2 9.81577 2 9.99984V11.4998C2 12.5124 2.8208 13.3332 3.83333 13.3332H11.3333C12.8061 13.3332 14 12.1392 14 10.6665V5.33317C14 3.86041 12.8061 2.6665 11.3333 2.6665H9.66667Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "oauth",
+    label: "Official OAuth 2.0 API",
+    badge: "Stable",
+    badgeVariant: "stable",
+    icon: ({className}) => (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        className={className}
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M7.99967 1.3335C11.6819 1.3335 14.6663 4.31828 14.6663 8.00016C14.6663 11.682 11.6819 14.6668 7.99967 14.6668C4.31738 14.6668 1.33301 11.682 1.33301 8.00016C1.33301 4.31828 4.31738 1.3335 7.99967 1.3335ZM7.99967 10.0002C6.40332 10.0002 5.0778 10.6705 4.18978 11.7332C5.15851 12.7208 6.50757 13.3335 7.99967 13.3335C9.49181 13.3335 10.8408 12.7208 11.8095 11.7332C10.9215 10.6705 9.59601 10.0002 7.99967 10.0002ZM7.99967 4.50016C6.80267 4.50016 5.83301 5.47022 5.83301 6.66683C5.83301 7.86343 6.80267 8.8335 7.99967 8.8335C9.19667 8.8335 10.1663 7.86343 10.1663 6.66683C10.1663 5.47022 9.19667 4.50016 7.99967 4.50016Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "cookies",
+    label: "Cookie Export",
+    disabled: true,
+    icon: ({className}) => (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        className={className}
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M1.33301 8.00016C1.33301 4.31826 4.31777 1.3335 7.99967 1.3335C8.25654 1.3335 8.51027 1.34806 8.76007 1.37645C8.93714 1.39658 9.09881 1.48676 9.20894 1.62688C9.31901 1.767 9.36847 1.94538 9.34621 2.12219C9.33754 2.19112 9.33301 2.26162 9.33301 2.3335C9.33301 3.17772 9.96134 3.87629 10.7755 3.9853C11.0735 4.0252 11.3079 4.25962 11.3479 4.55761C11.4569 5.37186 12.1555 6.00016 12.9997 6.00016C13.2059 6.00016 13.402 5.963 13.5825 5.89559C13.76 5.82933 13.9573 5.84169 14.1251 5.92958C14.2929 6.01748 14.4153 6.1726 14.4619 6.3562C14.5955 6.88276 14.6663 7.4337 14.6663 8.00016C14.6663 11.682 11.6815 14.6668 7.99967 14.6668C4.31777 14.6668 1.33301 11.682 1.33301 8.00016ZM6.66634 5.66683C6.66634 6.21912 6.21863 6.66683 5.66634 6.66683C5.11405 6.66683 4.66634 6.21912 4.66634 5.66683C4.66634 5.11454 5.11405 4.66683 5.66634 4.66683C6.21863 4.66683 6.66634 5.11454 6.66634 5.66683ZM9.33301 7.66683C9.33301 8.2191 8.88527 8.66683 8.33301 8.66683C7.78074 8.66683 7.33301 8.2191 7.33301 7.66683C7.33301 7.11456 7.78074 6.66683 8.33301 6.66683C8.88527 6.66683 9.33301 7.11456 9.33301 7.66683ZM11.333 10.0002C11.7012 10.0002 11.9997 9.7017 11.9997 9.3335C11.9997 8.9653 11.7012 8.66683 11.333 8.66683C10.9648 8.66683 10.6663 8.9653 10.6663 9.3335C10.6663 9.7017 10.9648 10.0002 11.333 10.0002ZM8.66634 11.0002C8.66634 11.5524 8.21861 12.0002 7.66634 12.0002C7.11407 12.0002 6.66634 11.5524 6.66634 11.0002C6.66634 10.4479 7.11407 10.0002 7.66634 10.0002C8.21861 10.0002 8.66634 10.4479 8.66634 11.0002ZM4.66634 10.0002C5.03453 10.0002 5.33301 9.7017 5.33301 9.3335C5.33301 8.9653 5.03453 8.66683 4.66634 8.66683C4.29815 8.66683 3.99967 8.9653 3.99967 9.3335C3.99967 9.7017 4.29815 10.0002 4.66634 10.0002Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "export",
+    label: "Data Export",
+    disabled: true,
+    icon: ({className}) => (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        className={className}
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M13.3337 3.66683V5.00016H13.3229C13.2681 5.42259 13.0108 5.75484 12.7304 5.99161C12.411 6.2613 11.9883 6.47415 11.5244 6.63984C10.5907 6.9733 9.34473 7.16683 8.00033 7.16683C6.65593 7.16683 5.40993 6.9733 4.47627 6.63984C4.01235 6.47415 3.58969 6.2613 3.27029 5.99161C2.98987 5.75484 2.73251 5.42259 2.67771 5.00016H2.66699V3.66683C2.66699 3.16437 2.95398 2.7758 3.27029 2.50872C3.58969 2.23902 4.01235 2.02618 4.47627 1.86049C5.40993 1.52704 6.65593 1.3335 8.00033 1.3335C9.34473 1.3335 10.5907 1.52704 11.5244 1.86049C11.9883 2.02618 12.411 2.23902 12.7304 2.50872C13.0467 2.7758 13.3337 3.16437 13.3337 3.66683ZM4.13049 3.52746C4.04727 3.59772 4.0158 3.6447 4.00455 3.66683C4.0158 3.68896 4.04727 3.73594 4.13049 3.8062C4.28338 3.9353 4.54415 4.0816 4.92472 4.21752C5.68006 4.48728 6.76739 4.66683 8.00033 4.66683C9.23326 4.66683 10.3206 4.48728 11.0759 4.21752C11.4565 4.0816 11.7173 3.9353 11.8702 3.8062C11.9534 3.73594 11.9849 3.68896 11.9961 3.66683C11.9849 3.6447 11.9534 3.59772 11.8702 3.52746C11.7173 3.39836 11.4565 3.25206 11.0759 3.11614C10.3206 2.84638 9.23326 2.66683 8.00033 2.66683C6.76739 2.66683 5.68006 2.84638 4.92472 3.11614C4.54415 3.25206 4.28338 3.39836 4.13049 3.52746Z"
+          fill="currentColor"
+        />
+        <path
+          d="M13.3337 7.37598C12.9061 7.68018 12.4267 7.89998 11.9729 8.06211C10.8609 8.45924 9.45619 8.66678 8.00033 8.66678C6.54449 8.66678 5.13981 8.45924 4.02782 8.06211C3.57393 7.89998 3.09453 7.68018 2.66699 7.37598V8.66678C2.66699 9.16924 2.95398 9.55778 3.27029 9.82491C3.58969 10.0946 4.01235 10.3074 4.47627 10.4731C5.40993 10.8066 6.65593 11.0001 8.00033 11.0001C9.34473 11.0001 10.5907 10.8066 11.5244 10.4731C11.9883 10.3074 12.411 10.0946 12.7304 9.82491C13.0467 9.55778 13.3337 9.16924 13.3337 8.66678V7.37598Z"
+          fill="currentColor"
+        />
+        <path
+          d="M2.66699 12.3333V11.0425C3.09453 11.3467 3.57393 11.5665 4.02782 11.7286C5.13981 12.1257 6.54449 12.3333 8.00033 12.3333C9.45619 12.3333 10.8609 12.1257 11.9729 11.7286C12.4267 11.5665 12.9061 11.3467 13.3337 11.0425V12.3333C13.3337 12.8357 13.0467 13.2243 12.7304 13.4914C12.411 13.7611 11.9883 13.9739 11.5244 14.1396C10.5907 14.4731 9.34473 14.6666 8.00033 14.6666C6.65593 14.6666 5.40993 14.4731 4.47627 14.1396C4.01235 13.9739 3.58969 13.7611 3.27029 13.4914C2.95398 13.2243 2.66699 12.8357 2.66699 12.3333Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "har",
+    label: "HAR File Import",
+    disabled: true,
+    icon: ({className}) => (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        className={className}
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M5.33366 1.3335H8.00033V4.66683C8.00033 5.7714 8.89573 6.66683 10.0003 6.66683H13.3337V12.0002C13.3337 13.4729 12.1397 14.6668 10.667 14.6668H7.91546C8.17906 14.2889 8.33366 13.8292 8.33366 13.3335V12.0002C8.33366 11.3553 8.07179 10.7722 7.65053 10.3508C7.49259 8.84243 6.21709 7.66683 4.66699 7.66683C3.89864 7.66683 3.19775 7.9557 2.66699 8.4307V4.00016C2.66699 2.5274 3.8609 1.3335 5.33366 1.3335Z"
+          fill="currentColor"
+        />
+        <path
+          d="M9.33301 1.72363L12.9425 5.33311H9.99967C9.63147 5.33311 9.33301 5.03463 9.33301 4.66644V1.72363Z"
+          fill="currentColor"
+        />
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M6.66667 10.8449V10.6665C6.66667 9.5619 5.77123 8.6665 4.66667 8.6665C3.5621 8.6665 2.66667 9.5619 2.66667 10.6665V10.8449C2.26813 11.0754 2 11.5063 2 11.9998V13.3332C2 14.0696 2.59695 14.6665 3.33333 14.6665H6C6.7364 14.6665 7.33333 14.0696 7.33333 13.3332V11.9998C7.33333 11.5063 7.0652 11.0754 6.66667 10.8449ZM4 10.6665H5.33333C5.33333 10.2983 5.03485 9.99984 4.66667 9.99984C4.29848 9.99984 4 10.2983 4 10.6665Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+];
+
+const OAuthPricing = () => {
+  const [bookmarks, setBookmarks] = useState(5000);
+
+  const formattedCost = (bookmarks * 0.005).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  });
+
+  const resourceLabel =
+    bookmarks >= 1000
+      ? `${(bookmarks / 1000).toFixed(bookmarks % 1000 === 0 ? 0 : 1)}k posts`
+      : `${bookmarks} posts`;
+
+  return (
+    <div className="text-sm">
+      <div className="border-border text-muted-foreground overflow-hidden rounded-[10px] border">
+        {/* ── Rate row ── */}
+        <div className="border-border flex items-center justify-between border-b px-3 py-2.5">
+          <span className="text-sm">Bookmarks</span>
+          <div className="flex items-baseline gap-1">
+            <span className="font-mono font-[450] tabular-nums">$0.005</span>
+            <span className="">/ post</span>
+          </div>
+        </div>
+
+        {/* ── Slider section ── */}
+        <div className="px-3 pt-2.5 pb-3">
+          {/* Usage label row — mirrors screenshot exactly */}
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">Usage</span>
+            <span className="text-foreground/70 font-[450] tabular-nums">{resourceLabel}</span>
+          </div>
+
+          {/* Slider — uses the project Slider component */}
+          <Slider
+            value={bookmarks}
+            onChange={(v) => setBookmarks(v as number)}
+            min={0}
+            max={50000}
+            step={5000}
+            showValue={false}
+            formatValue={(v) =>
+              (v * 0.005).toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: 2,
+              })
+            }
+          />
+
+          {/* Axis ticks + centered cost readout */}
+          <div className="relative mt-0 flex items-center justify-between">
+            <span className="text-muted-foreground text-[13px]">0k</span>
+            {/* Cost figure centred absolutely so it doesn't push labels */}
+            <span className="text-foreground! pointer-events-none absolute left-1/2 -translate-x-1/2 font-mono text-[13px] font-[450] tabular-nums transition-colors duration-200">
+              {formattedCost}
+            </span>
+            <span className="text-muted-foreground text-[13px]">50k</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ConnectSyncStep = () => {
+  const {provider} = useSyncSetupStore();
+  const [selectedMethod, setSelectedMethod] = useState<SyncMethod>("extension");
+
+  if (!provider) return null;
+
+  return (
+    <div className="flex flex-col gap-4 px-6 pb-2">
+      {/* Compact radio list */}
+      <div className="border-border divide-border divide-y overflow-hidden rounded-[10px] border">
+        {SYNC_METHODS.map((m) => {
+          const active = selectedMethod === m.id;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              disabled={m.disabled}
+              onClick={() => !m.disabled && setSelectedMethod(m.id)}
+              className={cn(
+                "flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-none",
+                m.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                active ? "bg-muted-strong" : !m.disabled && "hover:bg-muted hover:text-foreground",
+              )}>
+              {/* Radio dot */}
+              <div
+                className={cn(
+                  "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
+                  active ? "border-highlight bg-highlight" : "border-muted-foreground/35",
+                )}>
+                {active && <div className="h-1 w-1 rounded-full bg-white" />}
+              </div>
+
+              <div className="flex w-full items-center gap-2">
+                {/* Icon */}
+                <m.icon
+                  className={cn(
+                    "shrink-0 transition-colors",
+                    active ? "text-foreground/90" : "text-muted-foreground/60",
+                  )}
+                />
+                {/* Label */}
+                <span
+                  className={cn(
+                    "flex-1 text-sm font-medium transition-colors",
+                    active ? "text-foreground" : "text-foreground/70",
+                  )}>
+                  {m.label}
+                </span>
+              </div>
+
+              {/* Badge */}
+              {m.badge && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px] font-[550] tracking-wide uppercase",
+                    m.badgeVariant === "recommended"
+                      ? "bg-highlight/12 text-blue-400"
+                      : "bg-muted text-muted-foreground/70",
+                  )}>
+                  {m.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="border-border bg-card rounded-[10px] border p-4.5">
+        {/* ── Extension ── */}
+        {selectedMethod === "extension" && (
+          <>
+            <div className="mb-3">
+              {[
+                "Install the Tobira extension from the Chrome Web Store",
+                "Log in to X - the extension captures your active session",
+                "Click sync here - bookmarks are fetched silently in the background",
+              ].map((step, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="flex flex-col items-center self-stretch">
+                    <div className="bg-highlight flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[11px] leading-none font-semibold text-white">
+                      {i + 1}
+                    </div>
+                    {i < 2 && <div className="bg-border my-1 w-px flex-1" />}
+                  </div>
+                  <p className={`text-secondary -mt-0.5 text-sm ${i < 2 ? "pb-3" : ""}`}>{step}</p>
+                </div>
+              ))}
+            </div>
+
+            <Button size="default" variant="default" className="mt-2 w-full">
+              Download Extension
+            </Button>
+          </>
+        )}
+
+        {/* ── OAuth ── */}
+        {selectedMethod === "oauth" && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-center py-2">
+              <div className="relative flex items-center">
+                {/* Tobira icon */}
+                <div className="border-border ml-1.5 size-[44px] overflow-hidden rounded-full">
+                  <Image
+                    src="/logo/favicon.svg"
+                    alt={provider.name}
+                    width={32}
+                    height={32}
+                    className="h-full w-full"
+                  />
+                </div>
+                <div className="border-border -ml-1.5 size-[44px] overflow-hidden rounded-full">
+                  <Image
+                    src={provider.image}
+                    alt={provider.name}
+                    width={32}
+                    height={32}
+                    className="h-full w-full"
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="text-muted-foreground mb-1 text-center text-sm">
+              You&apos;ll be redirected to X to approve read-only access, then returned here
+              automatically.
+            </p>
+            <Alert variant="warning">
+              <CircleAlertIcon />
+              <AlertTitle>API costs can be significant</AlertTitle>
+              <AlertDescription>
+                Syncing large collections can quickly become expensive
+              </AlertDescription>
+            </Alert>
+            <OAuthPricing />
+            <Button className="w-full">Authorize with {provider.name}</Button>
+          </div>
+        )}
+
+        {/* ── Cookies ── */}
+        {selectedMethod === "cookies" && (
+          <>
+            <p className="text-muted-foreground mb-3 text-[13.5px] leading-relaxed">
+              Open DevTools <span className="text-muted-foreground/50">›</span> Application{" "}
+              <span className="text-muted-foreground/50">›</span> Cookies{" "}
+              <span className="text-muted-foreground/50">›</span> x.com and copy these two values:
+            </p>
+            <div className="border-border mb-3 divide-y overflow-hidden rounded-[8px] border">
+              {["auth_token", "ct0"].map((key, i) => (
+                <div key={key} className="flex items-center gap-3 px-3 py-2.5">
+                  <div className="text-muted-foreground/50 flex-shrink-0">
+                    {i === 0 ? (
+                      <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                        <path
+                          d="M6 1a2.5 2.5 0 0 1 .5 4.95V7H8v1.5H6.5V10h-1V8.5H4V7h1.5V5.95A2.5 2.5 0 0 1 6 1z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    ) : (
+                      <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                        <rect
+                          x="2"
+                          y="5"
+                          width="8"
+                          height="6"
+                          rx="1"
+                          stroke="currentColor"
+                          strokeWidth="1.1"
+                        />
+                        <path
+                          d="M4 5V3.5a2 2 0 0 1 4 0V5"
+                          stroke="currentColor"
+                          strokeWidth="1.1"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <code className="text-foreground/80 flex-1 font-mono text-[13px]">{key}</code>
+                  <span className="text-muted-foreground/40 font-mono text-[12px] tracking-widest">
+                    ••••••••
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-muted-foreground/60 mb-3 text-[12.5px]">
+              The <code className="text-foreground/60">ct0</code> cookie also acts as the CSRF token
+              and must be submitted alongside <code className="text-foreground/60">auth_token</code>
+              .
+            </p>
+            <Button size="sm" className="w-full">
+              Enter Session Cookies
+            </Button>
+          </>
+        )}
+
+        {/* ── Export ── */}
+        {selectedMethod === "export" && (
+          <>
+            <p className="text-muted-foreground mb-3 text-[13.5px] leading-relaxed">
+              Request your data archive from X, then upload the .zip file once it arrives via email.
+            </p>
+            <div className="border-border mb-3 overflow-hidden rounded-[8px] border">
+              <div className="bg-muted/40 px-3 py-1.5">
+                <p className="text-muted-foreground text-[12px] font-[500] tracking-wide uppercase">
+                  Navigate to
+                </p>
+              </div>
+              {["X Settings", "Your Account", "Download an archive of your data"].map(
+                (crumb, i, arr) => (
+                  <div
+                    key={crumb}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2",
+                      i < arr.length - 1 && "border-border border-b",
+                    )}>
+                    <span className="text-muted-foreground/40 text-[12.5px]">{i + 1}</span>
+                    <span
+                      className={cn(
+                        "text-[13px]",
+                        i === arr.length - 1
+                          ? "text-foreground font-[520]"
+                          : "text-muted-foreground",
+                      )}>
+                      {crumb}
+                    </span>
+                  </div>
+                ),
+              )}
+            </div>
+            <div className="border-border mb-3 flex items-center gap-2.5 rounded-[8px] border px-3 py-2.5">
+              <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-[6px]">
+                <span className="text-muted-foreground font-mono text-[11px] font-[700]">.zip</span>
+              </div>
+              <div>
+                <p className="text-foreground text-[13px] font-[500]">twitter-archive.zip</p>
+                <p className="text-muted-foreground/60 text-[12px]">
+                  Usually arrives within 24 hours
+                </p>
+              </div>
+            </div>
+            <Button size="sm" className="w-full">
+              Upload .zip Archive
+            </Button>
+          </>
+        )}
+
+        {/* ── HAR ── */}
+        {selectedMethod === "har" && (
+          <>
+            <p className="text-muted-foreground mb-3 text-[13.5px] leading-relaxed">
+              Record all network traffic while browsing your bookmarks, then export and upload the
+              HAR file.
+            </p>
+            <div className="border-border mb-3 divide-y overflow-hidden rounded-[8px] border">
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-muted-foreground text-[13px]">Open DevTools</span>
+                <div className="flex gap-1">
+                  {["F12"].map((k) => (
+                    <kbd
+                      key={k}
+                      className="border-border bg-muted text-muted-foreground rounded border px-2 py-0.5 font-mono text-[12px]">
+                      {k}
+                    </kbd>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-muted-foreground text-[13px]">Go to tab</span>
+                <span className="bg-muted text-foreground/70 rounded px-2 py-0.5 text-[12px] font-[500]">
+                  Network
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-muted-foreground text-[13px]">Browse</span>
+                <code className="text-muted-foreground/80 text-[12.5px]">x.com/i/bookmarks</code>
+                <span className="text-muted-foreground/50 text-[12.5px]">& scroll all</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-muted-foreground text-[13px]">Export</span>
+                <span className="bg-muted text-foreground/70 rounded px-2 py-0.5 font-mono text-[12px]">
+                  Save all as HAR
+                </span>
+              </div>
+            </div>
+            <Button size="sm" className="w-full">
+              Upload HAR File
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};

@@ -23,7 +23,7 @@ function SuccessCheckIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function CircleAlertIcon(props: React.SVGProps<SVGSVGElement>) {
+export function CircleAlertIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       width="20"

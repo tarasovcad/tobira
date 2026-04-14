@@ -229,15 +229,15 @@ const Switch = forwardRef<HTMLDivElement, SwitchProps>(
           className={cn(
             "relative shrink-0 cursor-pointer rounded-full outline-none",
             "transition-colors duration-80",
-            "focus-visible:ring-offset-background focus-visible:ring-1 focus-visible:ring-[#6B97FF] focus-visible:ring-offset-2",
+            "focus-visible:ring-offset-background focus-visible:ring-1 focus-visible:ring-[var(--highlight-hovered)] focus-visible:ring-offset-2",
           )}
           style={{
             width: TRACK_WIDTH,
             height: TRACK_HEIGHT,
             backgroundColor: checked
               ? hovered
-                ? "#5C89F2"
-                : "#6B97FF"
+                ? "var(--highlight)"
+                : "var(--highlight-hovered)"
               : hovered
                 ? "color-mix(in oklab, var(--accent), var(--foreground) 10%)"
                 : "var(--accent)",

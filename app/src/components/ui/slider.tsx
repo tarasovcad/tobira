@@ -659,7 +659,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
           />
           {/* Focus ring */}
           <motion.span
-            className="pointer-events-none absolute rounded-full border border-[#6B97FF]"
+            className="pointer-events-none absolute rounded-full border border-[var(--highlight-hovered)]"
             initial={false}
             animate={{
               opacity: focusedThumb === index ? 1 : 0,
@@ -771,7 +771,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
             ref={trackRef}
             className={cn(
               "relative w-full py-2",
-              disabled ? "cursor-not-allowed" : "cursor-ew-resize",
+              disabled ? "cursor-not-allowed" : "cursor-pointer",
             )}
             style={{height: THUMB_SIZE + 16, opacity: ready ? 1 : 0}}
             onPointerDown={handlePointerDown}
@@ -779,7 +779,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
             onPointerUp={handlePointerUp}>
             {/* Extended hit area â€” 8px beyond each edge */}
             <div
-              className={cn("absolute", disabled ? "cursor-not-allowed" : "cursor-ew-resize")}
+              className={cn("absolute", disabled ? "cursor-not-allowed" : "cursor-pointer")}
               style={{left: -8, right: -8, top: 0, bottom: 0}}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
@@ -827,10 +827,11 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
               }}>
               {/* Filled range */}
               <motion.div
-                className="bg-selected/50 dark:bg-accent/40 absolute h-full"
+                className="absolute h-full"
                 style={{
                   left: fillLeft,
                   width: fillWidth,
+                  backgroundColor: "color-mix(in srgb, var(--foreground) 8%, transparent)",
                 }}
               />
 
@@ -851,7 +852,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
                     hoverPreview && hoverPreview.cursorX > hoverPreview.left
                       ? "0 9999px 9999px 0"
                       : "9999px 0 0 9999px",
-                  backgroundColor: "color-mix(in srgb, var(--color-accent) 40%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--foreground) 4%, transparent)",
                 }}
               />
             </motion.div>
@@ -1247,14 +1248,14 @@ const SliderComfortable = forwardRef<HTMLDivElement, SliderComfortableProps>(
           className={cn(
             "border-border relative h-8 w-full touch-none overflow-hidden border outline-offset-2 select-none",
             variant === "scrubber" && "flex items-center gap-3 px-4",
-            disabled ? "cursor-not-allowed" : "cursor-ew-resize",
+            disabled ? "cursor-not-allowed" : "",
             shape.bg,
             disabled && "pointer-events-none opacity-50",
             className,
           )}
           initial={false}
           animate={{
-            outline: isFocused ? "1px solid #6B97FF" : "1px solid transparent",
+            outline: isFocused ? "1px solid var(--highlight-hovered)" : "1px solid transparent",
           }}
           transition={springs.fast}
           onPointerDown={handlePointerDown}

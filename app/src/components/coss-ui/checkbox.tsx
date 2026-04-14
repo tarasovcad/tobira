@@ -35,13 +35,13 @@ function Checkbox({className, ...props}: CheckboxPrimitive.Root.Props) {
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        "border-input bg-background focus-visible:ring-offset-background aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 dark:not-data-checked:bg-input/32 dark:aria-invalid:ring-destructive/24 group relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border shadow-xs/5 ring-[#6B97FF] transition-shadow outline-none not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[3px] not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_1px_--theme(--color-black/4%)] focus-visible:ring-2 focus-visible:ring-offset-1 data-disabled:opacity-64 sm:size-4 dark:not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],[data-checked],[aria-invalid]]:shadow-none",
+        "border-input bg-background focus-visible:ring-offset-background aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 dark:not-data-checked:bg-input/32 dark:aria-invalid:ring-destructive/24 group relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border shadow-xs/5 ring-[var(--highlight-hovered)] transition-shadow outline-none not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[3px] not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_1px_--theme(--color-black/4%)] focus-visible:ring-2 focus-visible:ring-offset-1 data-disabled:opacity-64 sm:size-4 dark:not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],[data-checked],[aria-invalid]]:shadow-none",
         className,
       )}
       data-slot="checkbox"
       {...props}>
       <CheckboxPrimitive.Indicator
-        className="absolute -inset-px flex items-center justify-center rounded-[.25rem] text-white transition-colors data-checked:bg-[#6B97FF] group-hover:data-checked:bg-[#5C89F2] data-indeterminate:bg-[#6B97FF] data-indeterminate:text-white group-hover:data-indeterminate:bg-[#5C89F2] data-unchecked:hidden"
+        className="absolute -inset-px flex items-center justify-center rounded-[.25rem] text-white transition-colors data-checked:bg-[var(--highlight-hovered)] group-hover:data-checked:bg-[var(--highlight)] data-indeterminate:bg-[var(--highlight-hovered)] data-indeterminate:text-white group-hover:data-indeterminate:bg-[var(--highlight)] data-unchecked:hidden"
         data-slot="checkbox-indicator"
         render={(props, state) => (
           <span {...props}>

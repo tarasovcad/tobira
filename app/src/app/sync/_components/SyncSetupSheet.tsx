@@ -4,7 +4,6 @@ import {useState} from "react";
 
 import {Button} from "@/components/coss-ui/button";
 import {Form} from "@/components/coss-ui/form";
-import Image from "next/image";
 import {
   Sheet,
   SheetDescription,
@@ -17,6 +16,7 @@ import {
 import {useSyncSetupStore} from "@/store/use-sync-setup-store";
 import {Alert, AlertDescription} from "@/components/coss-ui/alert";
 import {SetupStepper, type SetupStep} from "./SetupStepper";
+import {ConnectSyncStep} from "./ConnectSyncStep";
 
 export default function SyncSetupSheet() {
   const {isOpen, setIsOpen, provider} = useSyncSetupStore();
@@ -98,7 +98,7 @@ const AboutSyncStep = () => {
                   fillRule="evenodd"
                   clipRule="evenodd"
                   d="M9 1.5C13.1421 1.5 16.5 4.85786 16.5 9C16.5 13.1421 13.1421 16.5 9 16.5C4.85786 16.5 1.5 13.1421 1.5 9C1.5 4.85786 4.85786 1.5 9 1.5ZM11.669 6.12818C11.3254 5.89695 10.8596 5.98766 10.6282 6.33106L7.85453 10.4502L6.53027 9.126C6.23738 8.83305 5.76262 8.83305 5.46973 9.126C5.17683 9.41888 5.17683 9.89362 5.46973 10.1865L7.43848 12.1553C7.59697 12.3137 7.81822 12.3929 8.04127 12.3713C8.2641 12.3497 8.46547 12.2296 8.59057 12.0439L11.8718 7.16894C12.103 6.82541 12.0124 6.35953 11.669 6.12818Z"
-                  fill="#5C89F2"
+                  fill="var(--highlight)"
                 />
               </svg>
               {item}
@@ -138,42 +138,5 @@ const AboutSyncStep = () => {
         </Alert>
       </div>
     </>
-  );
-};
-
-const ConnectSyncStep = () => {
-  const {provider} = useSyncSetupStore();
-
-  if (!provider) return null;
-
-  return (
-    <div className="flex flex-col items-center justify-center px-6 py-10">
-      <div className="border-border bg-card flex w-full flex-col items-center rounded-[16px] border p-10 text-center">
-        {/* Logo Container */}
-        <div className="mb-4">
-          <Image src={provider.image} alt={provider.name} width={34} height={34} />
-        </div>
-
-        <h3 className="text-foreground mb-2 text-lg font-[550] tracking-tight">
-          Authorize Tobira to access {provider.name}
-        </h3>
-
-        <p className="text-muted-foreground mb-5 text-sm leading-relaxed">
-          You will be prompted to grant read-only access. Tobira never posts on your behalf.
-        </p>
-
-        <Button className="w-full" variant="default">
-          Authorize with {provider.name}
-        </Button>
-
-        <div className="text-muted-foreground/80 mt-4 font-mono text-[13px] tracking-wide">
-          <span>Read-only access</span>
-          <span>{" · "}</span>
-          <span>No posting</span>
-          <span>{" · "}</span>
-          <span>Revoke anytime</span>
-        </div>
-      </div>
-    </div>
   );
 };

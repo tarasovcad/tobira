@@ -39,6 +39,9 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
 
+  --color-highlight: var(--highlight);
+  --color-highlight-hovered: var(--highlight-hovered);
+
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-strong: var(--muted-strong);
@@ -75,6 +78,9 @@
   --muted-strong: #f0f0f0;
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
+  --highlight: #5c89f2;
+  --highlight-hovered: #6b97ff;
+
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
 

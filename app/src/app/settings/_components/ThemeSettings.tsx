@@ -154,7 +154,7 @@ export function ThemeSettings() {
             onClick={() => setTheme(key)}
             className={`cursor-pointer rounded-[6px] transition-all duration-150 ${
               theme === key
-                ? "ring-offset-background ring-2 ring-[#6B97FF] ring-offset-[1.5px]"
+                ? "ring-offset-background ring-2 ring-[var(--highlight-hovered)] ring-offset-[1.5px]"
                 : "ring-offset-background hover:ring-muted-foreground/40 hover:ring-2 hover:ring-offset-[1.5px]"
             }`}>
             <Icon />
