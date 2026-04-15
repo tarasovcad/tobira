@@ -14,4 +14,8 @@ export default defineConfig({
       origin: "http://localhost:3001",
     },
   },
+  manifest: {
+    permissions: ["cookies", "storage"],
+    host_permissions: ["*://*.x.com/*", "*://*.twitter.com/*"],
+  },
 });
