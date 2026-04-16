@@ -1,12 +1,24 @@
 "use client";
 
-import {useState} from "react";
+import {useMemo, useState} from "react";
 
-import {Alert, AlertDescription} from "@/components/coss-ui/alert";
-import {Checkbox} from "@/components/coss-ui/checkbox";
-import {Label} from "@/components/coss-ui/label";
+import {SearchIcon} from "lucide-react";
+import {useCollectionsQuery} from "@/app/home/_hooks/use-home-metadata-query";
+import {
+  Combobox,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxPopup,
+  ComboboxTrigger,
+  ComboboxValue,
+} from "@/components/coss-ui/combobox";
+import {Select as ComboboxSelect, SelectButton} from "@/components/coss-ui/select";
 import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
-import {Switch} from "@/components/coss-ui/switch";
+import {Switch} from "@/components/ui/switch";
+import {Separator} from "@/components/shadcn/separator";
+import TagsInput from "@/components/ui/TagsInput";
 
 type SyncMode = "automatic" | "once";
 type ImportRange = "all" | "recent";
@@ -21,6 +33,9 @@ interface PreferencesState {
   includeReplies: boolean;
   saveAsPrivate: boolean;
   notifyOnCompletion: boolean;
+  skipDuplicates: boolean;
+  autoTagImports: string[];
+  defaultCollectionId: string | null;
 }
 
 const DEFAULT_PREFERENCES: PreferencesState = {
@@ -32,9 +47,12 @@ const DEFAULT_PREFERENCES: PreferencesState = {
   includeReplies: true,
   saveAsPrivate: true,
   notifyOnCompletion: true,
+  skipDuplicates: true,
+  autoTagImports: [],
+  defaultCollectionId: null,
 };
 
-export default function PreferencesSyncStep() {
+export default function PreferencesSyncStep({userId}: {userId?: string | null}) {
   const [preferences, setPreferences] = useState<PreferencesState>(DEFAULT_PREFERENCES);
 
   const setPreference = <K extends keyof PreferencesState>(key: K, value: PreferencesState[K]) => {
@@ -44,187 +62,171 @@ export default function PreferencesSyncStep() {
     }));
   };
 
+  const {data: collections = []} = useCollectionsQuery({userId, enabled: !!userId});
+
+  const collectionItems = useMemo(
+    () => collections.map((c) => ({label: c.name, value: c.id})),
+    [collections],
+  );
+
+  const selectedCollection = useMemo(
+    () => collectionItems.find((ci) => ci.value === preferences.defaultCollectionId) ?? null,
+    [collectionItems, preferences.defaultCollectionId],
+  );
+
   return (
-    <div className="flex flex-col gap-4 px-6 pb-2">
-      <p className="text-secondary text-sm leading-relaxed">
-        Choose how Tobira should handle your X bookmarks after the extension connects. You can
-        change these preferences later in settings.
-      </p>
+    <div className="flex flex-col">
+      <div className="px-6 pb-6">
+        <p className="text-secondary text-sm leading-relaxed">
+          Choose how Tobira should handle your X bookmarks after the extension connects. You can
+          change these preferences later in settings.
+        </p>
+      </div>
 
-      <div className="border-border bg-card overflow-hidden rounded-[10px] border">
-        <div className="divide-border divide-y">
-          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="max-w-sm">
-              <p className="text-foreground text-sm font-[550]">Sync mode</p>
-              <p className="text-secondary mt-1 text-sm">
-                Import your current bookmarks once, or keep Tobira updated as new ones appear.
-              </p>
-            </div>
-            <Select
-              value={preferences.syncMode}
-              onValueChange={(value) => setPreference("syncMode", value as SyncMode)}>
-              <SelectTrigger aria-label="Choose sync mode" size="sm" className="w-full sm:w-56">
-                <span className="flex-1 truncate">{getSyncModeLabel(preferences.syncMode)}</span>
-              </SelectTrigger>
-              <SelectPopup>
-                <SelectItem value="automatic">Keep synced automatically</SelectItem>
-                <SelectItem value="once">Import once</SelectItem>
-              </SelectPopup>
-            </Select>
-          </div>
+      <Separator />
 
-          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="max-w-sm">
-              <p className="text-foreground text-sm font-[550]">Import range</p>
-              <p className="text-secondary mt-1 text-sm">
-                Pull everything on the first run, or start with a lighter recent-only import.
-              </p>
-            </div>
-            <Select
-              value={preferences.importRange}
-              onValueChange={(value) => setPreference("importRange", value as ImportRange)}>
-              <SelectTrigger aria-label="Choose import range" size="sm" className="w-full sm:w-48">
-                <span className="flex-1 truncate">
-                  {getImportRangeLabel(preferences.importRange)}
-                </span>
-              </SelectTrigger>
-              <SelectPopup>
-                <SelectItem value="all">All bookmarks</SelectItem>
-                <SelectItem value="recent">Recent bookmarks only</SelectItem>
-              </SelectPopup>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="max-w-sm">
-              <p className="text-foreground text-sm font-[550]">Removed bookmark behavior</p>
-              <p className="text-secondary mt-1 text-sm">
-                Decide what happens in Tobira if a bookmark disappears from X later on.
-              </p>
-            </div>
-            <Select
-              value={preferences.deletedItemBehavior}
-              onValueChange={(value) =>
-                setPreference("deletedItemBehavior", value as DeletedItemBehavior)
-              }>
-              <SelectTrigger
-                aria-label="Choose removed bookmark behavior"
-                size="sm"
-                className="w-full sm:w-56">
-                <span className="flex-1 truncate">
-                  {getDeletedItemBehaviorLabel(preferences.deletedItemBehavior)}
-                </span>
-              </SelectTrigger>
-              <SelectPopup>
-                <SelectItem value="keep">Keep archived in Tobira</SelectItem>
-                <SelectItem value="remove">Remove from Tobira</SelectItem>
-              </SelectPopup>
-            </Select>
-          </div>
+      <div className="px-6 py-5">
+        <div className="text-foreground text-[15px] font-[550]">Sync mode</div>
+        <p className="text-secondary mt-1 text-sm">
+          Import your current bookmarks once, or keep Tobira updated as new ones appear.
+        </p>
+        <div className="mt-3">
+          <Select
+            value={preferences.syncMode}
+            onValueChange={(value) => setPreference("syncMode", value as SyncMode)}>
+            <SelectTrigger aria-label="Choose sync mode" className="w-full">
+              <span className="flex-1 truncate">{getSyncModeLabel(preferences.syncMode)}</span>
+            </SelectTrigger>
+            <SelectPopup alignItemWithTrigger={false}>
+              <SelectItem value="automatic">Keep synced automatically</SelectItem>
+              <SelectItem value="once">Import once</SelectItem>
+            </SelectPopup>
+          </Select>
         </div>
       </div>
 
-      <div className="border-border bg-card rounded-[10px] border p-4">
-        <div className="mb-3">
-          <p className="text-foreground text-sm font-[550]">Include in sync</p>
-          <p className="text-secondary mt-1 text-sm">
-            Pick which parts of each bookmarked post Tobira should save alongside the post itself.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <Label className="flex items-start gap-3 text-left">
-            <Checkbox
-              checked={preferences.includeMedia}
-              onCheckedChange={(checked) => setPreference("includeMedia", checked === true)}
-            />
-            <span className="flex-1">
-              <span className="text-foreground block text-sm font-[550]">Media attachments</span>
-              <span className="text-secondary mt-1 block text-sm font-normal">
-                Save images and media metadata with each imported bookmark.
+      <div className="px-6 py-5">
+        <div className="text-foreground text-[15px] font-[550]">Import range</div>
+        <p className="text-secondary mt-1 text-sm">
+          Pull everything on the first run, or start with a lighter recent-only import.
+        </p>
+        <div className="mt-3">
+          <Select
+            value={preferences.importRange}
+            disabled
+            onValueChange={(value) => setPreference("importRange", value as ImportRange)}>
+            <SelectTrigger aria-label="Choose import range" className="w-full">
+              <span className="flex-1 truncate">
+                {getImportRangeLabel(preferences.importRange)}
               </span>
-            </span>
-          </Label>
-
-          <Label className="flex items-start gap-3 text-left">
-            <Checkbox
-              checked={preferences.includeLinks}
-              onCheckedChange={(checked) => setPreference("includeLinks", checked === true)}
-            />
-            <span className="flex-1">
-              <span className="text-foreground block text-sm font-[550]">Outbound links</span>
-              <span className="text-secondary mt-1 block text-sm font-normal">
-                Capture URLs attached to posts so linked articles and resources stay searchable.
-              </span>
-            </span>
-          </Label>
-
-          <Label className="flex items-start gap-3 text-left">
-            <Checkbox
-              checked={preferences.includeReplies}
-              onCheckedChange={(checked) => setPreference("includeReplies", checked === true)}
-            />
-            <span className="flex-1">
-              <span className="text-foreground block text-sm font-[550]">
-                Quoted and replied context
-              </span>
-              <span className="text-secondary mt-1 block text-sm font-normal">
-                Preserve surrounding conversation context when it is available.
-              </span>
-            </span>
-          </Label>
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="all">All bookmarks</SelectItem>
+              <SelectItem value="recent">Recent bookmarks only</SelectItem>
+            </SelectPopup>
+          </Select>
         </div>
       </div>
 
-      <div className="border-border bg-card overflow-hidden rounded-[10px] border">
-        <div className="px-4 pt-4 pb-1">
-          <p className="text-foreground text-sm font-[550]">After import</p>
-          <p className="text-secondary mt-1 text-sm">
-            A couple of defaults that make the first sync easier to manage.
-          </p>
-        </div>
-
-        <div className="divide-border divide-y">
-          <Label className="flex w-full items-start justify-between gap-4 px-4 py-3.5 text-left">
-            <span className="pr-4">
-              <span className="text-foreground block text-sm font-[550]">
-                Save imported items as private
+      <div className="px-6 py-5">
+        <div className="text-foreground text-[15px] font-[550]">Removed bookmark behavior</div>
+        <p className="text-secondary mt-1 text-sm">
+          Decide what happens in Tobira if a bookmark disappears from X later on.
+        </p>
+        <div className="mt-3">
+          <Select
+            value={preferences.deletedItemBehavior}
+            disabled
+            onValueChange={(value) =>
+              setPreference("deletedItemBehavior", value as DeletedItemBehavior)
+            }>
+            <SelectTrigger aria-label="Choose removed bookmark behavior" className="w-full">
+              <span className="flex-1 truncate">
+                {getDeletedItemBehaviorLabel(preferences.deletedItemBehavior)}
               </span>
-              <span className="text-secondary mt-1 block text-sm font-normal">
-                Keep synced bookmarks visible only to you by default.
-              </span>
-            </span>
-            <Switch
-              checked={preferences.saveAsPrivate}
-              onCheckedChange={(checked) => setPreference("saveAsPrivate", checked)}
-              aria-label="Save imported items as private"
-            />
-          </Label>
-
-          <Label className="flex w-full items-start justify-between gap-4 px-4 py-3.5 text-left">
-            <span className="pr-4">
-              <span className="text-foreground block text-sm font-[550]">
-                Notify when first sync finishes
-              </span>
-              <span className="text-secondary mt-1 block text-sm font-normal">
-                Get a completion message once Tobira has finished pulling in your bookmarks.
-              </span>
-            </span>
-            <Switch
-              checked={preferences.notifyOnCompletion}
-              onCheckedChange={(checked) => setPreference("notifyOnCompletion", checked)}
-              aria-label="Notify when first sync finishes"
-            />
-          </Label>
+            </SelectTrigger>
+            <SelectPopup alignItemWithTrigger={false}>
+              <SelectItem value="keep">Keep archived in Tobira</SelectItem>
+              <SelectItem value="remove">Remove from Tobira</SelectItem>
+            </SelectPopup>
+          </Select>
         </div>
       </div>
 
-      <Alert>
-        <AlertDescription>
-          These are onboarding defaults only. You can change them later without reconnecting your X
-          account.
-        </AlertDescription>
-      </Alert>
+      <Separator />
+
+      <div className="px-6 py-5">
+        <div className="text-foreground text-[15px] font-[550]">Skip duplicates</div>
+        <p className="text-secondary mt-1 text-sm">
+          Don&apos;t import bookmarks already saved in Tobira.
+        </p>
+        <div className="mt-3">
+          <Switch
+            checked={preferences.skipDuplicates}
+            onToggle={() => setPreference("skipDuplicates", !preferences.skipDuplicates)}
+            aria-label="Skip duplicates"
+            className="hit-area-5 w-fit px-0 py-0"
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="px-6 py-5">
+        <div className="text-foreground text-[15px] font-[550]">Auto-tag imports</div>
+        <p className="text-secondary mt-1 text-sm">
+          These tags will be applied to all imported bookmarks.
+        </p>
+        <div className="mt-3">
+          <TagsInput
+            value={preferences.autoTagImports}
+            onValueChange={(tags) => setPreference("autoTagImports", tags)}
+            placeholder="Add tag..."
+            aiEnabled={false}
+            labelClassName="hidden"
+            containerClassName="max-w-full gap-3"
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="px-6 py-5">
+        <div className="text-foreground text-[15px] font-[550]">Default collection</div>
+        <p className="text-secondary mt-1 text-sm">
+          All imported X bookmarks will be added to this collection.
+        </p>
+        <div className="mt-3">
+          <Combobox
+            items={collectionItems}
+            value={selectedCollection}
+            onValueChange={(val) => setPreference("defaultCollectionId", val?.value ?? null)}>
+            <ComboboxSelect>
+              <ComboboxTrigger render={<SelectButton />}>
+                <ComboboxValue placeholder="Select a collection" />
+              </ComboboxTrigger>
+            </ComboboxSelect>
+            <ComboboxPopup aria-label="Select a collection" className="w-(--anchor-width)">
+              <div className="border-b p-2">
+                <ComboboxInput
+                  className="rounded-md before:rounded-[calc(var(--radius-md)-1px)]"
+                  placeholder="Search collections..."
+                  showTrigger={false}
+                  startAddon={<SearchIcon className="size-4" />}
+                />
+              </div>
+              <ComboboxEmpty>No collections found.</ComboboxEmpty>
+              <ComboboxList>
+                {(ci) => (
+                  <ComboboxItem key={ci.value} value={ci}>
+                    {ci.label}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxPopup>
+          </Combobox>
+        </div>
+      </div>
     </div>
   );
 }

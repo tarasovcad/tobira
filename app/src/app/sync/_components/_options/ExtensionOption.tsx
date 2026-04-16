@@ -24,7 +24,6 @@ const getInitials = (value: string) =>
 
 export const ExtensionOption = ({connectionStatus, onVerify, onReVerify}: ExtensionOptionProps) => {
   const extensionError = useExtensionConnectionStore((state) => state.error);
-  const extensionPresence = useExtensionConnectionStore((state) => state.presence);
   const extensionUser = useExtensionConnectionStore((state) => state.user);
   const avatarAlt = extensionUser ? `${extensionUser.name} avatar` : "X profile avatar";
   const avatarFallback = extensionUser

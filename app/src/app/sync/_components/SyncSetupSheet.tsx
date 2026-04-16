@@ -19,11 +19,12 @@ import {SetupStepper, type SetupStep} from "./SetupStepper";
 import {ConnectSyncStep} from "./ConnectSyncStep";
 import PreferencesSyncStep from "./PreferencesSyncStep";
 import AboutSyncStep from "./AboutSyncStep";
+import ReviewSyncStep from "./ReviewSyncStep";
 
-export default function SyncSetupSheet() {
+export default function SyncSetupSheet({userId}: {userId?: string | null}) {
   const {isOpen, setIsOpen, provider} = useSyncSetupStore();
   const extensionUser = useExtensionConnectionStore((state) => state.user);
-  const [currentStep, setCurrentStep] = useState<SetupStep>(1);
+  const [currentStep, setCurrentStep] = useState<SetupStep>(3);
 
   const cancelButtonText = ["Cancel", "Back", "Back", "Back"];
   const handleSubmitButtonText = ["Connect", "Next", "Next", "Finish"];
@@ -48,17 +49,18 @@ export default function SyncSetupSheet() {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetPopup>
         <Form className="contents">
-          <SheetHeader>
+          <SheetHeader className="border-border border-b">
             <SheetTitle>{provider?.name} setup</SheetTitle>
             <SheetDescription>Step {currentStep} of 4</SheetDescription>
           </SheetHeader>
           <SheetPanel className="flex flex-col gap-6 p-0">
-            <div className="border-border border-y">
+            <div className="border-border border-b">
               <SetupStepper currentStep={currentStep} />
             </div>
             {currentStep === 1 && <AboutSyncStep />}
             {currentStep === 2 && <ConnectSyncStep />}
-            {currentStep === 3 && <PreferencesSyncStep />}
+            {currentStep === 3 && <PreferencesSyncStep userId={userId} />}
+            {currentStep === 4 && <ReviewSyncStep />}
           </SheetPanel>
           <SheetFooter>
             <Button variant="ghost" onClick={handleCancelButton}>

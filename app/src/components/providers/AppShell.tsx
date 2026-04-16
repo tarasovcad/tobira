@@ -40,7 +40,7 @@ const AppShell = ({
       <DeleteCollectionDialog />
       <DeleteTagDialog />
       <TagDialog />
-      <SyncSetupSheet />
+      <SyncSetupSheet userId={session?.user?.id} />
     </main>
   );
 };
