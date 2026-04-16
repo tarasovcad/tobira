@@ -4,7 +4,7 @@ import React, {useSyncExternalStore} from "react";
 import {cn} from "@/lib/utils";
 import {useTheme} from "next-themes";
 
-/* â”€â”€â”€ Light theme preview icon â”€â”€â”€ */
+/* Light theme preview icon */
 function LightThemeIcon() {
   return (
     <div className="h-[67px] w-[118px] overflow-hidden rounded-[6px] border border-[#D3D3D3] bg-[#E5E5E5] pt-[8px] pl-[8px]">
@@ -49,7 +49,7 @@ function LightThemeIcon() {
   );
 }
 
-/* â”€â”€â”€ Dark theme preview icon â”€â”€â”€ */
+/* Dark theme preview icon */
 function DarkThemeIcon({removeLeftRounded}: {removeLeftRounded?: boolean}) {
   return (
     <div
@@ -99,7 +99,7 @@ function DarkThemeIcon({removeLeftRounded}: {removeLeftRounded?: boolean}) {
   );
 }
 
-/* â”€â”€â”€ Auto (split) theme preview icon â”€â”€â”€ */
+/* Auto (split) theme preview icon */
 function AutoThemeIcon() {
   return (
     <div className="relative h-[67px] w-[118px] overflow-hidden rounded-[6px]">

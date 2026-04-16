@@ -36,7 +36,7 @@ export type TagsInputProps = {
   labelClassName?: string;
   containerClassName?: string;
   sourceUrl?: string;
-  itemType?: "website" | "media" | "article";
+  itemType?: "website" | "media" | "article" | "post";
   aiEnabled?: boolean;
 };
 

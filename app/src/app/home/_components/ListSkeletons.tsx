@@ -65,6 +65,26 @@ export function GridSkeleton({borderRadiusClass = "rounded-md"}: {borderRadiusCl
   );
 }
 
+export function PostSkeleton() {
+  return (
+    <div className="border-border flex flex-col gap-4 border-b px-4 py-3">
+      <div className="flex items-center gap-2">
+        <div className="bg-muted size-10 animate-pulse rounded-full" />
+        <div className="flex flex-col gap-1.5">
+          <div className="bg-muted h-[15px] w-28 animate-pulse rounded" />
+          <div className="bg-muted h-[13px] w-20 animate-pulse rounded" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="bg-muted h-[15px] w-full animate-pulse rounded" />
+        <div className="bg-muted h-[15px] w-4/5 animate-pulse rounded" />
+        <div className="bg-muted h-[15px] w-3/5 animate-pulse rounded" />
+      </div>
+      <div className="bg-muted h-44 w-full animate-pulse rounded-[16px]" />
+    </div>
+  );
+}
+
 export function MediaSkeleton({
   index,
   borderRadiusClass = "rounded-md",

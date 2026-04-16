@@ -9,6 +9,7 @@ import type {Bookmark} from "@/components/bookmark/types";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmarkCreation} from "@/lib/bookmarks/media";
+import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
 import {syncBookmarkCollection} from "@/lib/bookmarks/collections";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
@@ -27,6 +28,12 @@ export type AddMediaBookmarkResult = {
   url: string;
   media?: string[];
   ids?: string[];
+};
+
+export type AddPostBookmarkResult = {
+  ok: true;
+  url: string;
+  id: string;
 };
 
 export type UpdateBookmarkData = {
@@ -158,6 +165,49 @@ export async function addMediaBookmark(input: {
     media: prepared.mediaUrls,
     ids: prepared.bookmarkIds,
   };
+}
+
+export async function addPostBookmark(input: {
+  url: string;
+  tags?: string[];
+  collectionId?: string;
+  kind: "post";
+}): Promise<AddPostBookmarkResult> {
+  const userId = await requireAuthenticatedUserId();
+
+  const prepared = await preparePostBookmarkCreation({url: input.url, userId});
+
+  await db.insert(bookmarks).values({
+    id: prepared.bookmarkId,
+    url: prepared.url,
+    title: null,
+    description: null,
+    userId,
+    kind: "post",
+    previewImage: prepared.previewImage,
+    metadata: prepared.metadata,
+  });
+
+  if (input.tags && input.tags.length > 0) {
+    try {
+      await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags);
+    } catch (error) {
+      console.error("Failed to attach tags to post bookmark:", error);
+    }
+  }
+
+  if (input.collectionId) {
+    try {
+      await db.insert(bookmarkCollections).values({
+        bookmarkId: prepared.bookmarkId,
+        collectionId: input.collectionId,
+      });
+    } catch (error) {
+      console.error("Failed to attach post bookmark to collection:", error);
+    }
+  }
+
+  return {ok: true, url: prepared.url, id: prepared.bookmarkId};
 }
 
 export async function updateBookmark(

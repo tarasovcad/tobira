@@ -22,7 +22,7 @@ const openaiClient = new OpenAI({
 
 export type GenerateAiSuggestionsInput = {
   url: string;
-  type: "website" | "media" | "article";
+  type: "website" | "media" | "article" | "post";
   existingTags?: string[];
   userTags?: string[];
   userAiContext?: string | null;

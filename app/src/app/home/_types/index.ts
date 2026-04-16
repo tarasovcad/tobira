@@ -1,6 +1,6 @@
 import type {Bookmark} from "@/components/bookmark/types";
 
-export type TypeFilter = "website" | "media";
+export type TypeFilter = "website" | "media" | "post";
 export type SortMode = "recent" | "oldest" | "az";
 export type {BookmarkMetadata} from "./bookmark-metadata";
 

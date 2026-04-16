@@ -91,8 +91,17 @@ export function AllItemsList({
         gridColsClass,
         isMediaGrid,
         bookmarkWidth,
+        typeFilter,
       }),
-    [borderRadiusClass, currentView, gapClass, gridColsClass, isMediaGrid, bookmarkWidth],
+    [
+      borderRadiusClass,
+      currentView,
+      gapClass,
+      gridColsClass,
+      isMediaGrid,
+      bookmarkWidth,
+      typeFilter,
+    ],
   );
 
   const skeletonCount = 12;

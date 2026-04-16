@@ -1,0 +1,304 @@
+"use client";
+
+import * as React from "react";
+import {useState} from "react";
+import Link from "next/link";
+import Image from "next/image";
+import {cn} from "@/lib/utils";
+import MediaPreview from "@/components/ui/MediaPreview";
+import {BookmarkHoverActions} from "./BookmarkHoverActions";
+import {BookmarkSelectionControl} from "./BookmarkSelectionControl";
+import type {BookmarkItemProps} from "./bookmark-item-props";
+import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+
+type PostMediaItem = PostBookmarkMetadata["media_extended"][number];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatRelativeDate(epoch: number): string {
+  const now = Date.now() / 1000;
+  const diff = now - epoch;
+  if (diff < 60) return `${Math.floor(diff)}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  const d = new Date(epoch * 1000);
+  return d.toLocaleDateString("en-US", {month: "short", day: "numeric"});
+}
+
+function formatFullDate(epoch: number): string {
+  const d = new Date(epoch * 1000);
+  const time = d
+    .toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit", hour12: true})
+    .toUpperCase();
+  const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
+  return `${time} · ${date}`;
+}
+
+function mediaThumbnail(m: PostMediaItem): string {
+  return m.thumbnail_url ?? m.url;
+}
+
+function renderText(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      const displayUrl = part.replace(/^https?:\/\//, "").replace(/\/$/, "");
+      return (
+        <Link
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#1D9BF0] hover:underline"
+          onClick={(e) => e.stopPropagation()}>
+          {displayUrl}
+        </Link>
+      );
+    }
+    return part;
+  });
+}
+
+// ── Media grid ────────────────────────────────────────────────────────────────
+
+function MediaGrid({media}: {media: PostMediaItem[]}) {
+  if (!media.length) return null;
+
+  const count = Math.min(media.length, 4);
+  const items = media.slice(0, count);
+
+  let containerAspect = 1.777;
+  if (count === 1) {
+    const img = items[0];
+    const w = img.size?.width ?? 1;
+    const h = img.size?.height ?? 1;
+    containerAspect = Math.max(0.8, Math.min(2.0, w / h));
+  }
+
+  return (
+    <div
+      className="bg-muted/30 dark:border-border mt-3 overflow-hidden rounded-[16px] border border-[#CFD9DE]"
+      style={{
+        aspectRatio: containerAspect,
+        maxHeight: count === 1 ? 512 : undefined,
+      }}>
+      <div
+        className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
+        {items.map((m, i) => {
+          const isFirstOfThree = count === 3 && i === 0;
+          const isVideo = m.type === "video" || m.type === "gif";
+          return (
+            <div
+              key={m.url}
+              className={cn(
+                "bg-muted relative h-full w-full overflow-hidden",
+                isFirstOfThree && "row-span-2",
+              )}>
+              <MediaPreview
+                src={m.url}
+                alt={m.altText ?? ""}
+                width={m.size?.width ?? 1200}
+                height={m.size?.height ?? 1200}
+                poster={mediaThumbnail(m)}
+                type={isVideo ? "video" : "image"}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Quoted post ───────────────────────────────────────────────────────────────
+
+function QuotedPost({qrt}: {qrt: NonNullable<PostBookmarkMetadata["qrt"]>}) {
+  const firstMedia = qrt.hasMedia && qrt.media_extended.length ? qrt.media_extended[0] : null;
+
+  return (
+    <div className="border-border hover:bg-muted/40 mt-3 rounded-2xl border p-3 transition-colors">
+      <div className="flex items-center gap-2">
+        <div className="bg-muted ring-border h-5 w-5 shrink-0 overflow-hidden rounded-full ring-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={qrt.user_profile_image_url}
+            alt={qrt.user_name}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <span className="text-foreground truncate text-[14px] font-semibold">{qrt.user_name}</span>
+        <span className="text-muted-foreground shrink-0 text-[13px]">@{qrt.user_screen_name}</span>
+        <span className="text-muted-foreground shrink-0">·</span>
+      </div>
+
+      <p className="text-foreground mt-1.5 line-clamp-4 text-[14px] leading-normal whitespace-pre-wrap">
+        {renderText(qrt.text)}
+      </p>
+
+      {firstMedia &&
+        (() => {
+          const isVideo = firstMedia.type === "video" || firstMedia.type === "gif";
+          const w = firstMedia.size?.width ?? 1;
+          const h = firstMedia.size?.height ?? 1;
+          const aspect = Math.max(0.5, Math.min(2, w / h));
+          return (
+            <div
+              className="mt-2 overflow-hidden rounded-xl"
+              style={{aspectRatio: aspect, maxHeight: 192}}>
+              <MediaPreview
+                src={firstMedia.url}
+                alt={firstMedia.altText ?? ""}
+                width={firstMedia.size?.width ?? 1200}
+                height={firstMedia.size?.height ?? 1200}
+                poster={mediaThumbnail(firstMedia)}
+                type={isVideo ? "video" : "image"}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          );
+        })()}
+    </div>
+  );
+}
+
+// ── Main card ─────────────────────────────────────────────────────────────────
+
+const MAX_LENGTH = 280;
+
+function BookmarkPostCardImpl({
+  item,
+  onOpenMenu,
+  className,
+  selectionIndex = 0,
+  isSelected = false,
+  setSelected,
+}: BookmarkItemProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const meta = item.metadata as PostBookmarkMetadata | undefined;
+
+  if (!meta || meta.platform !== "x") {
+    return (
+      <div className={cn("text-muted-foreground border-b px-4 py-3 text-sm", className)}>
+        Post data unavailable
+      </div>
+    );
+  }
+
+  const replyingTo = null;
+  const cleanText = meta.text ?? "";
+  const isLongText = cleanText.length > MAX_LENGTH;
+  const displayedText = (() => {
+    if (isExpanded || !isLongText) return cleanText;
+    const truncated = cleanText.slice(0, MAX_LENGTH);
+    const lastSpace = truncated.lastIndexOf(" ");
+    return lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated;
+  })();
+
+  return (
+    <article
+      className={cn(
+        "border-border relative flex flex-col gap-[14px] border-b px-4 py-3 transition-colors",
+        "hover:bg-muted/40",
+        isSelected && "bg-muted/60",
+        className,
+      )}>
+      {/* Hover actions */}
+      <BookmarkHoverActions
+        className="top-3 right-3"
+        onOptions={(e) => {
+          e.stopPropagation();
+          onOpenMenu?.(item);
+        }}
+      />
+
+      {/* Selection control */}
+      <BookmarkSelectionControl
+        itemId={item.id}
+        title={meta.user_name}
+        checked={isSelected}
+        selectionIndex={selectionIndex}
+        onCheckedChange={setSelected}
+        paddingClassName="absolute left-4 top-4"
+      />
+
+      {/* Author row */}
+      <Link
+        href={`https://x.com/${meta.user_screen_name}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="group/author flex w-fit cursor-pointer items-center gap-2">
+        <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
+          <Image
+            src={meta.user_profile_image_url}
+            alt={meta.user_name}
+            width={40}
+            height={40}
+            className="h-full w-full object-cover transition-all group-hover/author:brightness-95"
+            unoptimized
+          />
+        </div>
+        <div className="flex items-center gap-[6px]">
+          <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[20px]">
+            <span className="text-foreground truncate font-semibold group-hover/author:underline">
+              {meta.user_name}
+            </span>
+            <span className="text-muted-foreground shrink-0">@{meta.user_screen_name}</span>
+          </div>
+        </div>
+      </Link>
+
+      {/* Content */}
+      <div className="min-w-0 flex-1 space-y-[14px]">
+        {/* Replying-to label */}
+        {replyingTo && (
+          <p className="text-muted-foreground text-[14px]">
+            Replying to{" "}
+            <Link
+              href={`https://x.com/${replyingTo}`}
+              target="_blank"
+              onClick={(e) => e.stopPropagation()}
+              className="text-[#1D9BF0] hover:underline">
+              @{replyingTo}
+            </Link>
+          </p>
+        )}
+
+        {/* Tweet text */}
+        <div>
+          <p className="text-foreground text-[15px] whitespace-pre-wrap">
+            {renderText(displayedText)}
+          </p>
+          {!isExpanded && isLongText && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(true)}
+              className="cursor-pointer text-[15px] text-[#1D9BF0] hover:underline focus:outline-none">
+              Show more
+            </button>
+          )}
+        </div>
+
+        {/* Media */}
+        {meta.hasMedia && meta.media_extended.length > 0 && (
+          <MediaGrid media={meta.media_extended} />
+        )}
+
+        {/* Quoted post */}
+        {meta.qrt && <QuotedPost qrt={meta.qrt} />}
+
+        {/* Timestamp + link to original */}
+        <div className="flex items-center gap-3 text-[14px] text-[#536471]">
+          {formatFullDate(meta.date_epoch)}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export const BookmarkPostCard = React.memo(BookmarkPostCardImpl);

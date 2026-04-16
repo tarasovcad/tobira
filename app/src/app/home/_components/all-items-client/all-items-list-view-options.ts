@@ -16,6 +16,8 @@ export function getAllItemsAllowedViews(typeFilter: TypeFilter): readonly AllIte
       return ALL_ITEMS_SUPPORTED_VIEWS;
     case "media":
       return ["grid"];
+    case "post":
+      return ["list"];
   }
 }
 
@@ -43,6 +45,8 @@ export function getNextAllItemsView(view: ViewMode, typeFilter: TypeFilter): All
   switch (typeFilter) {
     case "media":
       return "grid";
+    case "post":
+      return "list";
     case "website":
       switch (currentView) {
         case "list":

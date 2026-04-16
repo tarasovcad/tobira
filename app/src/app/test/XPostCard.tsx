@@ -146,7 +146,7 @@ function MediaGrid({media}: {media: XMediaItem[]}) {
 
   return (
     <div
-      className="bg-muted/30 hover:bg-muted/50 mt-3 cursor-pointer overflow-hidden rounded-[16px] border border-[#CFD9DE] transition-colors"
+      className="bg-muted/30 mt-3 overflow-hidden rounded-[16px] border border-[#CFD9DE]"
       style={{
         aspectRatio: containerAspect,
         maxHeight: count === 1 ? 512 : undefined,
@@ -184,8 +184,7 @@ function MediaGrid({media}: {media: XMediaItem[]}) {
 // ── Quoted tweet ─────────────────────────────────────────────────────────────
 
 function QuotedTweet({post}: {post: XPost}) {
-  const thumb =
-    post.hasMedia && post.media_extended.length ? mediaThumbnail(post.media_extended[0]) : null;
+  const firstMedia = post.hasMedia && post.media_extended.length ? post.media_extended[0] : null;
 
   return (
     <div className="border-border hover:bg-muted/40 mt-3 rounded-2xl border p-3 transition-colors">
@@ -212,24 +211,29 @@ function QuotedTweet({post}: {post: XPost}) {
         {renderText(post.text)}
       </p>
 
-      {/* Thumbnail */}
-      {thumb && post.media_extended.length > 0 && (
-        <div className="mt-2 overflow-hidden rounded-xl">
-          <MediaPreview
-            src={post.media_extended[0].url}
-            alt=""
-            width={post.media_extended[0].size.width}
-            height={post.media_extended[0].size.height}
-            poster={thumb}
-            type={
-              post.media_extended[0].type === "video" || post.media_extended[0].type === "gif"
-                ? "video"
-                : "image"
-            }
-            className="max-h-48 w-full object-cover"
-          />
-        </div>
-      )}
+      {/* Media — aspect-ratio container so videos have a defined height */}
+      {firstMedia &&
+        (() => {
+          const isVideo = firstMedia.type === "video" || firstMedia.type === "gif";
+          const aspect = Math.max(0.5, Math.min(2, firstMedia.size.width / firstMedia.size.height));
+          return (
+            <div
+              className="mt-2 overflow-hidden rounded-xl"
+              style={{aspectRatio: aspect, maxHeight: 192}}>
+              <MediaPreview
+                src={firstMedia.url}
+                alt={firstMedia.altText ?? ""}
+                width={firstMedia.size.width}
+                height={firstMedia.size.height}
+                poster={mediaThumbnail(firstMedia)}
+                type={isVideo ? "video" : "image"}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+              https://pub-37dc11bd0a0647d296d3cfa6eacbf787.r2.dev/media/109d8c03-d414-4ea1-aba8-989c5d391b89/media.mp4
+            </div>
+          );
+        })()}
     </div>
   );
 }

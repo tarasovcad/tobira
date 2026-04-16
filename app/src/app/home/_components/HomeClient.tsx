@@ -62,11 +62,11 @@ export function HomeClient({
       serverFilters.sortFilter === sort
     : false;
 
-  // â”€â”€ View & filter state â”€â”€
+  // View & filter state
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
 
-  // â”€â”€ Query Hook â”€â”€
+  // Query Hook
   const {bookmarksQuery, allBookmarks, activeCollection, activeTag, isInitialLoad} =
     useBookmarksQuery({
       userId,
@@ -79,7 +79,7 @@ export function HomeClient({
       isServerDataMatching,
     });
 
-  // â”€â”€ Mutation Hook â”€â”€
+  // Mutation Hook
   const {
     removingIds,
     handleItemRemoved,
@@ -95,7 +95,7 @@ export function HomeClient({
     allBookmarks,
   });
 
-  // â”€â”€ Derived visible items â”€â”€
+  // Derived visible items
   const visibleItems = useMemo(() => {
     if (allBookmarks.length === 0) return [];
 
@@ -109,7 +109,7 @@ export function HomeClient({
     });
   }, [allBookmarks, removingIds, resolvedBookmarks]);
 
-  // â”€â”€ Selection Hook â”€â”€
+  // Selection Hook
   const {
     selectionMode,
     selectedIds,
@@ -123,7 +123,7 @@ export function HomeClient({
     handleCopySelected,
   } = useBookmarksSelection(visibleItems, allBookmarks);
 
-  // â”€â”€ Keyboard shortcuts â”€â”€
+  // Keyboard shortcuts
   useHomeShortcuts({
     selectionMode,
     handleClearSelection,
@@ -132,7 +132,7 @@ export function HomeClient({
     setView,
   });
 
-  // â”€â”€ Dialogs â”€â”€
+  // Dialogs
   const {openDeleteDialog, handleDeleteSelected} = useHomeDialogs({
     allBookmarks,
     selectedIds,
@@ -140,7 +140,7 @@ export function HomeClient({
   });
   const closeMenu = useBookmarkMenuStore((state) => state.closeMenu);
 
-  // â”€â”€ Refs for infinite scroll â”€â”€
+  // Refs for infinite scroll
   const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
   const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -230,7 +230,7 @@ export function HomeClient({
         />
       )}
 
-      {/* â”€â”€ Floating selection action bar â”€â”€ */}
+      {/* Floating selection action bar */}
       <SelectionActionBar
         visible={selectionMode && selectedCount > 0}
         selectedCount={selectedCount}

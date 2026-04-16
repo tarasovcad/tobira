@@ -26,8 +26,10 @@ import {
 import {
   addWebsiteBookmark,
   addMediaBookmark,
+  addPostBookmark,
   type AddWebsiteBookmarkResult,
   type AddMediaBookmarkResult,
+  type AddPostBookmarkResult,
 } from "@/app/actions/bookmarks";
 import TagsInput from "../ui/TagsInput";
 import {Label} from "../coss-ui/label";
@@ -115,7 +117,7 @@ export function AddItemDialog({
   const watchedType = useWatch({control, name: "type"});
 
   const addItemMutation = useMutation<
-    AddWebsiteBookmarkResult | AddMediaBookmarkResult,
+    AddWebsiteBookmarkResult | AddMediaBookmarkResult | AddPostBookmarkResult,
     Error,
     | {url: string; tags: string[]; collectionId?: string; kind: "website"}
     | {
@@ -125,6 +127,7 @@ export function AddItemDialog({
         kind: "media";
         selectedMediaUrls?: string[];
       }
+    | {url: string; tags: string[]; collectionId?: string; kind: "post"}
   >({
     mutationKey: ["add-bookmark"],
     mutationFn: async (input) => {
@@ -132,6 +135,8 @@ export function AddItemDialog({
         return await addWebsiteBookmark(input);
       } else if (input.kind === "media") {
         return await addMediaBookmark(input);
+      } else if (input.kind === "post") {
+        return await addPostBookmark(input);
       }
       throw new Error("Invalid kind");
     },
@@ -196,14 +201,14 @@ export function AddItemDialog({
           kind: "media",
         });
         break;
-      // case "article":
-      //   addItemMutation.mutate({
-      //     url: data.url,
-      //     tags: data.tags,
-      //     collectionId: data.collectionId ?? undefined,
-      //     kind: data.type,
-      //   });
-      //   break;
+      case "post":
+        addItemMutation.mutate({
+          url: data.url,
+          tags: data.tags,
+          collectionId: data.collectionId ?? undefined,
+          kind: "post",
+        });
+        break;
       default:
         throw new Error("Invalid item type");
     }

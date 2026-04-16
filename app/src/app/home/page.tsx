@@ -27,7 +27,9 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const userId = session.user.id;
   const tagFilter = searchParams?.tag?.trim() || null;
   const collectionFilter = searchParams?.collection ?? null;
-  const typeFilter = (searchParams?.type === "media" ? "media" : "website") as TypeFilter;
+  const typeFilter = (
+    searchParams?.type === "media" ? "media" : searchParams?.type === "post" ? "post" : "website"
+  ) as TypeFilter;
   const sortFilter = resolveSortFilter(searchParams?.sort);
 
   const filterParams = {

@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {sql} from "drizzle-orm";
 
-export const bookmarkKind = pgEnum("Bookmark kind", ["website", "image", "media"]);
+export const bookmarkKind = pgEnum("Bookmark kind", ["website", "image", "media", "post"]);
 
 export const collections = pgTable(
   "collections",

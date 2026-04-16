@@ -294,6 +294,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const setContentToggles = useViewOptionsStore((state) => state.setContentToggles);
 
   const isMedia = typeFilter === "media";
+  const isPost = typeFilter === "post";
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const disabledAppearanceFields = DISABLED_APPEARANCE_BY_VIEW[currentView as ViewMode] || [];
 
@@ -321,7 +322,9 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
         <DropdownMenuGroup>
           <DropdownMenuLabel className="uppercase">View options</DropdownMenuLabel>
 
-          <Accordion className="w-full" defaultValue={isMedia ? ["appearance"] : ["layout"]}>
+          <Accordion
+            className="w-full"
+            defaultValue={isMedia || isPost ? ["appearance"] : ["layout"]}>
             <AccordionItem className="border-b-0" value="layout">
               <AccordionTrigger className="hover:bg-accent hover:text-accent-foreground min-h-8 items-center rounded-sm px-2 py-1 text-sm font-normal sm:min-h-7">
                 <div className="flex items-center gap-2 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0 [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4.5 sm:[&>svg:not([class*='size-'])]:size-4">

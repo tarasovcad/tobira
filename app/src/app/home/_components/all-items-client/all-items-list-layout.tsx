@@ -7,16 +7,19 @@ import {ItemList} from "@/components/bookmark/_components/BookmarkListRow";
 import {MediaCard} from "@/components/bookmark/_components/BookmarkMediaCard";
 import {MinimalItemRow} from "@/components/bookmark/_components/BookmarkCompactRow";
 import {TableItemRow} from "@/components/bookmark/_components/BookmarkTableRow";
+import {BookmarkPostCard} from "@/components/bookmark/_components/BookmarkPostCard";
 import type {Bookmark} from "@/components/bookmark/types";
-import {GridSkeleton, ListSkeleton, MediaSkeleton} from "../ListSkeletons";
+import {GridSkeleton, ListSkeleton, MediaSkeleton, PostSkeleton} from "../ListSkeletons";
 import {
   NewBookmarkGridCard,
   NewBookmarkList,
   NewBookmarkMediaCard,
   NewBookmarkCompact,
+  NewBookmarkPost,
 } from "../NewBookmarkPlaceholder";
 import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
+import type {TypeFilter} from "../../_types";
 
 export type AllItemsAnimatedVariant = "list" | "grid";
 
@@ -56,6 +59,7 @@ interface GetAllItemsListLayoutConfigArgs {
   gridColsClass: string;
   isMediaGrid: boolean;
   bookmarkWidth: BookmarkWidth;
+  typeFilter: TypeFilter;
 }
 
 export function getAllItemsListLayoutConfig({
@@ -65,6 +69,7 @@ export function getAllItemsListLayoutConfig({
   gridColsClass,
   isMediaGrid,
   bookmarkWidth,
+  typeFilter,
 }: GetAllItemsListLayoutConfigArgs): AllItemsListLayoutConfig {
   const widthClass =
     bookmarkWidth === "xs"
@@ -125,6 +130,19 @@ export function getAllItemsListLayoutConfig({
         renderSkeletonItem: (index) => <ListSkeleton key={index} />,
       };
     case "list":
+      if (typeFilter === "post") {
+        return {
+          wrapperClassName: cn(widthClass),
+          containerClassName: "",
+          fetchSpinnerClassName: "text-muted-foreground px-6 py-6 text-center text-xs",
+          sentinelClassName: "h-px",
+          animatedVariant: "list",
+          isTable: false,
+          BookmarkItem: BookmarkPostCard,
+          NewBookmarkPlaceholder: NewBookmarkPost,
+          renderSkeletonItem: (index) => <PostSkeleton key={index} />,
+        };
+      }
       return {
         wrapperClassName: cn("", widthClass),
         containerClassName: "",

@@ -10,6 +10,8 @@ function getTypeLabel(value: TypeFilter) {
       return "Websites";
     case "media":
       return "Media";
+    case "post":
+      return "Posts";
   }
 }
 
@@ -40,6 +42,7 @@ export function TypeSelect({
       <SelectPopup>
         <SelectItem value="website">Websites</SelectItem>
         <SelectItem value="media">Media</SelectItem>
+        <SelectItem value="post">Posts</SelectItem>
         <SelectItem value="videos" disabled>
           Videos
         </SelectItem>

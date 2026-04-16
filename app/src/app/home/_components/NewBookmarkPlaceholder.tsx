@@ -399,10 +399,9 @@ export function NewBookmarkMediaCard({
     return () => clearTimeout(t);
   }, [loaded, onDone]);
 
-  const hasDimensions = bookmark?.metadata?.width && bookmark?.metadata?.height;
-  const aspectRatio = hasDimensions
-    ? `${bookmark.metadata!.width} / ${bookmark.metadata!.height}`
-    : "16/9";
+  const mediaMeta = bookmark?.metadata as {width?: number; height?: number} | undefined;
+  const hasDimensions = mediaMeta?.width && mediaMeta?.height;
+  const aspectRatio = hasDimensions ? `${mediaMeta.width} / ${mediaMeta.height}` : "16/9";
 
   return (
     <div
@@ -420,6 +419,86 @@ export function NewBookmarkMediaCard({
         className="h-full w-full"
         skeleton={<Skeleton className="h-full w-full" />}>
         <div className="bg-muted h-full w-full" />
+      </CrossFade>
+    </div>
+  );
+}
+
+export function NewBookmarkPost({
+  bookmark,
+  onDone,
+}: {
+  url: string;
+  bookmark: Bookmark | null;
+  onDone: () => void;
+  tags?: string[];
+}) {
+  const loaded = !!bookmark;
+
+  React.useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(onDone, 900);
+    return () => clearTimeout(t);
+  }, [loaded, onDone]);
+
+  return (
+    <div className="border-border flex flex-col gap-[14px] border-b px-4 py-3">
+      {/* Author row skeleton */}
+      <div className="flex items-center gap-2">
+        <CrossFade
+          loaded={loaded}
+          delay={0}
+          skeleton={<Skeleton className="size-10 rounded-full" />}>
+          <div className="bg-muted size-10 rounded-full border" />
+        </CrossFade>
+        <div className="flex flex-col gap-1">
+          <CrossFade
+            loaded={loaded}
+            delay={80}
+            skeleton={<Skeleton className="h-[18px] w-28 rounded" />}>
+            <div className="text-foreground text-[15px] font-semibold">
+              {bookmark?.metadata && (bookmark.metadata as {user_name?: string}).user_name
+                ? (bookmark.metadata as {user_name?: string}).user_name
+                : ""}
+            </div>
+          </CrossFade>
+          <CrossFade
+            loaded={loaded}
+            delay={120}
+            skeleton={<Skeleton className="h-[15px] w-20 rounded" />}>
+            <div className="text-muted-foreground text-[13px]" />
+          </CrossFade>
+        </div>
+      </div>
+
+      {/* Text skeleton */}
+      <div className="space-y-1.5">
+        <CrossFade
+          loaded={loaded}
+          delay={200}
+          skeleton={<Skeleton className="h-[19px] w-full rounded" />}>
+          <div />
+        </CrossFade>
+        <CrossFade
+          loaded={loaded}
+          delay={260}
+          skeleton={<Skeleton className="h-[19px] w-4/5 rounded" />}>
+          <div />
+        </CrossFade>
+        <CrossFade
+          loaded={loaded}
+          delay={320}
+          skeleton={<Skeleton className="h-[19px] w-3/5 rounded" />}>
+          <div />
+        </CrossFade>
+      </div>
+
+      {/* Media skeleton */}
+      <CrossFade
+        loaded={loaded}
+        delay={400}
+        skeleton={<Skeleton className="h-48 w-full rounded-[16px]" />}>
+        <div />
       </CrossFade>
     </div>
   );

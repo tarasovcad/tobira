@@ -2,7 +2,7 @@ import type {BookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 
 export type Bookmark = {
   id: string;
-  kind: "website" | "media";
+  kind: "website" | "media" | "post";
   title: string;
   description: string;
   created_at: string;
