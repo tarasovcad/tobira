@@ -15,16 +15,6 @@ type PostMediaItem = PostBookmarkMetadata["media_extended"][number];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatRelativeDate(epoch: number): string {
-  const now = Date.now() / 1000;
-  const diff = now - epoch;
-  if (diff < 60) return `${Math.floor(diff)}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  const d = new Date(epoch * 1000);
-  return d.toLocaleDateString("en-US", {month: "short", day: "numeric"});
-}
-
 function formatFullDate(epoch: number): string {
   const d = new Date(epoch * 1000);
   const time = d
@@ -36,6 +26,17 @@ function formatFullDate(epoch: number): string {
 
 function mediaThumbnail(m: PostMediaItem): string {
   return m.thumbnail_url ?? m.url;
+}
+
+function buildTwitterSizedUrl(url: string, size: "small" | "large"): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("pbs.twimg.com")) return null;
+    u.searchParams.set("name", size);
+    return u.toString();
+  } catch {
+    return null;
+  }
 }
 
 function renderText(text: string) {
@@ -88,6 +89,8 @@ function MediaGrid({media}: {media: PostMediaItem[]}) {
         {items.map((m, i) => {
           const isFirstOfThree = count === 3 && i === 0;
           const isVideo = m.type === "video" || m.type === "gif";
+          const displaySrc = m.url_small ?? m.url;
+          const fullSrc = m.url_large ?? buildTwitterSizedUrl(m.url, "large") ?? m.url;
           return (
             <div
               key={m.url}
@@ -96,7 +99,8 @@ function MediaGrid({media}: {media: PostMediaItem[]}) {
                 isFirstOfThree && "row-span-2",
               )}>
               <MediaPreview
-                src={m.url}
+                src={displaySrc}
+                fullSizeSrc={isVideo ? undefined : fullSrc}
                 alt={m.altText ?? ""}
                 width={m.size?.width ?? 1200}
                 height={m.size?.height ?? 1200}
@@ -144,12 +148,16 @@ function QuotedPost({qrt}: {qrt: NonNullable<PostBookmarkMetadata["qrt"]>}) {
           const w = firstMedia.size?.width ?? 1;
           const h = firstMedia.size?.height ?? 1;
           const aspect = Math.max(0.5, Math.min(2, w / h));
+          const displaySrc = firstMedia.url_small ?? firstMedia.url;
+          const fullSrc =
+            firstMedia.url_large ?? buildTwitterSizedUrl(firstMedia.url, "large") ?? firstMedia.url;
           return (
             <div
               className="mt-2 overflow-hidden rounded-xl"
               style={{aspectRatio: aspect, maxHeight: 192}}>
               <MediaPreview
-                src={firstMedia.url}
+                src={displaySrc}
+                fullSizeSrc={isVideo ? undefined : fullSrc}
                 alt={firstMedia.altText ?? ""}
                 width={firstMedia.size?.width ?? 1200}
                 height={firstMedia.size?.height ?? 1200}

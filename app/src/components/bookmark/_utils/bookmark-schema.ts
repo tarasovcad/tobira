@@ -3,7 +3,7 @@ import {z} from "zod";
 // Zod schema for bookmark form validation
 export const bookmarkFormSchema = z
   .object({
-    kind: z.enum(["website", "media"]).default("website"),
+    kind: z.enum(["website", "media", "post"]).default("website"),
     title: z.string().max(200, "Title must be less than 200 characters"),
     description: z.string().max(1000, "Description must be less than 1000 characters").optional(),
     preview_image: z.url("Must be a valid URL").optional().or(z.literal("")),

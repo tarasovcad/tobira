@@ -13,6 +13,7 @@ import {useEffect, useState} from "react";
 // Renders a thumbnail image or video with fullscreen, zoom, and pan preview behavior.
 export default function MediaPreview({
   src,
+  fullSizeSrc,
   alt,
   width = 1200,
   height = 1200,
@@ -283,7 +284,7 @@ export default function MediaPreview({
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
-                  src={src}
+                  src={fullSizeSrc ?? src}
                   alt={alt}
                   onClick={addZoom ? handleMediaClick : undefined}
                   onWheel={addZoom ? handleWheelZoom : undefined}

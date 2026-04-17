@@ -207,6 +207,18 @@ export async function addPostBookmark(input: {
     }
   }
 
+  try {
+    await qstash.publishJSON({
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-post-media`,
+      body: {id: prepared.bookmarkId},
+      idempotencyKey: `post-media-${prepared.bookmarkId}`,
+      headers: {"x-job-type": "process-post-media"},
+      timeout: 120,
+    });
+  } catch (error) {
+    console.error("Failed to queue post media processing job:", error);
+  }
+
   return {ok: true, url: prepared.url, id: prepared.bookmarkId};
 }
 
@@ -320,7 +332,7 @@ export async function fetchBookmarksPageAction(params: {
   sort: "recent" | "oldest" | "az";
   tagFilter: string | null;
   collectionFilter: string | null;
-  typeFilter: "website" | "media";
+  typeFilter: "website" | "media" | "post";
 }) {
   const userId = await requireAuthenticatedUserId();
   const {offset, limit, sort, tagFilter, collectionFilter, typeFilter} = params;

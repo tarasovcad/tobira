@@ -7,6 +7,7 @@ import {BookmarkHoverActions} from "./BookmarkHoverActions";
 import {BookmarkImage} from "./BookmarkImage";
 import {BookmarkSelectionControl} from "./BookmarkSelectionControl";
 import type {BookmarkItemProps} from "./bookmark-item-props";
+import type {WebsiteOrMediaMetadata} from "@/app/home/_types/bookmark-metadata";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -28,8 +29,9 @@ function BookmarkMediaCardImpl({
           ? "rounded-md"
           : "rounded-lg";
 
-  const hasDimensions = item.metadata?.width && item.metadata?.height;
-  const aspectRatio = hasDimensions ? `${item.metadata!.width} / ${item.metadata!.height}` : "16/9";
+  const meta = item.metadata as WebsiteOrMediaMetadata | undefined;
+  const hasDimensions = meta?.width && meta?.height;
+  const aspectRatio = hasDimensions ? `${meta!.width} / ${meta!.height}` : "16/9";
 
   return (
     <div
@@ -67,8 +69,8 @@ function BookmarkMediaCardImpl({
         sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
         quality={50}
         loading="lazy"
-        width={item.metadata?.width ?? 1200}
-        height={item.metadata?.height ?? 1200}
+        width={meta?.width ?? 1200}
+        height={meta?.height ?? 1200}
         imageClassName="h-full w-full object-cover"
       />
     </div>

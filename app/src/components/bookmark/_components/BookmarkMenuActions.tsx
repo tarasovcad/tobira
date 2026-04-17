@@ -11,7 +11,7 @@ interface BookmarkMenuActionsProps {
   onReset: () => void;
   isResetting: boolean;
   onDelete: () => void;
-  kind?: "website" | "media";
+  kind?: "website" | "media" | "post";
 }
 
 function BookmarkMenuActionsImpl({

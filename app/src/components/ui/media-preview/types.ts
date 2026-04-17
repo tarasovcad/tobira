@@ -19,6 +19,8 @@ export type PanBounds = {
 
 export type MediaPreviewProps = {
   src: string;
+  /** When provided, the full-screen overlay uses this URL instead of src */
+  fullSizeSrc?: string;
   alt: string;
   width?: number;
   height?: number;

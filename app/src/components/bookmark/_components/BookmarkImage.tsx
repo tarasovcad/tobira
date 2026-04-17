@@ -6,6 +6,7 @@ import {cn} from "@/lib/utils";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import MediaPreview from "@/components/ui/MediaPreview";
 import type {Bookmark} from "../types";
+import type {WebsiteOrMediaMetadata} from "@/app/home/_types/bookmark-metadata";
 
 interface BookmarkImageProps {
   bookmark_id: string;
@@ -140,7 +141,11 @@ function BookmarkImageImpl({
           addZoom={!isVideo && hasValidImage}
           type={isVideo ? "video" : "image"}
           showFallback={showFallbackInPreview}
-          poster={isVideo && item.metadata?.thumbnail_url ? item.metadata.thumbnail_url : undefined}
+          poster={
+            isVideo
+              ? ((item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url ?? undefined)
+              : undefined
+          }
           className={cn(
             status === "loaded" ? "opacity-100" : "opacity-0",
             "transition-opacity duration-300 ease-in-out",
@@ -176,6 +181,7 @@ export const BookmarkImage = React.memo(BookmarkImageImpl, (prev, next) => {
     prev.onPreviewOpenChange === next.onPreviewOpenChange &&
     prev.item.id === next.item.id &&
     prev.item.preview_image === next.item.preview_image &&
-    prev.item.metadata?.thumbnail_url === next.item.metadata?.thumbnail_url
+    (prev.item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url ===
+      (next.item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url
   );
 });

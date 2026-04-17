@@ -1,13 +1,15 @@
 type MediaMediaItem = {
   type: "photo" | "video" | "gif";
   url: string;
+  url_small?: string;
+  url_large?: string;
   thumbnail_url?: string | null;
   duration_millis?: number;
   size?: {width: number; height: number} | null;
   altText?: string | null;
 };
 
-type WebsiteOrMediaMetadata = {
+export type WebsiteOrMediaMetadata = {
   date?: string;
   text?: string;
   width?: number;

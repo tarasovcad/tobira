@@ -9,7 +9,7 @@ import Link from "next/link";
 interface BookmarkDetailsProps {
   source?: string;
   type?: string;
-  kind?: "website" | "media";
+  kind?: "website" | "media" | "post";
   metadata?: BookmarkMetadata;
   collections: {id: string; name: string}[];
   saved: string;
