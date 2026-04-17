@@ -22,6 +22,20 @@
       "when": 1776360306104,
       "tag": "0002_broken_lily_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776457591523,
+      "tag": "0003_foamy_boom_boom",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776459813159,
+      "tag": "0004_steep_galactus",
+      "breakpoints": true
     }
   ]
 }
