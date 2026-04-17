@@ -1,7 +1,6 @@
 "use client";
 
 import {Separator} from "@/components/shadcn/separator";
-import {Tag} from "@/components/ui/Tag";
 import {cn} from "@/lib/utils";
 import {useExtensionConnectionStore} from "@/store/use-extension-connection-store";
 import {useSyncSetupStore} from "@/store/use-sync-setup-store";
@@ -86,35 +85,8 @@ export default function ReviewSyncStep() {
 
         <div className="border-border overflow-hidden rounded-[10px] border">
           <ReviewRow label="Sync mode" value="Keep synced automatically" />
-          <ReviewRow label="Import range" value="All bookmarks" />
-          <ReviewRow label="Removed bookmark" value="Keep archived in Tobira" />
           <ReviewRow label="Skip duplicates" value="On" />
-          <ReviewRow
-            label="Auto-tag imports"
-            value={
-              <div className="flex flex-wrap justify-end gap-1">
-                <Tag displayHash={false} size="md" variant="outline">
-                  x-import
-                </Tag>
-                <Tag displayHash={false} size="md" variant="outline">
-                  bookmarks
-                </Tag>
-              </div>
-            }
-          />
           <ReviewRow label="Default collection" value="None" last />
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Summary */}
-      <div className="px-6 py-5">
-        <div className="border-border flex items-center gap-3 rounded-[10px] border px-3.5 py-3">
-          <p className="text-muted-foreground">
-            Tobira will begin importing bookmarks as soon as you click{" "}
-            <span className="text-foreground/70 font-[550]">Finish</span>.
-          </p>
         </div>
       </div>
     </div>

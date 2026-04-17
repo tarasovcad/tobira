@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useMemo, useState} from "react";
 import Image from "next/image";
 import {MoreHorizontalIcon, RefreshCwIcon} from "lucide-react";
 import {motion} from "motion/react";
@@ -8,11 +8,14 @@ import {cn} from "@/lib/utils";
 import {Button} from "@/components/coss-ui/button";
 import {Badge} from "@/components/coss-ui/badge";
 import {Menu, MenuTrigger, MenuPopup, MenuItem, MenuSeparator} from "@/components/coss-ui/menu";
+import {Tabs, TabsList, TabsTab} from "@/components/coss-ui/tabs";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
 import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
 
-type ConnectionStatus = "healthy" | "syncing" | "warning" | "error";
+export type ConnectionStatus = "healthy" | "syncing" | "warning" | "error";
+type AccountStatusTag = "all" | ConnectionStatus;
 
-type ConnectedAccount = {
+export type ConnectedAccount = {
   id: string;
   provider: string;
   account: string;
@@ -21,91 +24,21 @@ type ConnectedAccount = {
   itemsImported: string;
 };
 
-const CONNECTED_ACCOUNTS: ConnectedAccount[] = [
-  {
-    id: "x-taras",
-    provider: "X",
-    account: "@taras",
-    status: "syncing",
-    lastSync: "2 min ago",
-    itemsImported: "342 items",
-  },
-  {
-    id: "reddit-taras",
-    provider: "Reddit",
-    account: "u/taras",
-    status: "warning",
-    lastSync: "1 hour ago",
-    itemsImported: "312 items",
-  },
-  {
-    id: "chrome-personal",
-    provider: "Chrome",
-    account: "Personal profile",
-    status: "healthy",
-    lastSync: "Yesterday",
-    itemsImported: "96 links",
-  },
-  {
-    id: "chrome-work",
-    provider: "Chrome",
-    account: "Work profile",
-    status: "syncing",
-    lastSync: "4 min ago",
-    itemsImported: "140 links",
-  },
-  {
-    id: "safari-icloud",
-    provider: "Safari",
-    account: "iCloud",
-    status: "error",
-    lastSync: "2 days ago",
-    itemsImported: "47 items",
-  },
-  {
-    id: "pinterest-taras",
-    provider: "Pinterest",
-    account: "@taras",
-    status: "error",
-    lastSync: "Yesterday",
-    itemsImported: "178 pins",
-  },
-  {
-    id: "youtube-taras",
-    provider: "YouTube",
-    account: "@taras",
-    status: "healthy",
-    lastSync: "3 hours ago",
-    itemsImported: "178 videos",
-  },
-  {
-    id: "dribbble-taras",
-    provider: "Dribbble",
-    account: "@taras",
-    status: "healthy",
-    lastSync: "6 hours ago",
-    itemsImported: "156 shots",
-  },
-  {
-    id: "firefox-work",
-    provider: "Firefox",
-    account: "Work profile",
-    status: "healthy",
-    lastSync: "2 days ago",
-    itemsImported: "212 links",
-  },
-  {
-    id: "dia-taras",
-    provider: "Dia",
-    account: "@taras",
-    status: "syncing",
-    lastSync: "12 min ago",
-    itemsImported: "145 items",
-  },
-];
-
 function getProviderData(name: string) {
   return PROVIDERS.find((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase()) ?? null;
+}
+
+function matchesAccountTag(account: ConnectedAccount, tag: AccountStatusTag) {
+  if (tag === "all") return true;
+  return account.status === tag;
+}
+
+function matchesAccountQuery(account: ConnectedAccount, rawQuery: string) {
+  const query = rawQuery.trim().toLowerCase();
+  if (!query) return true;
+  return [account.provider, account.account, account.lastSync, account.itemsImported].some(
+    (value) => value.toLowerCase().includes(query),
+  );
 }
 
 function StatusDot({status}: {status: ConnectionStatus}) {
@@ -137,8 +70,19 @@ function statusBadgeVariant(status: ConnectionStatus) {
   return "error" as const;
 }
 
-export function ConnectedAccountsSection() {
+export function ConnectedAccountsSection({initialAccounts}: {initialAccounts: ConnectedAccount[]}) {
   const [collapsed, setCollapsed] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<AccountStatusTag>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredAccounts = useMemo(
+    () =>
+      initialAccounts.filter(
+        (account) =>
+          matchesAccountTag(account, selectedTag) && matchesAccountQuery(account, searchQuery),
+      ),
+    [initialAccounts, selectedTag, searchQuery],
+  );
 
   return (
     <div className={cn("space-y-4", !collapsed ? "mb-16" : "mb-6")}>
@@ -170,7 +114,7 @@ export function ConnectedAccountsSection() {
           </motion.svg>
           Connected accounts
           <span className="text-muted-foreground/90 ml-1 font-medium tracking-wide">
-            ({CONNECTED_ACCOUNTS.length})
+            ({initialAccounts.length})
           </span>
         </button>
       </h4>
@@ -188,9 +132,68 @@ export function ConnectedAccountsSection() {
         }}
         className={cn("overflow-hidden", collapsed && "pointer-events-none")}>
         <div className="pt-0.5">
-          {CONNECTED_ACCOUNTS.map((account) => (
-            <ConnectedAccountRow key={account.id} account={account} />
-          ))}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <Tabs
+              value={selectedTag}
+              onValueChange={(value) => setSelectedTag(value as AccountStatusTag)}>
+              <TabsList variant="underline" className="flex-wrap">
+                <TabsTab value="all" className="hit-area-2">
+                  All
+                </TabsTab>
+                <TabsTab value="healthy" className="hit-area-2">
+                  Healthy
+                </TabsTab>
+                <TabsTab value="syncing" className="hit-area-2">
+                  Syncing
+                </TabsTab>
+                <TabsTab value="warning" className="hit-area-2">
+                  Warning
+                </TabsTab>
+                <TabsTab value="error" className="hit-area-2">
+                  Error
+                </TabsTab>
+              </TabsList>
+            </Tabs>
+
+            <InputGroup className="w-full max-w-[320px]">
+              <InputGroupInput
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search connected accounts"
+                placeholder="Search accounts"
+                type="search"
+                autoComplete="off"
+              />
+              <InputGroupAddon>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M13.3333 13.3333L10.751 10.751M10.751 10.751C11.6257 9.87633 12.1667 8.668 12.1667 7.33333C12.1667 4.66396 10.0027 2.5 7.33333 2.5C4.66396 2.5 2.5 4.66396 2.5 7.33333C2.5 10.0027 4.66396 12.1667 7.33333 12.1667C8.668 12.1667 9.87633 11.6257 10.751 10.751Z"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </InputGroupAddon>
+            </InputGroup>
+          </div>
+
+          {filteredAccounts.length === 0 ? (
+            <p className="text-muted-foreground py-8 text-center text-sm">
+              {initialAccounts.length === 0
+                ? "No connected accounts yet"
+                : "No accounts match your filters."}
+            </p>
+          ) : (
+            filteredAccounts.map((account) => (
+              <ConnectedAccountRow key={account.id} account={account} />
+            ))
+          )}
         </div>
       </motion.div>
     </div>

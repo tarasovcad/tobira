@@ -18,7 +18,6 @@ import {Select as ComboboxSelect, SelectButton} from "@/components/coss-ui/selec
 import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
 import {Switch} from "@/components/ui/switch";
 import {Separator} from "@/components/shadcn/separator";
-import TagsInput from "@/components/ui/TagsInput";
 
 type SyncMode = "automatic" | "once";
 type ImportRange = "all" | "recent";
@@ -105,74 +104,7 @@ export default function PreferencesSyncStep({userId}: {userId?: string | null}) 
         </div>
       </div>
 
-      <div className="px-6 py-5">
-        <div className="text-foreground text-[15px] font-[550]">Import range</div>
-        <p className="text-secondary mt-1 text-sm">
-          Pull everything on the first run, or start with a lighter recent-only import.
-        </p>
-        <div className="mt-3">
-          <Select
-            value={preferences.importRange}
-            disabled
-            onValueChange={(value) => setPreference("importRange", value as ImportRange)}>
-            <SelectTrigger aria-label="Choose import range" className="w-full">
-              <span className="flex-1 truncate">
-                {getImportRangeLabel(preferences.importRange)}
-              </span>
-            </SelectTrigger>
-            <SelectPopup>
-              <SelectItem value="all">All bookmarks</SelectItem>
-              <SelectItem value="recent">Recent bookmarks only</SelectItem>
-            </SelectPopup>
-          </Select>
-        </div>
-      </div>
-
-      <div className="px-6 py-5">
-        <div className="text-foreground text-[15px] font-[550]">Removed bookmark behavior</div>
-        <p className="text-secondary mt-1 text-sm">
-          Decide what happens in Tobira if a bookmark disappears from X later on.
-        </p>
-        <div className="mt-3">
-          <Select
-            value={preferences.deletedItemBehavior}
-            disabled
-            onValueChange={(value) =>
-              setPreference("deletedItemBehavior", value as DeletedItemBehavior)
-            }>
-            <SelectTrigger aria-label="Choose removed bookmark behavior" className="w-full">
-              <span className="flex-1 truncate">
-                {getDeletedItemBehaviorLabel(preferences.deletedItemBehavior)}
-              </span>
-            </SelectTrigger>
-            <SelectPopup alignItemWithTrigger={false}>
-              <SelectItem value="keep">Keep archived in Tobira</SelectItem>
-              <SelectItem value="remove">Remove from Tobira</SelectItem>
-            </SelectPopup>
-          </Select>
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="px-6 py-5">
-        <div className="text-foreground text-[15px] font-[550]">Skip duplicates</div>
-        <p className="text-secondary mt-1 text-sm">
-          Don&apos;t import bookmarks already saved in Tobira.
-        </p>
-        <div className="mt-3">
-          <Switch
-            checked={preferences.skipDuplicates}
-            onToggle={() => setPreference("skipDuplicates", !preferences.skipDuplicates)}
-            aria-label="Skip duplicates"
-            className="hit-area-5 w-fit px-0 py-0"
-          />
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="px-6 py-5">
+      {/* <div className="px-6 py-5">
         <div className="text-foreground text-[15px] font-[550]">Auto-tag imports</div>
         <p className="text-secondary mt-1 text-sm">
           These tags will be applied to all imported bookmarks.
@@ -187,9 +119,7 @@ export default function PreferencesSyncStep({userId}: {userId?: string | null}) 
             containerClassName="max-w-full gap-3"
           />
         </div>
-      </div>
-
-      <Separator />
+      </div> */}
 
       <div className="px-6 py-5">
         <div className="text-foreground text-[15px] font-[550]">Default collection</div>
@@ -225,6 +155,20 @@ export default function PreferencesSyncStep({userId}: {userId?: string | null}) 
               </ComboboxList>
             </ComboboxPopup>
           </Combobox>
+        </div>
+      </div>
+      <div className="px-6 py-5">
+        <div className="text-foreground text-[15px] font-[550]">Skip duplicates</div>
+        <p className="text-secondary mt-1 text-sm">
+          Don&apos;t import bookmarks already saved in Tobira.
+        </p>
+        <div className="mt-3">
+          <Switch
+            checked={preferences.skipDuplicates}
+            onToggle={() => setPreference("skipDuplicates", !preferences.skipDuplicates)}
+            aria-label="Skip duplicates"
+            className="hit-area-5 w-fit px-0 py-0"
+          />
         </div>
       </div>
     </div>

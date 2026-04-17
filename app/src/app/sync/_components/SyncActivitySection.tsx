@@ -17,8 +17,21 @@ import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui
 import {Tabs, TabsList, TabsTab} from "@/components/coss-ui/tabs";
 import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
 
-type SyncActivityStatus = "success" | "running" | "warning" | "error";
+export type SyncActivityStatus = "success" | "running" | "warning" | "error";
 type SyncActivityTag = "all" | "success" | "error" | "warning" | "info";
+
+export type SyncActivityItem = {
+  id: string;
+  provider: string;
+  account: string;
+  summary: string;
+  details: string;
+  status: SyncActivityStatus;
+  time: string;
+  duration: string;
+  items: string;
+  color: string;
+};
 
 function SuccessCheckIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -98,376 +111,6 @@ function CircleXIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-type SyncActivityItem = {
-  id: string;
-  provider: string;
-  account: string;
-  /** Short one-line label shown when the row is collapsed */
-  summary: string;
-  details: string;
-  status: SyncActivityStatus;
-  time: string;
-  duration: string;
-  items: string;
-  color: string;
-};
-
-const SYNC_ACTIVITY = [
-  {
-    id: "x-1",
-    provider: "X",
-    account: "@taras",
-    summary: "Import completed",
-    details: "32 posts imported, 4 duplicates skipped, collection rules applied automatically.",
-    status: "success",
-    time: "2026-04-16 03:41:28.392184+00",
-    duration: "18s",
-    items: "32 items",
-    color: "#000000",
-  },
-  {
-    id: "reddit-1",
-    provider: "Reddit",
-    account: "u/taras",
-    summary: "Sync started",
-    details: "Scanning saved posts and media threads. New items will appear as the run continues.",
-    status: "running",
-    time: "2026-04-12 22:09:51.830447+00",
-    duration: "Live",
-    items: "148 checked",
-    color: "#FF4500",
-  },
-  {
-    id: "chrome-1",
-    provider: "Chrome",
-    account: "Personal profile",
-    summary: "Folders imported",
-    details:
-      "Reading list, design references, and work folders were merged into existing collections.",
-    status: "success",
-    time: "2026-04-08 15:27:06.114905+00",
-    duration: "41s",
-    items: "96 links",
-    color: "#4285F4",
-  },
-  {
-    id: "arc-1",
-    provider: "Dia",
-    account: "@taras",
-    summary: "File parse error",
-    details: "7 archived articles need manual review because source pages were unavailable.",
-    status: "warning",
-    time: "2026-03-31 07:58:44.550103+00",
-    duration: "24s",
-    items: "61 articles",
-    color: "#EF4056",
-  },
-  {
-    id: "youtube-1",
-    provider: "YouTube",
-    account: "@taras",
-    summary: "Playlist synced",
-    details:
-      "Watch Later and reference playlists were imported into Media and Research collections.",
-    status: "success",
-    time: "2026-04-14 11:33:19.009771+00",
-    duration: "29s",
-    items: "54 videos",
-    color: "#FF0000",
-  },
-  {
-    id: "firefox-1",
-    provider: "Firefox",
-    account: "Work profile",
-    summary: "Bookmarks imported",
-    details:
-      "Imported bookmarks bar and mobile sync folders. Duplicates were de-duplicated by URL.",
-    status: "success",
-    time: "2026-04-03 18:04:37.441992+00",
-    duration: "33s",
-    items: "212 links",
-    color: "#FF7139",
-  },
-  {
-    id: "safari-1",
-    provider: "Safari",
-    account: "iCloud",
-    summary: "Import queued",
-    details:
-      "Waiting for iCloud export to finish. We’ll start syncing as soon as the file is ready.",
-    status: "running",
-    time: "2026-04-06 00:52:14.704338+00",
-    duration: "Live",
-    items: "0 imported",
-    color: "#0FB5EE",
-  },
-  {
-    id: "pinterest-1",
-    provider: "Pinterest",
-    account: "@taras",
-    summary: "Board sync completed",
-    details:
-      "Imported boards into Visual Inspiration collections. Rich preview metadata was fetched.",
-    status: "success",
-    time: "2026-04-10 09:45:02.221668+00",
-    duration: "52s",
-    items: "178 pins",
-    color: "#E60023",
-  },
-  {
-    id: "dribbble-1",
-    provider: "Dribbble",
-    account: "@taras",
-    summary: "Rate limit hit",
-    details: "Paused after hitting the API rate limit. We’ll automatically resume in ~15 minutes.",
-    status: "warning",
-    time: "2026-03-29 14:26:59.670311+00",
-    duration: "12s",
-    items: "60 checked",
-    color: "#EA4C89",
-  },
-  {
-    id: "safari-err-1",
-    provider: "Safari",
-    account: "iCloud",
-    summary: "iCloud auth failed",
-    details:
-      "Couldn’t verify your iCloud export session. Reconnect Safari and try again (this usually happens after a password change).",
-    status: "error",
-    time: "2026-04-15 05:17:43.998120+00",
-    duration: "2s",
-    items: "0 imported",
-    color: "#0FB5EE",
-  },
-  {
-    id: "dia-2",
-    provider: "Dia",
-    account: "@taras",
-    summary: "Import completed",
-    details: "Imported saved tabs and archived pages. Broken sources were flagged for review.",
-    status: "success",
-    time: "2026-04-01 21:16:08.073401+00",
-    duration: "27s",
-    items: "84 items",
-    color: "#EF4056",
-  },
-  {
-    id: "chrome-2",
-    provider: "Chrome",
-    account: "Work profile",
-    summary: "Sync started",
-    details:
-      "Scanning bookmark folders and reading list. This may take a few minutes for large profiles.",
-    status: "running",
-    time: "2026-04-11 02:12:51.281004+00",
-    duration: "Live",
-    items: "1,020 checked",
-    color: "#4285F4",
-  },
-  {
-    id: "reddit-2",
-    provider: "Reddit",
-    account: "u/taras",
-    summary: "Some items skipped",
-    details:
-      "Skipped private/removed posts. You can retry later or export from a different account.",
-    status: "warning",
-    time: "2026-04-07 12:40:35.502990+00",
-    duration: "38s",
-    items: "19 skipped",
-    color: "#FF4500",
-  },
-  {
-    id: "x-err-1",
-    provider: "X",
-    account: "@taras",
-    summary: "Token expired",
-    details:
-      "Your X connection expired mid-run. Reconnect to continue importing from where we stopped.",
-    status: "error",
-    time: "2026-03-30 19:03:22.160509+00",
-    duration: "4s",
-    items: "0 imported",
-    color: "#000000",
-  },
-  {
-    id: "x-2",
-    provider: "X",
-    account: "@taras",
-    summary: "Sync started",
-    details: "Fetching bookmarks and media. Older items may take longer due to pagination.",
-    status: "running",
-    time: "2026-04-13 16:55:49.777004+00",
-    duration: "Live",
-    items: "320 checked",
-    color: "#000000",
-  },
-  {
-    id: "youtube-2",
-    provider: "YouTube",
-    account: "@taras",
-    summary: "New uploads imported",
-    details:
-      "New videos from subscribed channels were added to your Media feed and tagged by topic.",
-    status: "success",
-    time: "2026-04-09 04:21:18.090236+00",
-    duration: "21s",
-    items: "23 videos",
-    color: "#FF0000",
-  },
-  {
-    id: "safari-2",
-    provider: "Safari",
-    account: "iCloud",
-    summary: "Duplicates removed",
-    details:
-      "Merged duplicate favorites and removed dead links using cached titles and canonical URLs.",
-    status: "success",
-    time: "2026-03-28 10:12:39.284119+00",
-    duration: "19s",
-    items: "47 merged",
-    color: "#0FB5EE",
-  },
-  {
-    id: "firefox-2",
-    provider: "Firefox",
-    account: "Personal profile",
-    summary: "Corrupt export file",
-    details: "The export JSON couldn’t be parsed. Re-export bookmarks and try again.",
-    status: "warning",
-    time: "2026-04-05 23:49:03.617550+00",
-    duration: "3s",
-    items: "0 imported",
-    color: "#FF7139",
-  },
-  {
-    id: "pinterest-err-1",
-    provider: "Pinterest",
-    account: "@taras",
-    summary: "API key revoked",
-    details:
-      "Pinterest rejected the request because the connection was revoked. Reconnect Pinterest to resume syncing boards.",
-    status: "error",
-    time: "2026-04-15 18:30:44.904711+00",
-    duration: "1s",
-    items: "0 imported",
-    color: "#E60023",
-  },
-  {
-    id: "pinterest-2",
-    provider: "Pinterest",
-    account: "@taras",
-    summary: "Sync started",
-    details:
-      "Importing pins from selected boards. Image previews will be fetched in the background.",
-    status: "running",
-    time: "2026-04-02 08:36:29.745018+00",
-    duration: "Live",
-    items: "402 checked",
-    color: "#E60023",
-  },
-  {
-    id: "dribbble-2",
-    provider: "Dribbble",
-    account: "@taras",
-    summary: "Likes imported",
-    details:
-      "Imported liked shots and added them to your Design collection with author attribution.",
-    status: "success",
-    time: "2026-04-16 12:08:57.018432+00",
-    duration: "44s",
-    items: "96 shots",
-    color: "#EA4C89",
-  },
-  {
-    id: "chrome-3",
-    provider: "Chrome",
-    account: "Personal profile",
-    summary: "Extensions skipped",
-    details:
-      "Extension-specific lists aren’t supported yet. Bookmarks and reading list were imported.",
-    status: "warning",
-    time: "2026-04-04 06:41:10.883905+00",
-    duration: "25s",
-    items: "140 imported",
-    color: "#4285F4",
-  },
-  {
-    id: "dia-3",
-    provider: "Dia",
-    account: "@taras",
-    summary: "Sync started",
-    details: "Indexing saved sessions and extracting titles for faster search and dedupe.",
-    status: "running",
-    time: "2026-04-10 21:28:33.519803+00",
-    duration: "Live",
-    items: "74 indexed",
-    color: "#EF4056",
-  },
-  {
-    id: "reddit-3",
-    provider: "Reddit",
-    account: "u/taras",
-    summary: "Import completed",
-    details: "Imported saved posts and comments. Media links were normalized and tagged.",
-    status: "success",
-    time: "2026-04-06 19:15:04.202110+00",
-    duration: "1m 02s",
-    items: "312 items",
-    color: "#FF4500",
-  },
-  {
-    id: "x-3",
-    provider: "X",
-    account: "@taras",
-    summary: "Some media failed",
-    details: "A few media URLs returned 404. The posts were saved, but media previews are missing.",
-    status: "warning",
-    time: "2026-04-08 02:03:41.700451+00",
-    duration: "36s",
-    items: "8 failed",
-    color: "#000000",
-  },
-  {
-    id: "youtube-3",
-    provider: "YouTube",
-    account: "@taras",
-    summary: "History sync completed",
-    details: "Imported recent watch history. Private videos were excluded automatically.",
-    status: "success",
-    time: "2026-04-14 00:27:58.046292+00",
-    duration: "48s",
-    items: "155 entries",
-    color: "#FF0000",
-  },
-  {
-    id: "pinterest-3",
-    provider: "Pinterest",
-    account: "@taras",
-    summary: "Missing permissions",
-    details:
-      "Couldn’t access one or more secret boards. Reconnect with updated permissions to include them.",
-    status: "warning",
-    time: "2026-04-01 03:09:26.667520+00",
-    duration: "6s",
-    items: "2 boards",
-    color: "#E60023",
-  },
-  {
-    id: "firefox-3",
-    provider: "Firefox",
-    account: "Work profile",
-    summary: "Cleanup completed",
-    details:
-      "Removed empty folders and normalized titles. Your collections were updated without duplicates.",
-    status: "success",
-    time: "2026-03-29 23:57:12.309015+00",
-    duration: "14s",
-    items: "68 updated",
-    color: "#FF7139",
-  },
-] satisfies SyncActivityItem[];
-
 function getSyncActivityTimestamp(time: string) {
   const normalized = time.replace(" ", "T").replace(/\+00$/, "Z");
   const parsed = Date.parse(normalized);
@@ -496,10 +139,6 @@ function getSyncActivityDayLabel(time: string) {
   if (diffInDays === 1) return "Yesterday";
   return "Earlier";
 }
-
-const SORTED_SYNC_ACTIVITY = [...SYNC_ACTIVITY].sort(
-  (a, b) => getSyncActivityTimestamp(b.time) - getSyncActivityTimestamp(a.time),
-);
 
 function getProviderIcon(provider: string): {src: string; invertOnDark?: boolean} | null {
   const p = provider.trim().toLowerCase();
@@ -539,7 +178,7 @@ function getSyncedItemCount(itemsLabel: string) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-export function SyncActivitySection() {
+export function SyncActivitySection({initialActivity}: {initialActivity: SyncActivityItem[]}) {
   const initialCount = 5;
   const step = 10;
 
@@ -549,10 +188,10 @@ export function SyncActivitySection() {
   const [visibleCount, setVisibleCount] = useState(initialCount);
   const filteredActivity = useMemo(
     () =>
-      SORTED_SYNC_ACTIVITY.filter(
+      initialActivity.filter(
         (item) => matchesSyncTag(item, selectedTag) && matchesSyncQuery(item, searchQuery),
       ),
-    [searchQuery, selectedTag],
+    [initialActivity, searchQuery, selectedTag],
   );
   const totalCount = filteredActivity.length;
   const clampedVisibleCount = Math.min(visibleCount, totalCount);
@@ -665,7 +304,9 @@ export function SyncActivitySection() {
 
             {totalCount === 0 ? (
               <p className="text-muted-foreground py-8 text-center text-sm">
-                No sync activity matches your filters.
+                {initialActivity.length === 0
+                  ? "No sync activity yet"
+                  : "No sync activity matches your filters."}
               </p>
             ) : null}
 

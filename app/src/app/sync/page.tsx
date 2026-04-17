@@ -2,8 +2,20 @@ import React from "react";
 import AppShell from "@/components/providers/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
-import {SyncContent} from "./SyncContent";
+
 import {redirect} from "next/navigation";
+import {Suspense} from "react";
+import {PageHeader} from "@/components/ui/page/PageHeader";
+import {ProvidersSection} from "@/app/sync/_components/ProvidersSection";
+import {
+  ConnectedAccountsDataWrapper,
+  ConnectedAccountsSkeleton,
+} from "@/app/sync/_components/ConnectedAccountsDataWrapper";
+import {SyncStats, SyncStatsSkeleton} from "@/app/sync/_components/SyncStats";
+import {
+  SyncActivityDataWrapper,
+  SyncActivitySkeleton,
+} from "@/app/sync/_components/SyncActivityDataWrapper";
 
 export const metadata = {
   title: "Sync – Tobira",
@@ -21,7 +33,30 @@ const SyncPage = async () => {
 
   return (
     <AppShell session={data}>
-      <SyncContent />
+      <div className="flex h-full w-full overflow-auto">
+        <div className="min-h-0 flex-1 overflow-auto px-5 py-12">
+          <div className="mx-auto max-w-[840px]">
+            <div className="">
+              <div className="mb-16">
+                <PageHeader
+                  title="Sync"
+                  description="Connect outside services and bring your saved content into Tobira. Imported items are organized alongside everything else."
+                />
+                <Suspense fallback={<SyncStatsSkeleton />}>
+                  <SyncStats userId={data.user.id} />
+                </Suspense>
+              </div>
+              <ProvidersSection />
+              <Suspense fallback={<ConnectedAccountsSkeleton />}>
+                <ConnectedAccountsDataWrapper userId={data.user.id} />
+              </Suspense>
+              <Suspense fallback={<SyncActivitySkeleton />}>
+                <SyncActivityDataWrapper userId={data.user.id} />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      </div>
     </AppShell>
   );
 };
