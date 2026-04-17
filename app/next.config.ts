@@ -13,11 +13,6 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "thesvg.org",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
         hostname: "pbs.twimg.com",
         pathname: "/**",
       },

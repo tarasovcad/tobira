@@ -1,116 +1,16 @@
 "use client";
-import React from "react";
+
 import {PageHeader} from "@/components/ui/page/PageHeader";
-import {Tabs, TabsList, TabsPanel, TabsTab} from "@/components/coss-ui/tabs";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
-import {Button} from "@/components/coss-ui/button";
-import Image from "next/image";
-import {ArrowUpRightIcon} from "lucide-react";
-import {useSyncSetupStore} from "@/store/use-sync-setup-store";
-
-type Provider = {
-  name: string;
-  image: string;
-  description: string;
-  types: string[];
-  color: string;
-};
-
-const PROVIDERS = [
-  {
-    name: "X",
-    image: "https://thesvg.org/icons/x/default.svg",
-    description: "Import saved posts, links, and media you want to keep organized in Tobira.",
-    types: ["Social", "Bookmarks", "Media"],
-    color: "#000000",
-  },
-  {
-    name: "Reddit",
-    image: "https://thesvg.org/icons/reddit/default.svg",
-    description: "Bring in saved posts, image threads, and useful links from your account.",
-    types: ["Social", "Bookmarks", "Media"],
-    color: "#FF4500",
-  },
-  {
-    name: "Dribbble",
-    image: "https://thesvg.org/icons/dribbble/default.svg",
-    description: "Import liked or saved shots into your media and inspiration collections.",
-    types: ["Media", "Design", "Inspiration"],
-    color: "#EA4C89",
-  },
-  {
-    name: "Chrome",
-    image: "https://thesvg.org/icons/google-chrome/default.svg",
-    description: "Import bookmark folders and saved links from your Chrome browser.",
-    types: ["Browsers", "Bookmarks", "Links"],
-    color: "#4285F4",
-  },
-  {
-    name: "Arc",
-    image: "https://thesvg.org/icons/arc/default.svg",
-    description: "Bring over saved tabs, pinned spaces, and browsing sessions.",
-    types: ["Browsers", "Tabs", "Reading"],
-    color: "#8B5CF6",
-  },
-  {
-    name: "Dia",
-    image: "https://thesvg.org/icons/globe/default.svg",
-    description: "Import saved tabs and reading flows from Dia for quick capture into Tobira.",
-    types: ["Browsers", "Tabs", "Reading"],
-    color: "#06B6D4",
-  },
-  {
-    name: "Pinterest",
-    image: "https://thesvg.org/icons/pinterest/default.svg",
-    description: "Sync boards and saved pins into media-first collections inside Tobira.",
-    types: ["Media", "Inspiration", "Social"],
-    color: "#E60023",
-  },
-  {
-    name: "YouTube",
-    image: "https://thesvg.org/icons/youtube/default.svg",
-    description: "Import watch-later videos, playlists, and saved references.",
-    types: ["Media", "Video", "Bookmarks"],
-    color: "#FF0000",
-  },
-  {
-    name: "Firefox",
-    image: "https://thesvg.org/icons/firefox/default.svg",
-    description: "Import bookmarks and reading-list style saves from Firefox.",
-    types: ["Browsers", "Bookmarks", "Reading"],
-    color: "#FF7139",
-  },
-  {
-    name: "Safari",
-    image: "https://thesvg.org/icons/safari/default.svg",
-    description: "Bring bookmarks and reading list items from Safari into Tobira.",
-    types: ["Browsers", "Bookmarks", "Reading"],
-    color: "#006CFF",
-  },
-  {
-    name: "Pocket",
-    image: "https://thesvg.org/icons/pocket/default.svg",
-    description: "Import read-later saves and article queues for long-form content capture.",
-    types: ["Reading", "Bookmarks", "Links"],
-    color: "#EF4056",
-  },
-  {
-    name: "Raindrop",
-    image: "https://thesvg.org/icons/bookmark/default.svg",
-    description: "Migrate organized bookmarks, collections, and saved links into Tobira.",
-    types: ["Bookmarks", "Collections", "Links"],
-    color: "#0069FF",
-  },
-] satisfies Provider[];
+import {ProvidersSection} from "@/app/sync/_components/ProvidersSection";
+import {SyncActivitySection} from "@/app/sync/_components/SyncActivitySection";
 
 export const SyncContent = () => {
   return (
     <div className="flex h-full w-full overflow-auto">
       <div className="min-h-0 flex-1 overflow-auto px-5 py-12">
         <div className="mx-auto max-w-[840px]">
-          <div className="space-y-16">
-            {/* title + metrics section */}
-            <div>
+          <div className="">
+            <div className="mb-16">
               <PageHeader
                 title="Sync"
                 description="Connect outside services and bring your saved content into Tobira. Imported items are organized alongside everything else."
@@ -125,70 +25,9 @@ export const SyncContent = () => {
                 <Stat label="Need attention" value="0" />
               </div>
             </div>
-            {/* providers section */}
 
-            <div className="space-y-4">
-              <h4 className="text-foreground/95 text-base font-[550]">
-                Providers{" "}
-                <span className="text-muted-foreground/90 font-medium tracking-wide">
-                  ({PROVIDERS.length})
-                </span>
-              </h4>
-              <div className="">
-                <Tabs defaultValue="all">
-                  <div className="flex items-center justify-between gap-2">
-                    <TabsList className="flex items-center gap-2 border-b" variant="underline">
-                      <TabsTab value="all">All</TabsTab>
-                      <TabsTab value="social">Social</TabsTab>
-                      <TabsTab value="browsers">Browsers</TabsTab>
-                      <TabsTab value="coming-soon">Coming soon</TabsTab>
-                    </TabsList>
-                    <InputGroup className="w-full max-w-[300px]">
-                      <InputGroupInput
-                        aria-label="Search"
-                        placeholder="Search"
-                        type="search"
-                        autoComplete="off"
-                      />
-                      <InputGroupAddon>
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M13.3333 13.3333L10.751 10.751M10.751 10.751C11.6257 9.87633 12.1667 8.668 12.1667 7.33333C12.1667 4.66396 10.0027 2.5 7.33333 2.5C4.66396 2.5 2.5 4.66396 2.5 7.33333C2.5 10.0027 4.66396 12.1667 7.33333 12.1667C8.668 12.1667 9.87633 11.6257 10.751 10.751Z"
-                            stroke="currentColor"
-                            strokeWidth="1"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </InputGroupAddon>
-                    </InputGroup>
-                  </div>
-                  <TabsPanel value="all" className="mt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {PROVIDERS.map((provider) => (
-                        <ProviderCard key={provider.name} provider={provider} />
-                      ))}
-                    </div>
-                  </TabsPanel>
-                  <TabsPanel value="social">
-                    <p className="text-muted-foreground p-4 text-center text-xs">Social content</p>
-                  </TabsPanel>
-                  <TabsPanel value="browsers">
-                    <p className="text-muted-foreground p-4 text-center text-xs">Browser content</p>
-                  </TabsPanel>
-                  <TabsPanel value="coming-soon">
-                    <p className="text-muted-foreground p-4 text-center text-xs">
-                      Coming soon content
-                    </p>
-                  </TabsPanel>
-                </Tabs>
-              </div>
-            </div>
+            <ProvidersSection />
+            <SyncActivitySection />
           </div>
         </div>
       </div>
@@ -203,47 +42,6 @@ function Stat({label, value}: {label: string; value: string}) {
         {label}
       </span>
       <span className="text-foreground font-mono text-sm font-medium">{value}</span>
-    </div>
-  );
-}
-
-function ProviderCard({provider}: {provider: Provider}) {
-  const openSyncSetup = useSyncSetupStore((state) => state.open);
-
-  return (
-    <div
-      className="border-border text-card-foreground relative flex w-full flex-col gap-4 rounded-lg border p-5"
-      style={{
-        background: `radial-gradient(ellipse at 120% -20%, ${provider.color}12 0%, transparent 55%), var(--card)`,
-      }}>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <Image src={provider.image} alt={provider.name} width={24} height={24} />
-      </div>
-
-      {/* Content */}
-      <div className="flex flex-1 flex-col gap-1">
-        <h3 className="text-foreground text-base font-[550] tracking-tight">{provider.name}</h3>
-        <p className="text-muted-foreground text-[14px] leading-relaxed">{provider.description}</p>
-      </div>
-
-      {/* Meta & Action */}
-      <div className="space-y-4">
-        <div className="text-muted-foreground/80 font-mono text-[13px] tracking-wide">
-          {provider.types.join(" · ")}
-        </div>
-        <Button
-          variant="outline"
-          size="default"
-          className="group w-full"
-          onClick={() => openSyncSetup(provider)}>
-          Connect{" "}
-          <ArrowUpRightIcon
-            className="size-4 text-current opacity-100 transition-transform duration-200 ease-out group-hover:translate-x-px group-hover:-translate-y-px"
-            strokeWidth={2}
-          />
-        </Button>
-      </div>
     </div>
   );
 }

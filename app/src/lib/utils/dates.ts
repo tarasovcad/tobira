@@ -49,6 +49,41 @@ export function formatTimeRelative(date: string) {
   return `${years} year${years > 1 ? "s" : ""} ago`;
 }
 
+/**
+ * Normalizes a UTC-ish timestamp string into a `Date`-parseable ISO string.
+ *
+ * Supports:
+ * - ISO strings (passed through)
+ * - "YYYY-MM-DD HH:MM:SS.SSSSSS+00" (converted to "YYYY-MM-DDTHH:MM:SS.SSSZ")
+ */
+export function normalizeUtcTimestamp(input: string) {
+  const trimmed = input.trim();
+  if (!trimmed) return trimmed;
+
+  // If it's already ISO-ish, let Date handle it.
+  if (trimmed.includes("T")) return trimmed;
+
+  // Expected example: "2026-04-17 01:00:13.723394+00"
+  const [dateTimePart, offsetPart] = trimmed.split("+");
+  if (!dateTimePart || offsetPart === undefined) return trimmed;
+
+  const [datePart, timePartRaw] = dateTimePart.trim().split(" ");
+  if (!datePart || !timePartRaw) return trimmed;
+
+  const [hms, fractionalRaw] = timePartRaw.split(".");
+  const fractional = fractionalRaw ? fractionalRaw.slice(0, 3).padEnd(3, "0") : undefined;
+  const timePart = fractional ? `${hms}.${fractional}` : hms;
+
+  const normalizedOffset = offsetPart.trim();
+  const suffix = normalizedOffset === "00" ? "Z" : `+${normalizedOffset}:00`;
+
+  return `${datePart}T${timePart}${suffix}`;
+}
+
+export function formatTimeRelativeUtc(utcTimestamp: string) {
+  return formatTimeRelative(normalizeUtcTimestamp(utcTimestamp));
+}
+
 export function formatHumanDate(date: string) {
   const dateObject = new Date(date);
   const now = new Date();
