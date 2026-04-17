@@ -3,7 +3,7 @@
 import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
-import type {BookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import type {BookmarkMetadata, PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 import Link from "next/link";
 
 interface BookmarkDetailsProps {
@@ -15,6 +15,15 @@ interface BookmarkDetailsProps {
   saved: string;
   updated?: string;
   showUpdated: boolean;
+}
+
+function formatPostedDate(epoch: number): string {
+  const d = new Date(epoch * 1000);
+  const time = d
+    .toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit", hour12: true})
+    .toUpperCase();
+  const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
+  return `${date} · ${time}`;
 }
 
 function BookmarkDetailsImpl({
@@ -29,11 +38,16 @@ function BookmarkDetailsImpl({
 }: BookmarkDetailsProps) {
   const {copiedKey, copyText} = useClipboardCopy(2000);
   const sourceCopied = copiedKey === "source";
+
   const publisherName = metadata?.user_name?.trim() || "";
   const publisherHandle = (metadata?.user_screen_name ?? "").trim().replace(/^@+/, "");
   const publisherUrl = publisherHandle ? `https://x.com/${publisherHandle}` : undefined;
   const shouldShowPublisher =
     kind === "media" && (publisherName.length > 0 || publisherHandle.length > 0) && !!publisherUrl;
+
+  const postMeta = kind === "post" ? (metadata as PostBookmarkMetadata | undefined) : undefined;
+
+  const postedDate = postMeta?.date_epoch ? formatPostedDate(postMeta.date_epoch) : null;
 
   const handleCopySource = async () => {
     if (!source) return;
@@ -83,7 +97,6 @@ function BookmarkDetailsImpl({
         {shouldShowPublisher && (
           <>
             <div className="text-muted-foreground">Publisher</div>
-
             <Link
               href={publisherUrl}
               target="_blank"
@@ -96,6 +109,48 @@ function BookmarkDetailsImpl({
                 {publisherName} - @{publisherHandle}
               </span>
             </Link>
+          </>
+        )}
+
+        {postMeta && (
+          <>
+            <div className="text-muted-foreground">Author</div>
+            <Link
+              href={`https://x.com/${postMeta.user_screen_name}`}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "inline-flex min-w-0 items-center gap-1.5 rounded-sm",
+                "focus-visible:ring-ring/50 outline-none hover:underline focus-visible:ring-2",
+              )}>
+              <span className="">{postMeta.user_name}</span>
+              <span className="text-muted-foreground">@{postMeta.user_screen_name}</span>
+            </Link>
+
+            {postedDate && (
+              <>
+                <div className="text-muted-foreground">Posted</div>
+                <div>{postedDate}</div>
+              </>
+            )}
+
+            {postMeta.hashtags.length > 0 && (
+              <>
+                <div className="text-muted-foreground">Hashtags</div>
+                <div className="flex flex-wrap gap-1">
+                  {postMeta.hashtags.map((tag) => (
+                    <Link
+                      key={tag}
+                      href={`https://x.com/hashtag/${tag}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[#1D9BF0] hover:underline">
+                      #{tag}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
           </>
         )}
 

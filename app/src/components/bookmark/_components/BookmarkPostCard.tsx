@@ -210,14 +210,25 @@ function BookmarkPostCardImpl({
   return (
     <article
       className={cn(
-        "border-border relative flex flex-col gap-[14px] border-b px-4 py-3 transition-colors",
-        "hover:bg-muted/40",
-        isSelected && "bg-muted/60",
+        "border-border group relative isolate flex flex-col gap-[14px] border-b px-4 py-3",
+        "hover:bg-muted/80",
+        "cursor-pointer transition-none!",
+        isSelected && "bg-muted",
         className,
       )}>
+      {/* Full-card link overlay */}
+      <Link
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute inset-0 z-0"
+        aria-label={`Open post by ${meta.user_name}`}
+        tabIndex={-1}
+      />
+
       {/* Hover actions */}
       <BookmarkHoverActions
-        className="top-3 right-3"
+        className="top-3 right-3 z-[1]"
         onOptions={(e) => {
           e.stopPropagation();
           onOpenMenu?.(item);
@@ -231,7 +242,7 @@ function BookmarkPostCardImpl({
         checked={isSelected}
         selectionIndex={selectionIndex}
         onCheckedChange={setSelected}
-        paddingClassName="absolute left-4 top-4"
+        paddingClassName="absolute left-4 top-4 z-[1]"
       />
 
       {/* Author row */}
@@ -240,7 +251,7 @@ function BookmarkPostCardImpl({
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="group/author flex w-fit cursor-pointer items-center gap-2">
+        className="group/author relative z-[1] flex w-fit cursor-pointer items-center gap-2">
         <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
           <Image
             src={meta.user_profile_image_url}
@@ -262,7 +273,7 @@ function BookmarkPostCardImpl({
       </Link>
 
       {/* Content */}
-      <div className="min-w-0 flex-1 space-y-[14px]">
+      <div className="relative z-[1] min-w-0 flex-1 space-y-[14px]">
         {/* Replying-to label */}
         {replyingTo && (
           <p className="text-muted-foreground text-[14px]">

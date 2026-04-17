@@ -29,7 +29,9 @@ import {useBookmarkMutations} from "./_hooks/use-bookmark-mutations";
 import {BookmarkPreviewDialog} from "./_components/BookmarkPreviewDialog";
 import {BookmarkMenuActions} from "./_components/BookmarkMenuActions";
 import {BookmarkDetails} from "./_components/BookmarkDetails";
+import {BookmarkPostMenuPanel} from "./_components/BookmarkPostMenuPanel";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
+import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 import Spinner from "../ui/spinner";
 
 export function BookmarkMenu({userId}: {userId: string | null}) {
@@ -241,15 +243,19 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
             <div className="min-h-0 flex-1">
               <SheetPanel className="p-0 pt-0!">
                 {item?.id ? (
-                  <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
-                    <BookmarkImage
-                      bookmark_id={item.id}
-                      item={{...item, preview_image: currentValues.preview_image ?? ""}}
-                      type="preview"
-                      fill
-                      imageClassName="object-cover"
-                    />
-                  </div>
+                  item.kind === "post" && item.metadata ? (
+                    <BookmarkPostMenuPanel meta={item.metadata as PostBookmarkMetadata} />
+                  ) : (
+                    <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
+                      <BookmarkImage
+                        bookmark_id={item.id}
+                        item={{...item, preview_image: currentValues.preview_image ?? ""}}
+                        type="preview"
+                        fill
+                        imageClassName="object-cover"
+                      />
+                    </div>
+                  )
                 ) : (
                   <div className="bg-muted aspect-video w-full border-b" />
                 )}
@@ -280,25 +286,29 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
                   <BookmarkMenuActions {...actionProps} />
                 </div>
 
-                <Separator />
+                {item?.kind !== "post" && (
+                  <>
+                    <Separator />
 
-                <div className="p-6">
-                  <Controller
-                    name="description"
-                    control={control}
-                    render={({field}) => (
-                      <Textarea
-                        {...field}
-                        unstyled
-                        spellCheck={false}
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        error={errors.description?.message}
-                        className="text-muted-foreground flex w-full bg-transparent p-0 text-[15px] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
+                    <div className="p-6">
+                      <Controller
+                        name="description"
+                        control={control}
+                        render={({field}) => (
+                          <Textarea
+                            {...field}
+                            unstyled
+                            spellCheck={false}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            error={errors.description?.message}
+                            className="text-muted-foreground flex w-full bg-transparent p-0 text-[15px] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </div>
+                    </div>
+                  </>
+                )}
 
                 <Separator />
 

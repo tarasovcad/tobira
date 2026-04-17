@@ -24,9 +24,10 @@ function BookmarkMenuActionsImpl({
   kind,
 }: BookmarkMenuActionsProps) {
   const isMedia = kind === "media";
+  const isPost = kind === "post";
 
   return (
-    <div className={cn("mt-2 flex gap-2", isMedia && "mt-0 justify-end")}>
+    <div className={cn("mt-2 flex gap-2", (isMedia || isPost) && "mt-0 justify-end")}>
       <Button
         variant="outline"
         size="default"
@@ -52,7 +53,7 @@ function BookmarkMenuActionsImpl({
         </svg>
         Archive
       </Button>
-      {!isMedia && (
+      {!isMedia && !isPost && (
         <>
           <Button variant="outline" size="default" type="button" onClick={onPreviewClick}>
             <svg
