@@ -16,20 +16,13 @@ export function useHomeFilters() {
   const router = useRouter();
   const pathname = usePathname();
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
-  const setBookmarkWidth = useViewOptionsStore((state) => state.setBookmarkWidth);
 
   const tagFilter = searchParams.get("tag")?.trim() || null;
   const collectionFilter = searchParams.get("collection");
   const initialTypeFilter = (searchParams.get("type") ?? "website") as TypeFilter;
   const initialSort = resolveSortFilter(searchParams.get("sort"));
 
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>(() => {
-    // Ensure the initial render matches the URL (no layout shift on reload).
-    if (initialTypeFilter === "post") {
-      setBookmarkWidth("sm");
-    }
-    return initialTypeFilter;
-  });
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(initialTypeFilter);
   const [sort, setSort] = useState<SortMode>(initialSort);
 
   const updateUrlParam = (key: "type" | "sort", value: TypeFilter | SortMode) => {
@@ -42,9 +35,6 @@ export function useHomeFilters() {
   const handleTypeChange = (nextType: TypeFilter) => {
     setTypeFilter(nextType);
     resetViewOptions(getDefaultAllItemsView(nextType));
-    if (nextType === "post") {
-      setBookmarkWidth("sm");
-    }
     updateUrlParam("type", nextType);
   };
 

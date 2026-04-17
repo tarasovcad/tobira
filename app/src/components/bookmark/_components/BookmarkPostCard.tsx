@@ -10,6 +10,8 @@ import {BookmarkHoverActions} from "./BookmarkHoverActions";
 import {BookmarkSelectionControl} from "./BookmarkSelectionControl";
 import type {BookmarkItemProps} from "./bookmark-item-props";
 import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import {useViewOptionsStore} from "@/store/use-view-options";
+import {Tag} from "@/components/ui/Tag";
 
 type PostMediaItem = PostBookmarkMetadata["media_extended"][number];
 
@@ -51,7 +53,7 @@ function renderText(text: string) {
           href={part}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#1D9BF0] hover:underline"
+          className="text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline"
           onClick={(e) => e.stopPropagation()}>
           {displayUrl}
         </Link>
@@ -186,6 +188,7 @@ function BookmarkPostCardImpl({
   setSelected,
 }: BookmarkItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
 
   const meta = item.metadata as PostBookmarkMetadata | undefined;
 
@@ -207,15 +210,23 @@ function BookmarkPostCardImpl({
     return lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated;
   })();
 
+  const showAuthor = postContentToggles.author;
+  const showMedia = postContentToggles.media;
+  const showQuotedPost = postContentToggles.quotedPost;
+  const showTags = postContentToggles.tags;
+  const showTimestamp = postContentToggles.timestamp;
+
   return (
     <article
       className={cn(
         "border-border group relative isolate flex flex-col gap-[14px] border-b px-4 py-3",
-        "hover:bg-muted/80",
+        "hover:bg-muted/80 group-data-[selection-mode=true]/bookmark-row:hover:bg-transparent",
         "cursor-pointer transition-none!",
         isSelected && "bg-muted",
         className,
       )}>
+      <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-200 group-data-[selection-mode=true]/bookmark-row:opacity-100" />
+
       {/* Full-card link overlay */}
       <Link
         href={item.url}
@@ -228,49 +239,63 @@ function BookmarkPostCardImpl({
 
       {/* Hover actions */}
       <BookmarkHoverActions
-        className="top-3 right-3 z-[1]"
+        className="top-3 right-3 z-[3]"
         onOptions={(e) => {
           e.stopPropagation();
           onOpenMenu?.(item);
         }}
       />
 
-      {/* Selection control */}
-      <BookmarkSelectionControl
-        itemId={item.id}
-        title={meta.user_name}
-        checked={isSelected}
-        selectionIndex={selectionIndex}
-        onCheckedChange={setSelected}
-        paddingClassName="absolute left-4 top-4 z-[1]"
-      />
+      {/* When author is hidden, selection control sits in the corner (no layout impact) */}
+      {!showAuthor && (
+        <BookmarkSelectionControl
+          itemId={item.id}
+          title={meta.user_name}
+          checked={isSelected}
+          selectionIndex={selectionIndex}
+          onCheckedChange={setSelected}
+          variant="overlay"
+        />
+      )}
 
       {/* Author row */}
-      <Link
-        href={`https://x.com/${meta.user_screen_name}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className="group/author relative z-[1] flex w-fit cursor-pointer items-center gap-2">
-        <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
-          <Image
-            src={meta.user_profile_image_url}
-            alt={meta.user_name}
-            width={40}
-            height={40}
-            className="h-full w-full object-cover transition-all group-hover/author:brightness-95"
-            unoptimized
+      {showAuthor && (
+        <div className="relative z-[1] flex items-center">
+          <BookmarkSelectionControl
+            itemId={item.id}
+            title={meta.user_name}
+            checked={isSelected}
+            selectionIndex={selectionIndex}
+            onCheckedChange={setSelected}
+            paddingClassName="pr-2"
           />
+          <Link
+            href={`https://x.com/${meta.user_screen_name}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="group/author flex w-fit cursor-pointer items-center gap-2">
+            <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
+              <Image
+                src={meta.user_profile_image_url}
+                alt={meta.user_name}
+                width={40}
+                height={40}
+                className="h-full w-full object-cover transition-all group-hover/author:brightness-95"
+                unoptimized
+              />
+            </div>
+            <div className="flex items-center gap-[6px]">
+              <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[20px]">
+                <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
+                  {meta.user_name}
+                </span>
+                <span className="text-muted-foreground shrink-0">@{meta.user_screen_name}</span>
+              </div>
+            </div>
+          </Link>
         </div>
-        <div className="flex items-center gap-[6px]">
-          <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[20px]">
-            <span className="text-foreground truncate font-semibold group-hover/author:underline">
-              {meta.user_name}
-            </span>
-            <span className="text-muted-foreground shrink-0">@{meta.user_screen_name}</span>
-          </div>
-        </div>
-      </Link>
+      )}
 
       {/* Content */}
       <div className="relative z-[1] min-w-0 flex-1 space-y-[14px]">
@@ -282,7 +307,7 @@ function BookmarkPostCardImpl({
               href={`https://x.com/${replyingTo}`}
               target="_blank"
               onClick={(e) => e.stopPropagation()}
-              className="text-[#1D9BF0] hover:underline">
+              className="text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline">
               @{replyingTo}
             </Link>
           </p>
@@ -297,24 +322,37 @@ function BookmarkPostCardImpl({
             <button
               type="button"
               onClick={() => setIsExpanded(true)}
-              className="cursor-pointer text-[15px] text-[#1D9BF0] hover:underline focus:outline-none">
+              className="cursor-pointer text-[15px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
               Show more
             </button>
           )}
         </div>
 
         {/* Media */}
-        {meta.hasMedia && meta.media_extended.length > 0 && (
+        {showMedia && meta.hasMedia && meta.media_extended.length > 0 && (
           <MediaGrid media={meta.media_extended} />
         )}
 
         {/* Quoted post */}
-        {meta.qrt && <QuotedPost qrt={meta.qrt} />}
+        {showQuotedPost && meta.qrt && <QuotedPost qrt={meta.qrt} />}
 
-        {/* Timestamp + link to original */}
-        <div className="flex items-center gap-3 text-[14px] text-[#536471]">
-          {formatFullDate(meta.date_epoch)}
-        </div>
+        {/* Tags */}
+        {showTags && item.tags && item.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {item.tags.map((tag) => (
+              <Tag key={tag} displayHash={false} size="md" variant="outline">
+                # {tag}
+              </Tag>
+            ))}
+          </div>
+        )}
+
+        {/* Timestamp */}
+        {showTimestamp && (
+          <div className="flex items-center gap-3 text-[14px] text-[#536471]">
+            {formatFullDate(meta.date_epoch)}
+          </div>
+        )}
       </div>
     </article>
   );

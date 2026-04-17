@@ -21,10 +21,12 @@ import {
   useViewOptionsStore,
   type ColumnSize,
   type ContentField,
+  type PostContentField,
   type ViewMode,
   type GridGap,
   type BorderRadius,
   type BookmarkWidth,
+  type KindFilter,
 } from "@/store/use-view-options";
 import type {TypeFilter} from "../_types";
 import {
@@ -158,6 +160,14 @@ const CONTENT_OPTIONS = [
   {id: "savedDate", label: "Saved date"},
 ] as const;
 
+const POST_CONTENT_OPTIONS = [
+  {id: "author", label: "Author"},
+  {id: "media", label: "Media"},
+  {id: "quotedPost", label: "Quoted post"},
+  {id: "tags", label: "Tags"},
+  {id: "timestamp", label: "Timestamp"},
+] as const satisfies {id: PostContentField; label: string}[];
+
 const GRID_GAP_OPTIONS = [
   {value: "none", label: "None"},
   {value: "xs", label: "XS"},
@@ -209,6 +219,24 @@ function isContentFieldEnabled(contentToggles: Record<ContentField, boolean>, fi
       return contentToggles.source;
     case "savedDate":
       return contentToggles.savedDate;
+  }
+}
+
+function isPostContentFieldEnabled(
+  postContentToggles: Record<PostContentField, boolean>,
+  field: PostContentField,
+) {
+  switch (field) {
+    case "author":
+      return postContentToggles.author;
+    case "media":
+      return postContentToggles.media;
+    case "quotedPost":
+      return postContentToggles.quotedPost;
+    case "tags":
+      return postContentToggles.tags;
+    case "timestamp":
+      return postContentToggles.timestamp;
   }
 }
 
@@ -277,8 +305,10 @@ const DEFAULT_VIEW_OPTIONS: Record<
 };
 
 const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
-  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidth);
-  const setBookmarkWidth = useViewOptionsStore((state) => state.setBookmarkWidth);
+  const bookmarkWidth = useViewOptionsStore(
+    (state) => state.bookmarkWidthByType[typeFilter as KindFilter],
+  );
+  const setBookmarkWidthForType = useViewOptionsStore((state) => state.setBookmarkWidthForType);
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
 
@@ -293,8 +323,14 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const setContentToggle = useViewOptionsStore((state) => state.setContentToggle);
   const setContentToggles = useViewOptionsStore((state) => state.setContentToggles);
 
+  const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
+  const setPostContentToggle = useViewOptionsStore((state) => state.setPostContentToggle);
+
   const isMedia = typeFilter === "media";
   const isPost = typeFilter === "post";
+  const maxWidthIndex = isPost
+    ? WIDTH_OPTIONS.findIndex((o) => o.value === "md")
+    : WIDTH_OPTIONS.length - 1;
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const disabledAppearanceFields = DISABLED_APPEARANCE_BY_VIEW[currentView as ViewMode] || [];
 
@@ -371,7 +407,10 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                             setGridGap(defaults.gridGap);
                             setColumnSize(defaults.columnSize);
                             setBorderRadius(defaults.borderRadius);
-                            setBookmarkWidth(defaults.bookmarkWidth);
+                            setBookmarkWidthForType(
+                              typeFilter as KindFilter,
+                              defaults.bookmarkWidth,
+                            );
                             setContentToggles(defaults.contentToggles);
                           }
                         }}
@@ -413,9 +452,12 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                 <div className="space-y-4 pt-2">
                   <SliderComfortable
                     label="Width"
-                    value={WIDTH_OPTIONS.findIndex((o) => o.value === bookmarkWidth)}
+                    value={Math.min(
+                      WIDTH_OPTIONS.findIndex((o) => o.value === bookmarkWidth),
+                      maxWidthIndex,
+                    )}
                     min={0}
-                    max={WIDTH_OPTIONS.length - 1}
+                    max={maxWidthIndex}
                     step={1}
                     variant="pips"
                     className="cursor-pointer rounded-md"
@@ -423,7 +465,10 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     formatValue={(v) => WIDTH_OPTIONS[v as number].label}
                     disabled={disabledAppearanceFields.includes("width")}
                     onChange={(val) =>
-                      setBookmarkWidth(WIDTH_OPTIONS[val as number].value as BookmarkWidth)
+                      setBookmarkWidthForType(
+                        typeFilter as KindFilter,
+                        WIDTH_OPTIONS[val as number].value as BookmarkWidth,
+                      )
                     }
                   />
 
@@ -494,42 +539,63 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
               </AccordionTrigger>
               <AccordionContent className="text-foreground px-1 py-2 text-sm">
                 <div className="space-y-2">
-                  <div className="divide-border border-border divide-y rounded-md">
-                    <div
-                      className={cn(
-                        "text-muted-foreground flex items-center justify-between gap-3 px-2 py-2",
-                        isMedia && "pointer-events-none opacity-60",
-                      )}>
-                      <span className="">Title</span>
-                      <span className="shrink-0">{isMedia ? "Always off" : "Always on"}</span>
-                    </div>
-
-                    {CONTENT_OPTIONS.map(({id, label}) => {
-                      const isDisabled =
-                        isMedia ||
-                        (DISABLED_CONTENT_BY_VIEW[currentView as ViewMode] || []).includes(id);
-
-                      return (
+                  {isPost ? (
+                    <div className="divide-border border-border divide-y rounded-md">
+                      {POST_CONTENT_OPTIONS.map(({id, label}) => (
                         <Switch
                           key={id}
                           label={label}
-                          disabled={isDisabled}
-                          checked={isDisabled ? false : isContentFieldEnabled(contentToggles, id)}
-                          onToggle={() => {
-                            if (!isDisabled) {
-                              setContentToggle(id, !isContentFieldEnabled(contentToggles, id));
-                            }
-                          }}
+                          checked={isPostContentFieldEnabled(postContentToggles, id)}
+                          onToggle={() =>
+                            setPostContentToggle(
+                              id,
+                              !isPostContentFieldEnabled(postContentToggles, id),
+                            )
+                          }
                           labelClassName="text-sm"
-                          className={cn(
-                            "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",
-                            isDisabled && "cursor-not-allowed!",
-                          )}
+                          className="hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2"
                           aria-label={`Show ${label}`}
                         />
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="divide-border border-border divide-y rounded-md">
+                      <div
+                        className={cn(
+                          "text-muted-foreground flex items-center justify-between gap-3 px-2 py-2",
+                          isMedia && "pointer-events-none opacity-60",
+                        )}>
+                        <span className="">Title</span>
+                        <span className="shrink-0">{isMedia ? "Always off" : "Always on"}</span>
+                      </div>
+
+                      {CONTENT_OPTIONS.map(({id, label}) => {
+                        const isDisabled =
+                          isMedia ||
+                          (DISABLED_CONTENT_BY_VIEW[currentView as ViewMode] || []).includes(id);
+
+                        return (
+                          <Switch
+                            key={id}
+                            label={label}
+                            disabled={isDisabled}
+                            checked={isDisabled ? false : isContentFieldEnabled(contentToggles, id)}
+                            onToggle={() => {
+                              if (!isDisabled) {
+                                setContentToggle(id, !isContentFieldEnabled(contentToggles, id));
+                              }
+                            }}
+                            labelClassName="text-sm"
+                            className={cn(
+                              "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",
+                              isDisabled && "cursor-not-allowed!",
+                            )}
+                            aria-label={`Show ${label}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>

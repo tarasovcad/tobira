@@ -74,7 +74,7 @@ export function AllItemsList({
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
   const borderRadius = useViewOptionsStore((state) => state.borderRadius);
-  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidth);
+  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidthByType[typeFilter]);
 
   const {borderRadiusClass, gapClass, gridColsClass} = getAllItemsListViewOptions({
     borderRadius,
