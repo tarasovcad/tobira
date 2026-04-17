@@ -71,18 +71,14 @@ export function ProvidersSection() {
         initial={false}
         animate={providersCollapsed ? "collapsed" : "expanded"}
         variants={{
-          expanded: {height: "auto", opacity: 1, y: 0},
-          collapsed: {height: 0, opacity: 0, y: -4},
+          expanded: {height: "auto", opacity: 1},
+          collapsed: {height: 0, opacity: 0},
         }}
         transition={{
           height: {duration: 0.2, ease: [0.22, 1, 0.36, 1]},
           opacity: {duration: 0.12, ease: [0.22, 1, 0.36, 1]},
-          y: {duration: 0.2, ease: [0.22, 1, 0.36, 1]},
         }}
-        className={cn(
-          "overflow-hidden will-change-[height,transform]",
-          providersCollapsed && "pointer-events-none",
-        )}>
+        className={cn("overflow-hidden", providersCollapsed && "pointer-events-none")}>
         <div className="pt-0.5">
           <Tabs defaultValue="all">
             <div className="flex items-center justify-between gap-2">

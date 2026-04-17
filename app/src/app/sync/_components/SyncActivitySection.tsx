@@ -531,6 +531,14 @@ function matchesSyncQuery(item: SyncActivityItem, rawQuery: string) {
   ].some((value) => value.toLowerCase().includes(query));
 }
 
+function getSyncedItemCount(itemsLabel: string) {
+  const match = itemsLabel.match(/[\d,]+/);
+  if (!match) return null;
+
+  const parsed = Number.parseInt(match[0].replaceAll(",", ""), 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 export function SyncActivitySection() {
   const initialCount = 5;
   const step = 10;
@@ -589,18 +597,14 @@ export function SyncActivitySection() {
           initial={false}
           animate={activityCollapsed ? "collapsed" : "expanded"}
           variants={{
-            expanded: {height: "auto", opacity: 1, y: 0},
-            collapsed: {height: 0, opacity: 0, y: -4},
+            expanded: {height: "auto", opacity: 1},
+            collapsed: {height: 0, opacity: 0},
           }}
           transition={{
             height: {duration: 0.2, ease: [0.22, 1, 0.36, 1]},
             opacity: {duration: 0.12, ease: [0.22, 1, 0.36, 1]},
-            y: {duration: 0.2, ease: [0.22, 1, 0.36, 1]},
           }}
-          className={cn(
-            "overflow-hidden will-change-[height,transform]",
-            activityCollapsed && "pointer-events-none",
-          )}>
+          className={cn("overflow-hidden", activityCollapsed && "pointer-events-none")}>
           <div className="pt-0.5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <Tabs
@@ -708,6 +712,7 @@ export function SyncActivitySection() {
 
 function SyncActivityRow({item, dayLabel}: {item: SyncActivityItem; dayLabel: string | null}) {
   const providerIcon = getProviderIcon(item.provider);
+  const syncedCount = item.status === "success" ? getSyncedItemCount(item.items) : null;
 
   return (
     <AccordionItem value={item.id} className="border-border/80">
@@ -735,6 +740,11 @@ function SyncActivityRow({item, dayLabel}: {item: SyncActivityItem; dayLabel: st
                 <p className="text-foreground text-sm font-medium">{item.provider}</p>
                 <span className="text-muted-foreground text-sm font-medium">-</span>
                 <p className="text-muted-foreground text-sm font-medium">{item.summary}</p>
+                {syncedCount !== null ? (
+                  <span className="text-foreground rounded-sm border px-1 text-xs">
+                    +{syncedCount.toLocaleString()}
+                  </span>
+                ) : null}
               </div>
             </div>
 

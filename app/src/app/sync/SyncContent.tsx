@@ -3,6 +3,7 @@
 import {PageHeader} from "@/components/ui/page/PageHeader";
 import {ProvidersSection} from "@/app/sync/_components/ProvidersSection";
 import {SyncActivitySection} from "@/app/sync/_components/SyncActivitySection";
+import {ConnectedAccountsSection} from "@/app/sync/_components/ConnectedAccountsSection";
 
 export const SyncContent = () => {
   return (
@@ -16,17 +17,17 @@ export const SyncContent = () => {
                 description="Connect outside services and bring your saved content into Tobira. Imported items are organized alongside everything else."
               />
               <div className="border-border mt-4 flex items-center gap-5.5 border-t pt-4">
-                <Stat label="Connected providers" value="1" />
+                <Stat label="Connected accounts" value="10" />
                 <div className="bg-border h-7 w-px" aria-hidden />
-                <Stat label="Imported items" value="342" />
+                <Stat label="Imported items" value="1,806" />
                 <div className="bg-border h-7 w-px" aria-hidden />
                 <Stat label="Last sync" value="2 min ago" />
                 <div className="bg-border h-7 w-px" aria-hidden />
-                <Stat label="Need attention" value="0" />
+                <Stat label="Need attention" value="5" />
               </div>
             </div>
-
             <ProvidersSection />
+            <ConnectedAccountsSection />
             <SyncActivitySection />
           </div>
         </div>
