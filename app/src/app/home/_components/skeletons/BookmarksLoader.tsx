@@ -2,9 +2,15 @@
 
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import {Skeleton} from "@/components/coss-ui/skeleton";
+import {useViewOptionsStore} from "@/store/use-view-options";
 import type {SortMode, TypeFilter} from "../../_types";
-import {ListSkeleton} from "../ListSkeletons";
+import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import {HomeToolbar} from "../home-client/HomeToolbar";
+import {
+  getCurrentAllItemsView,
+  getAllItemsListViewOptions,
+} from "../all-items-client/all-items-list-view-options";
+import {getAllItemsListLayoutConfig} from "../all-items-client/all-items-list-layout";
 
 const SKELETON_ROWS = 8;
 
@@ -17,6 +23,47 @@ export function BookmarksLoader({
   typeFilter: TypeFilter;
   sort: SortMode;
 }) {
+  const view = useViewOptionsStore((state) => state.view);
+  const gridGap = useViewOptionsStore((state) => state.gridGap);
+  const columnSize = useViewOptionsStore((state) => state.columnSize);
+  const borderRadius = useViewOptionsStore((state) => state.borderRadius);
+  const bookmarkWidth = useViewOptionsStore((state) => {
+    switch (typeFilter) {
+      case "media":
+        return state.bookmarkWidthByType.media;
+      case "post":
+        return state.bookmarkWidthByType.post;
+      case "website":
+        return state.bookmarkWidthByType.website;
+    }
+  });
+
+  const currentView = getCurrentAllItemsView(view, typeFilter);
+  const isMediaGrid = currentView === "grid" && typeFilter === "media";
+  const {borderRadiusClass, gapClass, gridColsClass} = getAllItemsListViewOptions({
+    borderRadius,
+    gridGap,
+    columnSize,
+  });
+  const layoutConfig = getAllItemsListLayoutConfig({
+    view: currentView,
+    borderRadiusClass,
+    gapClass,
+    gridColsClass,
+    isMediaGrid,
+    bookmarkWidth,
+    typeFilter,
+  });
+
+  const skeletons = Array.from({length: SKELETON_ROWS}, (_, index) =>
+    layoutConfig.renderSkeletonItem(index),
+  );
+  const content = layoutConfig.isTable ? (
+    <BookmarkTableShell>{skeletons}</BookmarkTableShell>
+  ) : (
+    skeletons
+  );
+
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <HomeToolbar
@@ -36,10 +83,8 @@ export function BookmarksLoader({
 
       <div className="h-auto min-h-0 flex-1">
         <ScrollArea className="h-full" scrollbarGutter>
-          <div className="w-full">
-            {Array.from({length: SKELETON_ROWS}, (_, index) => (
-              <ListSkeleton key={index} />
-            ))}
+          <div className={layoutConfig.wrapperClassName}>
+            <div className={layoutConfig.containerClassName}>{content}</div>
           </div>
         </ScrollArea>
       </div>
