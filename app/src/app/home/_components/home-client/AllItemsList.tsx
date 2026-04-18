@@ -131,6 +131,7 @@ export function AllItemsList({
         isSelected={selectedIds.has(item.id)}
         animatedVariant={animatedVariant}
         BookmarkItem={bookmarkItemComponent}
+        className={index === 0 ? "pt-6" : undefined}
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}

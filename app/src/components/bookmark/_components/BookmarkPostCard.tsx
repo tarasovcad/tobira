@@ -224,6 +224,7 @@ function BookmarkPostCardImpl({
         "border-border group relative isolate flex flex-col gap-[14px] border-b px-4 py-3",
         "hover:bg-muted/80",
         "cursor-pointer transition-none!",
+        "pt-4",
         isSelected && "bg-muted",
         className,
       )}>

@@ -18,6 +18,8 @@ interface CustomVideoPlayerProps extends React.VideoHTMLAttributes<HTMLVideoElem
   showMainPlayIcon?: boolean;
   minimal?: boolean;
   playing?: boolean;
+  controlsVisible?: boolean;
+  disableClickToggle?: boolean;
 }
 
 export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
@@ -32,6 +34,8 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   showMainPlayIcon = false,
   minimal = false,
   playing,
+  controlsVisible,
+  disableClickToggle = false,
   ...props
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -359,8 +363,8 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         muted={muted}
         playsInline={playsInline}
         className={videoClassName || "h-full w-full cursor-pointer object-contain"}
-        onClick={handleVideoClick}
-        onPointerDown={handleVideoPointerDown}
+        onClick={disableClickToggle ? undefined : handleVideoClick}
+        onPointerDown={disableClickToggle ? undefined : handleVideoPointerDown}
         onPointerUp={handleVideoPointerUpOrLeave}
         onPointerLeave={handleVideoPointerUpOrLeave}
         onPointerCancel={handleVideoPointerUpOrLeave}
@@ -461,7 +465,8 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
 
       {/* Controls overlay */}
       <div
-        className={`absolute right-0 bottom-0 left-0 z-20 transform bg-linear-to-t from-black/20 to-transparent px-5 pt-10 pb-4 transition duration-150 ease-in will-change-transform group-hover/video:translate-y-0 group-hover/video:opacity-100 group-hover/video:duration-200 group-hover/video:ease-out group-has-[video:focus-visible]/video:translate-y-0 group-has-[video:focus-visible]/video:opacity-100 group-has-[video:focus-visible]/video:duration-200 group-has-[video:focus-visible]/video:ease-out ${showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+        onClick={(e) => e.stopPropagation()}
+        className={`absolute right-0 bottom-0 left-0 z-20 transform bg-linear-to-t from-black/20 to-transparent px-5 pt-10 pb-4 transition duration-150 ease-in will-change-transform group-hover/video:translate-y-0 group-hover/video:opacity-100 group-hover/video:duration-200 group-hover/video:ease-out group-has-[video:focus-visible]/video:translate-y-0 group-has-[video:focus-visible]/video:opacity-100 group-has-[video:focus-visible]/video:duration-200 group-has-[video:focus-visible]/video:ease-out ${showControls || controlsVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
         <TooltipProvider delay={300}>
           <div className="flex w-full items-center gap-0.5 text-white">
             {/* Play/Pause */}

@@ -69,6 +69,7 @@ async function downloadAndUpload(sourceUrl: string, r2Key: string): Promise<stri
 type ProcessableMediaItem = {
   type: string;
   url: string;
+  thumbnail_url?: string;
   url_small?: string;
   url_large?: string;
   [key: string]: unknown;
@@ -81,7 +82,25 @@ async function processMediaItems(
 ): Promise<ProcessableMediaItem[]> {
   return Promise.all(
     items.map(async (item, i) => {
-      if (item.type === "video") return item;
+      if (item.type === "video" || item.type === "gif") {
+        const updates: Partial<ProcessableMediaItem> = {};
+
+        const uploadedUrl = await downloadAndUpload(
+          item.url,
+          `posts/${bookmarkId}/${prefix}_${i}.mp4`,
+        );
+        if (uploadedUrl) updates.url = uploadedUrl;
+
+        if (item.thumbnail_url) {
+          const uploadedThumb = await downloadAndUpload(
+            item.thumbnail_url,
+            `posts/${bookmarkId}/${prefix}_${i}_thumbnail.jpg`,
+          );
+          if (uploadedThumb) updates.thumbnail_url = uploadedThumb;
+        }
+
+        return {...item, ...updates};
+      }
 
       const smallSrcUrl = buildTwitterSizedUrl(item.url, "small");
       const largeSrcUrl = buildTwitterSizedUrl(item.url, "large");

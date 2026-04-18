@@ -19,6 +19,7 @@ interface AllItemsBookmarkRowProps {
   isSelected: boolean;
   animatedVariant: AllItemsAnimatedVariant;
   BookmarkItem: React.ComponentType<AllItemsBookmarkComponentProps>;
+  className?: string;
   onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
@@ -35,6 +36,7 @@ function AllItemsBookmarkRowImpl({
   isSelected,
   animatedVariant,
   BookmarkItem,
+  className,
   onItemRemoved,
   toggleSelected,
   setSelected,
@@ -88,6 +90,7 @@ function AllItemsBookmarkRowImpl({
           selectionIndex={selectionIndex}
           isSelected={isSelected}
           setSelected={setSelected}
+          className={className}
         />
       </div>
     </AnimatedItem>
@@ -105,6 +108,7 @@ export const AllItemsBookmarkRow = React.memo(
     prev.isSelected === next.isSelected &&
     prev.animatedVariant === next.animatedVariant &&
     prev.BookmarkItem === next.BookmarkItem &&
+    prev.className === next.className &&
     prev.onItemRemoved === next.onItemRemoved &&
     prev.toggleSelected === next.toggleSelected &&
     prev.setSelected === next.setSelected &&

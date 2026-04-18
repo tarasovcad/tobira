@@ -200,6 +200,7 @@ export function AddItemDialog({
           collectionId: data.collectionId ?? undefined,
           kind: "media",
         });
+        closeDialog();
         break;
       case "post":
         addItemMutation.mutate({
@@ -208,6 +209,7 @@ export function AddItemDialog({
           collectionId: data.collectionId ?? undefined,
           kind: "post",
         });
+        closeDialog();
         break;
       default:
         throw new Error("Invalid item type");

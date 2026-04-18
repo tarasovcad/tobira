@@ -3,6 +3,11 @@ import {fetchXPostData, type VxTwitterPost, type VxTwitterMediaItem} from "@/lib
 import {uploadToR2, buildR2PublicUrl} from "@/lib/storage/r2-storage";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
+export type PostBookmarkMediaItem = VxTwitterMediaItem & {
+  url_small?: string;
+  url_large?: string;
+};
+
 export type PostBookmarkMetadata = {
   platform: "x";
   tweetId: string;
@@ -18,7 +23,7 @@ export type PostBookmarkMetadata = {
   lang: string;
   hashtags: string[];
   hasMedia: boolean;
-  media_extended: VxTwitterMediaItem[];
+  media_extended: PostBookmarkMediaItem[];
   qrt: {
     tweetId: string;
     text: string;
@@ -26,7 +31,7 @@ export type PostBookmarkMetadata = {
     user_screen_name: string;
     user_profile_image_url: string;
     hasMedia: boolean;
-    media_extended: VxTwitterMediaItem[];
+    media_extended: PostBookmarkMediaItem[];
   } | null;
 };
 
@@ -39,6 +44,73 @@ export type PreparedPostBookmark = {
   metadata: PostBookmarkMetadata;
 };
 
+async function downloadAndUploadToR2(sourceUrl: string, r2Key: string): Promise<string | null> {
+  try {
+    const res = await fetch(sourceUrl, {cache: "no-store"});
+    if (!res.ok) return null;
+    const contentTypeRaw = res.headers.get("content-type") ?? "image/jpeg";
+    const contentType = contentTypeRaw.split(";")[0] ?? "image/jpeg";
+    await uploadToR2({key: r2Key, body: Buffer.from(await res.arrayBuffer()), contentType});
+    return buildR2PublicUrl(r2Key);
+  } catch {
+    return null;
+  }
+}
+
+function buildTwitterSizedUrl(url: string, size: "small" | "large"): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("pbs.twimg.com")) return null;
+    u.searchParams.set("name", size);
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function processPostMediaItem(
+  item: VxTwitterMediaItem,
+  bookmarkId: string,
+  index: number,
+  prefix: string,
+): Promise<PostBookmarkMediaItem> {
+  const isVideo = item.type === "video" || item.type === "gif";
+
+  if (isVideo) {
+    const [uploadedUrl, uploadedThumb] = await Promise.all([
+      downloadAndUploadToR2(item.url, `posts/${bookmarkId}/${prefix}_${index}.mp4`),
+      item.thumbnail_url
+        ? downloadAndUploadToR2(
+            item.thumbnail_url,
+            `posts/${bookmarkId}/${prefix}_${index}_thumbnail.jpg`,
+          )
+        : Promise.resolve(null),
+    ]);
+
+    return {
+      ...item,
+      ...(uploadedUrl ? {url: uploadedUrl} : {}),
+      ...(uploadedThumb ? {thumbnail_url: uploadedThumb} : {}),
+    };
+  }
+
+  const smallSrc = buildTwitterSizedUrl(item.url, "small");
+  const largeSrc = buildTwitterSizedUrl(item.url, "large");
+
+  if (!smallSrc || !largeSrc) return item;
+
+  const [url_small, url_large] = await Promise.all([
+    downloadAndUploadToR2(smallSrc, `posts/${bookmarkId}/${prefix}_${index}_small.jpg`),
+    downloadAndUploadToR2(largeSrc, `posts/${bookmarkId}/${prefix}_${index}_large.jpg`),
+  ]);
+
+  return {
+    ...item,
+    ...(url_small ? {url_small} : {}),
+    ...(url_large ? {url_large} : {}),
+  };
+}
+
 async function uploadThumbnailToR2(thumbnailUrl: string, bookmarkId: string): Promise<string> {
   try {
     const res = await fetch(thumbnailUrl);
@@ -49,11 +121,7 @@ async function uploadThumbnailToR2(thumbnailUrl: string, bookmarkId: string): Pr
     const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
     const key = `posts/${bookmarkId}/thumbnail.${ext}`;
 
-    await uploadToR2({
-      key,
-      body: Buffer.from(buffer),
-      contentType,
-    });
+    await uploadToR2({key, body: Buffer.from(buffer), contentType});
 
     return buildR2PublicUrl(key);
   } catch {
@@ -61,7 +129,11 @@ async function uploadThumbnailToR2(thumbnailUrl: string, bookmarkId: string): Pr
   }
 }
 
-function buildPostMetadata(post: VxTwitterPost): PostBookmarkMetadata {
+function buildPostMetadata(
+  post: VxTwitterPost,
+  processedMedia: PostBookmarkMediaItem[],
+  processedQrtMedia: PostBookmarkMediaItem[],
+): PostBookmarkMetadata {
   const qrt = post.qrt
     ? {
         tweetId: post.qrt.tweetID,
@@ -70,7 +142,7 @@ function buildPostMetadata(post: VxTwitterPost): PostBookmarkMetadata {
         user_screen_name: post.qrt.user_screen_name,
         user_profile_image_url: post.qrt.user_profile_image_url,
         hasMedia: post.qrt.hasMedia,
-        media_extended: post.qrt.media_extended ?? [],
+        media_extended: processedQrtMedia,
       }
     : null;
 
@@ -89,7 +161,7 @@ function buildPostMetadata(post: VxTwitterPost): PostBookmarkMetadata {
     lang: post.lang,
     hashtags: post.hashtags ?? [],
     hasMedia: post.hasMedia,
-    media_extended: post.media_extended ?? [],
+    media_extended: processedMedia,
     qrt,
   };
 }
@@ -109,7 +181,23 @@ export async function preparePostBookmarkCreation(input: {
   const post = await fetchXPostData(normalized.toString());
 
   const bookmarkId = randomUUID();
-  const metadata = buildPostMetadata(post);
+
+  const [processedMedia, processedQrtMedia] = await Promise.all([
+    Promise.all(
+      (post.media_extended ?? []).map((item, i) =>
+        processPostMediaItem(item, bookmarkId, i, "media"),
+      ),
+    ),
+    post.qrt?.media_extended?.length
+      ? Promise.all(
+          post.qrt.media_extended.map((item, i) =>
+            processPostMediaItem(item, bookmarkId, i, "qrt_media"),
+          ),
+        )
+      : Promise.resolve([] as PostBookmarkMediaItem[]),
+  ]);
+
+  const metadata = buildPostMetadata(post, processedMedia, processedQrtMedia);
 
   const rawThumbnail = pickThumbnailUrl(post);
   const previewImage = rawThumbnail ? await uploadThumbnailToR2(rawThumbnail, bookmarkId) : "";
