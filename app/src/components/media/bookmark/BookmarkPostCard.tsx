@@ -5,13 +5,13 @@ import {useState} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {cn} from "@/lib/utils";
-import MediaPreview from "@/components/ui/MediaPreview";
-import {BookmarkHoverActions} from "./BookmarkHoverActions";
-import {BookmarkSelectionControl} from "./BookmarkSelectionControl";
-import type {BookmarkItemProps} from "./bookmark-item-props";
 import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {Tag} from "@/components/ui/Tag";
+import MediaPreview from "@/components/media/MediaPreview";
+import {BookmarkHoverActions} from "@/components/bookmark/_components/BookmarkHoverActions";
+import {BookmarkSelectionControl} from "@/components/bookmark/_components/BookmarkSelectionControl";
+import type {BookmarkItemProps} from "@/components/bookmark/_components/bookmark-item-props";
 
 type PostMediaItem = PostBookmarkMetadata["media_extended"][number];
 

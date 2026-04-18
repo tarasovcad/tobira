@@ -5,7 +5,7 @@ import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {BookmarkHoverActions} from "./BookmarkHoverActions";
-import {BookmarkImage} from "./BookmarkImage";
+import {BookmarkImage} from "@/components/media/bookmark/BookmarkImage";
 import {BookmarkMeta} from "./BookmarkMeta";
 import {BookmarkSelectionControl} from "./BookmarkSelectionControl";
 import type {BookmarkItemProps} from "./bookmark-item-props";
@@ -59,7 +59,6 @@ function BookmarkGridCardImpl({
           }}
           onOptions={() => onOpenMenu?.(item)}
         />
-
         <BookmarkSelectionControl
           itemId={item.id}
           title={item.title}
@@ -69,7 +68,6 @@ function BookmarkGridCardImpl({
           variant="overlay"
           delayStepMs={15}
         />
-
         <BookmarkImage
           bookmark_id={item.id}
           item={item}

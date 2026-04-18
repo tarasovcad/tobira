@@ -10,9 +10,9 @@ import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmarkCreation} from "@/lib/bookmarks/media";
 import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
+import {buildWebsiteImages} from "@/components/media/utils";
 import {syncBookmarkCollection} from "@/lib/bookmarks/collections";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
-import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
@@ -73,6 +73,7 @@ export async function addWebsiteBookmark(input: {
   }
 
   const bookmarkId = randomUUID();
+  const images = buildWebsiteImages(bookmarkId);
 
   await db.insert(bookmarks).values({
     id: bookmarkId,
@@ -81,7 +82,7 @@ export async function addWebsiteBookmark(input: {
     userId,
     description: metadata.description ?? null,
     kind: input.kind ?? "website",
-    previewImage: buildR2PublicUrl(`previews/${bookmarkId}/preview.png`),
+    images,
   });
 
   if (input.tags && input.tags.length > 0) {
@@ -402,6 +403,7 @@ export async function fetchBookmarksPageAction(params: {
     url: row.url,
     user_id: row.userId,
     preview_image: row.previewImage || "",
+    images: (row.images ?? undefined) as Bookmark["images"],
     created_at: row.createdAt,
     updated_at: row.updatedAt || row.createdAt,
     archived_at: row.archivedAt || "",

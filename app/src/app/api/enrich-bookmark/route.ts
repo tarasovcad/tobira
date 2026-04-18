@@ -7,6 +7,7 @@ import {
   fetchFirecrawlScreenshotDataUrl,
 } from "@/lib/fetch/web/screenshot";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import {buildWebsiteImageKeys} from "@/components/media/utils";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 import sharp from "sharp";
@@ -130,7 +131,7 @@ async function uploadFaviconToR2(bestIconUrl: string, normalizedUrl: string, id?
   const uploadContentType = shouldRasterizeSvg ? "image/png" : contentType;
 
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectKey = `favicons/${safeKey}/favicon.png`;
+  const objectKey = buildWebsiteImageKeys(safeKey).favicon;
 
   await uploadBytesToR2({
     objectKey,
@@ -153,7 +154,7 @@ async function uploadOgImageToR2(ogImageUrl: string, normalizedUrl: string, id?:
   const bytes = Buffer.from(await res.arrayBuffer());
 
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectKey = `previews/${safeKey}/og.png`;
+  const objectKey = buildWebsiteImageKeys(safeKey).og;
 
   await uploadBytesToR2({
     objectKey,
@@ -176,7 +177,7 @@ async function uploadPreviewToR2(
 ) {
   const bytes = decodeBase64DataUrl(screenshot.dataUrl);
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectKey = `previews/${safeKey}/preview.png`;
+  const objectKey = buildWebsiteImageKeys(safeKey).preview;
 
   await uploadBytesToR2({
     objectKey,

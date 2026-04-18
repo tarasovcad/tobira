@@ -1,0 +1,1 @@
+-- Migration applied. File reconstructed as stub (original file was lost).

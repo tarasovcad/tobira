@@ -1,4 +1,5 @@
 import type {BookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import type {BookmarkImages} from "@/db/schema";
 
 export type Bookmark = {
   id: string;
@@ -15,5 +16,6 @@ export type Bookmark = {
   notes: string;
   tags?: string[];
   collections?: {id: string; name: string}[];
+  images?: BookmarkImages;
   metadata?: BookmarkMetadata;
 };

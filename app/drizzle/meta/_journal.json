@@ -36,6 +36,13 @@
       "when": 1776459813159,
       "tag": "0004_steep_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776541188635,
+      "tag": "0005_cuddly_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

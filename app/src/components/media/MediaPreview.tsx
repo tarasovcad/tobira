@@ -1,11 +1,11 @@
 "use client";
 
 import {createPortal} from "react-dom";
-import type {MediaPreviewProps} from "./media-preview/types";
-import {useMediaPreview} from "./media-preview/useMediaPreview";
+import type {MediaPreviewProps} from "./preview/types";
+import {useMediaPreview} from "./preview/useMediaPreview";
 import {useEffect} from "react";
-import {MediaPreviewOverlay} from "./media-preview/MediaPreviewOverlay";
-import {MediaPreviewTrigger} from "./media-preview/MediaPreviewTrigger";
+import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
+import {MediaPreviewTrigger} from "./preview/MediaPreviewTrigger";
 
 // Renders a thumbnail image or video with fullscreen, zoom, and pan preview behavior.
 export default function MediaPreview({

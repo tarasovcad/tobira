@@ -3,11 +3,11 @@
 import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {BookmarkHoverActions} from "./BookmarkHoverActions";
 import {BookmarkImage} from "./BookmarkImage";
-import {BookmarkSelectionControl} from "./BookmarkSelectionControl";
-import type {BookmarkItemProps} from "./bookmark-item-props";
 import type {WebsiteOrMediaMetadata} from "@/app/home/_types/bookmark-metadata";
+import {BookmarkHoverActions} from "@/components/bookmark/_components/BookmarkHoverActions";
+import {BookmarkSelectionControl} from "@/components/bookmark/_components/BookmarkSelectionControl";
+import type {BookmarkItemProps} from "@/components/bookmark/_components/bookmark-item-props";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";

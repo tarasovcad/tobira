@@ -14,6 +14,49 @@ import {
 } from "drizzle-orm/pg-core";
 import {sql} from "drizzle-orm";
 
+type ImageItem = {
+  type: "image";
+  width?: number;
+  height?: number;
+  alt?: string | null;
+  source_url: string;
+  key_small?: string;
+  key_large?: string;
+};
+
+type VideoItem = {
+  type: "video" | "gif";
+  width?: number;
+  height?: number;
+  alt?: string | null;
+  source_url: string;
+  key: string;
+  key_thumbnail?: string;
+};
+
+export type PostMediaItem = ImageItem | VideoItem;
+
+export type WebsiteImages = {
+  favicon?: {key: string};
+  og?: {key: string; width?: number; height?: number};
+  preview?: {key: string; width?: number; height?: number};
+  selected?: "preview" | "og" | "favicon";
+};
+
+export type PostImages = {
+  items: PostMediaItem[];
+};
+
+export type MediaImages = {
+  key: string;
+  key_thumbnail?: string;
+  width?: number;
+  height?: number;
+  type?: "image" | "video" | "gif";
+};
+
+export type BookmarkImages = WebsiteImages | PostImages | MediaImages;
+
 export const bookmarkKind = pgEnum("Bookmark kind", ["website", "image", "media", "post"]);
 export const syncProvider = pgEnum("sync_provider", [
   "x",
@@ -157,6 +200,7 @@ export const bookmarks = pgTable(
     userId: text("user_id").notNull(),
     kind: bookmarkKind(),
     previewImage: text("preview_image"),
+    images: jsonb().$type<BookmarkImages>(),
     archivedAt: timestamp("archived_at", {withTimezone: true, mode: "string"}),
     deletedAt: timestamp("deleted_at", {withTimezone: true, mode: "string"}),
     updatedAt: timestamp("updated_at", {withTimezone: true, mode: "string"}).defaultNow(),

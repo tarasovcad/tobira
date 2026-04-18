@@ -3,10 +3,10 @@
 import * as React from "react";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
-import {buildR2PublicUrl} from "@/lib/storage/r2-public";
-import MediaPreview from "@/components/ui/MediaPreview";
-import type {Bookmark} from "../types";
+import MediaPreview from "@/components/media/MediaPreview";
+import type {Bookmark} from "@/components/bookmark/types";
 import type {WebsiteOrMediaMetadata} from "@/app/home/_types/bookmark-metadata";
+import {getBookmarkImageSrc, isWebsiteImages} from "./bookmark-images";
 
 interface BookmarkImageProps {
   bookmark_id: string;
@@ -45,16 +45,7 @@ function BookmarkImageImpl({
   fill,
   onPreviewOpenChange,
 }: BookmarkImageProps) {
-  let baseSrc = "";
-
-  switch (type) {
-    case "preview":
-      baseSrc = item.preview_image ?? "";
-      break;
-    case "favicon":
-      baseSrc = buildR2PublicUrl(`favicons/${bookmark_id}/favicon.png`);
-      break;
-  }
+  const baseSrc = getBookmarkImageSrc(item, bookmark_id, type);
 
   const maxRetries = 12;
   const retryMs = 2000;
@@ -181,6 +172,12 @@ export const BookmarkImage = React.memo(BookmarkImageImpl, (prev, next) => {
     prev.onPreviewOpenChange === next.onPreviewOpenChange &&
     prev.item.id === next.item.id &&
     prev.item.preview_image === next.item.preview_image &&
+    (isWebsiteImages(prev.item.images) ? prev.item.images.preview?.key : undefined) ===
+      (isWebsiteImages(next.item.images) ? next.item.images.preview?.key : undefined) &&
+    (isWebsiteImages(prev.item.images) ? prev.item.images.favicon?.key : undefined) ===
+      (isWebsiteImages(next.item.images) ? next.item.images.favicon?.key : undefined) &&
+    (isWebsiteImages(prev.item.images) ? prev.item.images.og?.key : undefined) ===
+      (isWebsiteImages(next.item.images) ? next.item.images.og?.key : undefined) &&
     (prev.item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url ===
       (next.item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url
   );
