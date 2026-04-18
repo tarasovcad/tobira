@@ -2,6 +2,7 @@
 
 import {useMemo, useState} from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {MoreHorizontalIcon, RefreshCwIcon} from "lucide-react";
 import {motion} from "motion/react";
 import {cn} from "@/lib/utils";
@@ -205,6 +206,11 @@ function ConnectedAccountRow({account}: {account: ConnectedAccount}) {
 
   return (
     <div className="border-border/80 hover:bg-muted/25 relative flex items-center gap-3 border-b py-3 transition-colors last:border-b-0">
+      <Link
+        href={`/sync/accounts/${account.id}`}
+        className="absolute inset-0"
+        aria-label={`View ${account.provider} ${account.account}`}
+      />
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {providerData ? (
           <Image
@@ -240,7 +246,7 @@ function ConnectedAccountRow({account}: {account: ConnectedAccount}) {
         {account.lastSync}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="relative z-10 flex shrink-0 items-center gap-1.5">
         <Button variant="outline" size="sm" className="gap-1.5">
           <RefreshCwIcon className="size-3.5" />
           <span className="hidden sm:inline">Sync now</span>

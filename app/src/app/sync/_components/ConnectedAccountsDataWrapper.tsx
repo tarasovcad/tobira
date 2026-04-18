@@ -11,7 +11,6 @@ import {
 export const ConnectedAccountsSkeleton = () => {
   return (
     <div className="mb-16 space-y-4">
-      <div className="bg-muted h-5 w-44 animate-pulse rounded" />
       <div className="divide-border divide-y">
         {Array.from({length: 4}).map((_, i) => (
           <div key={i} className="flex items-center gap-3 py-3">

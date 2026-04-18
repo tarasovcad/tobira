@@ -182,6 +182,8 @@ const MAX_LENGTH = 280;
 function BookmarkPostCardImpl({
   item,
   onOpenMenu,
+  onSave,
+  onDismiss,
   className,
   selectionIndex = 0,
   isSelected = false,
@@ -220,7 +222,7 @@ function BookmarkPostCardImpl({
     <article
       className={cn(
         "border-border group relative isolate flex flex-col gap-[14px] border-b px-4 py-3",
-        "hover:bg-muted/80 group-data-[selection-mode=true]/bookmark-row:hover:bg-transparent",
+        "hover:bg-muted/80",
         "cursor-pointer transition-none!",
         isSelected && "bg-muted",
         className,
@@ -240,10 +242,30 @@ function BookmarkPostCardImpl({
       {/* Hover actions */}
       <BookmarkHoverActions
         className="top-3 right-3 z-[3]"
-        onOptions={(e) => {
-          e.stopPropagation();
-          onOpenMenu?.(item);
-        }}
+        onSave={
+          onSave
+            ? (e) => {
+                e.stopPropagation();
+                onSave(item);
+              }
+            : undefined
+        }
+        onDismiss={
+          onDismiss
+            ? (e) => {
+                e.stopPropagation();
+                onDismiss(item);
+              }
+            : undefined
+        }
+        onOptions={
+          onOpenMenu
+            ? (e) => {
+                e.stopPropagation();
+                onOpenMenu(item);
+              }
+            : undefined
+        }
       />
 
       {/* When author is hidden, selection control sits in the corner (no layout impact) */}

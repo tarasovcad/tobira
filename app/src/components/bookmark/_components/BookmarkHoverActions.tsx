@@ -1,17 +1,22 @@
 import * as React from "react";
 import {cn} from "@/lib/utils";
+import {Button} from "@/components/coss-ui/button";
 
 function BookmarkHoverActionsImpl({
   className,
   variant = "default",
   onExpand,
   onOptions,
+  onSave,
+  onDismiss,
 }: {
   className?: string;
   variant?: "default" | "glass";
   onExpand?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onOptions?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onDelete?: () => void;
+  onSave?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onDismiss?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   const stopNav = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -44,6 +49,7 @@ function BookmarkHoverActionsImpl({
         "opacity-0",
         "group-hover:pointer-events-auto group-hover:opacity-100",
         "group-focus-visible:pointer-events-auto group-focus-visible:opacity-100",
+        "group-data-[selection-mode=true]/bookmark-row:!pointer-events-none group-data-[selection-mode=true]/bookmark-row:!opacity-0",
         className,
       )}>
       {/* <button
@@ -91,6 +97,52 @@ function BookmarkHoverActionsImpl({
             />
           </svg>
         </button>
+      ) : null}
+      {onDismiss ? (
+        <Button
+          type="button"
+          aria-label="Dismiss"
+          variant="outline"
+          size="icon"
+          onClick={(e) => {
+            stopNav(e);
+            onDismiss(e);
+          }}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 14 14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M7.00033 1.16667C3.77866 1.16667 1.16699 3.77834 1.16699 7.00001C1.16699 10.2217 3.77866 12.8333 7.00033 12.8333C10.222 12.8333 12.8337 10.2217 12.8337 7.00001C12.8337 3.77834 10.222 1.16667 7.00033 1.16667ZM9.02116 9.02084C8.85033 9.19167 8.57366 9.19167 8.40283 9.02084L7.00033 7.61834L5.59783 9.02084C5.427 9.19167 5.15033 9.19167 4.9795 9.02084C4.80866 8.85001 4.80866 8.57334 4.9795 8.40251L6.382 7.00001L4.9795 5.59751C4.80866 5.42667 4.80866 5.15001 4.9795 4.97917C5.15033 4.80834 5.427 4.80834 5.59783 4.97917L7.00033 6.38167L8.40283 4.97917C8.57366 4.80834 8.85033 4.80834 9.02116 4.97917C9.192 5.15001 9.192 5.42667 9.02116 5.59751L7.61866 7.00001L9.02116 8.40251C9.192 8.57334 9.192 8.84417 9.02116 9.02084Z"
+              fill="currentColor"
+            />
+          </svg>
+        </Button>
+      ) : null}
+      {onSave ? (
+        <Button
+          type="button"
+          aria-label="Save to bookmarks"
+          variant="outline"
+          size="icon"
+          onClick={(e) => {
+            stopNav(e);
+            onSave(e);
+          }}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M5.33317 1.33334C3.86041 1.33334 2.6665 2.52725 2.6665 4.00001V13.3299C2.6665 14.4097 3.88307 15.0417 4.76654 14.4207L7.2331 12.6871C7.69317 12.3637 8.3065 12.3637 8.76657 12.6871L11.2331 14.4207C12.1166 15.0417 13.3332 14.4097 13.3332 13.3299V4.00001C13.3332 2.52725 12.1392 1.33334 10.6665 1.33334H5.33317Z"
+              fill="currentColor"
+            />
+          </svg>
+        </Button>
       ) : null}
       {onOptions ? (
         <button

@@ -24,7 +24,7 @@ import ReviewSyncStep from "./ReviewSyncStep";
 export default function SyncSetupSheet({userId}: {userId?: string | null}) {
   const {isOpen, setIsOpen, provider} = useSyncSetupStore();
   const extensionUser = useExtensionConnectionStore((state) => state.user);
-  const [currentStep, setCurrentStep] = useState<SetupStep>(3);
+  const [currentStep, setCurrentStep] = useState<SetupStep>(1);
 
   const cancelButtonText = ["Cancel", "Back", "Back", "Back"];
   const handleSubmitButtonText = ["Connect", "Next", "Next", "Finish"];
