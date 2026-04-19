@@ -15,6 +15,7 @@ import {
 import {AllItemsAnimatingPlaceholders} from "../all-items-client/AllItemsAnimatingPlaceholders";
 import {AllItemsBookmarkRow} from "../all-items-client/AllItemsBookmarkRow";
 import {getAllItemsListLayoutConfig} from "../all-items-client/all-items-list-layout";
+import {flattenMediaGridBookmarks} from "@/features/media/components/bookmark/media-grid-render";
 
 function LoadingSpinner({className}: {className?: string}) {
   return (
@@ -127,19 +128,30 @@ export function AllItemsList({
       );
     }
 
-    return visibleItems.map((item, index) => (
+    const renderEntries = isMediaGrid
+      ? flattenMediaGridBookmarks(visibleItems)
+      : visibleItems.map((item, bookmarkIndex) => ({
+          item,
+          bookmarkIndex,
+          mediaIndex: undefined,
+          renderId: item.id,
+        }));
+
+    return renderEntries.map((entry) => (
       <AllItemsBookmarkRow
-        key={item.id}
-        item={item}
-        selectionIndex={getItemSelectionIndex(index)}
-        isRemoving={removingIds.has(item.id)}
-        removalKind={removingIds.get(item.id) ?? "delete"}
+        key={entry.renderId}
+        item={entry.item}
+        renderId={entry.renderId}
+        mediaIndex={entry.mediaIndex}
+        selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
+        isRemoving={removingIds.has(entry.item.id)}
+        removalKind={removingIds.get(entry.item.id) ?? "delete"}
         selectionMode={selectionMode}
-        isSelected={selectedIds.has(item.id)}
+        isSelected={selectedIds.has(entry.item.id)}
         animatedVariant={animatedVariant}
         isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
-        className={typeFilter === "post" && index === 0 ? "pt-6" : undefined}
+        className={typeFilter === "post" && entry.bookmarkIndex === 0 ? "pt-6" : undefined}
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
@@ -149,6 +161,7 @@ export function AllItemsList({
     ));
   }, [
     isInitialLoad,
+    isMediaGrid,
     layoutConfig,
     bookmarkItemComponent,
     animatedVariant,
@@ -172,6 +185,7 @@ export function AllItemsList({
         animatingItemCount={animatingItemCount}
         animatingTags={animatingTags}
         resolvedBookmarks={resolvedBookmarks}
+        flattenMediaBookmarks={isMediaGrid}
         onTransitionDone={onTransitionDone}
         PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}
       />

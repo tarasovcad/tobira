@@ -3,12 +3,14 @@
 import * as React from "react";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {AllItemsNewBookmarkPlaceholderProps} from "./all-items-list-layout";
+import {flattenMediaGridBookmarks} from "@/features/media/components/bookmark/media-grid-render";
 
 interface AllItemsAnimatingPlaceholdersProps {
   animatingUrl: string | null;
   animatingItemCount: number;
   animatingTags?: string[];
   resolvedBookmarks: Bookmark[];
+  flattenMediaBookmarks?: boolean;
   onTransitionDone: () => void;
   PlaceholderComponent: React.ComponentType<AllItemsNewBookmarkPlaceholderProps>;
 }
@@ -18,6 +20,7 @@ export function AllItemsAnimatingPlaceholders({
   animatingItemCount,
   animatingTags,
   resolvedBookmarks,
+  flattenMediaBookmarks = false,
   onTransitionDone,
   PlaceholderComponent,
 }: AllItemsAnimatingPlaceholdersProps) {
@@ -25,11 +28,21 @@ export function AllItemsAnimatingPlaceholders({
     return null;
   }
 
-  return Array.from({length: animatingItemCount ?? 1}, (_, index) => (
+  const resolvedEntries = flattenMediaBookmarks ? flattenMediaGridBookmarks(resolvedBookmarks) : [];
+  const placeholderCount = flattenMediaBookmarks
+    ? Math.max(animatingItemCount ?? 1, resolvedEntries.length)
+    : (animatingItemCount ?? 1);
+
+  return Array.from({length: placeholderCount}, (_, index) => (
     <div key={`animating-${animatingUrl}-${index}`}>
       <PlaceholderComponent
         url={animatingUrl}
-        bookmark={resolvedBookmarks.at(index) ?? null}
+        bookmark={
+          flattenMediaBookmarks
+            ? (resolvedEntries.at(index)?.item ?? null)
+            : (resolvedBookmarks.at(index) ?? null)
+        }
+        mediaIndex={flattenMediaBookmarks ? resolvedEntries.at(index)?.mediaIndex : undefined}
         onDone={index === 0 ? onTransitionDone : () => {}}
         tags={animatingTags}
       />

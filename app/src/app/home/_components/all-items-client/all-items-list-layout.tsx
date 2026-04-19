@@ -30,6 +30,7 @@ export interface AllItemsBookmarkComponentProps {
   onSave?: (item: Bookmark) => void;
   onDismiss?: (item: Bookmark) => void;
   className?: string;
+  mediaIndex?: number;
   selectionIndex?: number;
   isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;
@@ -38,6 +39,7 @@ export interface AllItemsBookmarkComponentProps {
 export interface AllItemsNewBookmarkPlaceholderProps {
   url: string;
   bookmark: Bookmark | null;
+  mediaIndex?: number;
   onDone: () => void;
   tags?: string[];
 }

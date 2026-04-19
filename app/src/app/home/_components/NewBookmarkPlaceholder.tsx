@@ -8,6 +8,8 @@ import type {Bookmark} from "@/components/bookmark/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {useEffect} from "react";
 import {Tag} from "@/components/ui/Tag";
+import MediaPreview from "@/features/media/components/MediaPreview";
+import {getBookmarkMediaPreviewItem} from "@/features/media/components/bookmark/bookmark-images";
 
 function CrossFade({
   loaded,
@@ -375,14 +377,17 @@ export function NewBookmarkCompact({
 
 export function NewBookmarkMediaCard({
   bookmark,
+  mediaIndex = 0,
   onDone,
 }: {
   url: string;
   bookmark: Bookmark | null;
+  mediaIndex?: number;
   onDone: () => void;
 }) {
   const loaded = !!bookmark;
   const {borderRadius, gridGap} = useViewOptionsStore();
+  const previewItem = bookmark ? getBookmarkMediaPreviewItem(bookmark, mediaIndex) : null;
 
   const radiusClass =
     borderRadius === "none"
@@ -399,9 +404,10 @@ export function NewBookmarkMediaCard({
     return () => clearTimeout(t);
   }, [loaded, onDone]);
 
-  const mediaMeta = bookmark?.metadata as {width?: number; height?: number} | undefined;
-  const hasDimensions = mediaMeta?.width && mediaMeta?.height;
-  const aspectRatio = hasDimensions ? `${mediaMeta.width} / ${mediaMeta.height}` : "16/9";
+  const aspectRatio =
+    previewItem && previewItem.width > 0 && previewItem.height > 0
+      ? `${previewItem.width} / ${previewItem.height}`
+      : "16/9";
 
   return (
     <div
@@ -418,7 +424,24 @@ export function NewBookmarkMediaCard({
         delay={0}
         className="h-full w-full"
         skeleton={<Skeleton className="h-full w-full" />}>
-        <div className="bg-muted h-full w-full" />
+        {previewItem ? (
+          <MediaPreview
+            src={previewItem.src}
+            fullSizeSrc={previewItem.type === "image" ? previewItem.fullSizeSrc : undefined}
+            alt={previewItem.alt}
+            width={previewItem.width}
+            height={previewItem.height}
+            poster={previewItem.poster}
+            type={previewItem.type}
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            quality={50}
+            loading="lazy"
+            className="h-full w-full object-cover"
+            buttonClassName="h-full w-full"
+          />
+        ) : (
+          <div className="bg-muted h-full w-full" />
+        )}
       </CrossFade>
     </div>
   );

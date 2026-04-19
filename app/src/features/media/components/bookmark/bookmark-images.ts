@@ -21,50 +21,65 @@ type BookmarkMediaPreviewItem = {
   alt: string;
 };
 
-function getFirstMediaItem(
-  images: Bookmark["images"] | undefined,
-): MediaImages["items"][number] | null {
+function getMediaItems(images: Bookmark["images"] | undefined): MediaImages["items"] {
   if (
     !images ||
     typeof images !== "object" ||
     !("items" in images) ||
     !Array.isArray(images.items)
   ) {
-    return null;
+    return [];
   }
 
-  return images.items[0] ?? null;
+  return images.items;
 }
 
 function toPublicUrl(key: string | undefined, fallback: string) {
   return key ? buildR2PublicUrl(key) : fallback;
 }
 
-export function getBookmarkMediaPreviewItem(item: Bookmark): BookmarkMediaPreviewItem | null {
-  const firstItem = getFirstMediaItem(item.images);
-  if (!firstItem) return null;
+export function getBookmarkMediaPreviewItems(item: Bookmark): BookmarkMediaPreviewItem[] {
+  return getMediaItems(item.images).map((mediaItem) => {
+    const baseItem = {
+      width: mediaItem.width ?? 1200,
+      height: mediaItem.height ?? 1200,
+      alt: mediaItem.alt ?? "",
+    };
 
-  const baseItem = {
-    width: firstItem.width ?? 1200,
-    height: firstItem.height ?? 1200,
-    alt: firstItem.alt ?? "",
-  };
+    if (mediaItem.type === "image") {
+      return {
+        ...baseItem,
+        type: "image" as const,
+        src: toPublicUrl(mediaItem.key_small ?? mediaItem.key_large, mediaItem.source_url),
+        fullSizeSrc: toPublicUrl(mediaItem.key_large ?? mediaItem.key_small, mediaItem.source_url),
+      };
+    }
 
-  if (firstItem.type === "image") {
     return {
       ...baseItem,
-      type: "image",
-      src: toPublicUrl(firstItem.key_small ?? firstItem.key_large, firstItem.source_url),
-      fullSizeSrc: toPublicUrl(firstItem.key_large ?? firstItem.key_small, firstItem.source_url),
+      type: "video" as const,
+      src: buildR2PublicUrl(mediaItem.key),
+      poster: mediaItem.key_thumbnail ? buildR2PublicUrl(mediaItem.key_thumbnail) : undefined,
     };
+  });
+}
+
+export function getBookmarkMediaPreviewItem(
+  item: Bookmark,
+  mediaIndex = 0,
+): BookmarkMediaPreviewItem | null {
+  const previewItems = getBookmarkMediaPreviewItems(item);
+
+  if (mediaIndex >= 0 && mediaIndex < previewItems.length) {
+    return previewItems.at(mediaIndex) ?? null;
   }
 
-  return {
-    ...baseItem,
-    type: "video",
-    src: buildR2PublicUrl(firstItem.key),
-    poster: firstItem.key_thumbnail ? buildR2PublicUrl(firstItem.key_thumbnail) : undefined,
-  };
+  return previewItems[0] ?? null;
+}
+
+export function getBookmarkMediaTileCount(item: Bookmark) {
+  const previewItems = getBookmarkMediaPreviewItems(item);
+  return previewItems.length > 0 ? previewItems.length : 1;
 }
 
 export function getBookmarkImageSrc(

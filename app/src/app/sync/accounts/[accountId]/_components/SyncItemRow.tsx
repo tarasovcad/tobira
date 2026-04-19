@@ -11,6 +11,8 @@ import type {SyncItem} from "../_types";
 
 interface SyncItemRowProps {
   item: SyncItem;
+  renderId?: string;
+  mediaIndex?: number;
   selectionIndex: number;
   isRemoving: boolean;
   removalKind: "delete" | "archive";
@@ -29,6 +31,8 @@ interface SyncItemRowProps {
 
 function SyncItemRowImpl({
   item,
+  renderId,
+  mediaIndex,
   selectionIndex,
   isRemoving,
   removalKind,
@@ -71,7 +75,7 @@ function SyncItemRowImpl({
 
   return (
     <AnimatedItem
-      id={item.id}
+      id={renderId ?? item.id}
       isRemoving={isRemoving}
       onRemoved={onItemRemoved}
       variant={animatedVariant}
@@ -91,6 +95,7 @@ function SyncItemRowImpl({
           onDelete={handleExclude}
           onSave={handleSave}
           onDismiss={handleDismiss}
+          mediaIndex={mediaIndex}
           selectionIndex={selectionIndex}
           isSelected={isSelected}
           setSelected={setSelected}
@@ -104,6 +109,8 @@ export const SyncItemRow = React.memo(
   SyncItemRowImpl,
   (prev, next) =>
     prev.item === next.item &&
+    prev.renderId === next.renderId &&
+    prev.mediaIndex === next.mediaIndex &&
     prev.selectionIndex === next.selectionIndex &&
     prev.isRemoving === next.isRemoving &&
     prev.removalKind === next.removalKind &&

@@ -17,12 +17,13 @@ function BookmarkMediaCardImpl({
   item,
   onOpenMenu,
   className,
+  mediaIndex = 0,
   selectionIndex = 0,
   isSelected = false,
   setSelected,
 }: BookmarkItemProps) {
   const {borderRadius, gridGap} = useViewOptionsStore();
-  const previewItem = getBookmarkMediaPreviewItem(item);
+  const previewItem = getBookmarkMediaPreviewItem(item, mediaIndex);
   const radiusClass =
     borderRadius === "none"
       ? "rounded-none"

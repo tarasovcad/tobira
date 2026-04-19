@@ -84,6 +84,7 @@ export function HomeClient({
   // Mutation Hook
   const {
     removingIds,
+    animatedOutIds,
     handleItemRemoved,
     animatingUrl,
     animatingItemCount,
@@ -105,11 +106,12 @@ export function HomeClient({
 
     return allBookmarks.filter((item) => {
       const isBeingRemoved = removingIds.has(item.id);
+      const isAnimatedOut = animatedOutIds.has(item.id);
       const isDuplicateOfResolved = resolvedIds.has(item.id);
 
-      return !isBeingRemoved && !isDuplicateOfResolved;
+      return !isBeingRemoved && !isAnimatedOut && !isDuplicateOfResolved;
     });
-  }, [allBookmarks, removingIds, resolvedBookmarks]);
+  }, [allBookmarks, animatedOutIds, removingIds, resolvedBookmarks]);
 
   // Selection Hook
   const {

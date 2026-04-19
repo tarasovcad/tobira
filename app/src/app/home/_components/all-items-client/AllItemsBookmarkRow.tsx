@@ -12,6 +12,8 @@ import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-s
 
 interface AllItemsBookmarkRowProps {
   item: Bookmark;
+  renderId?: string;
+  mediaIndex?: number;
   selectionIndex: number;
   isRemoving: boolean;
   removalKind: "delete" | "archive";
@@ -30,6 +32,8 @@ interface AllItemsBookmarkRowProps {
 
 function AllItemsBookmarkRowImpl({
   item,
+  renderId,
+  mediaIndex,
   selectionIndex,
   isRemoving,
   removalKind,
@@ -71,7 +75,7 @@ function AllItemsBookmarkRowImpl({
 
   return (
     <AnimatedItem
-      id={item.id}
+      id={renderId ?? item.id}
       isRemoving={isRemoving}
       onRemoved={onItemRemoved}
       variant={animatedVariant}
@@ -90,6 +94,7 @@ function AllItemsBookmarkRowImpl({
           item={item}
           onOpenMenu={handleOpenMenu}
           onDelete={handleDelete}
+          mediaIndex={mediaIndex}
           selectionIndex={selectionIndex}
           isSelected={isSelected}
           setSelected={setSelected}
@@ -104,6 +109,8 @@ export const AllItemsBookmarkRow = React.memo(
   AllItemsBookmarkRowImpl,
   (prev, next) =>
     prev.item === next.item &&
+    prev.renderId === next.renderId &&
+    prev.mediaIndex === next.mediaIndex &&
     prev.selectionIndex === next.selectionIndex &&
     prev.isRemoving === next.isRemoving &&
     prev.removalKind === next.removalKind &&

@@ -13,6 +13,7 @@ import {
   getBookmarkWidthForType,
 } from "@/app/home/_components/all-items-client/all-items-list-view-options";
 import {getAllItemsListLayoutConfig} from "@/app/home/_components/all-items-client/all-items-list-layout";
+import {flattenMediaGridBookmarks} from "@/features/media/components/bookmark/media-grid-render";
 import {SyncItemRow} from "./SyncItemRow";
 import type {SyncItem} from "../_types";
 
@@ -119,15 +120,26 @@ export function SyncItemsList({
       );
     }
 
-    return visibleItems.map((item, index) => (
+    const renderEntries = isMediaGrid
+      ? flattenMediaGridBookmarks(visibleItems)
+      : visibleItems.map((item, bookmarkIndex) => ({
+          item,
+          bookmarkIndex,
+          mediaIndex: undefined,
+          renderId: item.id,
+        }));
+
+    return renderEntries.map((entry) => (
       <SyncItemRow
-        key={item.id}
-        item={item}
-        selectionIndex={getItemSelectionIndex(index)}
-        isRemoving={removingIds.has(item.id)}
-        removalKind={removingIds.get(item.id) ?? "delete"}
+        key={entry.renderId}
+        item={entry.item}
+        renderId={entry.renderId}
+        mediaIndex={entry.mediaIndex}
+        selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
+        isRemoving={removingIds.has(entry.item.id)}
+        removalKind={removingIds.get(entry.item.id) ?? "delete"}
         selectionMode={selectionMode}
-        isSelected={selectedIds.has(item.id)}
+        isSelected={selectedIds.has(entry.item.id)}
         animatedVariant={animatedVariant}
         isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
@@ -141,6 +153,7 @@ export function SyncItemsList({
     ));
   }, [
     isInitialLoad,
+    isMediaGrid,
     layoutConfig,
     bookmarkItemComponent,
     animatedVariant,

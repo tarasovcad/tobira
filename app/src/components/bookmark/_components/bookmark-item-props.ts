@@ -7,6 +7,7 @@ export interface BookmarkItemProps {
   onSave?: (item: Bookmark) => void;
   onDismiss?: (item: Bookmark) => void;
   className?: string;
+  mediaIndex?: number;
   selectionIndex?: number;
   isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;
