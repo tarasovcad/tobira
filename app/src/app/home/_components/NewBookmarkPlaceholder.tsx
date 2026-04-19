@@ -9,7 +9,12 @@ import {useViewOptionsStore} from "@/store/use-view-options";
 import {useEffect} from "react";
 import {Tag} from "@/components/ui/Tag";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import {getBookmarkMediaPreviewItem} from "@/features/media/components/bookmark/bookmark-images";
+import {
+  getBookmarkMediaPreviewItem,
+  getBookmarkMediaQualityForColumnSize,
+  getBookmarkMediaPreviewSizeForColumnSize,
+  getBookmarkMediaSizesForColumnSize,
+} from "@/features/media/components/bookmark/bookmark-images";
 
 function CrossFade({
   loaded,
@@ -386,8 +391,13 @@ export function NewBookmarkMediaCard({
   onDone: () => void;
 }) {
   const loaded = !!bookmark;
-  const {borderRadius, gridGap} = useViewOptionsStore();
-  const previewItem = bookmark ? getBookmarkMediaPreviewItem(bookmark, mediaIndex) : null;
+  const {borderRadius, columnSize, gridGap} = useViewOptionsStore();
+  const previewSize = getBookmarkMediaPreviewSizeForColumnSize(columnSize);
+  const imageSizes = getBookmarkMediaSizesForColumnSize(columnSize);
+  const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);
+  const previewItem = bookmark
+    ? getBookmarkMediaPreviewItem(bookmark, mediaIndex, previewSize)
+    : null;
 
   const radiusClass =
     borderRadius === "none"
@@ -433,8 +443,8 @@ export function NewBookmarkMediaCard({
             height={previewItem.height}
             poster={previewItem.poster}
             type={previewItem.type}
-            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            quality={50}
+            sizes={imageSizes}
+            quality={imageQuality}
             loading="lazy"
             className="h-full w-full object-cover"
             buttonClassName="h-full w-full"

@@ -8,9 +8,11 @@ import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import {HomeToolbar} from "../home-client/HomeToolbar";
 import {
   getCurrentAllItemsView,
+  getBookmarkWidthForType,
   getAllItemsListViewOptions,
 } from "../all-items-client/all-items-list-view-options";
 import {getAllItemsListLayoutConfig} from "../all-items-client/all-items-list-layout";
+import {cn} from "@/lib/utils";
 
 const SKELETON_ROWS = 8;
 
@@ -27,16 +29,9 @@ export function BookmarksLoader({
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
   const borderRadius = useViewOptionsStore((state) => state.borderRadius);
-  const bookmarkWidth = useViewOptionsStore((state) => {
-    switch (typeFilter) {
-      case "media":
-        return state.bookmarkWidthByType.media;
-      case "post":
-        return state.bookmarkWidthByType.post;
-      case "website":
-        return state.bookmarkWidthByType.website;
-    }
-  });
+  const bookmarkWidth = useViewOptionsStore((state) =>
+    getBookmarkWidthForType(state.bookmarkWidthByType, typeFilter),
+  );
 
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
@@ -79,7 +74,12 @@ export function BookmarksLoader({
       />
 
       {showCount && (
-        <div className="text-muted-foreground border-border flex items-center gap-2 border-b px-6 py-3 text-sm">
+        <div
+          className={cn(
+            "text-muted-foreground border-border flex items-center gap-2 px-6 py-3 text-sm",
+            currentView === "compact" && "border-b",
+            currentView === "list" && "border-b",
+          )}>
           <Skeleton className="h-5 w-9 rounded-[2px]" />
         </div>
       )}

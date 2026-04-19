@@ -156,11 +156,15 @@ async function processImageItem(input: {
   const baseKey = `posts/${bookmarkId}/media_${index}`;
 
   const smallSrcUrl = buildTwitterSizedUrl(mediaUrl, "small");
+  const mediumSrcUrl = buildTwitterSizedUrl(mediaUrl, "medium");
   const largeSrcUrl = buildTwitterSizedUrl(mediaUrl, "large");
 
-  const [key_small, key_large] = await Promise.all([
+  const [key_small, key_medium, key_large] = await Promise.all([
     smallSrcUrl
       ? downloadAndUploadToR2(smallSrcUrl, `${baseKey}_small.jpg`)
+      : Promise.resolve(null),
+    mediumSrcUrl
+      ? downloadAndUploadToR2(mediumSrcUrl, `${baseKey}_medium.jpg`).catch(() => null)
       : Promise.resolve(null),
     largeSrcUrl
       ? downloadAndUploadToR2(largeSrcUrl, `${baseKey}_large.jpg`)
@@ -178,6 +182,7 @@ async function processImageItem(input: {
     alt: mediaInfo?.altText ?? null,
     source_url: mediaUrl,
     key_small,
+    ...(key_medium ? {key_medium} : {}),
     key_large,
   };
 }
@@ -192,7 +197,7 @@ function buildMediaMetadata(extractedMetadata: ExtractedMediaMetadata) {
   );
 }
 
-function buildTwitterSizedUrl(url: string, size: "small" | "large"): string | null {
+function buildTwitterSizedUrl(url: string, size: "small" | "medium" | "large"): string | null {
   try {
     const u = new URL(url);
     if (!u.hostname.includes("pbs.twimg.com")) return null;

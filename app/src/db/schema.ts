@@ -21,6 +21,7 @@ type ImageItem = {
   alt?: string | null;
   source_url: string;
   key_small?: string;
+  key_medium?: string;
   key_large?: string;
 };
 

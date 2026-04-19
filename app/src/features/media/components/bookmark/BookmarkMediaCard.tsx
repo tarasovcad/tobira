@@ -8,7 +8,12 @@ import type {WebsiteOrMediaMetadata} from "@/app/home/_types/bookmark-metadata";
 import {BookmarkHoverActions} from "@/components/bookmark/_components/BookmarkHoverActions";
 import {BookmarkSelectionControl} from "@/components/bookmark/_components/BookmarkSelectionControl";
 import type {BookmarkItemProps} from "@/components/bookmark/_components/bookmark-item-props";
-import {getBookmarkMediaPreviewItem} from "./bookmark-images";
+import {
+  getBookmarkMediaPreviewItem,
+  getBookmarkMediaQualityForColumnSize,
+  getBookmarkMediaPreviewSizeForColumnSize,
+  getBookmarkMediaSizesForColumnSize,
+} from "./bookmark-images";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -22,8 +27,11 @@ function BookmarkMediaCardImpl({
   isSelected = false,
   setSelected,
 }: BookmarkItemProps) {
-  const {borderRadius, gridGap} = useViewOptionsStore();
-  const previewItem = getBookmarkMediaPreviewItem(item, mediaIndex);
+  const {borderRadius, columnSize, gridGap} = useViewOptionsStore();
+  const previewSize = getBookmarkMediaPreviewSizeForColumnSize(columnSize);
+  const imageSizes = getBookmarkMediaSizesForColumnSize(columnSize);
+  const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);
+  const previewItem = getBookmarkMediaPreviewItem(item, mediaIndex, previewSize);
   const radiusClass =
     borderRadius === "none"
       ? "rounded-none"
@@ -76,8 +84,8 @@ function BookmarkMediaCardImpl({
             height={previewItem.height}
             poster={previewItem.poster}
             type={previewItem.type}
-            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            quality={50}
+            sizes={imageSizes}
+            quality={imageQuality}
             loading="lazy"
             className="h-full w-full object-cover"
             buttonClassName="h-full w-full"
