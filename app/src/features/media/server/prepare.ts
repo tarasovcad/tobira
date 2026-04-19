@@ -1,19 +1,14 @@
 import {randomUUID} from "crypto";
 import {ALLOWED_MEDIA_DOMAINS} from "@/features/media/constants";
 import type {MediaImages, PostMediaItem} from "@/db/schema";
+import type {MediaMediaItem} from "@/app/home/_types/bookmark-metadata";
 import {extractXMedia} from "./fetch";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 type ExtractedMediaMetadata = Awaited<ReturnType<typeof extractXMedia>>;
 
-type MediaExtendedItem = {
-  url: string;
-  type?: string;
-  altText?: string;
-  thumbnail_url?: string;
-  size?: {width?: number; height?: number};
-};
+type MediaExtendedItem = MediaMediaItem;
 
 type BookmarkToInsert = {
   id: string;
@@ -28,6 +23,7 @@ type BookmarkToInsert = {
 export type PrepareMediaBookmarkResult = {
   normalized: URL;
   mediaUrls: string[];
+  mediaItems: MediaMediaItem[];
 } & (
   | {requiresSelection: true}
   | {requiresSelection: false; bookmarkId: string; bookmarkToInsert: BookmarkToInsert}
@@ -64,9 +60,14 @@ export async function prepareMediaBookmarkCreation(input: {
   }
 
   const mediaUrls = Array.isArray(extractedMetadata.mediaURLs) ? extractedMetadata.mediaURLs : [];
+  const mediaItems = Array.isArray(extractedMetadata.media_extended)
+    ? (extractedMetadata.media_extended as MediaMediaItem[]).filter(
+        (item) => typeof item?.url === "string" && mediaUrls.includes(item.url),
+      )
+    : [];
 
   if (!input.selectedMediaUrls && mediaUrls.length > 1) {
-    return {requiresSelection: true, normalized, mediaUrls};
+    return {requiresSelection: true, normalized, mediaUrls, mediaItems};
   }
 
   const urlsToCreate = input.selectedMediaUrls?.length ? input.selectedMediaUrls : mediaUrls;
@@ -86,6 +87,7 @@ export async function prepareMediaBookmarkCreation(input: {
     requiresSelection: false,
     normalized,
     mediaUrls,
+    mediaItems,
     bookmarkId,
     bookmarkToInsert: {
       id: bookmarkId,

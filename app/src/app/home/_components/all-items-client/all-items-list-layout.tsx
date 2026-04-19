@@ -20,6 +20,7 @@ import {
 import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
 import type {TypeFilter} from "../../_types";
+import type {MediaMediaItem} from "../../_types/bookmark-metadata";
 
 export type AllItemsAnimatedVariant = "list" | "grid";
 
@@ -40,6 +41,7 @@ export interface AllItemsNewBookmarkPlaceholderProps {
   url: string;
   bookmark: Bookmark | null;
   mediaIndex?: number;
+  pendingMediaItem?: MediaMediaItem;
   onDone: () => void;
   tags?: string[];
 }

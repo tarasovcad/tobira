@@ -4,6 +4,7 @@ import {archiveBookmarks} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/coss-ui/toast";
 import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
+import type {MediaMediaItem} from "../_types/bookmark-metadata";
 
 /**
  * Manages mutation tracking (add/delete/archive)
@@ -35,6 +36,9 @@ export function useBookmarksMutations({
       kind: (m.state.variables as {kind: "website" | "media"} | undefined)?.kind,
       selectedMediaUrls: (m.state.variables as {selectedMediaUrls?: string[]} | undefined)
         ?.selectedMediaUrls,
+      selectedMediaItems: (m.state.variables as {selectedMediaItems?: MediaMediaItem[]} | undefined)
+        ?.selectedMediaItems,
+      resultMediaItems: (m.state.data as {mediaItems?: MediaMediaItem[]} | undefined)?.mediaItems,
       hasMultipleMediaOptions:
         Array.isArray((m.state.data as {media?: string[]} | undefined)?.media) &&
         ((m.state.data as {media?: string[]} | undefined)?.media?.length ?? 0) > 1,
@@ -128,6 +132,11 @@ export function useBookmarksMutations({
     return allBookmarks.filter((b) => ids.includes(b.id)).slice(0, animatingItemCount);
   }, [animatingUrl, latestAdd?.resultIds, allBookmarks, animatingItemCount]);
 
+  const pendingMediaItems =
+    animatingUrl === inputUrl && latestAdd?.kind === "media"
+      ? (latestAdd.selectedMediaItems ?? latestAdd.resultMediaItems ?? [])
+      : [];
+
   useEffect(() => {
     if (!animatingUrl) return;
 
@@ -176,6 +185,7 @@ export function useBookmarksMutations({
     animatingUrl,
     animatingItemCount,
     animatingTags,
+    pendingMediaItems,
     resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,

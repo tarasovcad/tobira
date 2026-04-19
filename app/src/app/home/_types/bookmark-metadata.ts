@@ -1,4 +1,4 @@
-type MediaMediaItem = {
+export type MediaMediaItem = {
   type: "photo" | "video" | "gif";
   url: string;
   url_small?: string;

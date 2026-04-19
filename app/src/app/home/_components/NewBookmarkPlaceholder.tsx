@@ -15,6 +15,7 @@ import {
   getBookmarkMediaPreviewSizeForColumnSize,
   getBookmarkMediaSizesForColumnSize,
 } from "@/features/media/components/bookmark/bookmark-images";
+import type {MediaMediaItem} from "../_types/bookmark-metadata";
 
 function CrossFade({
   loaded,
@@ -383,11 +384,13 @@ export function NewBookmarkCompact({
 export function NewBookmarkMediaCard({
   bookmark,
   mediaIndex = 0,
+  pendingMediaItem,
   onDone,
 }: {
   url: string;
   bookmark: Bookmark | null;
   mediaIndex?: number;
+  pendingMediaItem?: MediaMediaItem;
   onDone: () => void;
 }) {
   const loaded = !!bookmark;
@@ -415,8 +418,9 @@ export function NewBookmarkMediaCard({
   }, [loaded, onDone]);
 
   const aspectRatio =
-    previewItem && previewItem.width > 0 && previewItem.height > 0
-      ? `${previewItem.width} / ${previewItem.height}`
+    (previewItem?.width ?? pendingMediaItem?.size?.width ?? 0) > 0 &&
+    (previewItem?.height ?? pendingMediaItem?.size?.height ?? 0) > 0
+      ? `${previewItem?.width ?? pendingMediaItem?.size?.width} / ${previewItem?.height ?? pendingMediaItem?.size?.height}`
       : "16/9";
 
   return (

@@ -89,6 +89,7 @@ export function HomeClient({
     animatingUrl,
     animatingItemCount,
     animatingTags,
+    pendingMediaItems,
     resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,
@@ -217,6 +218,7 @@ export function HomeClient({
           animatingUrl={animatingUrl}
           animatingItemCount={animatingItemCount}
           animatingTags={animatingTags}
+          pendingMediaItems={pendingMediaItems}
           resolvedBookmarks={resolvedBookmarks}
           isInitialLoad={isInitialLoad}
           isFetchingNextPage={isFetchingNextPage}

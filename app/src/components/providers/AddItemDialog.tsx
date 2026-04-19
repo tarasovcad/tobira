@@ -62,6 +62,7 @@ import {
   useTagsQuery,
 } from "@/app/home/_hooks/use-home-metadata-query";
 import {User as AuthUser} from "@/lib/auth/auth-client";
+import type {MediaMediaItem} from "@/app/home/_types/bookmark-metadata";
 
 type AddItemDialogUser = AuthUser & {
   aiContext?: string | null;
@@ -81,7 +82,7 @@ export function AddItemDialog({
   const setDialogOpen = useAddItemDialogStore((state) => state.setDialogOpen);
   const closeDialog = useAddItemDialogStore((state) => state.closeDialog);
   const [step, setStep] = useState<1 | 2>(1);
-  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaMediaItem[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const userAiContext = user?.enableAiOptimization ? user?.aiContext : null;
@@ -126,6 +127,7 @@ export function AddItemDialog({
         collectionId?: string;
         kind: "media";
         selectedMediaUrls?: string[];
+        selectedMediaItems?: MediaMediaItem[];
       }
     | {url: string; tags: string[]; collectionId?: string; kind: "post"}
   >({
@@ -134,7 +136,13 @@ export function AddItemDialog({
       if (input.kind === "website") {
         return await addWebsiteBookmark(input);
       } else if (input.kind === "media") {
-        return await addMediaBookmark(input);
+        return await addMediaBookmark({
+          url: input.url,
+          tags: input.tags,
+          collectionId: input.collectionId,
+          kind: input.kind,
+          selectedMediaUrls: input.selectedMediaUrls,
+        });
       } else if (input.kind === "post") {
         return await addPostBookmark(input);
       }
@@ -148,8 +156,9 @@ export function AddItemDialog({
         res.media.length > 1 &&
         !("selectedMediaUrls" in variables && variables.selectedMediaUrls)
       ) {
-        setMediaUrls(res.media);
-        setSelectedMediaUrls(res.media);
+        const nextMediaItems = res.mediaItems ?? res.media.map((url) => ({type: "photo", url}));
+        setMediaItems(nextMediaItems);
+        setSelectedMediaUrls(nextMediaItems.map((item) => item.url));
         setStep(2);
         return;
       }
@@ -164,7 +173,7 @@ export function AddItemDialog({
       setTimeout(() => {
         reset();
         setStep(1);
-        setMediaUrls([]);
+        setMediaItems([]);
         setSelectedMediaUrls([]);
       }, 500);
     },
@@ -236,7 +245,7 @@ export function AddItemDialog({
       setTimeout(() => {
         reset();
         setStep(1);
-        setMediaUrls([]);
+        setMediaItems([]);
         setSelectedMediaUrls([]);
       }, 500);
     }
@@ -407,15 +416,17 @@ export function AddItemDialog({
                 exit={{opacity: 0, x: 20}}
                 transition={{duration: 0.2}}
                 className="grid grid-cols-2 gap-4 px-6 pt-4 pb-6">
-                {mediaUrls.map((url, i) => {
-                  const isSelected = selectedMediaUrls.includes(url);
+                {mediaItems.map((mediaItem, i) => {
+                  const isSelected = selectedMediaUrls.includes(mediaItem.url);
                   return (
                     <button
                       key={i}
                       type="button"
                       onClick={() => {
                         setSelectedMediaUrls((prev) =>
-                          prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url],
+                          prev.includes(mediaItem.url)
+                            ? prev.filter((u) => u !== mediaItem.url)
+                            : [...prev, mediaItem.url],
                         );
                       }}
                       className={cn(
@@ -426,7 +437,7 @@ export function AddItemDialog({
                       )}>
                       <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-md">
                         <Image
-                          src={url}
+                          src={mediaItem.thumbnail_url ?? mediaItem.url}
                           alt={`Media ${i}`}
                           fill
                           className="object-cover"
@@ -462,6 +473,9 @@ export function AddItemDialog({
                     collectionId: data.collectionId ?? undefined,
                     kind: "media",
                     selectedMediaUrls,
+                    selectedMediaItems: mediaItems.filter((item) =>
+                      selectedMediaUrls.includes(item.url),
+                    ),
                   });
                   closeDialog();
                 }}>

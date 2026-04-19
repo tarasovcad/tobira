@@ -4,6 +4,7 @@ import {useState, useMemo, useEffect, useCallback} from "react";
 import {Controller} from "react-hook-form";
 import {formatDateWithTime} from "@/lib/utils/dates";
 import {BookmarkImage} from "@/features/media/components/bookmark/BookmarkImage";
+import MediaPreview from "@/features/media/components/MediaPreview";
 import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/components/coss-ui/sheet";
 import {Button} from "@/components/coss-ui/button";
 import {Separator} from "@/components/shadcn/separator";
@@ -32,9 +33,69 @@ import {BookmarkDetails} from "./_components/BookmarkDetails";
 import {BookmarkPostMenuPanel} from "@/features/media/components/bookmark/BookmarkPostMenuPanel";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
-import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
+import {
+  getBookmarkMediaPreviewItem,
+  isWebsiteImages,
+} from "@/features/media/components/bookmark/bookmark-images";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import Spinner from "../ui/spinner";
+
+const MAX_DESCRIPTION_LENGTH = 280;
+
+function BookmarkDescriptionField({
+  control,
+  error,
+}: {
+  control: ReturnType<typeof useBookmarkForm>["form"]["control"];
+  error?: string;
+}) {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
+  return (
+    <Controller
+      name="description"
+      control={control}
+      render={({field}) => {
+        const description = field.value ?? "";
+        const isLongDescription = description.length > MAX_DESCRIPTION_LENGTH;
+        const displayedDescription = (() => {
+          if (isDescriptionExpanded || !isLongDescription) return description;
+          const truncated = description.slice(0, MAX_DESCRIPTION_LENGTH);
+          const lastSpace = truncated.lastIndexOf(" ");
+          return lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated;
+        })();
+
+        if (!isDescriptionExpanded && isLongDescription) {
+          return (
+            <div>
+              <p className="text-muted-foreground text-[15px] whitespace-pre-wrap">
+                {displayedDescription}
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsDescriptionExpanded(true)}
+                className="cursor-pointer text-[15px] text-[#1D9BF0] hover:underline focus:outline-none">
+                Show more
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <Textarea
+            {...field}
+            unstyled
+            spellCheck={false}
+            value={description}
+            onChange={(e) => field.onChange(e.target.value)}
+            error={error}
+            className="text-muted-foreground flex w-full bg-transparent p-0 text-[15px] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
+          />
+        );
+      }}
+    />
+  );
+}
 
 export function BookmarkMenu({userId}: {userId: string | null}) {
   const item = useBookmarkMenuStore((state) => state.item);
@@ -187,6 +248,11 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
     }
   }, [item, onDelete]);
 
+  const mediaPreviewItem = useMemo(() => {
+    if (!item || item.kind !== "media") return null;
+    return getBookmarkMediaPreviewItem(item, 0, "medium");
+  }, [item]);
+
   // Derive OG and Preview URLs from the images column
   const websiteImages = isWebsiteImages(item?.images) ? item.images : undefined;
   const ogImageUrl = websiteImages?.og?.key ? buildR2PublicUrl(websiteImages.og.key) : "";
@@ -243,6 +309,34 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
                 {item?.id ? (
                   item.kind === "post" && item.metadata ? (
                     <BookmarkPostMenuPanel meta={item.metadata as PostBookmarkMetadata} />
+                  ) : item.kind === "media" && mediaPreviewItem ? (
+                    <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
+                      <MediaPreview
+                        src={
+                          mediaPreviewItem.type === "image"
+                            ? mediaPreviewItem.src
+                            : (mediaPreviewItem.poster ?? "")
+                        }
+                        fullSizeSrc={
+                          mediaPreviewItem.type === "image"
+                            ? mediaPreviewItem.fullSizeSrc
+                            : (mediaPreviewItem.poster ?? "")
+                        }
+                        alt={mediaPreviewItem.alt}
+                        width={mediaPreviewItem.width}
+                        height={mediaPreviewItem.height}
+                        type="image"
+                        sizes="100vw"
+                        quality={60}
+                        loading="lazy"
+                        addZoom={mediaPreviewItem.type === "image"}
+                        disableClickToOpen={
+                          !mediaPreviewItem.poster && mediaPreviewItem.type !== "image"
+                        }
+                        className="h-full w-full object-cover"
+                        buttonClassName="h-full w-full"
+                      />
+                    </div>
                   ) : (
                     <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
                       <BookmarkImage
@@ -289,20 +383,10 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
                     <Separator />
 
                     <div className="p-6">
-                      <Controller
-                        name="description"
+                      <BookmarkDescriptionField
+                        key={`${item?.id ?? "none"}:${open ? "open" : "closed"}`}
                         control={control}
-                        render={({field}) => (
-                          <Textarea
-                            {...field}
-                            unstyled
-                            spellCheck={false}
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            error={errors.description?.message}
-                            className="text-muted-foreground flex w-full bg-transparent p-0 text-[15px] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
-                          />
-                        )}
+                        error={errors.description?.message}
                       />
                     </div>
                   </>

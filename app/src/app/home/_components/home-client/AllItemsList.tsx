@@ -16,6 +16,7 @@ import {AllItemsAnimatingPlaceholders} from "../all-items-client/AllItemsAnimati
 import {AllItemsBookmarkRow} from "../all-items-client/AllItemsBookmarkRow";
 import {getAllItemsListLayoutConfig} from "../all-items-client/all-items-list-layout";
 import {flattenMediaGridBookmarks} from "@/features/media/components/bookmark/media-grid-render";
+import type {MediaMediaItem} from "../../_types/bookmark-metadata";
 
 function LoadingSpinner({className}: {className?: string}) {
   return (
@@ -32,6 +33,7 @@ interface AllItemsListProps {
   animatingUrl: string | null;
   animatingItemCount: number;
   animatingTags?: string[];
+  pendingMediaItems?: MediaMediaItem[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
   isFetchingNextPage: boolean;
@@ -55,6 +57,7 @@ export function AllItemsList({
   animatingUrl,
   animatingItemCount,
   animatingTags,
+  pendingMediaItems,
   resolvedBookmarks,
   isFetchingNextPage,
   selectionMode,
@@ -184,6 +187,7 @@ export function AllItemsList({
         animatingUrl={animatingUrl}
         animatingItemCount={animatingItemCount}
         animatingTags={animatingTags}
+        pendingMediaItems={pendingMediaItems}
         resolvedBookmarks={resolvedBookmarks}
         flattenMediaBookmarks={isMediaGrid}
         onTransitionDone={onTransitionDone}

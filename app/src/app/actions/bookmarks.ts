@@ -14,6 +14,7 @@ import {buildWebsiteImages} from "@/features/media/utils";
 import {syncBookmarkCollection} from "@/lib/bookmarks/collections";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import type {MediaMediaItem} from "@/app/home/_types/bookmark-metadata";
 
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 
@@ -27,6 +28,7 @@ export type AddMediaBookmarkResult = {
   ok: true;
   url: string;
   media?: string[];
+  mediaItems?: MediaMediaItem[];
   ids?: string[];
 };
 
@@ -135,7 +137,7 @@ export async function addMediaBookmark(input: {
   });
 
   if (prepared.requiresSelection) {
-    return {ok: true, url: input.url, media: prepared.mediaUrls};
+    return {ok: true, url: input.url, media: prepared.mediaUrls, mediaItems: prepared.mediaItems};
   }
 
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
@@ -158,6 +160,7 @@ export async function addMediaBookmark(input: {
     ok: true,
     url: input.url,
     media: prepared.mediaUrls,
+    mediaItems: prepared.mediaItems,
     ids: [prepared.bookmarkId],
   };
 }
