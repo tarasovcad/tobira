@@ -10,6 +10,7 @@ import {useViewOptionsStore} from "@/store/use-view-options";
 import {
   getCurrentAllItemsView,
   getAllItemsListViewOptions,
+  getBookmarkWidthForType,
 } from "../all-items-client/all-items-list-view-options";
 import {AllItemsAnimatingPlaceholders} from "../all-items-client/AllItemsAnimatingPlaceholders";
 import {AllItemsBookmarkRow} from "../all-items-client/AllItemsBookmarkRow";
@@ -74,13 +75,17 @@ export function AllItemsList({
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
   const borderRadius = useViewOptionsStore((state) => state.borderRadius);
-  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidthByType[typeFilter]);
+  const bookmarkWidth = useViewOptionsStore((state) =>
+    getBookmarkWidthForType(state.bookmarkWidthByType, typeFilter),
+  );
 
-  const {borderRadiusClass, gapClass, gridColsClass} = getAllItemsListViewOptions({
-    borderRadius,
-    gridGap,
-    columnSize,
-  });
+  const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
+    {
+      borderRadius,
+      gridGap,
+      columnSize,
+    },
+  );
 
   const layoutConfig = useMemo(
     () =>
@@ -89,6 +94,7 @@ export function AllItemsList({
         borderRadiusClass,
         gapClass,
         gridColsClass,
+        masonryColsClass,
         isMediaGrid,
         bookmarkWidth,
         typeFilter,
@@ -98,6 +104,7 @@ export function AllItemsList({
       currentView,
       gapClass,
       gridColsClass,
+      masonryColsClass,
       isMediaGrid,
       bookmarkWidth,
       typeFilter,
@@ -130,8 +137,9 @@ export function AllItemsList({
         selectionMode={selectionMode}
         isSelected={selectedIds.has(item.id)}
         animatedVariant={animatedVariant}
+        isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
-        className={index === 0 ? "pt-6" : undefined}
+        className={typeFilter === "post" && index === 0 ? "pt-6" : undefined}
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
@@ -153,6 +161,7 @@ export function AllItemsList({
     selectionMode,
     setSelected,
     toggleSelected,
+    typeFilter,
     visibleItems,
   ]);
 
@@ -167,7 +176,6 @@ export function AllItemsList({
         PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}
       />
       {content}
-      {isFetchingNextPage && <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />}
     </>
   );
 
@@ -177,8 +185,27 @@ export function AllItemsList({
         <div className={layoutConfig.wrapperClassName}>
           <div className={layoutConfig.containerClassName}>
             {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
-            <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+            {!layoutConfig.isMasonry ? (
+              <>
+                {isFetchingNextPage && (
+                  <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+                )}
+                <div
+                  ref={bottomSentinelRef}
+                  aria-hidden
+                  className={layoutConfig.sentinelClassName}
+                />
+              </>
+            ) : null}
           </div>
+          {layoutConfig.isMasonry ? (
+            <>
+              {isFetchingNextPage ? (
+                <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+              ) : null}
+              <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+            </>
+          ) : null}
         </div>
       </ScrollArea>
     </div>

@@ -29,6 +29,7 @@ import type {TypeFilter, SortMode} from "../_types";
 import type {TagWithCount} from "../_types";
 import {AllItemsList} from "./home-client/AllItemsList";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
+import {getCurrentAllItemsView} from "./all-items-client/all-items-list-view-options";
 
 /**
  * Main client component for the All Items / Home page.
@@ -65,6 +66,7 @@ export function HomeClient({
   // View & filter state
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
+  const currentView = getCurrentAllItemsView(view, typeFilter);
 
   // Query Hook
   const {bookmarksQuery, allBookmarks, activeCollection, activeTag, isInitialLoad} =
@@ -192,8 +194,8 @@ export function HomeClient({
         <div
           className={cn(
             "text-muted-foreground border-border flex items-center gap-1 px-6 py-3 text-sm",
-            view === "compact" && "border-b",
-            view === "list" && "border-b",
+            currentView === "compact" && "border-b",
+            currentView === "list" && "border-b",
           )}>
           <NumberFlow value={totalCount} /> items
         </div>

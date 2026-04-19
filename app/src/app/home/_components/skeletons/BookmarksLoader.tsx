@@ -40,16 +40,19 @@ export function BookmarksLoader({
 
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
-  const {borderRadiusClass, gapClass, gridColsClass} = getAllItemsListViewOptions({
-    borderRadius,
-    gridGap,
-    columnSize,
-  });
+  const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
+    {
+      borderRadius,
+      gridGap,
+      columnSize,
+    },
+  );
   const layoutConfig = getAllItemsListLayoutConfig({
     view: currentView,
     borderRadiusClass,
     gapClass,
     gridColsClass,
+    masonryColsClass,
     isMediaGrid,
     bookmarkWidth,
     typeFilter,

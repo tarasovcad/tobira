@@ -80,6 +80,18 @@ const COLLAPSE_STYLE: React.CSSProperties = {
   transition: "height 300ms cubic-bezier(.22,1,.36,1)",
 };
 
+function getExitStyles(
+  kind: RemovalKind,
+  variant: "list" | "grid",
+): Record<"flash" | "exit", React.CSSProperties> {
+  switch (kind) {
+    case "archive":
+      return variant === "list" ? EXIT_STYLES.archive.list : EXIT_STYLES.archive.grid;
+    case "delete":
+      return variant === "list" ? EXIT_STYLES.delete.list : EXIT_STYLES.delete.grid;
+  }
+}
+
 export function AnimatedItem({
   id,
   isRemoving,
@@ -87,6 +99,7 @@ export function AnimatedItem({
   variant,
   kind = "delete",
   className,
+  stretchContent = variant === "grid",
   children,
 }: {
   id: string;
@@ -95,6 +108,7 @@ export function AnimatedItem({
   variant: "list" | "grid";
   kind?: RemovalKind;
   className?: string;
+  stretchContent?: boolean;
   children: React.ReactNode;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -153,14 +167,14 @@ export function AnimatedItem({
 
   if (phase === "done") return null;
 
-  const styles = EXIT_STYLES[activeKind][variant];
+  const styles = getExitStyles(activeKind, variant);
   const isExiting = phase === "exit" || phase === "collapse";
   const contentStyle = phase === "flash" ? styles.flash : isExiting ? styles.exit : undefined;
-  const isGrid = variant === "grid";
-
   return (
     <div ref={ref} className={className} style={phase === "collapse" ? COLLAPSE_STYLE : undefined}>
-      <div className={isGrid ? "flex min-h-0 flex-1 flex-col" : undefined} style={contentStyle}>
+      <div
+        className={stretchContent ? "flex min-h-0 flex-1 flex-col" : undefined}
+        style={contentStyle}>
         {children}
       </div>
     </div>

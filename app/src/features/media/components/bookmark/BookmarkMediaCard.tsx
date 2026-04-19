@@ -3,11 +3,12 @@
 import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {BookmarkImage} from "./BookmarkImage";
+import MediaPreview from "@/features/media/components/MediaPreview";
 import type {WebsiteOrMediaMetadata} from "@/app/home/_types/bookmark-metadata";
 import {BookmarkHoverActions} from "@/components/bookmark/_components/BookmarkHoverActions";
 import {BookmarkSelectionControl} from "@/components/bookmark/_components/BookmarkSelectionControl";
 import type {BookmarkItemProps} from "@/components/bookmark/_components/bookmark-item-props";
+import {getBookmarkMediaPreviewItem} from "./bookmark-images";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -15,11 +16,13 @@ const selectionModeHoverActionsClass =
 function BookmarkMediaCardImpl({
   item,
   onOpenMenu,
+  className,
   selectionIndex = 0,
   isSelected = false,
   setSelected,
 }: BookmarkItemProps) {
   const {borderRadius, gridGap} = useViewOptionsStore();
+  const previewItem = getBookmarkMediaPreviewItem(item);
   const radiusClass =
     borderRadius === "none"
       ? "rounded-none"
@@ -30,8 +33,9 @@ function BookmarkMediaCardImpl({
           : "rounded-lg";
 
   const meta = item.metadata as WebsiteOrMediaMetadata | undefined;
-  const hasDimensions = meta?.width && meta?.height;
-  const aspectRatio = hasDimensions ? `${meta!.width} / ${meta!.height}` : "16/9";
+  const width = previewItem?.width ?? meta?.width ?? 1200;
+  const height = previewItem?.height ?? meta?.height ?? 1200;
+  const aspectRatio = width > 0 && height > 0 ? `${width} / ${height}` : "16/9";
 
   return (
     <div
@@ -43,8 +47,8 @@ function BookmarkMediaCardImpl({
         isSelected && "bg-muted",
         radiusClass,
         "transition-none!",
-      )}
-      style={{aspectRatio}}>
+        className,
+      )}>
       <BookmarkHoverActions
         variant="glass"
         className={selectionModeHoverActionsClass}
@@ -61,18 +65,24 @@ function BookmarkMediaCardImpl({
         delayStepMs={15}
       />
 
-      <BookmarkImage
-        bookmark_id={item.id}
-        item={item}
-        type="preview"
-        fill={true}
-        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-        quality={50}
-        loading="lazy"
-        width={meta?.width ?? 1200}
-        height={meta?.height ?? 1200}
-        imageClassName="h-full w-full object-cover"
-      />
+      {previewItem ? (
+        <div style={{aspectRatio}}>
+          <MediaPreview
+            src={previewItem.src}
+            fullSizeSrc={previewItem.type === "image" ? previewItem.fullSizeSrc : undefined}
+            alt={previewItem.alt}
+            width={previewItem.width}
+            height={previewItem.height}
+            poster={previewItem.poster}
+            type={previewItem.type}
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            quality={50}
+            loading="lazy"
+            className="h-full w-full object-cover"
+            buttonClassName="h-full w-full"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -49,6 +49,7 @@ export interface AllItemsListLayoutConfig {
   sentinelClassName: string;
   animatedVariant: AllItemsAnimatedVariant;
   isTable: boolean;
+  isMasonry: boolean;
   BookmarkItem: React.ComponentType<AllItemsBookmarkComponentProps>;
   NewBookmarkPlaceholder: React.ComponentType<AllItemsNewBookmarkPlaceholderProps>;
   renderSkeletonItem: (index: number) => React.ReactNode;
@@ -59,9 +60,27 @@ interface GetAllItemsListLayoutConfigArgs {
   borderRadiusClass: string;
   gapClass: string;
   gridColsClass: string;
+  masonryColsClass: string;
   isMediaGrid: boolean;
   bookmarkWidth: BookmarkWidth;
   typeFilter: TypeFilter;
+}
+
+function getMasonryChildSpacingClass(gapClass: string) {
+  switch (gapClass) {
+    case "gap-0":
+      return "[&>*]:mb-0";
+    case "gap-2":
+      return "[&>*]:mb-2";
+    case "gap-4":
+      return "[&>*]:mb-4";
+    case "gap-6":
+      return "[&>*]:mb-6";
+    case "gap-8":
+      return "[&>*]:mb-8";
+    default:
+      return "[&>*]:mb-4";
+  }
 }
 
 export function getAllItemsListLayoutConfig({
@@ -69,6 +88,7 @@ export function getAllItemsListLayoutConfig({
   borderRadiusClass,
   gapClass,
   gridColsClass,
+  masonryColsClass,
   isMediaGrid,
   bookmarkWidth,
   typeFilter,
@@ -88,16 +108,24 @@ export function getAllItemsListLayoutConfig({
     case "grid":
       return {
         wrapperClassName: "px-6 pb-8",
-        containerClassName: cn(
-          "grid",
-          gridColsClass,
-          gapClass,
-          gapClass === "gap-0" && !isMediaGrid && "border-t border-l border-border",
-        ),
+        containerClassName: isMediaGrid
+          ? cn(
+              masonryColsClass,
+              gapClass,
+              "[&>*]:break-inside-avoid",
+              getMasonryChildSpacingClass(gapClass),
+            )
+          : cn(
+              "grid",
+              gridColsClass,
+              gapClass,
+              gapClass === "gap-0" && "border-t border-l border-border",
+            ),
         fetchSpinnerClassName: "text-muted-foreground col-span-full py-6 text-center text-xs",
-        sentinelClassName: "col-span-full h-px",
+        sentinelClassName: isMediaGrid ? "h-px" : "col-span-full h-px",
         animatedVariant: "grid",
         isTable: false,
+        isMasonry: isMediaGrid,
         BookmarkItem: isMediaGrid ? MediaCard : GridCard,
         NewBookmarkPlaceholder: isMediaGrid ? NewBookmarkMediaCard : NewBookmarkGridCard,
         renderSkeletonItem: (index) =>
@@ -115,6 +143,7 @@ export function getAllItemsListLayoutConfig({
         sentinelClassName: "h-px",
         animatedVariant: "list",
         isTable: true,
+        isMasonry: false,
         BookmarkItem: TableItemRow,
         NewBookmarkPlaceholder: NewBookmarkList,
         renderSkeletonItem: (index) => <ListSkeleton key={index} />,
@@ -127,6 +156,7 @@ export function getAllItemsListLayoutConfig({
         sentinelClassName: "h-px",
         animatedVariant: "list",
         isTable: false,
+        isMasonry: false,
         BookmarkItem: MinimalItemRow,
         NewBookmarkPlaceholder: NewBookmarkCompact,
         renderSkeletonItem: (index) => <ListSkeleton key={index} />,
@@ -140,6 +170,7 @@ export function getAllItemsListLayoutConfig({
           sentinelClassName: "h-px",
           animatedVariant: "list",
           isTable: false,
+          isMasonry: false,
           BookmarkItem: BookmarkPostCard,
           NewBookmarkPlaceholder: NewBookmarkPost,
           renderSkeletonItem: (index) => <PostSkeleton key={index} />,
@@ -152,6 +183,7 @@ export function getAllItemsListLayoutConfig({
         sentinelClassName: "h-px",
         animatedVariant: "list",
         isTable: false,
+        isMasonry: false,
         BookmarkItem: ItemList,
         NewBookmarkPlaceholder: NewBookmarkList,
         renderSkeletonItem: (index) => <ListSkeleton key={index} />,

@@ -40,7 +40,7 @@ export type WebsiteImages = {
   favicon?: {key: string};
   og?: {key: string; width?: number; height?: number};
   preview?: {key: string; width?: number; height?: number};
-  selected?: "preview" | "og" | "favicon";
+  selected?: "preview" | "og";
 };
 
 export type PostImages = {

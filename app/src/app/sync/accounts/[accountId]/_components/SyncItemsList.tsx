@@ -10,6 +10,7 @@ import {useViewOptionsStore} from "@/store/use-view-options";
 import {
   getCurrentAllItemsView,
   getAllItemsListViewOptions,
+  getBookmarkWidthForType,
 } from "@/app/home/_components/all-items-client/all-items-list-view-options";
 import {getAllItemsListLayoutConfig} from "@/app/home/_components/all-items-client/all-items-list-layout";
 import {SyncItemRow} from "./SyncItemRow";
@@ -66,13 +67,17 @@ export function SyncItemsList({
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
   const borderRadius = useViewOptionsStore((state) => state.borderRadius);
-  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidthByType[typeFilter]);
+  const bookmarkWidth = useViewOptionsStore((state) =>
+    getBookmarkWidthForType(state.bookmarkWidthByType, typeFilter),
+  );
 
-  const {borderRadiusClass, gapClass, gridColsClass} = getAllItemsListViewOptions({
-    borderRadius,
-    gridGap,
-    columnSize,
-  });
+  const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
+    {
+      borderRadius,
+      gridGap,
+      columnSize,
+    },
+  );
 
   const layoutConfig = useMemo(
     () =>
@@ -81,6 +86,7 @@ export function SyncItemsList({
         borderRadiusClass,
         gapClass,
         gridColsClass,
+        masonryColsClass,
         isMediaGrid,
         bookmarkWidth,
         typeFilter,
@@ -90,6 +96,7 @@ export function SyncItemsList({
       currentView,
       gapClass,
       gridColsClass,
+      masonryColsClass,
       isMediaGrid,
       bookmarkWidth,
       typeFilter,
@@ -122,6 +129,7 @@ export function SyncItemsList({
         selectionMode={selectionMode}
         isSelected={selectedIds.has(item.id)}
         animatedVariant={animatedVariant}
+        isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
@@ -149,12 +157,7 @@ export function SyncItemsList({
     visibleItems,
   ]);
 
-  const body = (
-    <>
-      {content}
-      {isFetchingNextPage && <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />}
-    </>
-  );
+  const body = content;
 
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
@@ -162,8 +165,27 @@ export function SyncItemsList({
         <div className={layoutConfig.wrapperClassName}>
           <div className={layoutConfig.containerClassName}>
             {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
-            <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+            {!layoutConfig.isMasonry ? (
+              <>
+                {isFetchingNextPage && (
+                  <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+                )}
+                <div
+                  ref={bottomSentinelRef}
+                  aria-hidden
+                  className={layoutConfig.sentinelClassName}
+                />
+              </>
+            ) : null}
           </div>
+          {layoutConfig.isMasonry ? (
+            <>
+              {isFetchingNextPage ? (
+                <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+              ) : null}
+              <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+            </>
+          ) : null}
         </div>
       </ScrollArea>
     </div>

@@ -31,7 +31,7 @@ function itemToFormValues(item: Bookmark): BookmarkFormValues {
     kind: item.kind,
     title: item.title,
     description: item.description,
-    selected_image: websiteImages?.selected === "favicon" ? undefined : websiteImages?.selected,
+    selected_image: websiteImages?.selected ?? undefined,
     notes: item.notes ?? "",
     tags: item.tags ?? [],
     collectionId: item.collections?.[0]?.id ?? null,

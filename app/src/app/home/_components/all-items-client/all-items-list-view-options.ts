@@ -1,5 +1,11 @@
 import type {TypeFilter} from "../../_types";
-import type {BorderRadius, ColumnSize, GridGap, ViewMode} from "@/store/use-view-options";
+import type {
+  BorderRadius,
+  BookmarkWidth,
+  ColumnSize,
+  GridGap,
+  ViewMode,
+} from "@/store/use-view-options";
 
 export const ALL_ITEMS_SUPPORTED_VIEWS = [
   "list",
@@ -9,6 +15,20 @@ export const ALL_ITEMS_SUPPORTED_VIEWS = [
 ] as const satisfies readonly ViewMode[];
 
 export type AllItemsView = (typeof ALL_ITEMS_SUPPORTED_VIEWS)[number];
+
+export function getBookmarkWidthForType(
+  bookmarkWidthByType: Record<TypeFilter, BookmarkWidth>,
+  typeFilter: TypeFilter,
+) {
+  switch (typeFilter) {
+    case "media":
+      return bookmarkWidthByType.media;
+    case "post":
+      return bookmarkWidthByType.post;
+    case "website":
+      return bookmarkWidthByType.website;
+  }
+}
 
 export function getAllItemsAllowedViews(typeFilter: TypeFilter): readonly AllItemsView[] {
   switch (typeFilter) {
@@ -85,6 +105,15 @@ const GRID_COLUMNS_MAP = {
   6: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
 } satisfies Record<ColumnSize, string>;
 
+const MASONRY_COLUMNS_MAP = {
+  1: "columns-1",
+  2: "columns-1 sm:columns-2",
+  3: "columns-1 sm:columns-2 lg:columns-3",
+  4: "columns-1 sm:columns-2 lg:columns-3 xl:columns-4",
+  5: "columns-2 sm:columns-3 lg:columns-4 xl:columns-5",
+  6: "columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6",
+} satisfies Record<ColumnSize, string>;
+
 function getBorderRadiusClass(borderRadius: BorderRadius) {
   switch (borderRadius) {
     case "none":
@@ -130,6 +159,23 @@ function getGridColumnsClass(columnSize: ColumnSize) {
   }
 }
 
+function getMasonryColumnsClass(columnSize: ColumnSize) {
+  switch (columnSize) {
+    case 1:
+      return MASONRY_COLUMNS_MAP[1];
+    case 2:
+      return MASONRY_COLUMNS_MAP[2];
+    case 3:
+      return MASONRY_COLUMNS_MAP[3];
+    case 4:
+      return MASONRY_COLUMNS_MAP[4];
+    case 5:
+      return MASONRY_COLUMNS_MAP[5];
+    case 6:
+      return MASONRY_COLUMNS_MAP[6];
+  }
+}
+
 export function getAllItemsListViewOptions({
   borderRadius,
   gridGap,
@@ -143,5 +189,6 @@ export function getAllItemsListViewOptions({
     borderRadiusClass: getBorderRadiusClass(borderRadius),
     gapClass: getGapClass(gridGap),
     gridColsClass: getGridColumnsClass(columnSize),
+    masonryColsClass: getMasonryColumnsClass(columnSize),
   };
 }

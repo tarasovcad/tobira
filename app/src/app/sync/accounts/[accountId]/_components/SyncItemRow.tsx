@@ -17,6 +17,7 @@ interface SyncItemRowProps {
   selectionMode: boolean;
   isSelected: boolean;
   animatedVariant: AllItemsAnimatedVariant;
+  isMasonry: boolean;
   BookmarkItem: React.ComponentType<AllItemsBookmarkComponentProps>;
   onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
@@ -34,6 +35,7 @@ function SyncItemRowImpl({
   selectionMode,
   isSelected,
   animatedVariant,
+  isMasonry,
   BookmarkItem,
   onItemRemoved,
   toggleSelected,
@@ -74,11 +76,12 @@ function SyncItemRowImpl({
       onRemoved={onItemRemoved}
       variant={animatedVariant}
       kind={removalKind}
-      className={animatedVariant === "grid" ? "flex h-full flex-col" : undefined}>
+      stretchContent={!isMasonry && animatedVariant === "grid"}
+      className={!isMasonry && animatedVariant === "grid" ? "flex h-full flex-col" : undefined}>
       <div
         data-selection-mode={selectionMode}
         className={
-          animatedVariant === "grid"
+          !isMasonry && animatedVariant === "grid"
             ? "group/bookmark-row relative flex min-h-0 flex-1 flex-col"
             : "group/bookmark-row relative"
         }
@@ -107,6 +110,7 @@ export const SyncItemRow = React.memo(
     prev.selectionMode === next.selectionMode &&
     prev.isSelected === next.isSelected &&
     prev.animatedVariant === next.animatedVariant &&
+    prev.isMasonry === next.isMasonry &&
     prev.BookmarkItem === next.BookmarkItem &&
     prev.onItemRemoved === next.onItemRemoved &&
     prev.toggleSelected === next.toggleSelected &&
