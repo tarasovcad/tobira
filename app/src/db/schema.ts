@@ -48,11 +48,7 @@ export type PostImages = {
 };
 
 export type MediaImages = {
-  key: string;
-  key_thumbnail?: string;
-  width?: number;
-  height?: number;
-  type?: "image" | "video" | "gif";
+  items: PostMediaItem[];
 };
 
 export type BookmarkImages = WebsiteImages | PostImages | MediaImages;

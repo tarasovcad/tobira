@@ -5,7 +5,7 @@ import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {BookmarkHoverActions} from "./BookmarkHoverActions";
-import {BookmarkImage} from "@/components/media/bookmark/BookmarkImage";
+import {BookmarkImage} from "@/features/media/components/bookmark/BookmarkImage";
 import {BookmarkMeta} from "./BookmarkMeta";
 import {BookmarkSelectionControl} from "./BookmarkSelectionControl";
 import type {BookmarkItemProps} from "./bookmark-item-props";

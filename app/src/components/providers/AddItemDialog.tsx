@@ -61,7 +61,7 @@ import {
   useCollectionsQuery,
   useTagsQuery,
 } from "@/app/home/_hooks/use-home-metadata-query";
-import {User as AuthUser} from "@/components/utils/better-auth/auth-client";
+import {User as AuthUser} from "@/lib/auth/auth-client";
 
 type AddItemDialogUser = AuthUser & {
   aiContext?: string | null;
@@ -200,7 +200,6 @@ export function AddItemDialog({
           collectionId: data.collectionId ?? undefined,
           kind: "media",
         });
-        closeDialog();
         break;
       case "post":
         addItemMutation.mutate({

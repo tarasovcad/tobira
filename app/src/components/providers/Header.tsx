@@ -6,7 +6,7 @@ import {cn} from "@/lib/utils";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
-import type {Session} from "@/components/utils/better-auth/auth-client";
+import type {Session} from "@/lib/auth/auth-client";
 import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/coss-ui/menu";
 import {useMutation} from "@tanstack/react-query";
 import {signOutAction} from "@/app/actions/auth";

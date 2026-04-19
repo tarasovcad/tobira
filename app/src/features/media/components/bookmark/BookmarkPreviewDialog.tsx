@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import {memo, useState} from "react";
 import Image from "next/image";
 import {cn} from "@/lib/utils";
 import {
@@ -23,6 +23,54 @@ interface BookmarkPreviewDialogProps {
   selectedPreview: "og" | "preview";
   onSelectPreview: (val: "og" | "preview") => void;
   onSave: () => void;
+}
+
+function BookmarkImageFallback() {
+  return (
+    <div className="text-muted-foreground/30 z-10 col-start-1 row-start-1">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 20 20"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M14.375 2.5C16.1009 2.5 17.5 3.89911 17.5 5.625V14.375C17.5 16.1009 16.1009 17.5 14.375 17.5H5.625C3.89911 17.5 2.5 16.1009 2.5 14.375V5.625C2.5 3.89911 3.89911 2.5 5.625 2.5H14.375ZM7.99235 11.3257C7.26015 10.5937 6.07318 10.5937 5.34098 11.3257L3.75 12.9167V14.375C3.75 15.4105 4.58947 16.25 5.625 16.25H12.9167L7.99235 11.3257ZM12.5 5.41667C11.3494 5.41667 10.4167 6.34941 10.4167 7.5C10.4167 8.65058 11.3494 9.58333 12.5 9.58333C13.6506 9.58333 14.5833 8.65058 14.5833 7.5C14.5833 6.34941 13.6506 5.41667 12.5 5.41667Z"
+          fill="currentColor"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function PreviewOptionImage({src, alt}: {src: string; alt: string}) {
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">(src ? "loading" : "error");
+
+  const hasSrc = !!src;
+  const isLoaded = hasSrc && status === "loaded";
+
+  return (
+    <div className="bg-muted relative grid aspect-video w-full place-items-center overflow-hidden rounded-md">
+      {!isLoaded ? <BookmarkImageFallback /> : null}
+
+      {hasSrc ? (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          className={cn(
+            "col-start-1 row-start-1 object-cover transition-opacity duration-300 ease-in-out",
+            isLoaded ? "opacity-100" : "opacity-0",
+          )}
+          unoptimized
+          onLoad={() => setStatus("loaded")}
+          onError={() => setStatus("error")}
+        />
+      ) : null}
+    </div>
+  );
 }
 
 function BookmarkPreviewDialogImpl({
@@ -53,9 +101,7 @@ function BookmarkPreviewDialogImpl({
                 ? "border-primary"
                 : "border-transparent opacity-50 hover:opacity-75",
             )}>
-            <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-md">
-              <Image src={ogImageUrl} alt="OG Image" fill className="object-cover" unoptimized />
-            </div>
+            <PreviewOptionImage src={ogImageUrl} alt="OG Image" />
             <div className="text-foreground/90 my-3 text-center text-sm font-medium">OG Image</div>
           </button>
 
@@ -69,15 +115,7 @@ function BookmarkPreviewDialogImpl({
                 ? "border-primary"
                 : "border-transparent opacity-50 hover:opacity-75",
             )}>
-            <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-md">
-              <Image
-                src={previewImageUrl}
-                alt="Preview Image"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
+            <PreviewOptionImage src={previewImageUrl} alt="Preview Image" />
             <div className="text-foreground/90 my-3 text-center text-sm font-medium">
               Screenshot
             </div>
@@ -95,4 +133,4 @@ function BookmarkPreviewDialogImpl({
   );
 }
 
-export const BookmarkPreviewDialog = React.memo(BookmarkPreviewDialogImpl);
+export const BookmarkPreviewDialog = memo(BookmarkPreviewDialogImpl);

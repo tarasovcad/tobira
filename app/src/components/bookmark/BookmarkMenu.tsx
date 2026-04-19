@@ -3,7 +3,7 @@
 import {useState, useMemo, useEffect, useCallback} from "react";
 import {Controller} from "react-hook-form";
 import {formatDateWithTime} from "@/lib/utils/dates";
-import {BookmarkImage} from "@/components/media/bookmark/BookmarkImage";
+import {BookmarkImage} from "@/features/media/components/bookmark/BookmarkImage";
 import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/components/coss-ui/sheet";
 import {Button} from "@/components/coss-ui/button";
 import {Separator} from "@/components/shadcn/separator";
@@ -26,12 +26,14 @@ import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 import {type BookmarkFormValues, normalizeTagsForCompare} from "./_utils/bookmark-schema";
 import {useBookmarkForm} from "./_hooks/use-bookmark-form";
 import {useBookmarkMutations} from "./_hooks/use-bookmark-mutations";
-import {BookmarkPreviewDialog} from "@/components/media/bookmark/BookmarkPreviewDialog";
+import {BookmarkPreviewDialog} from "@/features/media/components/bookmark/BookmarkPreviewDialog";
 import {BookmarkMenuActions} from "./_components/BookmarkMenuActions";
 import {BookmarkDetails} from "./_components/BookmarkDetails";
-import {BookmarkPostMenuPanel} from "@/components/media/bookmark/BookmarkPostMenuPanel";
+import {BookmarkPostMenuPanel} from "@/features/media/components/bookmark/BookmarkPostMenuPanel";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
+import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import Spinner from "../ui/spinner";
 
 export function BookmarkMenu({userId}: {userId: string | null}) {
@@ -50,7 +52,6 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
       type: item?.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : undefined,
       saved: formatDateWithTime(item?.created_at ?? ""),
       updated: formatDateWithTime(item?.updated_at ?? ""),
-      preview_image: item?.preview_image,
       tags: item?.tags ?? [],
       collections: item?.collections ?? [],
       kind: item?.kind,
@@ -65,7 +66,6 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
   const {
     control,
     handleSubmit,
-    getValues,
     reset,
     setValue,
     formState: {errors, isValid},
@@ -98,7 +98,6 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
     if (!open) {
       const timer = setTimeout(() => {
         setPreviewDialogOpen(false);
-        setSelectedPreview("preview");
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -127,7 +126,6 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
     (values: BookmarkFormValues) => {
       if (!item) return;
 
-      // Only include fields that have actually changed
       const updates: UpdateBookmarkData = {};
 
       if ((values.title ?? "") !== (originalValues.title ?? "")) {
@@ -138,8 +136,8 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
         updates.description = values.description;
       }
 
-      if ((values.preview_image ?? "") !== (originalValues.preview_image ?? "")) {
-        updates.preview_image = values.preview_image;
+      if ((values.selected_image ?? "") !== (originalValues.selected_image ?? "")) {
+        updates.selected_image = values.selected_image;
       }
 
       if ((values.notes ?? "") !== (originalValues.notes ?? "")) {
@@ -189,22 +187,22 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
     }
   }, [item, onDelete]);
 
-  // Derive both OG and Preview URLs from whatever is currently saved
-  const currentImageUrl = currentValues.preview_image ?? item?.preview_image ?? "";
-  const ogImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/og.png");
-  const previewImageUrl = currentImageUrl.replace(/\/(preview|og)\.png$/, "/preview.png");
+  // Derive OG and Preview URLs from the images column
+  const websiteImages = isWebsiteImages(item?.images) ? item.images : undefined;
+  const ogImageUrl = websiteImages?.og?.key ? buildR2PublicUrl(websiteImages.og.key) : "";
+  const previewImageUrl = websiteImages?.preview?.key
+    ? buildR2PublicUrl(websiteImages.preview.key)
+    : "";
 
   const handlePreviewClick = useCallback(() => {
-    const currentUrl = getValues("preview_image");
-    setSelectedPreview(currentUrl?.endsWith("og.png") ? "og" : "preview");
+    setSelectedPreview(currentValues.selected_image === "og" ? "og" : "preview");
     setPreviewDialogOpen(true);
-  }, [getValues]);
+  }, [currentValues.selected_image]);
 
   const handleSavePreview = useCallback(() => {
-    const newUrl = selectedPreview === "og" ? ogImageUrl : previewImageUrl;
-    setValue("preview_image", newUrl, {shouldDirty: true, shouldValidate: true});
+    setValue("selected_image", selectedPreview, {shouldDirty: true, shouldValidate: true});
     setPreviewDialogOpen(false);
-  }, [ogImageUrl, previewImageUrl, selectedPreview, setValue]);
+  }, [selectedPreview, setValue]);
 
   const actionProps = useMemo(
     () => ({
@@ -249,8 +247,8 @@ export function BookmarkMenu({userId}: {userId: string | null}) {
                     <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
                       <BookmarkImage
                         bookmark_id={item.id}
-                        item={{...item, preview_image: currentValues.preview_image ?? ""}}
-                        type="preview"
+                        item={item}
+                        type={currentValues.selected_image ?? "preview"}
                         fill
                         imageClassName="object-cover"
                       />

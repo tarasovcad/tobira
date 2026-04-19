@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import {cn} from "@/lib/utils";
-import MediaPreview from "@/components/media/MediaPreview";
+import MediaPreview from "@/features/media/components/MediaPreview";
 import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 
 type PostMediaItem = PostBookmarkMetadata["media_extended"][number];

@@ -2,7 +2,7 @@
 
 import {createPortal} from "react-dom";
 import type {MediaPreviewProps} from "./preview/types";
-import {useMediaPreview} from "./preview/useMediaPreview";
+import {useMediaPreview} from "../hooks/useMediaPreview";
 import {useEffect} from "react";
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
 import {MediaPreviewTrigger} from "./preview/MediaPreviewTrigger";

@@ -4,10 +4,10 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {GridCard} from "@/components/bookmark/_components/BookmarkGridCard";
 import {ItemList} from "@/components/bookmark/_components/BookmarkListRow";
-import {MediaCard} from "@/components/media/bookmark/BookmarkMediaCard";
+import {MediaCard} from "@/features/media/components/bookmark/BookmarkMediaCard";
 import {MinimalItemRow} from "@/components/bookmark/_components/BookmarkCompactRow";
 import {TableItemRow} from "@/components/bookmark/_components/BookmarkTableRow";
-import {BookmarkPostCard} from "@/components/media/bookmark/BookmarkPostCard";
+import {BookmarkPostCard} from "@/features/media/components/bookmark/BookmarkPostCard";
 import type {Bookmark} from "@/components/bookmark/types";
 import {GridSkeleton, ListSkeleton, MediaSkeleton, PostSkeleton} from "../ListSkeletons";
 import {

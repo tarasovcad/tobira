@@ -3,7 +3,7 @@
 import * as React from "react";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
-import MediaPreview from "@/components/media/MediaPreview";
+import MediaPreview from "@/features/media/components/MediaPreview";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {WebsiteOrMediaMetadata} from "@/app/home/_types/bookmark-metadata";
 import {getBookmarkImageSrc, isWebsiteImages} from "./bookmark-images";

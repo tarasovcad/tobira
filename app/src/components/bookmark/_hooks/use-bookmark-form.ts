@@ -7,6 +7,7 @@ import {
   normalizeTagsForCompare,
 } from "../_utils/bookmark-schema";
 import type {Bookmark} from "@/components/bookmark/types";
+import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ const EMPTY_VALUES: BookmarkFormValues = {
   kind: "website",
   title: "",
   description: "",
-  preview_image: "",
+  selected_image: undefined,
   notes: "",
   tags: [],
   collectionId: null,
@@ -25,11 +26,12 @@ const CLOSE_RESET_DELAY_MS = 500;
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function itemToFormValues(item: Bookmark): BookmarkFormValues {
+  const websiteImages = isWebsiteImages(item.images) ? item.images : undefined;
   return {
     kind: item.kind,
     title: item.title,
     description: item.description,
-    preview_image: item.preview_image,
+    selected_image: websiteImages?.selected === "favicon" ? undefined : websiteImages?.selected,
     notes: item.notes ?? "",
     tags: item.tags ?? [],
     collectionId: item.collections?.[0]?.id ?? null,
@@ -40,7 +42,7 @@ function valuesHaveChanged(current: BookmarkFormValues, original: BookmarkFormVa
   const scalarChanged =
     (current.title ?? "") !== (original.title ?? "") ||
     (current.description ?? "") !== (original.description ?? "") ||
-    (current.preview_image ?? "") !== (original.preview_image ?? "") ||
+    (current.selected_image ?? "") !== (original.selected_image ?? "") ||
     (current.notes ?? "") !== (original.notes ?? "") ||
     (current.collectionId ?? "") !== (original.collectionId ?? "");
 

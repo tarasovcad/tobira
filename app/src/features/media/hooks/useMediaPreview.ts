@@ -6,9 +6,14 @@ import {
   type RefObject,
   type WheelEvent,
 } from "react";
-import {MIN_ZOOM, OVERLAY_TRANSITION_MS, ZOOM_STEP} from "./constants";
-import type {Pan, PanBounds, Rect} from "./types";
-import {applyElasticPan, clampPanToBounds, clampZoom, getTargetRect} from "./utils";
+import {MIN_ZOOM, OVERLAY_TRANSITION_MS, ZOOM_STEP} from "../components/preview/constants";
+import type {Pan, PanBounds, Rect} from "../components/preview/types";
+import {
+  applyElasticPan,
+  clampPanToBounds,
+  clampZoom,
+  getTargetRect,
+} from "../components/preview/utils";
 import {usePreviewEffects} from "./usePreviewEffects";
 
 type UseMediaPreviewParams = {

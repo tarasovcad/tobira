@@ -1,7 +1,7 @@
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "../types";
-import {BookmarkImage} from "@/components/media/bookmark/BookmarkImage";
+import {BookmarkImage} from "@/features/media/components/bookmark/BookmarkImage";
 import {Avatar} from "@/components/ui/avatar";
 import * as React from "react";
 

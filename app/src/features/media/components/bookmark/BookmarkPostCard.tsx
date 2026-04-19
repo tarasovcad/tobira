@@ -8,7 +8,7 @@ import {cn} from "@/lib/utils";
 import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {Tag} from "@/components/ui/Tag";
-import MediaPreview from "@/components/media/MediaPreview";
+import MediaPreview from "@/features/media/components/MediaPreview";
 import {BookmarkHoverActions} from "@/components/bookmark/_components/BookmarkHoverActions";
 import {BookmarkSelectionControl} from "@/components/bookmark/_components/BookmarkSelectionControl";
 import type {BookmarkItemProps} from "@/components/bookmark/_components/bookmark-item-props";

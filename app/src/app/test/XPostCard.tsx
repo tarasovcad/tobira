@@ -3,7 +3,7 @@
 import {useState} from "react";
 import Link from "next/link";
 import Image from "next/image";
-import MediaPreview from "@/components/media/MediaPreview";
+import MediaPreview from "@/features/media/components/MediaPreview";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

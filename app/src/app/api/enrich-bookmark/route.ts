@@ -7,7 +7,7 @@ import {
   fetchFirecrawlScreenshotDataUrl,
 } from "@/lib/fetch/web/screenshot";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
-import {buildWebsiteImageKeys} from "@/components/media/utils";
+import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 import sharp from "sharp";

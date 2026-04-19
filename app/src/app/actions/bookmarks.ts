@@ -4,13 +4,13 @@ import {Client} from "@upstash/qstash";
 import {randomUUID} from "crypto";
 import {db} from "@/db";
 import {bookmarks, bookmarkTags, bookmarkCollections, tags} from "@/db/schema";
-import {and, eq, inArray, asc, desc, exists, isNull} from "drizzle-orm";
+import {and, eq, inArray, asc, desc, exists, isNull, sql} from "drizzle-orm";
 import type {Bookmark} from "@/components/bookmark/types";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
-import {prepareMediaBookmarkCreation} from "@/lib/bookmarks/media";
+import {prepareMediaBookmarkCreation} from "@/features/media/server/prepare";
 import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
-import {buildWebsiteImages} from "@/components/media/utils";
+import {buildWebsiteImages} from "@/features/media/utils";
 import {syncBookmarkCollection} from "@/lib/bookmarks/collections";
 import {attachTagsToBookmark, syncBookmarkTags} from "@/lib/bookmarks/tags";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
@@ -39,7 +39,7 @@ export type AddPostBookmarkResult = {
 export type UpdateBookmarkData = {
   title?: string;
   description?: string;
-  preview_image?: string;
+  selected_image?: "preview" | "og";
   notes?: string;
   tags?: string[];
   collectionId?: string | null;
@@ -138,33 +138,27 @@ export async function addMediaBookmark(input: {
     return {ok: true, url: input.url, media: prepared.mediaUrls};
   }
 
-  await db.insert(bookmarks).values(prepared.bookmarksToInsert);
+  await db.insert(bookmarks).values(prepared.bookmarkToInsert);
 
   if (input.collectionId) {
     await db
       .insert(bookmarkCollections)
-      .values(
-        prepared.bookmarkIds.map((bookmarkId) => ({
-          bookmarkId,
-          collectionId: input.collectionId!,
-        })),
-      )
+      .values({
+        bookmarkId: prepared.bookmarkId,
+        collectionId: input.collectionId,
+      })
       .onConflictDoNothing();
   }
 
   if (input.tags && input.tags.length > 0) {
-    await Promise.all(
-      prepared.bookmarkIds.map((bookmarkId) =>
-        attachTagsToBookmark(bookmarkId, userId, input.tags!),
-      ),
-    );
+    await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags);
   }
 
   return {
     ok: true,
     url: input.url,
     media: prepared.mediaUrls,
-    ids: prepared.bookmarkIds,
+    ids: [prepared.bookmarkId],
   };
 }
 
@@ -230,20 +224,23 @@ export async function updateBookmark(
   const userId = await requireAuthenticatedUserId();
   const hasTagUpdate = updates.tags !== undefined;
   const hasCollectionUpdate = updates.collectionId !== undefined;
+  const hasSelectedImageUpdate = updates.selected_image !== undefined;
 
-  const setFields: Record<string, string | null> = {};
-  if (updates.title !== undefined) setFields.title = updates.title;
-  if (updates.description !== undefined) setFields.description = updates.description;
-  if (updates.preview_image !== undefined) setFields.previewImage = updates.preview_image;
-  if (updates.notes !== undefined) setFields.notes = updates.notes;
+  const setValues: Record<string, unknown> = {};
+  if (updates.title !== undefined) setValues.title = updates.title;
+  if (updates.description !== undefined) setValues.description = updates.description;
+  if (updates.notes !== undefined) setValues.notes = updates.notes;
+  if (hasSelectedImageUpdate) {
+    setValues.images = sql`jsonb_set(COALESCE(images, '{}'::jsonb), '{selected}', to_jsonb(${updates.selected_image}::text))`;
+  }
 
-  if (Object.keys(setFields).length === 0 && !hasTagUpdate && !hasCollectionUpdate)
+  if (Object.keys(setValues).length === 0 && !hasTagUpdate && !hasCollectionUpdate)
     return {ok: true};
 
-  if (Object.keys(setFields).length > 0 || hasTagUpdate || hasCollectionUpdate) {
+  if (Object.keys(setValues).length > 0 || hasTagUpdate || hasCollectionUpdate) {
     await db
       .update(bookmarks)
-      .set({...setFields, updatedAt: new Date().toISOString()})
+      .set({...setValues, updatedAt: new Date().toISOString()})
       .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId)));
   }
 

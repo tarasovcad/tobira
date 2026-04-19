@@ -1,6 +1,6 @@
 import type {WebsiteImages} from "@/db/schema";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
-import {buildWebsiteImageKeys} from "@/components/media/utils";
+import {buildWebsiteImageKeys} from "@/features/media/utils";
 import type {Bookmark} from "@/components/bookmark/types";
 
 export function isWebsiteImages(images: Bookmark["images"] | undefined): images is WebsiteImages {
