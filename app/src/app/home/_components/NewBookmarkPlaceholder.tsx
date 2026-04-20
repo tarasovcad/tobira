@@ -23,13 +23,38 @@ function CrossFade({
   skeleton,
   children,
   className,
+  fill = false,
 }: {
   loaded: boolean;
   delay?: number;
   skeleton: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  fill?: boolean;
 }) {
+  if (fill) {
+    return (
+      <div className={cn("relative", className)}>
+        <div
+          className={cn(
+            "absolute inset-0 transition-all duration-500",
+            loaded ? "pointer-events-none opacity-0" : "opacity-100",
+          )}
+          style={{transitionDelay: `${delay}ms`}}>
+          {skeleton}
+        </div>
+        <div
+          className={cn(
+            "absolute inset-0 transition-all duration-500",
+            loaded ? "opacity-100" : "pointer-events-none opacity-0",
+          )}
+          style={{transitionDelay: `${delay}ms`}}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn("grid min-w-0 grid-cols-1 items-start *:col-start-1 *:row-start-1", className)}>
@@ -436,6 +461,7 @@ export function NewBookmarkMediaCard({
       <CrossFade
         loaded={loaded}
         delay={0}
+        fill
         className="h-full w-full"
         skeleton={<Skeleton className="h-full w-full" />}>
         {previewItem ? (
