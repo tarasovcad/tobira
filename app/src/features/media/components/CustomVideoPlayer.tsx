@@ -53,12 +53,16 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isVolumeDragging, setIsVolumeDragging] = useState(false);
   const [isFastForwarding, setIsFastForwarding] = useState(false);
 
   // Hide controls timer
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fastForwardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wasFastForwardingRef = useRef(false);
+  const previousVolumeRef = useRef(1);
+
+  const volumePercent = Math.max(0, Math.min(100, volume * 100));
 
   const shouldSilencePlayError = (err: unknown) => {
     if (!err || typeof err !== "object") return false;
@@ -92,19 +96,41 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     }
   }, [safePlay]);
 
-  const toggleMute = useCallback(() => {
-    if (videoRef.current) {
-      const newMutedState = !isMuted;
-      videoRef.current.muted = newMutedState;
-      setIsMuted(newMutedState);
-      if (newMutedState) {
-        setVolume(0);
-      } else {
-        setVolume(1);
-        videoRef.current.volume = 1;
-      }
+  const setVideoVolume = useCallback((nextVolume: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const clampedVolume = Math.max(0, Math.min(1, nextVolume));
+    video.volume = clampedVolume;
+
+    const nextMutedState = clampedVolume === 0 ? true : false;
+    video.muted = nextMutedState;
+
+    setVolume(clampedVolume);
+    setIsMuted(nextMutedState);
+
+    if (clampedVolume > 0) {
+      previousVolumeRef.current = clampedVolume;
     }
-  }, [isMuted]);
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isMuted || volume === 0) {
+      const restoredVolume = previousVolumeRef.current > 0 ? previousVolumeRef.current : 1;
+      video.muted = false;
+      setIsMuted(false);
+      setVideoVolume(restoredVolume);
+      return;
+    }
+
+    if (volume > 0) {
+      previousVolumeRef.current = volume;
+    }
+    setVideoVolume(0);
+  }, [isMuted, setVideoVolume, volume]);
 
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
@@ -205,6 +231,62 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     }
   };
 
+  const updateVolumeFromEvent = (clientY: number, currentTarget: EventTarget & HTMLDivElement) => {
+    const rect = currentTarget.getBoundingClientRect();
+    if (rect.height <= 0) return;
+
+    let nextVolume = (rect.bottom - clientY) / rect.height;
+    nextVolume = Math.max(0, Math.min(1, nextVolume));
+    setVideoVolume(nextVolume);
+  };
+
+  const handleVolumePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsVolumeDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updateVolumeFromEvent(e.clientY, e.currentTarget);
+  };
+
+  const handleVolumePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isVolumeDragging) return;
+    updateVolumeFromEvent(e.clientY, e.currentTarget);
+  };
+
+  const handleVolumePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isVolumeDragging) return;
+    setIsVolumeDragging(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const handleVolumeKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    switch (e.key) {
+      case "ArrowUp":
+      case "ArrowRight":
+        e.preventDefault();
+        setVideoVolume(volume + 0.05);
+        break;
+      case "ArrowDown":
+      case "ArrowLeft":
+        e.preventDefault();
+        setVideoVolume(volume - 0.05);
+        break;
+      case "Home":
+        e.preventDefault();
+        setVideoVolume(0);
+        break;
+      case "End":
+        e.preventDefault();
+        setVideoVolume(1);
+        break;
+      case "m":
+      case "M":
+        e.preventDefault();
+        toggleMute();
+        break;
+    }
+  };
+
   const handleMouseMove = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
@@ -283,6 +365,12 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         if (videoRef.current.readyState >= 3) {
           setIsLoading(false);
         }
+        const nextVolume = videoRef.current.volume;
+        setVolume(nextVolume);
+        if (nextVolume > 0) {
+          previousVolumeRef.current = nextVolume;
+        }
+        setIsMuted(videoRef.current.muted || nextVolume === 0);
         const videoDuration = videoRef.current.duration;
         if (!isNaN(videoDuration) && isFinite(videoDuration) && videoDuration > 0) {
           setDuration(videoDuration);
@@ -343,7 +431,7 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`group/video relative overflow-hidden ${minimal ? "h-full w-full bg-transparent" : "bg-black"} ${className}`}
+      className={`group/video @container/video-player relative overflow-hidden ${minimal ? "h-full w-full bg-transparent" : "bg-black"} ${className}`}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}>
       {/* Loading overlay */}
@@ -468,7 +556,7 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         onClick={(e) => e.stopPropagation()}
         className={`absolute right-0 bottom-0 left-0 z-20 transform bg-linear-to-t from-black/20 to-transparent px-5 pt-10 pb-4 transition duration-150 ease-in will-change-transform group-hover/video:translate-y-0 group-hover/video:opacity-100 group-hover/video:duration-200 group-hover/video:ease-out group-has-[video:focus-visible]/video:translate-y-0 group-has-[video:focus-visible]/video:opacity-100 group-has-[video:focus-visible]/video:duration-200 group-has-[video:focus-visible]/video:ease-out ${showControls || controlsVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
         <TooltipProvider delay={300}>
-          <div className="flex w-full items-center gap-0.5 text-white">
+          <div className="flex w-full flex-wrap items-center gap-x-0.5 gap-y-1 text-white">
             {/* Play/Pause */}
             <Tooltip>
               <TooltipTrigger
@@ -521,9 +609,12 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
               </TooltipPopupBlur>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger
+            <div className="group/volume relative flex shrink-0 items-center">
+              <button
+                type="button"
                 onClick={toggleMute}
+                aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
+                aria-pressed={isMuted || volume === 0}
                 className="group/play relative flex h-8 min-w-8 cursor-pointer items-center justify-center rounded-md p-2 text-white outline-hidden transition duration-100 ease-linear before:absolute before:size-6 hover:bg-white/20 hover:backdrop-blur-sm focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97]">
                 <div
                   className={`transition-all duration-200 ${
@@ -573,81 +664,111 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
                     />
                   </svg>
                 </div>
-              </TooltipTrigger>
-              <TooltipPopupBlur sideOffset={8}>
-                <div className="flex items-center gap-1.5">
-                  <span>{isMuted || volume === 0 ? "Unmute" : "Mute"}</span>
-                  <kbd className="flex items-center justify-center rounded-sm bg-black/40 px-1.5 py-1 font-sans text-xs font-semibold text-white/90">
-                    M
-                  </kbd>
+              </button>
+
+              <div
+                className={`pointer-events-none absolute bottom-full left-1/2 z-30 hidden -translate-x-1/2 translate-y-1 pb-2 opacity-0 transition duration-150 ease-out group-focus-within/volume:pointer-events-auto group-focus-within/volume:translate-y-0 group-focus-within/volume:opacity-100 group-hover/volume:pointer-events-auto group-hover/volume:translate-y-0 group-hover/volume:opacity-100 @min-[365px]/video-player:flex ${
+                  isVolumeDragging ? "pointer-events-auto translate-y-0 opacity-100" : ""
+                }`}>
+                <div className="rounded-full border border-white/10 bg-black/40 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.32)] backdrop-blur-md">
+                  <div
+                    role="slider"
+                    tabIndex={0}
+                    aria-label="Volume"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(volumePercent)}
+                    aria-orientation="vertical"
+                    className="hit-area-3 relative flex h-24 w-4 cursor-pointer items-center justify-center py-2.5 outline-hidden"
+                    onPointerDown={handleVolumePointerDown}
+                    onPointerMove={handleVolumePointerMove}
+                    onPointerUp={handleVolumePointerUp}
+                    onPointerCancel={handleVolumePointerUp}
+                    onKeyDown={handleVolumeKeyDown}>
+                    <div className="relative h-full w-1 rounded-full bg-white/22">
+                      <div
+                        className="absolute bottom-0 left-0 w-full rounded-full bg-white"
+                        style={{height: `${volumePercent}%`}}
+                      />
+                      <div
+                        className="absolute left-1/2 h-4 w-4 -translate-x-1/2 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
+                        style={{bottom: `calc(${volumePercent}% - 0.5rem)`}}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </TooltipPopupBlur>
-            </Tooltip>
+              </div>
+            </div>
 
             {/* Current Time */}
-            <div className="flex w-full items-center gap-2 px-2">
-              <div className="shrink-0 text-sm font-semibold text-white tabular-nums">
-                {formatTime(currentTime)}
-              </div>
+            <div className="shrink-0 px-2 text-sm font-semibold text-white tabular-nums @max-[364px]/video-player:hidden">
+              {formatTime(currentTime)}
+            </div>
 
-              {/* Progress bar */}
-              <div
-                className="group/progress flex flex-1 cursor-pointer items-center py-3"
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerLeave={handlePointerLeave}
-                onPointerCancel={handlePointerUp}>
-                <div className="relative flex h-2 w-full items-center rounded-full bg-white/30">
-                  {/* Hover Tooltip */}
-                  {hoverPosition !== null && hoverTime !== null && (
-                    <div
-                      className="pointer-events-none absolute -top-8 z-50 -translate-x-1/2 transform"
-                      style={{left: `${hoverPosition}%`}}>
-                      <div className="rounded-md bg-black/90 px-2 py-1 text-xs font-medium whitespace-nowrap text-white shadow-md backdrop-blur-sm">
-                        {formatTime(hoverTime)}
-                      </div>
+            {/* Compact Time */}
+            <div className="ml-auto hidden shrink-0 items-center gap-1 px-2 text-sm font-semibold text-white tabular-nums @max-[364px]/video-player:flex @max-[364px]/video-player:pl-0 @max-[229px]/video-player:hidden">
+              <span>{formatTime(currentTime)}</span>
+              <span className="text-white/70">/</span>
+              <span>-{formatTime(duration - currentTime)}</span>
+            </div>
+
+            {/* Progress bar */}
+            <div
+              className="group/progress mx-1.5 flex min-w-0 flex-1 cursor-pointer items-center py-3 @max-[364px]/video-player:order-first @max-[364px]/video-player:mx-0 @max-[364px]/video-player:basis-full @max-[364px]/video-player:py-1"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
+              onPointerCancel={handlePointerUp}>
+              <div className="relative flex h-2 w-full items-center rounded-full bg-white/30 @max-[364px]/video-player:h-1">
+                {/* Hover Tooltip */}
+                {hoverPosition !== null && hoverTime !== null && (
+                  <div
+                    className="pointer-events-none absolute -top-8 z-50 -translate-x-1/2 transform"
+                    style={{left: `${hoverPosition}%`}}>
+                    <div className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs font-medium whitespace-nowrap text-white shadow-md backdrop-blur-md">
+                      {formatTime(hoverTime)}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Hover Bar Preview */}
-                  {hoverPosition !== null && (
-                    <div
-                      className="absolute left-0 h-full rounded-full bg-white/30"
-                      style={{width: `${hoverPosition}%`}}
-                    />
-                  )}
+                {/* Hover Bar Preview */}
+                {hoverPosition !== null && (
+                  <div
+                    className="absolute left-0 h-full rounded-full bg-white/30"
+                    style={{width: `${hoverPosition}%`}}
+                  />
+                )}
 
-                  {/* Buffered part */}
-                  <div
-                    className="absolute left-0 h-full rounded-full bg-white/40"
-                    style={{width: `${loadedFraction * 100}%`}}
-                  />
+                {/* Buffered part */}
+                <div
+                  className="absolute left-0 h-full rounded-full bg-white/40"
+                  style={{width: `${loadedFraction * 100}%`}}
+                />
 
-                  {/* Current progress */}
-                  <div
-                    className="absolute left-0 h-full rounded-full bg-white"
-                    style={{width: `${(currentTime / duration) * 100 || 0}%`}}
-                  />
-                  {/* Thumb */}
-                  <div
-                    className="absolute -ml-2 h-4 w-4 scale-0 rounded-full bg-white shadow-sm transition-transform group-hover/progress:scale-100"
-                    style={{left: `${(currentTime / duration) * 100 || 0}%`}}
-                  />
-                </div>
+                {/* Current progress */}
+                <div
+                  className="absolute left-0 h-full rounded-full bg-white"
+                  style={{width: `${(currentTime / duration) * 100 || 0}%`}}
+                />
+                {/* Thumb */}
+                <div
+                  className="absolute -ml-2 h-4 w-4 scale-0 rounded-full bg-white shadow-sm transition-transform group-hover/progress:scale-100 @max-[364px]/video-player:-ml-1.5 @max-[364px]/video-player:h-3 @max-[364px]/video-player:w-3"
+                  style={{left: `${(currentTime / duration) * 100 || 0}%`}}
+                />
               </div>
+            </div>
 
-              {/* Remaining Time */}
-              <div className="shrink-0 text-sm font-semibold text-white tabular-nums">
-                -{formatTime(duration - currentTime)}
-              </div>
+            {/* Remaining Time */}
+            <div className="shrink-0 px-2 text-sm font-semibold text-white tabular-nums @max-[364px]/video-player:hidden">
+              -{formatTime(duration - currentTime)}
             </div>
 
             {/* Fullscreen */}
             <Tooltip>
               <TooltipTrigger
                 onClick={toggleFullscreen}
-                className="group/play relative flex h-8 min-w-8 shrink-0 cursor-pointer items-center justify-center rounded-md p-2 text-white outline-hidden transition duration-100 ease-linear before:absolute before:size-6 hover:bg-white/20 hover:backdrop-blur-sm focus-visible:outline-offset-2 focus-visible:outline-white">
+                className="group/play relative flex h-8 min-w-8 shrink-0 cursor-pointer items-center justify-center rounded-md p-2 text-white outline-hidden transition duration-100 ease-linear before:absolute before:size-6 hover:bg-white/20 hover:backdrop-blur-sm focus-visible:outline-offset-2 focus-visible:outline-white @max-[229px]/video-player:ml-auto">
                 {isFullscreen ? (
                   <svg
                     width="16"

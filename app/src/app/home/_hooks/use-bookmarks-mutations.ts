@@ -25,6 +25,7 @@ export function useBookmarksMutations({
     filters: {mutationKey: ["add-bookmark"]},
     select: (m) => ({
       status: m.state.status as string,
+      submittedAt: m.state.submittedAt,
       inputUrl: (m.state.variables as {url: string; tags?: string[]} | undefined)?.url,
       inputTags: (m.state.variables as {url: string; tags?: string[]} | undefined)?.tags ?? [],
       resultIds: (() => {
@@ -93,6 +94,9 @@ export function useBookmarksMutations({
 
   // ── New-bookmark animation state ──
   const [animatingUrl, setAnimatingUrl] = useState<string | null>(null);
+  const [handledAnimationSubmittedAt, setHandledAnimationSubmittedAt] = useState<number | null>(
+    null,
+  );
 
   // Sync state during render to avoid cascading renders in useEffect
   const wasMediaPhase1Aborted =
@@ -106,6 +110,8 @@ export function useBookmarksMutations({
     latestAdd?.kind === "media" &&
     !latestAdd?.selectedMediaUrls &&
     !latestAdd?.hasMultipleMediaOptions;
+  const shouldAnimateLatestAdd =
+    latestAddAppliesToCurrentFilter && latestAdd?.submittedAt !== handledAnimationSubmittedAt;
 
   if (
     animatingUrl !== null &&
@@ -114,7 +120,7 @@ export function useBookmarksMutations({
     setAnimatingUrl(null);
   } else if (
     inputUrl &&
-    latestAddAppliesToCurrentFilter &&
+    shouldAnimateLatestAdd &&
     animatingUrl !== inputUrl &&
     ((isPending && !isMediaPhase1Pending) || isSingleMediaSuccess)
   ) {
@@ -146,9 +152,13 @@ export function useBookmarksMutations({
     }
   }, [animatingUrl, latestAdd?.status, resolvedBookmarks]);
 
+  const submittedAt = latestAdd?.submittedAt;
   const handleTransitionDone = useCallback(() => {
     setAnimatingUrl(null);
-  }, []);
+    if (submittedAt != null) {
+      setHandledAnimationSubmittedAt(submittedAt);
+    }
+  }, [submittedAt]);
 
   // ── Archive Mutation ──
   const archiveMutation = useMutation({
