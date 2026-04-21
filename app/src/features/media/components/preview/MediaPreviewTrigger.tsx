@@ -1,6 +1,6 @@
 import Image from "next/image";
 import {useState, type KeyboardEvent, type RefObject} from "react";
-import CustomVideoPlayer from "../CustomVideoPlayer";
+import CustomVideoPlayer from "@/features/video-player/components/CustomVideoPlayer";
 import {cn} from "@/lib/utils";
 
 type MediaPreviewTriggerProps = {

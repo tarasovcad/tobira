@@ -2,7 +2,7 @@ import type {PointerEventHandler, ReactNode, RefObject, WheelEventHandler} from 
 import {PreviewToolbar} from "./PreviewToolbar";
 import {PreviewSurface} from "./PreviewSurface";
 import type {Pan, Rect} from "./types";
-import CustomVideoPlayer from "../CustomVideoPlayer";
+import CustomVideoPlayer from "@/features/video-player/components/CustomVideoPlayer";
 import {cn} from "@/lib/utils";
 
 type MediaPreviewOverlayProps = {
