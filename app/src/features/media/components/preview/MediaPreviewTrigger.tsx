@@ -47,6 +47,7 @@ export function MediaPreviewTrigger({
   const [isHovered, setIsHovered] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isManuallyPaused, setIsManuallyPaused] = useState(false);
+  const [isThumbnailMuted, setIsThumbnailMuted] = useState(true);
 
   const canOpenPreview = type !== "video" && !disableClickToOpen;
   const isThumbnailPlaying = isHovered && !isManuallyPaused;
@@ -72,6 +73,7 @@ export function MediaPreviewTrigger({
       onMouseLeave={() => {
         setIsHovered(false);
         setIsManuallyPaused(false);
+        setIsThumbnailMuted(true);
       }}
       onKeyDown={handleKeyDown}
       className={cn(
@@ -85,6 +87,12 @@ export function MediaPreviewTrigger({
           className="bg-muted relative h-full w-full"
           onClick={(event) => {
             event.stopPropagation();
+
+            if (isThumbnailMuted) {
+              setIsThumbnailMuted(false);
+              return;
+            }
+
             setIsManuallyPaused((prev) => !prev);
           }}>
           {poster && !hasInteracted ? (
@@ -109,7 +117,7 @@ export function MediaPreviewTrigger({
               loop
               autoPlay={isThumbnailPlaying}
               playing={isThumbnailPlaying}
-              muted
+              muted={isThumbnailMuted}
               playsInline
               preload="metadata"
               showMainPlayIcon={false}

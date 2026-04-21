@@ -318,6 +318,23 @@ export function useVideoPlayerController({
   }, [playing, safePlay]);
 
   useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const nextMutedState = Boolean(muted) || video.volume === 0;
+    video.muted = nextMutedState;
+    const syncMutedStateFrame = requestAnimationFrame(() => {
+      setIsMuted(nextMutedState);
+    });
+
+    if (video.volume > 0) {
+      previousVolumeRef.current = video.volume;
+    }
+
+    return () => cancelAnimationFrame(syncMutedStateFrame);
+  }, [muted]);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isEditableElementActive()) return;
 
