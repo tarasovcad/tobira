@@ -31,7 +31,8 @@ type VideoItem = {
   height?: number;
   alt?: string | null;
   source_url: string;
-  key: string;
+  source_thumbnail_url?: string | null;
+  key?: string;
   key_thumbnail?: string;
 };
 
@@ -49,6 +50,7 @@ export type PostImages = {
 };
 
 export type MediaImages = {
+  processing?: boolean;
   items: PostMediaItem[];
 };
 

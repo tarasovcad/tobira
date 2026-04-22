@@ -1,70 +1,16 @@
 import {NextRequest, NextResponse} from "next/server";
-import {Receiver} from "@upstash/qstash";
+import {and, eq} from "drizzle-orm";
 import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
-import {and, eq} from "drizzle-orm";
-import {uploadToR2, buildR2PublicUrl} from "@/lib/storage/r2-storage";
 import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import {buildR2PublicUrl} from "@/lib/storage/r2-storage";
+import {
+  buildTwitterSizedUrl,
+  downloadAndUploadToR2,
+  verifyQstashRequest,
+} from "@/features/media/server/qstash";
 
 export const runtime = "nodejs";
-
-// ── QStash verification ───────────────────────────────────────────────────────
-
-function getQstashReceiver() {
-  const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
-  const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY;
-  if (!currentSigningKey || !nextSigningKey) {
-    throw new Error("Missing QSTASH_CURRENT_SIGNING_KEY or QSTASH_NEXT_SIGNING_KEY");
-  }
-  return new Receiver({currentSigningKey, nextSigningKey});
-}
-
-async function verifyQstashRequest(request: NextRequest, rawBody: string): Promise<boolean> {
-  const signature = request.headers.get("Upstash-Signature");
-  if (!signature) return false;
-
-  const url = new URL(request.url);
-  url.search = "";
-  url.hash = "";
-
-  try {
-    const receiver = getQstashReceiver();
-    return await receiver.verify({signature, body: rawBody, url: url.toString()});
-  } catch {
-    return false;
-  }
-}
-
-// ── Image URL helpers ─────────────────────────────────────────────────────────
-
-function buildTwitterSizedUrl(url: string, size: "small" | "large"): string | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes("pbs.twimg.com")) return null;
-    u.searchParams.set("name", size);
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
-
-async function downloadAndUpload(sourceUrl: string, r2Key: string): Promise<string | null> {
-  try {
-    const res = await fetch(sourceUrl, {cache: "no-store"});
-    if (!res.ok) return null;
-
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const contentTypeRaw = res.headers.get("content-type") ?? "image/jpeg";
-    const contentType = contentTypeRaw.split(";")[0] ?? "image/jpeg";
-
-    await uploadToR2({key: r2Key, body: buffer, contentType});
-    return buildR2PublicUrl(r2Key);
-  } catch {
-    return null;
-  }
-}
-
-// ── Media processing ──────────────────────────────────────────────────────────
 
 type ProcessableMediaItem = {
   type: string;
@@ -81,22 +27,22 @@ async function processMediaItems(
   prefix: string,
 ): Promise<ProcessableMediaItem[]> {
   return Promise.all(
-    items.map(async (item, i) => {
+    items.map(async (item, index) => {
       if (item.type === "video" || item.type === "gif") {
         const updates: Partial<ProcessableMediaItem> = {};
 
-        const uploadedUrl = await downloadAndUpload(
+        const uploadedUrl = await downloadAndUploadToR2(
           item.url,
-          `posts/${bookmarkId}/${prefix}_${i}.mp4`,
+          `posts/${bookmarkId}/${prefix}_${index}.mp4`,
         );
-        if (uploadedUrl) updates.url = uploadedUrl;
+        if (uploadedUrl) updates.url = buildR2PublicUrl(uploadedUrl);
 
         if (item.thumbnail_url) {
-          const uploadedThumb = await downloadAndUpload(
+          const uploadedThumb = await downloadAndUploadToR2(
             item.thumbnail_url,
-            `posts/${bookmarkId}/${prefix}_${i}_thumbnail.jpg`,
+            `posts/${bookmarkId}/${prefix}_${index}_thumbnail.jpg`,
           );
-          if (uploadedThumb) updates.thumbnail_url = uploadedThumb;
+          if (uploadedThumb) updates.thumbnail_url = buildR2PublicUrl(uploadedThumb);
         }
 
         return {...item, ...updates};
@@ -108,20 +54,18 @@ async function processMediaItems(
       if (!smallSrcUrl || !largeSrcUrl) return item;
 
       const [url_small, url_large] = await Promise.all([
-        downloadAndUpload(smallSrcUrl, `posts/${bookmarkId}/${prefix}_${i}_small.jpg`),
-        downloadAndUpload(largeSrcUrl, `posts/${bookmarkId}/${prefix}_${i}_large.jpg`),
+        downloadAndUploadToR2(smallSrcUrl, `posts/${bookmarkId}/${prefix}_${index}_small.jpg`),
+        downloadAndUploadToR2(largeSrcUrl, `posts/${bookmarkId}/${prefix}_${index}_large.jpg`),
       ]);
 
       return {
         ...item,
-        ...(url_small ? {url_small} : {}),
-        ...(url_large ? {url_large} : {}),
+        ...(url_small ? {url_small: buildR2PublicUrl(url_small)} : {}),
+        ...(url_large ? {url_large: buildR2PublicUrl(url_large)} : {}),
       };
     }),
   );
 }
-
-// ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text().catch(() => "");
@@ -152,7 +96,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const [bookmark] = await db
-      .select({id: bookmarks.id, metadata: bookmarks.metadata, userId: bookmarks.userId})
+      .select({id: bookmarks.id, metadata: bookmarks.metadata})
       .from(bookmarks)
       .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "post")));
 

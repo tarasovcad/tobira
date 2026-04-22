@@ -156,6 +156,18 @@ export async function addMediaBookmark(input: {
     await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags);
   }
 
+  try {
+    await qstash.publishJSON({
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-media-bookmark`,
+      body: {id: prepared.bookmarkId},
+      idempotencyKey: `media-bookmark-${prepared.bookmarkId}`,
+      headers: {"x-job-type": "process-media-bookmark"},
+      timeout: 120,
+    });
+  } catch (error) {
+    console.error("Failed to queue media bookmark processing job:", error);
+  }
+
   return {
     ok: true,
     url: input.url,

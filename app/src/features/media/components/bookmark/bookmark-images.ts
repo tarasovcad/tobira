@@ -12,6 +12,10 @@ export function isWebsiteImages(images: Bookmark["images"] | undefined): images 
   );
 }
 
+function isMediaImages(images: Bookmark["images"] | undefined): images is MediaImages {
+  return !!images && typeof images === "object" && "items" in images && Array.isArray(images.items);
+}
+
 type BookmarkMediaPreviewItem = {
   type: "image" | "video";
   src: string;
@@ -25,26 +29,57 @@ type BookmarkMediaPreviewItem = {
 export type BookmarkMediaPreviewSize = "small" | "medium" | "large";
 
 function getMediaItems(images: Bookmark["images"] | undefined): MediaImages["items"] {
-  if (
-    !images ||
-    typeof images !== "object" ||
-    !("items" in images) ||
-    !Array.isArray(images.items)
-  ) {
+  if (!isMediaImages(images)) {
     return [];
   }
 
   return images.items;
 }
 
+function isMediaProcessing(images: Bookmark["images"] | undefined) {
+  return isMediaImages(images) ? images.processing === true : false;
+}
+
 function toPublicUrl(key: string | undefined, fallback: string) {
   return key ? buildR2PublicUrl(key) : fallback;
+}
+
+function buildProcessingImageSrc(sourceUrl: string, previewSize: BookmarkMediaPreviewSize): string {
+  try {
+    const url = new URL(sourceUrl);
+    if (!url.hostname.includes("pbs.twimg.com")) {
+      return sourceUrl;
+    }
+
+    const pathnameMatch = url.pathname.match(/\.([a-zA-Z0-9]+)$/);
+    const formatFromPath = pathnameMatch?.[1]?.toLowerCase();
+    const normalizedFormat =
+      formatFromPath === "jpeg"
+        ? "jpg"
+        : formatFromPath === "jpg" || formatFromPath === "png" || formatFromPath === "webp"
+          ? formatFromPath
+          : null;
+
+    if (!url.searchParams.has("format") && normalizedFormat) {
+      url.searchParams.set("format", normalizedFormat);
+    }
+
+    url.searchParams.set("name", previewSize);
+    return url.toString();
+  } catch {
+    return sourceUrl;
+  }
 }
 
 function getImagePreviewSrc(
   mediaItem: Extract<MediaImages["items"][number], {type: "image"}>,
   previewSize: BookmarkMediaPreviewSize,
+  processing: boolean,
 ) {
+  if (processing) {
+    return buildProcessingImageSrc(mediaItem.source_url, previewSize);
+  }
+
   switch (previewSize) {
     case "small":
       return toPublicUrl(
@@ -99,6 +134,8 @@ export function getBookmarkMediaPreviewItems(
   item: Bookmark,
   previewSize: BookmarkMediaPreviewSize = "medium",
 ): BookmarkMediaPreviewItem[] {
+  const processing = isMediaProcessing(item.images);
+
   return getMediaItems(item.images).map((mediaItem) => {
     const baseItem = {
       width: mediaItem.width ?? 1200,
@@ -110,19 +147,24 @@ export function getBookmarkMediaPreviewItems(
       return {
         ...baseItem,
         type: "image" as const,
-        src: getImagePreviewSrc(mediaItem, previewSize),
-        fullSizeSrc: toPublicUrl(
-          mediaItem.key_large ?? mediaItem.key_medium ?? mediaItem.key_small,
-          mediaItem.source_url,
-        ),
+        src: getImagePreviewSrc(mediaItem, previewSize, processing),
+        fullSizeSrc: processing
+          ? buildProcessingImageSrc(mediaItem.source_url, "large")
+          : toPublicUrl(
+              mediaItem.key_large ?? mediaItem.key_medium ?? mediaItem.key_small,
+              mediaItem.source_url,
+            ),
       };
     }
 
     return {
       ...baseItem,
       type: "video" as const,
-      src: buildR2PublicUrl(mediaItem.key),
-      poster: mediaItem.key_thumbnail ? buildR2PublicUrl(mediaItem.key_thumbnail) : undefined,
+      src: processing || !mediaItem.key ? mediaItem.source_url : buildR2PublicUrl(mediaItem.key),
+      poster:
+        processing || !mediaItem.key_thumbnail
+          ? (mediaItem.source_thumbnail_url ?? undefined)
+          : buildR2PublicUrl(mediaItem.key_thumbnail),
     };
   });
 }
