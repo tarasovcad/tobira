@@ -1,0 +1,14 @@
+name = "tobira-video-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "349d1bc326ebd8f64abfe827fa61ade4"
+
+[observability]
+enabled = true
+
+# Optional: set a custom route if you want this on your own domain.
+# routes = [
+#   { pattern = "media.yourdomain.com/proxy/video*", zone_name = "yourdomain.com" }
+# ]

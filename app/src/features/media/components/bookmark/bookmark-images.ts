@@ -28,6 +28,8 @@ type BookmarkMediaPreviewItem = {
 
 export type BookmarkMediaPreviewSize = "small" | "medium" | "large";
 
+const VIDEO_PROXY_WORKER_URL = process.env.NEXT_PUBLIC_VIDEO_PROXY_WORKER_URL;
+
 function getMediaItems(images: Bookmark["images"] | undefined): MediaImages["items"] {
   if (!isMediaImages(images)) {
     return [];
@@ -69,6 +71,14 @@ function buildProcessingImageSrc(sourceUrl: string, previewSize: BookmarkMediaPr
   } catch {
     return sourceUrl;
   }
+}
+
+function buildProcessingVideoSrc(sourceUrl: string): string {
+  if (!VIDEO_PROXY_WORKER_URL) {
+    return sourceUrl;
+  }
+
+  return `${VIDEO_PROXY_WORKER_URL}?url=${encodeURIComponent(sourceUrl)}`;
 }
 
 function getImagePreviewSrc(
@@ -160,7 +170,10 @@ export function getBookmarkMediaPreviewItems(
     return {
       ...baseItem,
       type: "video" as const,
-      src: processing || !mediaItem.key ? mediaItem.source_url : buildR2PublicUrl(mediaItem.key),
+      src:
+        processing || !mediaItem.key
+          ? buildProcessingVideoSrc(mediaItem.source_url)
+          : buildR2PublicUrl(mediaItem.key),
       poster:
         processing || !mediaItem.key_thumbnail
           ? (mediaItem.source_thumbnail_url ?? undefined)

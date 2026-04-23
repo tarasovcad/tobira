@@ -4,7 +4,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   images: {
-    qualities: [50, 60, 75],
+    // Skip Vercel's image optimizer globally — images are served directly from
+    // R2 (free egress) instead of being proxied through Vercel (counts against
+    // Fast Data Transfer quota). To opt a specific <Image> back into
+    // optimization, pass unoptimized={false} explicitly on that component.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
