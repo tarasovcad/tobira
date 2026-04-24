@@ -84,7 +84,6 @@ export async function getInitialBookmarks({
     description: row.description || "",
     url: row.url,
     user_id: row.userId,
-    preview_image: row.previewImage || "",
     images: row.images ?? undefined,
     created_at: row.createdAt,
     updated_at: row.updatedAt || row.createdAt,

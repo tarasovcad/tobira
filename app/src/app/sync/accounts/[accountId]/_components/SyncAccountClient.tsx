@@ -57,7 +57,6 @@ function makePost(
     created_at: date,
     url,
     user_id: "fake-user",
-    preview_image: "",
     updated_at: date,
     archived_at: "",
     deleted_at: "",

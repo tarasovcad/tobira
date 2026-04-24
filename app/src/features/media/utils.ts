@@ -1,15 +1,22 @@
 import type {WebsiteImages} from "@/db/schema";
+import {hashUrlToKey} from "@/lib/utils/hash";
 
-export function buildWebsiteImageKeys(bookmarkId: string) {
+export async function buildWebsiteImageKeys(url: string) {
+  const [faviconHash, ogHash, previewHash] = await Promise.all([
+    hashUrlToKey(`favicon:${url}`),
+    hashUrlToKey(`og:${url}`),
+    hashUrlToKey(`screenshot:${url}`),
+  ]);
+
   return {
-    favicon: `websites/${bookmarkId}/favicon.png`,
-    og: `websites/${bookmarkId}/og.png`,
-    preview: `websites/${bookmarkId}/preview.png`,
+    favicon: `media/${faviconHash}`,
+    og: `media/${ogHash}`,
+    preview: `media/${previewHash}`,
   };
 }
 
-export function buildWebsiteImages(bookmarkId: string): WebsiteImages {
-  const keys = buildWebsiteImageKeys(bookmarkId);
+export async function buildWebsiteImages(url: string): Promise<WebsiteImages> {
+  const keys = await buildWebsiteImageKeys(url);
 
   return {
     favicon: {

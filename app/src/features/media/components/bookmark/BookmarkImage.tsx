@@ -171,7 +171,6 @@ export const BookmarkImage = React.memo(BookmarkImageImpl, (prev, next) => {
     prev.fill === next.fill &&
     prev.onPreviewOpenChange === next.onPreviewOpenChange &&
     prev.item.id === next.item.id &&
-    prev.item.preview_image === next.item.preview_image &&
     (isWebsiteImages(prev.item.images) ? prev.item.images.preview?.key : undefined) ===
       (isWebsiteImages(next.item.images) ? next.item.images.preview?.key : undefined) &&
     (isWebsiteImages(prev.item.images) ? prev.item.images.favicon?.key : undefined) ===

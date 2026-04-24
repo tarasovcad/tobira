@@ -40,7 +40,6 @@ export type PreparedPostBookmark = {
   url: string;
   userId: string;
   kind: "post";
-  previewImage: string;
   metadata: PostBookmarkMetadata;
 };
 
@@ -111,24 +110,6 @@ async function processPostMediaItem(
   };
 }
 
-async function uploadThumbnailToR2(thumbnailUrl: string, bookmarkId: string): Promise<string> {
-  try {
-    const res = await fetch(thumbnailUrl);
-    if (!res.ok) return thumbnailUrl;
-
-    const buffer = await res.arrayBuffer();
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
-    const key = `posts/${bookmarkId}/thumbnail.${ext}`;
-
-    await uploadToR2({key, body: Buffer.from(buffer), contentType});
-
-    return buildR2PublicUrl(key);
-  } catch {
-    return thumbnailUrl;
-  }
-}
-
 function buildPostMetadata(
   post: VxTwitterPost,
   processedMedia: PostBookmarkMediaItem[],
@@ -166,13 +147,6 @@ function buildPostMetadata(
   };
 }
 
-function pickThumbnailUrl(post: VxTwitterPost): string | null {
-  const firstMedia = post.media_extended?.[0];
-  if (firstMedia?.thumbnail_url) return firstMedia.thumbnail_url;
-  if (firstMedia?.type === "photo" && firstMedia.url) return firstMedia.url;
-  return post.user_profile_image_url ?? null;
-}
-
 export async function preparePostBookmarkCreation(input: {
   url: string;
   userId: string;
@@ -199,15 +173,11 @@ export async function preparePostBookmarkCreation(input: {
 
   const metadata = buildPostMetadata(post, processedMedia, processedQrtMedia);
 
-  const rawThumbnail = pickThumbnailUrl(post);
-  const previewImage = rawThumbnail ? await uploadThumbnailToR2(rawThumbnail, bookmarkId) : "";
-
   return {
     bookmarkId,
     url: normalized.toString(),
     userId: input.userId,
     kind: "post",
-    previewImage,
     metadata,
   };
 }

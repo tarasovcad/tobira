@@ -1,12 +1,11 @@
 "use client";
 
-import * as React from "react";
 import {cn} from "@/lib/utils";
+import {ReactNode, useEffect, useMemo} from "react";
 import {Skeleton} from "@/components/coss-ui/skeleton";
 import {formatDateAbsolute} from "@/lib/utils/dates";
 import type {Bookmark} from "@/components/bookmark/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {useEffect} from "react";
 import {Tag} from "@/components/ui/Tag";
 import MediaPreview from "@/features/media/components/MediaPreview";
 import {
@@ -16,6 +15,22 @@ import {
   getBookmarkMediaSizesForColumnSize,
 } from "@/features/media/components/bookmark/bookmark-images";
 import type {MediaMediaItem} from "../_types/bookmark-metadata";
+
+const CROSS_FADE_DURATION_MS = 167;
+const PLACEHOLDER_DONE_DELAY_MS = 300;
+const FAST_DELAY_FACTOR = 1 / 3;
+
+function getFastDelay(delay: number) {
+  return Math.round(delay * FAST_DELAY_FACTOR);
+}
+
+function usePlaceholderDone(loaded: boolean, onDone: () => void) {
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(onDone, PLACEHOLDER_DONE_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [loaded, onDone]);
+}
 
 function CrossFade({
   loaded,
@@ -27,8 +42,8 @@ function CrossFade({
 }: {
   loaded: boolean;
   delay?: number;
-  skeleton: React.ReactNode;
-  children: React.ReactNode;
+  skeleton: ReactNode;
+  children: ReactNode;
   className?: string;
   fill?: boolean;
 }) {
@@ -37,18 +52,24 @@ function CrossFade({
       <div className={cn("relative", className)}>
         <div
           className={cn(
-            "absolute inset-0 transition-all duration-500",
+            "absolute inset-0 transition-all",
             loaded ? "pointer-events-none opacity-0" : "opacity-100",
           )}
-          style={{transitionDelay: `${delay}ms`}}>
+          style={{
+            transitionDelay: `${delay}ms`,
+            transitionDuration: `${CROSS_FADE_DURATION_MS}ms`,
+          }}>
           {skeleton}
         </div>
         <div
           className={cn(
-            "absolute inset-0 transition-all duration-500",
+            "absolute inset-0 transition-all",
             loaded ? "opacity-100" : "pointer-events-none opacity-0",
           )}
-          style={{transitionDelay: `${delay}ms`}}>
+          style={{
+            transitionDelay: `${delay}ms`,
+            transitionDuration: `${CROSS_FADE_DURATION_MS}ms`,
+          }}>
           {children}
         </div>
       </div>
@@ -60,18 +81,18 @@ function CrossFade({
       className={cn("grid min-w-0 grid-cols-1 items-start *:col-start-1 *:row-start-1", className)}>
       <div
         className={cn(
-          "w-full min-w-0 transition-all duration-500",
+          "w-full min-w-0 transition-all",
           loaded ? "pointer-events-none opacity-0" : "opacity-100",
         )}
-        style={{transitionDelay: `${delay}ms`}}>
+        style={{transitionDelay: `${delay}ms`, transitionDuration: `${CROSS_FADE_DURATION_MS}ms`}}>
         {skeleton}
       </div>
       <div
         className={cn(
-          "w-full min-w-0 transition-all duration-500",
+          "w-full min-w-0 transition-all",
           loaded ? "opacity-100" : "pointer-events-none opacity-0",
         )}
-        style={{transitionDelay: `${delay}ms`}}>
+        style={{transitionDelay: `${delay}ms`, transitionDuration: `${CROSS_FADE_DURATION_MS}ms`}}>
         {children}
       </div>
     </div>
@@ -91,12 +112,7 @@ export function NewBookmarkList({
 }) {
   const loaded = !!bookmark;
   const {contentToggles} = useViewOptionsStore();
-
-  React.useEffect(() => {
-    if (!loaded) return;
-    const t = setTimeout(onDone, 900);
-    return () => clearTimeout(t);
-  }, [loaded, onDone]);
+  usePlaceholderDone(loaded, onDone);
 
   return (
     <div className="flex w-full flex-col gap-2 border-b px-6 py-5 pr-16">
@@ -107,7 +123,7 @@ export function NewBookmarkList({
         <div className="min-w-0 flex-1 text-[13px]">
           <CrossFade
             loaded={!!bookmark?.title}
-            delay={100}
+            delay={getFastDelay(100)}
             skeleton={<Skeleton className="h-[22.5px] w-48 rounded" />}>
             <div className="text-foreground truncate text-[15px] font-[550]">
               {bookmark?.title ?? url}
@@ -117,7 +133,7 @@ export function NewBookmarkList({
             <div className="text-muted-foreground mt-0.5 flex min-w-0 items-center gap-1 whitespace-nowrap">
               <CrossFade
                 loaded={loaded}
-                delay={200}
+                delay={getFastDelay(200)}
                 skeleton={<Skeleton className="h-[19.5px] w-64 rounded" />}>
                 <div className="flex min-w-0 items-center gap-1">
                   {contentToggles.source && (
@@ -141,7 +157,7 @@ export function NewBookmarkList({
               )}>
               <CrossFade
                 loaded={!!bookmark?.description}
-                delay={300}
+                delay={getFastDelay(300)}
                 skeleton={<Skeleton className="h-[19.5px] w-40 rounded" />}>
                 <div className="line-clamp-1">{bookmark?.description ?? ""}</div>
               </CrossFade>
@@ -154,7 +170,7 @@ export function NewBookmarkList({
           <div className="pl-14">
             <CrossFade
               loaded={!!(bookmark?.tags && bookmark.tags.length > 0)}
-              delay={400}
+              delay={getFastDelay(400)}
               skeleton={
                 <div className="flex gap-2">
                   <Skeleton className="h-[20.5px] w-16 rounded-[2px]" />
@@ -207,11 +223,7 @@ export function NewBookmarkGridCard({
           ? "rounded-md"
           : "rounded-lg";
 
-  React.useEffect(() => {
-    if (!loaded) return;
-    const t = setTimeout(onDone, 900);
-    return () => clearTimeout(t);
-  }, [loaded, onDone]);
+  usePlaceholderDone(loaded, onDone);
 
   return (
     <div
@@ -237,7 +249,7 @@ export function NewBookmarkGridCard({
         )}>
         <CrossFade
           loaded={!!bookmark?.title}
-          delay={150}
+          delay={getFastDelay(150)}
           skeleton={
             <div className="flex flex-col gap-2">
               <Skeleton className="h-[22.5px] w-full max-w-[92%] rounded-sm" />
@@ -251,7 +263,7 @@ export function NewBookmarkGridCard({
           <div className="text-muted-foreground mt-1 min-w-0 text-[13px] whitespace-nowrap">
             <CrossFade
               loaded={loaded}
-              delay={300}
+              delay={getFastDelay(300)}
               skeleton={<Skeleton className="h-[19.5px] w-full rounded-sm" />}>
               <div className="flex min-w-0 items-center gap-1">
                 {contentToggles.source && (
@@ -271,7 +283,7 @@ export function NewBookmarkGridCard({
           <div className="text-muted-foreground mt-1.5">
             <CrossFade
               loaded={!!bookmark?.description}
-              delay={400}
+              delay={getFastDelay(400)}
               skeleton={
                 <div className="flex flex-col gap-1.5">
                   <Skeleton className="h-[19.5px] w-full max-w-full rounded-sm" />
@@ -291,7 +303,7 @@ export function NewBookmarkGridCard({
                 loaded={
                   !!((bookmark?.tags && bookmark.tags.length > 0) || (tags && tags.length > 0))
                 }
-                delay={500}
+                delay={getFastDelay(500)}
                 skeleton={
                   <div className="flex flex-wrap gap-1">
                     <Skeleton className="h-[20.5px] w-14 rounded-[2px]" />
@@ -325,14 +337,9 @@ export function NewBookmarkCompact({
 }) {
   const loaded = !!bookmark;
   const {contentToggles} = useViewOptionsStore();
+  usePlaceholderDone(loaded, onDone);
 
-  React.useEffect(() => {
-    if (!loaded) return;
-    const t = setTimeout(onDone, 900);
-    return () => clearTimeout(t);
-  }, [loaded, onDone]);
-
-  const domain = React.useMemo(() => {
+  const domain = useMemo(() => {
     try {
       return new URL(bookmark?.url ?? url).hostname.replace(/^www\./, "");
     } catch {
@@ -354,7 +361,7 @@ export function NewBookmarkCompact({
       <div className="min-w-0 flex-1">
         <CrossFade
           loaded={!!bookmark?.title}
-          delay={100}
+          delay={getFastDelay(100)}
           skeleton={<Skeleton className="h-[20px] w-48 rounded" />}>
           <div className="text-foreground truncate text-[13.5px]">{bookmark?.title ?? url}</div>
         </CrossFade>
@@ -365,7 +372,7 @@ export function NewBookmarkCompact({
           <div className="text-muted-foreground hidden items-center gap-1 text-[12px] sm:flex">
             <CrossFade
               loaded={loaded}
-              delay={200}
+              delay={getFastDelay(200)}
               skeleton={<Skeleton className="h-[18px] w-24 rounded" />}>
               <div className="flex items-center gap-1">
                 {contentToggles.source && <span>{domain}</span>}
@@ -384,7 +391,7 @@ export function NewBookmarkCompact({
           <div className="flex items-center gap-1">
             <CrossFade
               loaded={!!(bookmark?.tags && bookmark.tags.length > 0)}
-              delay={300}
+              delay={getFastDelay(300)}
               skeleton={
                 <div className="flex gap-1">
                   <Skeleton className="h-[18px] w-12 rounded-[2px]" />
@@ -438,7 +445,7 @@ export function NewBookmarkMediaCard({
 
   useEffect(() => {
     if (!loaded) return;
-    const t = setTimeout(onDone, 900);
+    const t = setTimeout(onDone, PLACEHOLDER_DONE_DELAY_MS);
     return () => clearTimeout(t);
   }, [loaded, onDone]);
 
@@ -497,12 +504,7 @@ export function NewBookmarkPost({
   tags?: string[];
 }) {
   const loaded = !!bookmark;
-
-  React.useEffect(() => {
-    if (!loaded) return;
-    const t = setTimeout(onDone, 900);
-    return () => clearTimeout(t);
-  }, [loaded, onDone]);
+  usePlaceholderDone(loaded, onDone);
 
   return (
     <div className="border-border flex flex-col gap-[14px] border-b px-4 py-3">
@@ -517,7 +519,7 @@ export function NewBookmarkPost({
         <div className="flex flex-col gap-1">
           <CrossFade
             loaded={loaded}
-            delay={80}
+            delay={getFastDelay(80)}
             skeleton={<Skeleton className="h-[18px] w-28 rounded" />}>
             <div className="text-foreground text-[15px] font-semibold">
               {bookmark?.metadata && (bookmark.metadata as {user_name?: string}).user_name
@@ -527,7 +529,7 @@ export function NewBookmarkPost({
           </CrossFade>
           <CrossFade
             loaded={loaded}
-            delay={120}
+            delay={getFastDelay(120)}
             skeleton={<Skeleton className="h-[15px] w-20 rounded" />}>
             <div className="text-muted-foreground text-[13px]" />
           </CrossFade>
@@ -538,19 +540,19 @@ export function NewBookmarkPost({
       <div className="space-y-1.5">
         <CrossFade
           loaded={loaded}
-          delay={200}
+          delay={getFastDelay(200)}
           skeleton={<Skeleton className="h-[19px] w-full rounded" />}>
           <div />
         </CrossFade>
         <CrossFade
           loaded={loaded}
-          delay={260}
+          delay={getFastDelay(260)}
           skeleton={<Skeleton className="h-[19px] w-4/5 rounded" />}>
           <div />
         </CrossFade>
         <CrossFade
           loaded={loaded}
-          delay={320}
+          delay={getFastDelay(320)}
           skeleton={<Skeleton className="h-[19px] w-3/5 rounded" />}>
           <div />
         </CrossFade>
@@ -559,7 +561,7 @@ export function NewBookmarkPost({
       {/* Media skeleton */}
       <CrossFade
         loaded={loaded}
-        delay={400}
+        delay={getFastDelay(400)}
         skeleton={<Skeleton className="h-48 w-full rounded-[16px]" />}>
         <div />
       </CrossFade>

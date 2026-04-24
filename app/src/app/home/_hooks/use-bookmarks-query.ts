@@ -1,13 +1,13 @@
 import * as React from "react";
 import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
 import {PAGE_SIZE} from "../_constants";
-import {fetchBookmarksPageAction} from "@/app/actions/bookmarks";
 import {getTagById} from "@/app/actions/tags";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
 import type {UseBookmarksQueryProps} from "../_types";
 import {useMemo} from "react";
 import {collectionsQueryOptions} from "./use-home-metadata-query";
+import fetchBookmarksPageAction from "../_queries/fetchBookmarksPageAction";
 
 /**
  * Manages fetching, filtering, and pagination for the bookmarks list.
@@ -47,6 +47,7 @@ export function useBookmarksQuery({
       }
 
       const {data} = await fetchBookmarksPageAction({
+        userId,
         offset,
         limit: PAGE_SIZE,
         sort,

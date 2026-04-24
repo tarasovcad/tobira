@@ -131,7 +131,7 @@ async function uploadFaviconToR2(bestIconUrl: string, normalizedUrl: string, id?
   const uploadContentType = shouldRasterizeSvg ? "image/png" : contentType;
 
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectKey = buildWebsiteImageKeys(safeKey).favicon;
+  const objectKey = (await buildWebsiteImageKeys(normalizedUrl)).favicon;
 
   await uploadBytesToR2({
     objectKey,
@@ -154,7 +154,7 @@ async function uploadOgImageToR2(ogImageUrl: string, normalizedUrl: string, id?:
   const bytes = Buffer.from(await res.arrayBuffer());
 
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectKey = buildWebsiteImageKeys(safeKey).og;
+  const objectKey = (await buildWebsiteImageKeys(normalizedUrl)).og;
 
   await uploadBytesToR2({
     objectKey,
@@ -177,7 +177,7 @@ async function uploadPreviewToR2(
 ) {
   const bytes = decodeBase64DataUrl(screenshot.dataUrl);
   const safeKey = computeSafeKey(normalizedUrl, id);
-  const objectKey = buildWebsiteImageKeys(safeKey).preview;
+  const objectKey = (await buildWebsiteImageKeys(normalizedUrl)).preview;
 
   await uploadBytesToR2({
     objectKey,
