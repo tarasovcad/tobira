@@ -10,7 +10,7 @@ import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
-import sharp from "sharp";
+import DOMPurify from "isomorphic-dompurify";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text().catch(() => "");
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await runEnrichment(payload.url, payload.id);
+    await runEnrichment(payload.url);
   } catch (e) {
     console.error("enrich-bookmark failed", e);
   }
@@ -91,19 +91,6 @@ async function readJobPayload(
   }
 }
 
-function toSafeStorageKey(v: unknown) {
-  if (typeof v === "string" && v.trim()) return v.trim();
-  if (typeof v === "number" && Number.isFinite(v)) return String(v);
-  return undefined;
-}
-
-function computeSafeKey(normalizedUrl: string, id?: unknown) {
-  const urlHost = new URL(normalizedUrl).hostname;
-  const rawKey = toSafeStorageKey(id) ?? urlHost;
-  const safeKey = rawKey.replaceAll(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || urlHost;
-  return safeKey;
-}
-
 async function uploadBytesToR2(opts: {objectKey: string; bytes: Buffer; contentType: string}) {
   await uploadToR2({
     key: opts.objectKey,
@@ -112,7 +99,7 @@ async function uploadBytesToR2(opts: {objectKey: string; bytes: Buffer; contentT
   });
 }
 
-async function uploadFaviconToR2(bestIconUrl: string, normalizedUrl: string, id?: unknown) {
+async function uploadFaviconToR2(bestIconUrl: string, normalizedUrl: string) {
   const iconRes = await fetch(bestIconUrl, {
     method: "GET",
     redirect: "follow",
@@ -124,23 +111,29 @@ async function uploadFaviconToR2(bestIconUrl: string, normalizedUrl: string, id?
 
   const contentTypeRaw = iconRes.headers.get("content-type") ?? "image/png";
   const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
-  const iconBuffer = Buffer.from(await iconRes.arrayBuffer());
-  const shouldRasterizeSvg = contentType.toLowerCase() === "image/svg+xml";
-  console.log(shouldRasterizeSvg, "shouldRasterizeSvg");
-  const bytes = shouldRasterizeSvg ? await sharp(iconBuffer).png().toBuffer() : iconBuffer;
-  const uploadContentType = shouldRasterizeSvg ? "image/png" : contentType;
+  let bytes = Buffer.from(await iconRes.arrayBuffer());
 
-  const safeKey = computeSafeKey(normalizedUrl, id);
+  // Sanitize SVGs to prevent XSS while allowing foreignObject and basic HTML
+  if (contentType.includes("svg") || bestIconUrl.toLowerCase().endsWith(".svg")) {
+    const svgString = bytes.toString("utf-8");
+    const sanitizedSvg = DOMPurify.sanitize(svgString, {
+      USE_PROFILES: {svg: true, svgFilters: true, html: true},
+      ADD_TAGS: ["foreignObject"],
+      HTML_INTEGRATION_POINTS: {foreignobject: true},
+    });
+    bytes = Buffer.from(sanitizedSvg, "utf-8");
+  }
+
   const objectKey = (await buildWebsiteImageKeys(normalizedUrl)).favicon;
 
   await uploadBytesToR2({
     objectKey,
     bytes,
-    contentType: uploadContentType,
+    contentType,
   });
 }
 
-async function uploadOgImageToR2(ogImageUrl: string, normalizedUrl: string, id?: unknown) {
+async function uploadOgImageToR2(ogImageUrl: string, normalizedUrl: string) {
   const res = await fetch(ogImageUrl, {
     method: "GET",
     redirect: "follow",
@@ -153,7 +146,6 @@ async function uploadOgImageToR2(ogImageUrl: string, normalizedUrl: string, id?:
   const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
   const bytes = Buffer.from(await res.arrayBuffer());
 
-  const safeKey = computeSafeKey(normalizedUrl, id);
   const objectKey = (await buildWebsiteImageKeys(normalizedUrl)).og;
 
   await uploadBytesToR2({
@@ -173,10 +165,8 @@ function decodeBase64DataUrl(dataUrl: string) {
 async function uploadPreviewToR2(
   screenshot: {dataUrl: string; contentType: string},
   normalizedUrl: string,
-  id?: unknown,
 ) {
   const bytes = decodeBase64DataUrl(screenshot.dataUrl);
-  const safeKey = computeSafeKey(normalizedUrl, id);
   const objectKey = (await buildWebsiteImageKeys(normalizedUrl)).preview;
 
   await uploadBytesToR2({
@@ -186,7 +176,7 @@ async function uploadPreviewToR2(
   });
 }
 
-async function runEnrichment(inputUrl: string, id?: unknown) {
+async function runEnrichment(inputUrl: string) {
   const normalized = normalizeInputUrl(inputUrl).toString();
 
   const fetchAndUpload = async <T>(
@@ -206,12 +196,12 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
   await Promise.allSettled([
     fetchAndUpload(fetchBestFaviconOne(normalized), async (best) => {
       if (best?.url) {
-        await uploadFaviconToR2(best.url, normalized, id);
+        await uploadFaviconToR2(best.url, normalized);
       }
     }),
     fetchAndUpload(fetchResolvedOgImageUrl(normalized), async (ogUrl) => {
       if (typeof ogUrl === "string" && ogUrl) {
-        await uploadOgImageToR2(ogUrl, normalized, id);
+        await uploadOgImageToR2(ogUrl, normalized);
       }
     }),
     fetchAndUpload(
@@ -224,7 +214,7 @@ async function runEnrichment(inputUrl: string, id?: unknown) {
           typeof preview.dataUrl === "string" &&
           typeof preview.contentType === "string"
         ) {
-          await uploadPreviewToR2(preview, normalized, id);
+          await uploadPreviewToR2(preview, normalized);
         }
       },
     ),

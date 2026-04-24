@@ -31,10 +31,8 @@ function uniqByUrl<T extends {url: string}>(items: T[]) {
   const seen = new Set<string>();
   const out: T[] = [];
   for (const item of items) {
-    const key = item.url;
-    if (!key) continue;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (!item.url || seen.has(item.url)) continue;
+    seen.add(item.url);
     out.push(item);
   }
   return out;
@@ -44,13 +42,11 @@ type ManifestIcon = {src: string; sizes?: string; type?: string};
 
 function parseManifestIcons(manifest: unknown): ManifestIcon[] {
   if (!isRecord(manifest)) return [];
-  const icons = manifest.icons;
-  if (!Array.isArray(icons)) return [];
+  if (!Array.isArray(manifest.icons)) return [];
 
   const out: ManifestIcon[] = [];
-  for (const icon of icons) {
-    if (!isRecord(icon)) continue;
-    if (typeof icon.src !== "string") continue;
+  for (const icon of manifest.icons) {
+    if (!isRecord(icon) || typeof icon.src !== "string") continue;
     out.push({
       src: icon.src,
       sizes: typeof icon.sizes === "string" ? icon.sizes : undefined,
@@ -65,6 +61,7 @@ async function discoverFromManifest(manifestUrl: string): Promise<BestIcon[]> {
     userAgent: "void-enrich-bookmark/1.0",
   });
   if (!res.ok) return [];
+
   const manifestJson: unknown = await res.json();
   const icons = parseManifestIcons(manifestJson);
 
@@ -81,27 +78,28 @@ async function discoverFromManifest(manifestUrl: string): Promise<BestIcon[]> {
         return null;
       }
     })
-    .filter((v): v is NonNullable<typeof v> => v !== null);
+    .filter((icon): icon is NonNullable<typeof icon> => icon !== null);
 }
 
 function discoverFromHtml(html: string, baseUrl: string) {
+  // remove comments from html to prevent <link> tags from being ignored
+  const cleanHtml = html.replace(/<!--[\s\S]*?-->/g, "");
   const icons: BestIcon[] = [];
 
   let effectiveBase = baseUrl;
-  const baseMatch = html.match(/<base\b[^>]*>/i);
+  const baseMatch = cleanHtml.match(/<base\b[^>]*>/i);
   if (baseMatch) {
     const attrs = parseAttributes(baseMatch[0]);
-    const href = attrs.href;
-    if (href) {
+    if (attrs.href) {
       try {
-        effectiveBase = new URL(href, baseUrl).toString();
+        effectiveBase = new URL(attrs.href, baseUrl).toString();
       } catch {
-        // ignore
+        // ignore invalid base urls
       }
     }
   }
 
-  const linkTags = html.match(/<link\b[^>]*>/gi) ?? [];
+  const linkTags = cleanHtml.match(/<link\b[^>]*>/gi) ?? [];
   let manifestUrl: string | undefined;
 
   for (const tag of linkTags) {
@@ -114,11 +112,8 @@ function discoverFromHtml(html: string, baseUrl: string) {
     const isIconRel =
       relTokens.includes("icon") ||
       relTokens.includes("shortcut") ||
-      relTokens.includes("shortcut-icon") ||
       relRaw.includes("apple-touch-icon") ||
       relTokens.includes("mask-icon");
-
-    const isManifest = relTokens.includes("manifest");
 
     let resolved: string;
     try {
@@ -127,7 +122,7 @@ function discoverFromHtml(html: string, baseUrl: string) {
       continue;
     }
 
-    if (isManifest && !manifestUrl) {
+    if (relTokens.includes("manifest") && !manifestUrl) {
       manifestUrl = resolved;
     }
 
@@ -146,98 +141,46 @@ function discoverFromHtml(html: string, baseUrl: string) {
 }
 
 function fallbackCandidates(origin: string): BestIcon[] {
-  const paths = [
-    "/favicon.ico",
-    "/favicon.png",
-    "/apple-touch-icon.png",
+  return [
     "/apple-touch-icon-precomposed.png",
-  ];
-  return paths.map((p) => ({
-    url: new URL(p, origin).toString(),
+    "/apple-touch-icon.png",
+    "/favicon.png",
+    "/favicon.ico",
+  ].map((path) => ({
+    url: new URL(path, origin).toString(),
     source: "fallback" as const,
   }));
 }
 
-function parseLargestSquareSize(sizes?: string) {
-  if (!sizes) return undefined;
-  const parts = sizes.split(/\s+/).filter(Boolean);
-  let best: number | undefined;
-  for (const part of parts) {
-    if (part.toLowerCase() === "any") continue;
-    const m = /^(\d+)\s*x\s*(\d+)$/i.exec(part);
-    if (!m) continue;
-    const w = Number(m[1]);
-    const h = Number(m[2]);
-    if (!Number.isFinite(w) || !Number.isFinite(h)) continue;
-    if (w !== h) continue;
-    best = best === undefined ? w : Math.max(best, w);
+function looksLikeSvgIcon(icon: Pick<BestIcon, "url" | "type">) {
+  const type = icon.type?.toLowerCase() ?? "";
+  if (type.includes("svg")) return true;
+
+  try {
+    return new URL(icon.url).pathname.toLowerCase().endsWith(".svg");
+  } catch {
+    return icon.url.toLowerCase().endsWith(".svg");
   }
-  return best;
-}
-
-function guessTypeFromUrl(url: string) {
-  const pathname = (() => {
-    try {
-      return new URL(url).pathname.toLowerCase();
-    } catch {
-      return url.toLowerCase();
-    }
-  })();
-  if (pathname.endsWith(".png")) return "image/png";
-  if (pathname.endsWith(".svg")) return "image/svg+xml";
-  if (pathname.endsWith(".ico")) return "image/x-icon";
-  if (pathname.endsWith(".webp")) return "image/webp";
-  if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) return "image/jpeg";
-  return undefined;
-}
-
-function typeRank(mime?: string) {
-  const t = (mime ?? "").toLowerCase();
-  if (t.includes("png")) return 5;
-  if (t.includes("icon") || t.includes("ico")) return 4;
-  if (t.includes("webp")) return 3;
-  if (t.includes("jpeg") || t.includes("jpg")) return 2;
-  if (t.includes("svg")) return 1;
-  return 0;
-}
-
-function sourceRank(source: IconSource) {
-  if (source === "html") return 3;
-  if (source === "manifest") return 2;
-  return 1;
-}
-
-function relRank(rel?: string) {
-  const r = (rel ?? "").toLowerCase();
-  if (!r) return 0;
-  if (r.split(/\s+/).includes("icon")) return 3;
-  if (r.includes("apple-touch-icon")) return 2;
-  if (r.split(/\s+/).includes("mask-icon")) return 1;
-  return 0;
-}
-
-function selectBestIcon(icons: BestIcon[]) {
-  if (icons.length === 0) return null;
-  const scored = icons.map((icon) => {
-    const inferredType = icon.type ?? guessTypeFromUrl(icon.url);
-    const size = parseLargestSquareSize(icon.sizes);
-    const sizeScore = size === undefined ? 0 : size >= 64 && size <= 256 ? 3 : size >= 32 ? 2 : 1;
-
-    const score =
-      sourceRank(icon.source) * 1000 +
-      typeRank(inferredType) * 100 +
-      sizeScore * 10 +
-      relRank(icon.rel);
-
-    return {icon, score};
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.icon ?? null;
 }
 
 export function selectBestFaviconIcon(icons: BestIcon[]) {
-  return selectBestIcon(icons);
+  const isDiscovered = (i: BestIcon) => i.source !== "fallback";
+  const isRaster = (i: BestIcon) => !looksLikeSvgIcon(i);
+
+  // Boost apple-touch-icon to the top of the list so it gets evaluated first
+  const sortedIcons = [...icons].sort((a, b) => {
+    const aIsApple = a.rel?.toLowerCase().includes("apple-touch-icon") ? 1 : 0;
+    const bIsApple = b.rel?.toLowerCase().includes("apple-touch-icon") ? 1 : 0;
+    return bIsApple - aIsApple;
+  });
+
+  return (
+    sortedIcons.find((i) => isDiscovered(i) && isRaster(i)) ??
+    sortedIcons.find((i) => isDiscovered(i)) ??
+    sortedIcons.find((i) => isRaster(i)) ??
+    sortedIcons[0] ??
+    null
+  );
 }
 
 export async function fetchFaviconCandidates(
@@ -259,7 +202,30 @@ export async function fetchFaviconCandidates(
     finalUrl = htmlRes.url;
 
     const contentType = htmlRes.headers.get("content-type") ?? "";
-    let html = isHtmlContentType(contentType) ? await htmlRes.text() : "";
+    let html = "";
+    if (isHtmlContentType(contentType)) {
+      //  check if the response size is greater than 150kb and close the connection if so
+      if (htmlRes.body) {
+        const reader = htmlRes.body.getReader();
+        const decoder = new TextDecoder();
+        let bytesRead = 0;
+        const MAX_BYTES = 150 * 1024; // 150KB cap
+        while (true) {
+          const {done, value} = await reader.read();
+          if (value) {
+            html += decoder.decode(value, {stream: true});
+            bytesRead += value.length;
+          }
+          if (done || bytesRead >= MAX_BYTES) {
+            html += decoder.decode();
+            reader.cancel().catch(() => {});
+            break;
+          }
+        }
+      } else {
+        html = await htmlRes.text();
+      }
+    }
 
     if (html && looksLikeChallengeHtml(html)) {
       try {
@@ -283,8 +249,7 @@ export async function fetchFaviconCandidates(
   }
 
   icons.push(...fallbackCandidates(origin));
-  const unique = uniqByUrl(icons);
-  return {finalUrl, baseUrl, icons: unique};
+  return {finalUrl, baseUrl, icons: uniqByUrl(icons)};
 }
 
 export async function fetchBestFaviconOne(
@@ -292,5 +257,5 @@ export async function fetchBestFaviconOne(
   options?: {userAgent?: string; timeoutMs?: number},
 ): Promise<BestIcon | null> {
   const {icons} = await fetchFaviconCandidates(url, options);
-  return selectBestIcon(icons);
+  return selectBestFaviconIcon(icons);
 }
