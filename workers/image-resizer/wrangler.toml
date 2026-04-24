@@ -1,0 +1,23 @@
+name = "tobira-image-resizer"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "349d1bc326ebd8f64abfe827fa61ade4"
+workers_dev = false
+
+routes = [
+  { pattern = "media.tobira.app/images/*", zone_name = "tobira.app" }
+]
+
+[[r2_buckets]]
+binding = "BOOKMARKS"
+bucket_name = "bookmarks"
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false

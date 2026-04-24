@@ -55,7 +55,7 @@ export function VideoPlayerControls({
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className={`absolute right-0 bottom-0 left-0 z-20 transform bg-linear-to-t from-black/20 to-transparent px-5 pt-10 pb-4 transition duration-150 ease-in will-change-transform group-hover/video:translate-y-0 group-hover/video:opacity-100 group-hover/video:duration-200 group-hover/video:ease-out group-has-[video:focus-visible]/video:translate-y-0 group-has-[video:focus-visible]/video:opacity-100 group-has-[video:focus-visible]/video:duration-200 group-has-[video:focus-visible]/video:ease-out ${
+      className={`absolute right-0 bottom-0 left-0 z-20 transform bg-linear-to-t from-black/20 to-transparent px-3 pb-3 transition duration-150 ease-in will-change-transform group-hover/video:translate-y-0 group-hover/video:opacity-100 group-hover/video:duration-200 group-hover/video:ease-out group-has-[video:focus-visible]/video:translate-y-0 group-has-[video:focus-visible]/video:opacity-100 group-has-[video:focus-visible]/video:duration-200 group-has-[video:focus-visible]/video:ease-out ${
         showControls || controlsVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
       }`}>
       <TooltipProvider delay={300}>
