@@ -3,8 +3,8 @@
 import {cn} from "@/lib/utils";
 import ViewOptionsMenu from "@/features/all-items/components/ViewOptionsMenu";
 import {SortSelect} from "@/features/all-items/components/AllItemsToolbar";
-import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
-import {Button} from "@/components/coss-ui/button";
+import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/ui/coss/select";
+import {Button} from "@/components/ui/coss/button";
 import {AnimatePresence, motion} from "framer-motion";
 import type {SortMode, TypeFilter} from "@/features/home/types";
 import type {SyncStatusFilter} from "../_types";

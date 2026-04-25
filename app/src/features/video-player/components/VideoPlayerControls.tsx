@@ -5,7 +5,7 @@ import {
   TooltipPopupBlur,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/coss-ui/tooltip";
+} from "@/components/ui/coss/tooltip";
 import {VideoProgressControl} from "@/features/video-player/components/VideoProgressControl";
 import {VideoVolumeControl} from "@/features/video-player/components/VideoVolumeControl";
 import type {VideoPlayerState} from "@/features/video-player/types";

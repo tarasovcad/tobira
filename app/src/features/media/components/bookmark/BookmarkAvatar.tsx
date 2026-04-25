@@ -2,7 +2,7 @@ import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark} from "@/components/bookmark/types";
 import {BookmarkImage} from "@/features/media/components/bookmark/BookmarkImage";
-import {Avatar} from "@/components/ui/avatar";
+import {Avatar} from "@/components/ui/app/avatar";
 import * as React from "react";
 
 interface BookmarkAvatarProps {

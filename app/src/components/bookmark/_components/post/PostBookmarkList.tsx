@@ -7,7 +7,7 @@ import Link from "next/link";
 import {cn} from "@/lib/utils";
 import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {Tag} from "@/components/ui/Tag";
+import {Tag} from "@/components/ui/app/tag";
 import MediaPreview from "@/features/media/components/MediaPreview";
 import {BookmarkItemProps} from "../../types";
 

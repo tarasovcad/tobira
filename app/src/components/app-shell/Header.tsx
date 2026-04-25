@@ -5,15 +5,15 @@ import ThemeSwitch from "../other/ThemeSwitch";
 import {cn} from "@/lib/utils";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import type {Session} from "@/lib/auth/auth-client";
-import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/coss-ui/menu";
+import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/ui/coss/menu";
 import {useMutation} from "@tanstack/react-query";
 import {signOutAction} from "@/app/actions/auth";
-import {toastManager} from "@/components/coss-ui/toast";
-import {Avatar} from "@/components/ui/avatar";
+import {toastManager} from "@/components/ui/coss/toast";
+import {Avatar} from "@/components/ui/app/avatar";
 import {useSidebarStore} from "@/store/use-sidebar-store";
-import {Button, buttonVariants} from "../coss-ui/button";
+import {Button, buttonVariants} from "@/components/ui/coss/button";
 
 export type AppShellSession = Session | null;
 

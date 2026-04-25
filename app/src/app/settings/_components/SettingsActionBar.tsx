@@ -1,10 +1,10 @@
 "use client";
 
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import {cn} from "@/lib/utils";
 import {motion} from "motion/react";
 import NumberFlow from "@number-flow/react";
-import Spinner from "@/components/ui/spinner";
+import Spinner from "@/components/ui/app/spinner";
 
 interface SettingsActionBarProps {
   visible: boolean;

@@ -2,8 +2,8 @@
 
 import {Dialog as DialogPrimitive} from "@base-ui/react/dialog";
 import {cn} from "@/lib/utils";
-import {Button} from "@/components/coss-ui/button";
-import {ScrollArea} from "@/components/coss-ui/scroll-area";
+import {Button} from "@/components/ui/coss/button";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
 
 const DialogCreateHandle = DialogPrimitive.createHandle;
 

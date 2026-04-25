@@ -6,16 +6,16 @@ import {
   MenuPopup,
   DropdownMenuGroup,
   DropdownMenuLabel,
-} from "@/components/coss-ui/menu";
+} from "@/components/ui/coss/menu";
 import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
-} from "@/components/coss-ui/accordion";
-import {Button} from "@/components/coss-ui/button";
-import {Switch} from "@/components/ui/switch";
-import {SliderComfortable} from "@/components/ui/slider";
+} from "@/components/ui/coss/accordion";
+import {Button} from "@/components/ui/coss/button";
+import {Switch} from "@/components/ui/app/switch";
+import {SliderComfortable} from "@/components/ui/app/slider";
 import {cn} from "@/lib/utils";
 import {
   useViewOptionsStore,

@@ -1,7 +1,7 @@
 "use client";
 
 import {cn} from "@/lib/utils";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 
 const NAVIGATION_CRUMBS = ["X Settings", "Your Account", "Download an archive of your data"];
 

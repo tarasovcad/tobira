@@ -11,8 +11,8 @@ import {
   MenuRadioGroup,
   MenuRadioItem,
   MenuCheckboxItem,
-} from "@/components/coss-ui/menu";
-import {buttonVariants} from "../../shadcn/button";
+} from "@/components/ui/coss/menu";
+import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
 import {cn} from "@/lib/utils";
 
 interface SidebarSectionMenuProps {

@@ -1,6 +1,6 @@
 "use client";
 
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";

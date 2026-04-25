@@ -1,20 +1,20 @@
 "use client";
 import React, {useState} from "react";
-import {Input} from "@/components/coss-ui/input";
-import {Textarea} from "@/components/coss-ui/textarea";
+import {Input} from "@/components/ui/coss/input";
+import {Textarea} from "@/components/ui/coss/textarea";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-} from "@/components/coss-ui/input-group";
+} from "@/components/ui/coss/input-group";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
-import {Label} from "@/components/coss-ui/label";
-import {Avatar} from "@/components/ui/avatar";
-import {Button} from "@/components/coss-ui/button";
-import {Switch} from "@/components/ui/switch";
+import {Label} from "@/components/ui/coss/label";
+import {Avatar} from "@/components/ui/app/avatar";
+import {Button} from "@/components/ui/coss/button";
+import {Switch} from "@/components/ui/app/switch";
 import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
-import {PageHeader} from "@/components/ui/page/PageHeader";
+import {PageHeader} from "@/components/ui/app/page/PageHeader";
 
 const PersonalizationSettings = () => {
   const [hasChanges, setHasChanges] = useState(false);

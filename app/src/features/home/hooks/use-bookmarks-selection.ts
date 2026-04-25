@@ -1,6 +1,6 @@
 import {startTransition, useCallback, useState} from "react";
 import type {Bookmark} from "@/components/bookmark/types";
-import {toastManager} from "@/components/coss-ui/toast";
+import {toastManager} from "@/components/ui/coss/toast";
 
 /**
  * Manages bookmark selection state (single, multiple, all) and related actions.

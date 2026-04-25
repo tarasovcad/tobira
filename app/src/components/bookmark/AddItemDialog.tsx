@@ -8,11 +8,11 @@ import {zodResolver} from "@hookform/resolvers/zod";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
-import Spinner from "@/components/ui/spinner";
-import {Button} from "@/components/coss-ui/button";
-import {Button as ShadcnButton} from "@/components/shadcn/button";
-import {Input} from "@/components/coss-ui/input";
-import {toastManager} from "@/components/coss-ui/toast";
+import Spinner from "@/components/ui/app/spinner";
+import {Button} from "@/components/ui/coss/button";
+import {Button as ShadcnButton} from "@/components/ui/legacy-shadcn/button";
+import {Input} from "@/components/ui/coss/input";
+import {toastManager} from "@/components/ui/coss/toast";
 import {SearchIcon} from "lucide-react";
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
   DialogPanel,
   DialogPopup,
   DialogTitle,
-} from "@/components/coss-ui/dialog";
+} from "@/components/ui/coss/dialog";
 import {
   addWebsiteBookmark,
   addMediaBookmark,
@@ -31,8 +31,8 @@ import {
   type AddMediaBookmarkResult,
   type AddPostBookmarkResult,
 } from "@/app/actions/bookmarks";
-import TagsInput from "../ui/TagsInput";
-import {Label} from "../coss-ui/label";
+import TagsInput from "@/components/ui/app/tags-input";
+import {Label} from "@/components/ui/coss/label";
 import {
   Combobox,
   ComboboxEmpty,
@@ -42,7 +42,7 @@ import {
   ComboboxPopup,
   ComboboxTrigger,
   ComboboxValue,
-} from "@/components/coss-ui/combobox";
+} from "@/components/ui/coss/combobox";
 import {
   SelectButton,
   Select,
@@ -50,7 +50,7 @@ import {
   SelectValue,
   SelectPopup,
   SelectItem,
-} from "@/components/coss-ui/select";
+} from "@/components/ui/coss/select";
 
 import {ITEM_TYPES} from "./add-item-constants";
 

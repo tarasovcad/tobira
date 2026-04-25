@@ -2,10 +2,10 @@
 
 import {useState} from "react";
 import Image from "next/image";
-import {Slider} from "@/components/ui/slider";
-import {Alert, AlertDescription, AlertTitle} from "@/components/coss-ui/alert";
-import {CircleAlertIcon} from "@/components/coss-ui/toast";
-import {Button} from "@/components/coss-ui/button";
+import {Slider} from "@/components/ui/app/slider";
+import {Alert, AlertDescription, AlertTitle} from "@/components/ui/coss/alert";
+import {CircleAlertIcon} from "@/components/ui/coss/toast";
+import {Button} from "@/components/ui/coss/button";
 
 interface OAuthOptionProps {
   providerName: string;

@@ -5,16 +5,16 @@ import {cn} from "@/lib/utils";
 import Image from "next/image";
 import {formatTimeRelativeUtc} from "@/lib/utils/dates";
 import {motion} from "motion/react";
-import {Alert, AlertTitle} from "@/components/coss-ui/alert";
+import {Alert, AlertTitle} from "@/components/ui/coss/alert";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/coss-ui/accordion";
-import {Button} from "@/components/coss-ui/button";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
-import {Tabs, TabsList, TabsTab} from "@/components/coss-ui/tabs";
+} from "@/components/ui/coss/accordion";
+import {Button} from "@/components/ui/coss/button";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
+import {Tabs, TabsList, TabsTab} from "@/components/ui/coss/tabs";
 import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
 
 export type SyncActivityStatus = "success" | "running" | "warning" | "error";

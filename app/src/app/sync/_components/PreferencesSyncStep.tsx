@@ -13,11 +13,11 @@ import {
   ComboboxPopup,
   ComboboxTrigger,
   ComboboxValue,
-} from "@/components/coss-ui/combobox";
-import {Select as ComboboxSelect, SelectButton} from "@/components/coss-ui/select";
-import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
-import {Switch} from "@/components/ui/switch";
-import {Separator} from "@/components/shadcn/separator";
+} from "@/components/ui/coss/combobox";
+import {Select as ComboboxSelect, SelectButton} from "@/components/ui/coss/select";
+import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/ui/coss/select";
+import {Switch} from "@/components/ui/app/switch";
+import {Separator} from "@/components/ui/legacy-shadcn/separator";
 
 type SyncMode = "automatic" | "once";
 type ImportRange = "all" | "recent";

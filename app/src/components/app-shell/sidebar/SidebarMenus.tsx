@@ -5,7 +5,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-} from "@/components/shadcn/context-menu";
+} from "@/components/ui/legacy-shadcn/context-menu";
 import Link from "next/link";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
@@ -13,7 +13,7 @@ import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/features/home/types";
 import {getTagById, toggleTagPin} from "@/app/actions/tags";
 import {toggleCollectionPin} from "@/app/actions/collections";
-import {toastManager} from "@/components/coss-ui/toast";
+import {toastManager} from "@/components/ui/coss/toast";
 
 async function handleToggleCollectionPin(
   collectionId: string,

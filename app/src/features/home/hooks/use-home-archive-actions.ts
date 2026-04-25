@@ -2,7 +2,7 @@
 
 import {useCallback} from "react";
 import type {Bookmark} from "@/components/bookmark/types";
-import {toastManager} from "@/components/coss-ui/toast";
+import {toastManager} from "@/components/ui/coss/toast";
 
 interface UseHomeArchiveActionsProps {
   selectedIds: Set<string>;

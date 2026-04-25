@@ -1,7 +1,7 @@
 "use client";
 
 import NumberFlow from "@number-flow/react";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import type {TagWithCount} from "@/features/home/types";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";

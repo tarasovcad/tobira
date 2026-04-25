@@ -1,7 +1,7 @@
 "use client";
 
 import NumberFlow from "@number-flow/react";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import type {Collection} from "@/app/actions/collections";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";

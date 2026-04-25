@@ -1,9 +1,9 @@
 "use client";
 
 import {useMemo, useState} from "react";
-import {Tabs, TabsList, TabsPanel, TabsTab} from "@/components/coss-ui/tabs";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
-import {Button} from "@/components/coss-ui/button";
+import {Tabs, TabsList, TabsPanel, TabsTab} from "@/components/ui/coss/tabs";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
+import {Button} from "@/components/ui/coss/button";
 import Image from "next/image";
 import {ArrowUpRightIcon} from "lucide-react";
 import {useSyncSetupStore} from "@/store/use-sync-setup-store";

@@ -1,6 +1,6 @@
 "use client";
 
-import {Separator} from "@/components/shadcn/separator";
+import {Separator} from "@/components/ui/legacy-shadcn/separator";
 import {cn} from "@/lib/utils";
 import {useExtensionConnectionStore} from "@/store/use-extension-connection-store";
 import {useSyncSetupStore} from "@/store/use-sync-setup-store";

@@ -9,19 +9,19 @@ import {
   DialogDescription,
   DialogFooter,
   DialogPanel,
-} from "@/components/coss-ui/dialog";
-import {Button} from "@/components/coss-ui/button";
-import {Input} from "@/components/coss-ui/input";
-import {Textarea} from "@/components/coss-ui/textarea";
-import {Label} from "@/components/coss-ui/label";
+} from "@/components/ui/coss/dialog";
+import {Button} from "@/components/ui/coss/button";
+import {Input} from "@/components/ui/coss/input";
+import {Textarea} from "@/components/ui/coss/textarea";
+import {Label} from "@/components/ui/coss/label";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {updateTag} from "@/app/actions/tags";
-import {toastManager} from "@/components/coss-ui/toast";
+import {toastManager} from "@/components/ui/coss/toast";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
-import Spinner from "../ui/spinner";
+import Spinner from "@/components/ui/app/spinner";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 
 const tagSchema = z.object({

@@ -5,7 +5,7 @@ import {headers} from "next/headers";
 
 import {redirect} from "next/navigation";
 import {Suspense} from "react";
-import {PageHeader} from "@/components/ui/page/PageHeader";
+import {PageHeader} from "@/components/ui/app/page/PageHeader";
 import {ProvidersSection} from "@/app/sync/_components/ProvidersSection";
 import {
   ConnectedAccountsDataWrapper,

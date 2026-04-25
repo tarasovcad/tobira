@@ -6,11 +6,11 @@ import Link from "next/link";
 import {MoreHorizontalIcon, RefreshCwIcon} from "lucide-react";
 import {motion} from "motion/react";
 import {cn} from "@/lib/utils";
-import {Button} from "@/components/coss-ui/button";
-import {Badge} from "@/components/coss-ui/badge";
-import {Menu, MenuTrigger, MenuPopup, MenuItem, MenuSeparator} from "@/components/coss-ui/menu";
-import {Tabs, TabsList, TabsTab} from "@/components/coss-ui/tabs";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
+import {Button} from "@/components/ui/coss/button";
+import {Badge} from "@/components/ui/coss/badge";
+import {Menu, MenuTrigger, MenuPopup, MenuItem, MenuSeparator} from "@/components/ui/coss/menu";
+import {Tabs, TabsList, TabsTab} from "@/components/ui/coss/tabs";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
 
 export type ConnectionStatus = "healthy" | "syncing" | "warning" | "error";

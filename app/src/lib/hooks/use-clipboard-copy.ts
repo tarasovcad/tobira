@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from "react";
-import {toastManager} from "@/components/coss-ui/toast";
+import {toastManager} from "@/components/ui/coss/toast";
 
 export function useClipboardCopy(timeoutMs: number = 2000, opts?: {toast?: boolean}) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);

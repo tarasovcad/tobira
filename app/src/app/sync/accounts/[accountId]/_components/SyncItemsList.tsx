@@ -1,8 +1,8 @@
 "use client";
 
 import {useCallback, useMemo} from "react";
-import {ScrollArea} from "@/components/coss-ui/scroll-area";
-import Spinner from "@/components/ui/spinner";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
+import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import type {TypeFilter} from "@/features/home/types";
 import type {ViewMode} from "@/store/use-view-options";

@@ -3,7 +3,7 @@
 import {useEffect, useState} from "react";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {deleteBookmarks} from "@/app/actions/bookmarks";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -12,9 +12,9 @@ import {
   AlertDialogHeader,
   AlertDialogPopup,
   AlertDialogTitle,
-} from "@/components/coss-ui/alert-dialog";
-import {toastManager} from "@/components/coss-ui/toast";
-import Spinner from "../ui/spinner";
+} from "@/components/ui/coss/alert-dialog";
+import {toastManager} from "@/components/ui/coss/toast";
+import Spinner from "@/components/ui/app/spinner";
 import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
 
 export function DeleteBookmarkDialog() {

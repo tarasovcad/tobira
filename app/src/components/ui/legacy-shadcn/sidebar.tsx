@@ -7,18 +7,18 @@ import {cva, type VariantProps} from "class-variance-authority";
 
 import {useIsMobile} from "@/hooks/use-mobile";
 import {cn} from "@/lib/utils";
-import {Button} from "@/components/shadcn/button";
-import {Input} from "@/components/shadcn/input";
-import {Separator} from "@/components/shadcn/separator";
+import {Button} from "@/components/ui/legacy-shadcn/button";
+import {Input} from "@/components/ui/legacy-shadcn/input";
+import {Separator} from "@/components/ui/legacy-shadcn/separator";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/shadcn/sheet";
-import {Skeleton} from "@/components/shadcn/skeleton";
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/shadcn/tooltip";
+} from "@/components/ui/legacy-shadcn/sheet";
+import {Skeleton} from "@/components/ui/legacy-shadcn/skeleton";
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/legacy-shadcn/tooltip";
 import {HugeiconsIcon} from "@hugeicons/react";
 import {SidebarLeftIcon} from "@hugeicons/core-free-icons";
 

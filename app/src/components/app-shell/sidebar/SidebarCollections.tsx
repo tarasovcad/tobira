@@ -3,7 +3,7 @@
 import React, {useEffect, useState} from "react";
 import {usePathname, useSearchParams, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
-import {buttonVariants} from "../../shadcn/button";
+import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";

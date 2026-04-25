@@ -2,8 +2,8 @@
 
 import {useState} from "react";
 
-import {Button} from "@/components/coss-ui/button";
-import {Form} from "@/components/coss-ui/form";
+import {Button} from "@/components/ui/coss/button";
+import {Form} from "@/components/ui/coss/form";
 import {
   Sheet,
   SheetDescription,
@@ -12,7 +12,7 @@ import {
   SheetPanel,
   SheetPopup,
   SheetTitle,
-} from "@/components/coss-ui/sheet";
+} from "@/components/ui/coss/sheet";
 import {useExtensionConnectionStore} from "@/store/use-extension-connection-store";
 import {useSyncSetupStore} from "@/store/use-sync-setup-store";
 import {SetupStepper, type SetupStep} from "./SetupStepper";

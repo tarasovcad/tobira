@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import {cn} from "@/lib/utils";
 
 interface BookmarkMenuActionsProps {

@@ -1,17 +1,17 @@
 "use client";
 import React, {useState} from "react";
 import {ThemeSettings} from "../_components/ThemeSettings";
-import {Switch} from "@/components/ui/switch";
+import {Switch} from "@/components/ui/app/switch";
 import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
-} from "@/components/coss-ui/select";
+} from "@/components/ui/coss/select";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
 import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
-import {PageHeader} from "@/components/ui/page/PageHeader";
+import {PageHeader} from "@/components/ui/app/page/PageHeader";
 
 const fontItems = [
   {label: "Inter", value: "inter"},

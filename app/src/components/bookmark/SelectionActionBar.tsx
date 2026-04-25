@@ -1,6 +1,6 @@
 "use client";
 
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import {useHasMounted} from "@/lib/hooks/use-has-mounted";
 import {cn} from "@/lib/utils";
 import {motion} from "motion/react";

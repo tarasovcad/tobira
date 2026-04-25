@@ -1,11 +1,11 @@
 "use client";
 import React, {useState} from "react";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import Link from "next/link";
-import {PageHeader} from "@/components/ui/page/PageHeader";
+import {PageHeader} from "@/components/ui/app/page/PageHeader";
 
 const AccountSettings = () => {
   const [hasChanges, setHasChanges] = useState(false);

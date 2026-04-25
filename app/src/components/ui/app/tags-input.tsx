@@ -3,18 +3,18 @@
 import {useCallback, useId, useMemo, useRef, useState} from "react";
 import type {ClipboardEvent, CSSProperties, KeyboardEvent} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/coss-ui/input-group";
-import {Button} from "@/components/coss-ui/button";
-import {Tag} from "@/components/ui/Tag";
-import {Skeleton} from "@/components/coss-ui/skeleton";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
+import {Button} from "@/components/ui/coss/button";
+import {Tag} from "@/components/ui/app/tag";
+import {Skeleton} from "@/components/ui/coss/skeleton";
 import {useMutation} from "@tanstack/react-query";
 import {
   generateAiSuggestions as generateAiSuggestionsAction,
   type GenerateAiSuggestionsResult,
 } from "@/app/actions/generate-ai-suggestions";
-import {Tooltip, TooltipTrigger, TooltipPopup, TooltipProvider} from "@/components/coss-ui/tooltip";
+import {Tooltip, TooltipTrigger, TooltipPopup, TooltipProvider} from "@/components/ui/coss/tooltip";
 import {cn} from "@/lib/utils";
-import {Label} from "../coss-ui/label";
+import {Label} from "@/components/ui/coss/label";
 
 export type TagsInputProps = {
   value?: string[];

@@ -3,7 +3,7 @@
 import {cn} from "@/lib/utils";
 import ViewOptionsMenu from "@/features/all-items/components/ViewOptionsMenu";
 import type {TypeFilter, SortMode} from "@/features/home/types";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import {AnimatePresence, motion} from "framer-motion";
 import {TypeSelect, SortSelect} from "@/features/all-items/components/AllItemsToolbar";
 

@@ -1,18 +1,18 @@
 "use client";
 import React, {useState} from "react";
-import {Button} from "@/components/coss-ui/button";
-import {Checkbox} from "@/components/coss-ui/checkbox";
+import {Button} from "@/components/ui/coss/button";
+import {Checkbox} from "@/components/ui/coss/checkbox";
 import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
-} from "@/components/coss-ui/select";
+} from "@/components/ui/coss/select";
 import {SettingsFrame, SettingsLabel} from "../_components/SettingsUI";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
-import {Label} from "@/components/coss-ui/label";
-import {PageHeader} from "@/components/ui/page/PageHeader";
+import {Label} from "@/components/ui/coss/label";
+import {PageHeader} from "@/components/ui/app/page/PageHeader";
 
 const exportFormats = [
   {label: "JSON (Recommended)", value: "json"},

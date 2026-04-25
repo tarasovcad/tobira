@@ -1,5 +1,5 @@
 import React from "react";
-import {Alert, AlertDescription} from "@/components/coss-ui/alert";
+import {Alert, AlertDescription} from "@/components/ui/coss/alert";
 const AboutSyncStep = () => {
   const importedItems = ["Bookmarks", "Posts with media", "Outbound links"];
   const permissionItems = [

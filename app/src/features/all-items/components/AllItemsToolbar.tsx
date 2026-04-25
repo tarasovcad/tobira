@@ -1,6 +1,6 @@
 "use client";
 
-import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
+import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/ui/coss/select";
 
 import type {TypeFilter, SortMode} from "@/features/home/types";
 

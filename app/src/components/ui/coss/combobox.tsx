@@ -5,8 +5,8 @@ import {ChevronsUpDownIcon, XIcon} from "lucide-react";
 import * as React from "react";
 
 import {cn} from "@/lib/utils";
-import {Input} from "@/components/coss-ui/input";
-import {ScrollArea} from "@/components/coss-ui/scroll-area";
+import {Input} from "@/components/ui/coss/input";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
 
 const ComboboxContext = React.createContext<{
   chipsRef: React.RefObject<Element | null> | null;

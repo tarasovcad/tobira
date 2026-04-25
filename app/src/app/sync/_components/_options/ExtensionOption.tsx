@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import {cn} from "@/lib/utils";
-import {Button} from "@/components/coss-ui/button";
-import Spinner from "@/components/ui/spinner";
+import {Button} from "@/components/ui/coss/button";
+import Spinner from "@/components/ui/app/spinner";
 import {useExtensionConnectionStore} from "@/store/use-extension-connection-store";
 
 type ConnectionStatus = "idle" | "checking" | "connected" | "error";

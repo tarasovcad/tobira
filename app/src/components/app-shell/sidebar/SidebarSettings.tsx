@@ -10,7 +10,7 @@ import {
   TooltipPopup,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/coss-ui/tooltip";
+} from "@/components/ui/coss/tooltip";
 
 interface SettingsItem {
   label: string;

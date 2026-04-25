@@ -4,11 +4,11 @@ import {useState, useMemo, useCallback} from "react";
 import {Controller} from "react-hook-form";
 import {formatDateWithTime} from "@/lib/utils/dates";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import {Sheet, SheetContent, SheetPanel} from "@/components/coss-ui/sheet";
-import {Button} from "@/components/coss-ui/button";
-import {Separator} from "@/components/shadcn/separator";
-import {Textarea} from "@/components/coss-ui/textarea";
-import TagsInput from "@/components/ui/TagsInput";
+import {Sheet, SheetContent, SheetPanel} from "@/components/ui/coss/sheet";
+import {Button} from "@/components/ui/coss/button";
+import {Separator} from "@/components/ui/legacy-shadcn/separator";
+import {Textarea} from "@/components/ui/coss/textarea";
+import TagsInput from "@/components/ui/app/tags-input";
 import {useCollectionsQuery, useTagsQuery} from "@/features/home/hooks/use-home-metadata-query";
 import {SearchIcon} from "lucide-react";
 import {
@@ -20,12 +20,12 @@ import {
   ComboboxPopup,
   ComboboxTrigger,
   ComboboxValue,
-} from "@/components/coss-ui/combobox";
-import {SelectButton, Select} from "@/components/coss-ui/select";
+} from "@/components/ui/coss/combobox";
+import {SelectButton, Select} from "@/components/ui/coss/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {getBookmarkMediaPreviewItem} from "@/features/media/components/bookmark/bookmark-images";
-import Spinner from "@/components/ui/spinner";
+import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
 import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark-schema";
 import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";

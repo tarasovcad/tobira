@@ -2,7 +2,7 @@
 
 import React, {useMemo} from "react";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
-import {ScrollArea} from "@/components/coss-ui/scroll-area";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
 import {SidebarTags, type SidebarTagsType} from "./SidebarTags";
@@ -14,7 +14,7 @@ import {
   TooltipPopup,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/coss-ui/tooltip";
+} from "@/components/ui/coss/tooltip";
 
 interface SidebarMainProps {
   allCollections?: Collection[];

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {Badge} from "@/components/coss-ui/badge";
+import {Badge} from "@/components/ui/coss/badge";
 import {cn} from "@/lib/utils";
 
 export interface TagProps extends React.ComponentProps<typeof Badge> {

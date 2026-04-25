@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import NumberFlow from "@number-flow/react";
 
 export type AccountStatus = "healthy" | "syncing" | "warning" | "error";

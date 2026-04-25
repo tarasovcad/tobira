@@ -1,6 +1,6 @@
 "use client";
 
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import Link from "next/link";
 
 export function TagNotFoundState({tagName}: {tagName?: string | null}) {

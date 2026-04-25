@@ -1,7 +1,7 @@
 "use client";
 
-import {ScrollArea} from "@/components/coss-ui/scroll-area";
-import {Skeleton} from "@/components/coss-ui/skeleton";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
+import {Skeleton} from "@/components/ui/coss/skeleton";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {SortMode, TypeFilter} from "@/features/home/types";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";

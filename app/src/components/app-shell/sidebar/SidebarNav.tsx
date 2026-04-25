@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
-import {TooltipTrigger} from "@/components/coss-ui/tooltip";
+import {TooltipTrigger} from "@/components/ui/coss/tooltip";
 
 export const NavItem = ({
   isActive,

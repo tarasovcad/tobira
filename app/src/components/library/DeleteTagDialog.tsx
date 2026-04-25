@@ -1,6 +1,6 @@
 "use client";
 
-import {Button} from "@/components/coss-ui/button";
+import {Button} from "@/components/ui/coss/button";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -9,13 +9,13 @@ import {
   AlertDialogHeader,
   AlertDialogPopup,
   AlertDialogTitle,
-} from "@/components/coss-ui/alert-dialog";
-import {toastManager} from "@/components/coss-ui/toast";
+} from "@/components/ui/coss/alert-dialog";
+import {toastManager} from "@/components/ui/coss/toast";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {deleteTags} from "@/app/actions/tags";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useEffect, useState} from "react";
-import Spinner from "../ui/spinner";
+import Spinner from "@/components/ui/app/spinner";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 

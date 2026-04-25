@@ -2,7 +2,7 @@ import {useState, useEffect, useMemo, useCallback} from "react";
 import {useMutation, useMutationState, useQueryClient} from "@tanstack/react-query";
 import {archiveBookmarks} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/types";
-import {toastManager} from "@/components/coss-ui/toast";
+import {toastManager} from "@/components/ui/coss/toast";
 import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
 

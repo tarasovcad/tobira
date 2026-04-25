@@ -1,14 +1,14 @@
 import React from "react";
 import {cn} from "@/lib/utils";
-import {Checkbox} from "@/components/coss-ui/checkbox";
-import {ContextMenu, ContextMenuTrigger} from "@/components/shadcn/context-menu";
+import {Checkbox} from "@/components/ui/coss/checkbox";
+import {ContextMenu, ContextMenuTrigger} from "@/components/ui/legacy-shadcn/context-menu";
 import {motion} from "framer-motion";
 import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
 import {useRouter} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/features/home/types";
-import {Skeleton} from "@/components/ui/skeleton";
+import {Skeleton} from "@/components/ui/app/skeleton";
 import {useHasMounted} from "@/lib/hooks/use-has-mounted";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {

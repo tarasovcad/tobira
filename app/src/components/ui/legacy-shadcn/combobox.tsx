@@ -4,13 +4,13 @@ import * as React from "react";
 import {Combobox as ComboboxPrimitive} from "@base-ui/react";
 
 import {cn} from "@/lib/utils";
-import {Button} from "@/components/shadcn/button";
+import {Button} from "@/components/ui/legacy-shadcn/button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@/components/shadcn/input-group";
+} from "@/components/ui/legacy-shadcn/input-group";
 import {HugeiconsIcon} from "@hugeicons/react";
 import {ArrowDown01Icon, Cancel01Icon, Tick02Icon} from "@hugeicons/core-free-icons";
 

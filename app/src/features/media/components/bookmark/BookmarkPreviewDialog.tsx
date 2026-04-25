@@ -11,9 +11,9 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-} from "@/components/coss-ui/dialog";
-import {Button} from "@/components/coss-ui/button";
-import {Button as ShadcnButton} from "@/components/shadcn/button";
+} from "@/components/ui/coss/dialog";
+import {Button} from "@/components/ui/coss/button";
+import {Button as ShadcnButton} from "@/components/ui/legacy-shadcn/button";
 
 interface BookmarkPreviewDialogProps {
   open: boolean;

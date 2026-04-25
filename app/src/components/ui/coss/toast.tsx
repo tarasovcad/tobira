@@ -2,8 +2,8 @@
 
 import {Toast} from "@base-ui/react/toast";
 import {cn} from "@/lib/utils";
-import {buttonVariants} from "@/components/coss-ui/button";
-import Spinner from "@/components/ui/spinner";
+import {buttonVariants} from "@/components/ui/coss/button";
+import Spinner from "@/components/ui/app/spinner";
 
 function SuccessCheckIcon(props: React.SVGProps<SVGSVGElement>) {
   return (

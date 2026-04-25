@@ -1,9 +1,9 @@
 import {cn} from "@/lib/utils";
-import {Skeleton} from "@/components/coss-ui/skeleton";
+import {Skeleton} from "@/components/ui/coss/skeleton";
 import {formatDateAbsolute} from "@/lib/utils/dates";
 import type {Bookmark} from "@/components/bookmark/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {Tag} from "@/components/ui/Tag";
+import {Tag} from "@/components/ui/app/tag";
 import {
   getFastDelay,
   usePlaceholderDone,
