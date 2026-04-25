@@ -8,7 +8,7 @@ import {
 } from "@/lib/fetch/web/screenshot";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
-import {uploadToR2} from "@/lib/storage/r2-storage";
+import {uploadToR2, existsInR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 import DOMPurify from "isomorphic-dompurify";
 
@@ -179,12 +179,18 @@ async function uploadPreviewToR2(
 async function runEnrichment(inputUrl: string) {
   const normalized = normalizeInputUrl(inputUrl).toString();
 
+  const keys = await buildWebsiteImageKeys(normalized);
+
   const fetchAndUpload = async <T>(
-    fetchPromise: Promise<T>,
+    key: string,
+    fetchFn: () => Promise<T>,
     uploadFn: (data: T) => Promise<void>,
   ) => {
     try {
-      const data = await fetchPromise;
+      if (await existsInR2(key)) {
+        return;
+      }
+      const data = await fetchFn();
       if (data) {
         await uploadFn(data);
       }
@@ -194,20 +200,30 @@ async function runEnrichment(inputUrl: string) {
   };
 
   await Promise.allSettled([
-    fetchAndUpload(fetchBestFaviconOne(normalized), async (best) => {
-      if (best?.url) {
-        await uploadFaviconToR2(best.url, normalized);
-      }
-    }),
-    fetchAndUpload(fetchResolvedOgImageUrl(normalized), async (ogUrl) => {
-      if (typeof ogUrl === "string" && ogUrl) {
-        await uploadOgImageToR2(ogUrl, normalized);
-      }
-    }),
     fetchAndUpload(
-      process.env.USE_FIRECRAWL === "true"
-        ? fetchFirecrawlScreenshotDataUrl(normalized)
-        : fetchBrowserlessScreenshotDataUrl(normalized),
+      keys.favicon,
+      () => fetchBestFaviconOne(normalized),
+      async (best) => {
+        if (best?.url) {
+          await uploadFaviconToR2(best.url, normalized);
+        }
+      },
+    ),
+    fetchAndUpload(
+      keys.og,
+      () => fetchResolvedOgImageUrl(normalized),
+      async (ogUrl) => {
+        if (typeof ogUrl === "string" && ogUrl) {
+          await uploadOgImageToR2(ogUrl, normalized);
+        }
+      },
+    ),
+    fetchAndUpload(
+      keys.preview,
+      () =>
+        process.env.USE_FIRECRAWL === "true"
+          ? fetchFirecrawlScreenshotDataUrl(normalized)
+          : fetchBrowserlessScreenshotDataUrl(normalized),
       async (preview) => {
         if (
           preview &&

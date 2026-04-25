@@ -1,4 +1,4 @@
-import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
+import {PutObjectCommand, S3Client, HeadObjectCommand} from "@aws-sdk/client-s3";
 import type {PutObjectCommandInput} from "@aws-sdk/client-s3";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 
@@ -38,3 +38,23 @@ export async function uploadToR2(input: {
 }
 
 export {buildR2PublicUrl};
+
+export async function existsInR2(key: string): Promise<boolean> {
+  try {
+    await r2Client.send(
+      new HeadObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+      }),
+    );
+    return true;
+  } catch (err) {
+    const error = err as {name?: string; $metadata?: {httpStatusCode?: number}};
+
+    if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+
+    throw err;
+  }
+}
