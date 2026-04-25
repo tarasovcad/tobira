@@ -24,11 +24,6 @@ export default {
   ): Promise<Response> {
     const url = new URL(request.url);
 
-    // 1. Route guard: Ensure we only process /images/*
-    if (!url.pathname.startsWith("/images/")) {
-      return Response.json({ error: "Not found" }, { status: 404 });
-    }
-
     if (request.method !== "GET") {
       return Response.json({ error: "Method not allowed" }, { status: 405 });
     }
@@ -40,7 +35,7 @@ export default {
       url.searchParams.get("format") || "original"
     ).toLowerCase() as FormatType;
 
-    const originalPath = url.pathname.replace("/images/", "");
+    const originalPath = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
     if (!originalPath) {
       return Response.json({ error: "Missing image path" }, { status: 400 });
     }

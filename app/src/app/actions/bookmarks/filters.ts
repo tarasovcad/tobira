@@ -1,7 +1,7 @@
 import {db} from "@/db";
 import {bookmarks, tags, bookmarkTags, bookmarkCollections} from "@/db/schema";
 import {and, eq, isNull, exists} from "drizzle-orm";
-import type {TypeFilter} from "@/app/home/_types";
+import type {TypeFilter} from "@/features/home/types";
 
 export function getBookmarkFilters({
   userId,

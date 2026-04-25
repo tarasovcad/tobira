@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 
 import {SearchIcon} from "lucide-react";
-import {useCollectionsQuery} from "@/app/home/_hooks/use-home-metadata-query";
+import {useCollectionsQuery} from "@/features/home/hooks/use-home-metadata-query";
 import {
   Combobox,
   ComboboxEmpty,

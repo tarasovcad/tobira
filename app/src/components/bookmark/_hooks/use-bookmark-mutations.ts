@@ -5,7 +5,7 @@ import {
   resetBookmark,
   UpdateBookmarkData,
 } from "@/app/actions/bookmarks";
-import {homeMetadataKeys} from "@/app/home/_hooks/use-home-metadata-query";
+import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 import {toastManager} from "@/components/coss-ui/toast";
 import {UseFormReturn} from "react-hook-form";
 import {BookmarkFormValues} from "../_utils/bookmark-schema";

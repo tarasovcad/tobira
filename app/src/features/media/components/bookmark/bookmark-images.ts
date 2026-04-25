@@ -3,6 +3,7 @@ import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {ColumnSize} from "@/store/use-view-options";
 
+// Type guard to check for the images field in the Bookmark type
 export function isWebsiteImages(images: Bookmark["images"] | undefined): images is WebsiteImages {
   return (
     !!images &&

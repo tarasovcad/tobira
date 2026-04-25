@@ -6,7 +6,7 @@ import type {Bookmark} from "@/components/bookmark/types";
 import type {
   AllItemsAnimatedVariant,
   AllItemsBookmarkComponentProps,
-} from "@/app/home/_components/all-items-client/all-items-list-layout";
+} from "@/features/all-items/components/all-items-list-layout";
 import type {SyncItem} from "../_types";
 
 interface SyncItemRowProps {

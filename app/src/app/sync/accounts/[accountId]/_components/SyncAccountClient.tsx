@@ -5,9 +5,9 @@ import {SyncToolbar} from "./SyncToolbar";
 import {SyncItemsList} from "./SyncItemsList";
 import {SyncSelectionActionBar} from "./SyncSelectionActionBar";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import type {SortMode, TypeFilter} from "@/app/home/_types";
+import type {SortMode, TypeFilter} from "@/features/home/types";
 import type {SyncItem, SyncStatusFilter} from "../_types";
-import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 
 interface SyncAccountClientProps {
   typeFilter: TypeFilter;

@@ -2,7 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {and, eq} from "drizzle-orm";
 import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
-import type {PostBookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import {buildR2PublicUrl} from "@/lib/storage/r2-storage";
 import {
   buildTwitterSizedUrl,

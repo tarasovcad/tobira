@@ -12,7 +12,7 @@ import {buildWebsiteImages} from "@/features/media/utils";
 import {attachTagsToBookmark} from "@/lib/bookmarks/tags";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {logger} from "@/lib/shared/logger";
-import type {MediaMediaItem} from "@/app/home/_types/bookmark-metadata";
+import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
 
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 

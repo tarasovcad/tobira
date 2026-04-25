@@ -1,0 +1,491 @@
+"use client";
+
+import React, {useState} from "react";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {useForm, Controller, useWatch} from "react-hook-form";
+import {AnimatePresence, motion} from "framer-motion";
+import {zodResolver} from "@hookform/resolvers/zod";
+import Image from "next/image";
+import {useRouter} from "next/navigation";
+import {cn} from "@/lib/utils";
+import Spinner from "@/components/ui/spinner";
+import {Button} from "@/components/coss-ui/button";
+import {Button as ShadcnButton} from "@/components/shadcn/button";
+import {Input} from "@/components/coss-ui/input";
+import {toastManager} from "@/components/coss-ui/toast";
+import {SearchIcon} from "lucide-react";
+import {
+  Dialog,
+  DialogClose,
+  DialogFooter,
+  DialogHeader,
+  DialogPanel,
+  DialogPopup,
+  DialogTitle,
+} from "@/components/coss-ui/dialog";
+import {
+  addWebsiteBookmark,
+  addMediaBookmark,
+  addPostBookmark,
+  type AddWebsiteBookmarkResult,
+  type AddMediaBookmarkResult,
+  type AddPostBookmarkResult,
+} from "@/app/actions/bookmarks";
+import TagsInput from "../ui/TagsInput";
+import {Label} from "../coss-ui/label";
+import {
+  Combobox,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxPopup,
+  ComboboxTrigger,
+  ComboboxValue,
+} from "@/components/coss-ui/combobox";
+import {
+  SelectButton,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectPopup,
+  SelectItem,
+} from "@/components/coss-ui/select";
+
+import {ITEM_TYPES} from "./add-item-constants";
+
+import {addItemSchema, type AddItemFormValues} from "./add-item-schema";
+import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
+import {
+  homeMetadataKeys,
+  useCollectionsQuery,
+  useTagsQuery,
+} from "@/features/home/hooks/use-home-metadata-query";
+import {User as AuthUser} from "@/lib/auth/auth-client";
+import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+
+type AddItemDialogUser = AuthUser & {
+  aiContext?: string | null;
+  enableAiOptimization?: boolean;
+};
+
+export function AddItemDialog({
+  isAuthenticated = false,
+  user,
+}: {
+  isAuthenticated?: boolean;
+  user?: AddItemDialogUser | null;
+}) {
+  const userId = user?.id;
+  const router = useRouter();
+  const open = useAddItemDialogStore((state) => state.isOpen);
+  const setDialogOpen = useAddItemDialogStore((state) => state.setDialogOpen);
+  const closeDialog = useAddItemDialogStore((state) => state.closeDialog);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [mediaItems, setMediaItems] = useState<MediaMediaItem[]>([]);
+  const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
+  const queryClient = useQueryClient();
+  const userAiContext = user?.enableAiOptimization ? user?.aiContext : null;
+
+  const {data: collections = []} = useCollectionsQuery({
+    userId,
+    enabled: open && !!userId,
+  });
+  const {data: tags = []} = useTagsQuery({
+    userId,
+    enabled: open && !!userId,
+  });
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    trigger,
+    formState: {errors, isValid},
+    getValues,
+  } = useForm<AddItemFormValues>({
+    resolver: zodResolver(addItemSchema),
+    defaultValues: {
+      url: "",
+      tags: [],
+      collectionId: null,
+      type: "website",
+    },
+    mode: "onChange",
+  });
+  const watchedUrl = useWatch({control, name: "url"});
+  const watchedType = useWatch({control, name: "type"});
+
+  const addItemMutation = useMutation<
+    AddWebsiteBookmarkResult | AddMediaBookmarkResult | AddPostBookmarkResult,
+    Error,
+    | {url: string; tags: string[]; collectionId?: string; kind: "website"}
+    | {
+        url: string;
+        tags: string[];
+        collectionId?: string;
+        kind: "media";
+        selectedMediaUrls?: string[];
+        selectedMediaItems?: MediaMediaItem[];
+      }
+    | {url: string; tags: string[]; collectionId?: string; kind: "post"}
+  >({
+    mutationKey: ["add-bookmark"],
+    mutationFn: async (input) => {
+      if (input.kind === "website") {
+        return await addWebsiteBookmark(input);
+      } else if (input.kind === "media") {
+        return await addMediaBookmark({
+          url: input.url,
+          tags: input.tags,
+          collectionId: input.collectionId,
+          kind: input.kind,
+          selectedMediaUrls: input.selectedMediaUrls,
+        });
+      } else if (input.kind === "post") {
+        return await addPostBookmark(input);
+      }
+      throw new Error("Invalid kind");
+    },
+    onSuccess: (res, variables) => {
+      if (
+        variables.kind === "media" &&
+        "media" in res &&
+        Array.isArray(res.media) &&
+        res.media.length > 1 &&
+        !("selectedMediaUrls" in variables && variables.selectedMediaUrls)
+      ) {
+        const nextMediaItems = res.mediaItems ?? res.media.map((url) => ({type: "photo", url}));
+        setMediaItems(nextMediaItems);
+        setSelectedMediaUrls(nextMediaItems.map((item) => item.url));
+        setStep(2);
+        return;
+      }
+
+      closeDialog();
+      toastManager.add({
+        title: "Bookmark added",
+        type: "success",
+      });
+      queryClient.invalidateQueries({queryKey: ["bookmarks"]});
+      queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
+      setTimeout(() => {
+        reset();
+        setStep(1);
+        setMediaItems([]);
+        setSelectedMediaUrls([]);
+      }, 500);
+    },
+    onError: (err) => {
+      toastManager.add({
+        title: "Submit failed",
+        description:
+          (err instanceof Error ? err.message : "Unknown error")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 160) || "Unknown error",
+        type: "error",
+      });
+    },
+  });
+
+  const onSubmit = (data: AddItemFormValues) => {
+    switch (data.type) {
+      case "website":
+        addItemMutation.mutate({
+          url: data.url,
+          tags: data.tags,
+          collectionId: data.collectionId ?? undefined,
+          kind: "website",
+        });
+        closeDialog();
+        break;
+      case "media":
+        addItemMutation.mutate({
+          url: data.url,
+          tags: data.tags,
+          collectionId: data.collectionId ?? undefined,
+          kind: "media",
+        });
+        break;
+      case "post":
+        addItemMutation.mutate({
+          url: data.url,
+          tags: data.tags,
+          collectionId: data.collectionId ?? undefined,
+          kind: "post",
+        });
+        closeDialog();
+        break;
+      default:
+        throw new Error("Invalid item type");
+    }
+  };
+
+  const collectionItems = React.useMemo(
+    () =>
+      collections.map((c) => ({
+        label: c.name,
+        value: c.id,
+      })),
+    [collections],
+  );
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && !isAuthenticated) {
+      closeDialog();
+      router.push("/login");
+      return;
+    }
+
+    setDialogOpen(nextOpen);
+    if (!nextOpen) {
+      setTimeout(() => {
+        reset();
+        setStep(1);
+        setMediaItems([]);
+        setSelectedMediaUrls([]);
+      }, 500);
+    }
+  };
+
+  const handleOpenDialogClick = () => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    setDialogOpen(true);
+  };
+
+  return (
+    <div className="absolute right-6 bottom-6">
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <ShadcnButton
+          variant="default"
+          size="icon-lg"
+          className="relative z-40 size-12 rounded-full"
+          onClick={handleOpenDialogClick}>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M10 1C10.4142 1 10.75 1.33579 10.75 1.75V9.25H18.25C18.6642 9.25 19 9.5858 19 10C19 10.4142 18.6642 10.75 18.25 10.75H10.75V18.25C10.75 18.6642 10.4142 19 10 19C9.5858 19 9.25 18.6642 9.25 18.25V10.75H1.75C1.33579 10.75 1 10.4142 1 10C1 9.5858 1.33579 9.25 1.75 9.25H9.25V1.75C9.25 1.33579 9.5858 1 10 1Z"
+              fill="currentColor"
+            />
+          </svg>
+        </ShadcnButton>
+
+        <DialogPopup className="duration-250 ease-in-out data-ending-style:translate-y-2 data-ending-style:scale-98 data-ending-style:opacity-0 data-starting-style:translate-y-2 data-starting-style:scale-98 data-starting-style:opacity-0">
+          <DialogHeader>
+            <DialogTitle>{step === 1 ? "Add item" : "Select Media"}</DialogTitle>
+          </DialogHeader>
+
+          <AnimatePresence mode="wait" initial={false}>
+            {step === 1 ? (
+              <motion.div
+                key="step1"
+                initial={{opacity: 0, x: -20}}
+                animate={{opacity: 1, x: 0}}
+                exit={{opacity: 0, x: -20}}
+                transition={{duration: 0.2}}>
+                <DialogPanel>
+                  <form
+                    id="add-item-form"
+                    className="flex flex-col gap-5"
+                    onSubmit={handleSubmit(onSubmit)}>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="url">URL</Label>
+                      <Input
+                        id="url"
+                        type="url"
+                        placeholder="https://example.com"
+                        {...register("url")}
+                        error={errors.url?.message}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label>Type</Label>
+                      <Controller
+                        name="type"
+                        control={control}
+                        render={({field}) => (
+                          <Select
+                            value={field.value}
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              trigger("url");
+                            }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type">
+                                {ITEM_TYPES.find((t) => t.value === field.value)?.label}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectPopup alignItemWithTrigger={false}>
+                              {ITEM_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
+                            </SelectPopup>
+                          </Select>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label>Collection</Label>
+                      <Controller
+                        name="collectionId"
+                        control={control}
+                        render={({field}) => {
+                          const selectedItem =
+                            collectionItems.find((item) => item.value === field.value) ?? null;
+
+                          return (
+                            <Combobox
+                              items={collectionItems}
+                              value={selectedItem}
+                              onValueChange={(val) => {
+                                field.onChange(val?.value ?? null);
+                              }}>
+                              <Select>
+                                <ComboboxTrigger render={<SelectButton />}>
+                                  <ComboboxValue placeholder="Select a collection" />
+                                </ComboboxTrigger>
+                              </Select>
+                              <ComboboxPopup
+                                aria-label="Select a collection"
+                                className="w-(--anchor-width)">
+                                <div className="border-b p-2">
+                                  <ComboboxInput
+                                    className="rounded-md before:rounded-[calc(var(--radius-md)-1px)]"
+                                    placeholder="Search collections..."
+                                    showTrigger={false}
+                                    startAddon={<SearchIcon className="size-4" />}
+                                  />
+                                </div>
+                                <ComboboxEmpty>No collections found.</ComboboxEmpty>
+                                <ComboboxList>
+                                  {(item) => (
+                                    <ComboboxItem key={item.value} value={item}>
+                                      {item.label}
+                                    </ComboboxItem>
+                                  )}
+                                </ComboboxList>
+                              </ComboboxPopup>
+                            </Combobox>
+                          );
+                        }}
+                      />
+                    </div>
+
+                    <Controller
+                      name="tags"
+                      control={control}
+                      render={({field}) => (
+                        <TagsInput
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          name="tags"
+                          label="Tags"
+                          sortOnAdd={false}
+                          availableTags={tags.map((t) => t.name)}
+                          userTags={tags.map((t) => t.name)}
+                          userAiContext={userAiContext}
+                          sourceUrl={watchedUrl}
+                          itemType={watchedType}
+                        />
+                      )}
+                    />
+                  </form>
+                </DialogPanel>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="step2"
+                initial={{opacity: 0, x: 20}}
+                animate={{opacity: 1, x: 0}}
+                exit={{opacity: 0, x: 20}}
+                transition={{duration: 0.2}}
+                className="grid grid-cols-2 gap-4 px-6 pt-4 pb-6">
+                {mediaItems.map((mediaItem, i) => {
+                  const isSelected = selectedMediaUrls.includes(mediaItem.url);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMediaUrls((prev) =>
+                          prev.includes(mediaItem.url)
+                            ? prev.filter((u) => u !== mediaItem.url)
+                            : [...prev, mediaItem.url],
+                        );
+                      }}
+                      className={cn(
+                        "group/preview border-border relative cursor-pointer overflow-hidden rounded-lg border transition-all duration-200",
+                        isSelected
+                          ? "border-primary"
+                          : "border-transparent opacity-50 hover:opacity-75",
+                      )}>
+                      <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-md">
+                        <Image
+                          src={mediaItem.thumbnail_url ?? mediaItem.url}
+                          alt={`Media ${i}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <DialogFooter>
+            <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
+            {step === 1 ? (
+              <Button
+                type="submit"
+                form="add-item-form"
+                disabled={addItemMutation.isPending || !isValid}>
+                {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
+                Submit
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                disabled={selectedMediaUrls.length === 0 || addItemMutation.isPending}
+                onClick={() => {
+                  const data = getValues();
+                  addItemMutation.mutate({
+                    url: data.url,
+                    tags: data.tags,
+                    collectionId: data.collectionId ?? undefined,
+                    kind: "media",
+                    selectedMediaUrls,
+                    selectedMediaItems: mediaItems.filter((item) =>
+                      selectedMediaUrls.includes(item.url),
+                    ),
+                  });
+                  closeDialog();
+                }}>
+                {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
+                Confirm
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogPopup>
+      </Dialog>
+    </div>
+  );
+}

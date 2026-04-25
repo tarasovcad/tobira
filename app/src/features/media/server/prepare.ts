@@ -1,7 +1,7 @@
 import {randomUUID} from "crypto";
 import {ALLOWED_MEDIA_DOMAINS} from "@/features/media/constants";
 import type {MediaImages, PostMediaItem} from "@/db/schema";
-import type {MediaMediaItem} from "@/app/home/_types/bookmark-metadata";
+import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
 import {extractXMedia} from "./fetch";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 

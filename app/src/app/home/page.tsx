@@ -1,13 +1,13 @@
 import {Suspense} from "react";
-import AppShell from "@/components/providers/AppShell";
+import AppShell from "@/components/app-shell/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
-import type {SearchParams, SortMode, TypeFilter} from "./_types";
-import {BookmarksDataWrapper} from "./_components/BookmarksDataWrapper";
-import {BookmarksLoader} from "./_components/skeletons/BookmarksLoader";
-import {SidebarSkeleton} from "./_components/skeletons/SidebarSkeleton";
-import {HomeClient} from "./_components/HomeClient";
-import {SidebarDataWrapper} from "./_components/SidebarDataWrapper";
+import type {SearchParams, SortMode, TypeFilter} from "@/features/home/types";
+import {BookmarksDataWrapper} from "@/features/home/components/BookmarksDataWrapper";
+import {BookmarksLoader} from "@/features/home/components/BookmarksLoader";
+import {SidebarSkeleton} from "@/components/app-shell/sidebar/SidebarSkeleton";
+import {HomeClient} from "@/features/home/components/HomeClient";
+import {SidebarDataWrapper} from "@/components/app-shell/sidebar/SidebarDataWrapper";
 
 const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const searchParams = await props.searchParams;

@@ -4,15 +4,15 @@ import {useCallback, useMemo} from "react";
 import {ScrollArea} from "@/components/coss-ui/scroll-area";
 import Spinner from "@/components/ui/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
-import type {TypeFilter} from "@/app/home/_types";
+import type {TypeFilter} from "@/features/home/types";
 import type {ViewMode} from "@/store/use-view-options";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {
   getCurrentAllItemsView,
   getAllItemsListViewOptions,
   getBookmarkWidthForType,
-} from "@/app/home/_components/all-items-client/all-items-list-view-options";
-import {getAllItemsListLayoutConfig} from "@/app/home/_components/all-items-client/all-items-list-layout";
+} from "@/features/all-items/components/all-items-list-view-options";
+import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
 import {flattenMediaGridBookmarks} from "@/features/media/components/bookmark/media-grid-render";
 import {SyncItemRow} from "./SyncItemRow";
 import type {SyncItem} from "../_types";

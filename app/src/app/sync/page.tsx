@@ -1,5 +1,5 @@
 import React from "react";
-import AppShell from "@/components/providers/AppShell";
+import AppShell from "@/components/app-shell/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
 

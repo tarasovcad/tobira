@@ -1,5 +1,5 @@
 import {create} from "zustand";
-import type {TagWithCount} from "@/app/home/_types";
+import type {TagWithCount} from "@/features/home/types";
 
 interface TagDialogState {
   isOpen: boolean;

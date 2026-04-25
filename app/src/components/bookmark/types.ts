@@ -1,4 +1,4 @@
-import type {BookmarkMetadata} from "@/app/home/_types/bookmark-metadata";
+import type {BookmarkMetadata} from "@/components/bookmark/types/metadata";
 import type {BookmarkImages} from "@/db/schema";
 
 export type Bookmark = {
@@ -18,3 +18,16 @@ export type Bookmark = {
   images?: BookmarkImages;
   metadata?: BookmarkMetadata;
 };
+
+export interface BookmarkItemProps {
+  item: Bookmark;
+  onOpenMenu?: (item: Bookmark) => void;
+  onDelete?: (item: Bookmark) => void;
+  onSave?: (item: Bookmark) => void;
+  onDismiss?: (item: Bookmark) => void;
+  className?: string;
+  mediaIndex?: number;
+  selectionIndex?: number;
+  isSelected?: boolean;
+  setSelected?: (id: string, checked: boolean) => void;
+}

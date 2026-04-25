@@ -1,12 +1,12 @@
 "use client";
 
 import {cn} from "@/lib/utils";
-import ViewOptionsMenu from "@/app/home/_components/ViewOptionsMenu";
-import {SortSelect} from "@/app/home/_components/AllItemsToolbar";
+import ViewOptionsMenu from "@/features/all-items/components/ViewOptionsMenu";
+import {SortSelect} from "@/features/all-items/components/AllItemsToolbar";
 import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/coss-ui/select";
 import {Button} from "@/components/coss-ui/button";
 import {AnimatePresence, motion} from "framer-motion";
-import type {SortMode, TypeFilter} from "@/app/home/_types";
+import type {SortMode, TypeFilter} from "@/features/home/types";
 import type {SyncStatusFilter} from "../_types";
 
 const STATUS_LABELS: Record<SyncStatusFilter, string> = {

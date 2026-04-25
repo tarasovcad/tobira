@@ -1,7 +1,7 @@
-import AppShell from "@/components/providers/AppShell";
+import AppShell from "@/components/app-shell/AppShell";
 import {AccountHeader, type AccountHeaderData} from "./_components/AccountHeader";
 import {SyncAccountClient} from "./_components/SyncAccountClient";
-import type {TypeFilter} from "@/app/home/_types";
+import type {TypeFilter} from "@/features/home/types";
 
 const FAKE_ACCOUNTS: Record<string, AccountHeaderData> = {
   acc_1: {
