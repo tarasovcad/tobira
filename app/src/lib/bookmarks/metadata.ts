@@ -5,7 +5,7 @@ import {
   looksLikeChallengeHtml,
 } from "@/lib/fetch/web/html";
 import {fetchTextWithTimeout} from "@/lib/fetch/web/http";
-import {fetchBrowserlessRenderedHtml} from "@/lib/fetch/web/screenshot";
+import {fetchHtmlViaFirecrawl} from "@/lib/fetch/web/screenshot";
 
 export type UrlMetadataResult = {
   inputUrl: string;
@@ -36,21 +36,21 @@ export async function fetchUrlMetadata(
   }
 
   let html = await res.text();
-  let usedBrowserless = false;
+  let usedFirecrawl = false;
 
   if (looksLikeChallengeHtml(html)) {
     try {
-      html = await fetchBrowserlessRenderedHtml(normalized.toString());
-      usedBrowserless = true;
+      html = (await fetchHtmlViaFirecrawl(normalized.toString())).rawHtml;
+      usedFirecrawl = true;
     } catch {
-      // Browserless fallback failed; continue with the original HTML.
+      // Firecrawl fallback failed; continue with the original HTML.
     }
   }
 
   result.title = extractTitleFromHtml(html);
   result.description = extractDescriptionFromHtml(html);
 
-  if (!usedBrowserless && looksLikeChallengeHtml(html)) {
+  if (!usedFirecrawl && looksLikeChallengeHtml(html)) {
     result.title = undefined;
     result.description = undefined;
   }

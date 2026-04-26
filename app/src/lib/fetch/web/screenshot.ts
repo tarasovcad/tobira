@@ -24,35 +24,48 @@ type ScreenshotDataUrl = {
   bytes: number;
 };
 
+type FirecrawlScrapeMetadata = {
+  ogImage?: string;
+  sourceURL?: string;
+  url?: string;
+  ["og:image"]?: string;
+};
+
 type FirecrawlScrapeResponse = {
   success?: boolean;
   data?: {
+    rawHtml?: string;
     screenshot?: string;
+    metadata?: FirecrawlScrapeMetadata;
   };
 };
 
-/**
- * Uses Browserless /content endpoint to fetch fully rendered HTML
- * (after JS execution). This handles Cloudflare challenges and JS-rendered SPAs.
- */
-export async function fetchBrowserlessRenderedHtml(url: string): Promise<string> {
-  const token = process.env.BROWSERLESS_API_KEY;
-  if (!token) throw new Error("Missing BROWSERLESS_API_KEY");
+type FirecrawlHtmlData = {
+  rawHtml: string;
+  metadata?: FirecrawlScrapeMetadata;
+};
+
+export async function fetchHtmlViaFirecrawl(url: string): Promise<FirecrawlHtmlData> {
+  const token = process.env.FIRECRAWL_API_KEY;
+  if (!token) throw new Error("Missing FIRECRAWL_API_KEY");
 
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), 25_000);
 
   try {
-    const response = await fetch(`https://production-sfo.browserless.io/content?token=${token}`, {
+    const response = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
-      headers: {"Cache-Control": "no-cache", "Content-Type": "application/json"},
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         url,
-        gotoOptions: {waitUntil: "networkidle0", timeout: 15000},
-        waitForSelector: {
-          selector: "title",
-          timeout: 10000,
-        },
+        onlyMainContent: false,
+        maxAge: 172800000,
+        parsers: [],
+        formats: ["rawHtml"],
       }),
       signal: controller.signal,
     });
@@ -60,70 +73,26 @@ export async function fetchBrowserlessRenderedHtml(url: string): Promise<string>
     if (!response.ok) {
       const text = await response.text().catch(() => "");
       throw new Error(
-        `Browserless content failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ""}`,
+        `Firecrawl HTML request failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ""}`,
       );
     }
 
-    return await response.text();
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-export async function fetchBrowserlessScreenshotDataUrl(url: string): Promise<ScreenshotDataUrl> {
-  const token = process.env.BROWSERLESS_API_KEY;
-  if (!token) throw new Error("Missing BROWSERLESS_API_KEY");
-
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 20_000);
-
-  try {
-    const response = await fetch(
-      `https://production-sfo.browserless.io/screenshot?token=${token}`,
-      {
-        method: "POST",
-        headers: {"Cache-Control": "no-cache", "Content-Type": "application/json"},
-        body: JSON.stringify({
-          url,
-          gotoOptions: {waitUntil: "networkidle0", timeout: 15000},
-          waitForSelector: {
-            selector: "body",
-            timeout: 10000,
-          },
-          viewport: {width: 1920, height: 1080, deviceScaleFactor: 1},
-          options: {
-            type: "png",
-            fullPage: false,
-            clip: {x: 0, y: 0, width: 1920, height: 900},
-          },
-        }),
-        signal: controller.signal,
-      },
-    );
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(
-        `Browserless screenshot failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ""}`,
-      );
+    const payload = (await response.json()) as FirecrawlScrapeResponse;
+    const rawHtml = payload.data?.rawHtml;
+    if (!payload.success || typeof rawHtml !== "string" || !rawHtml) {
+      throw new Error("Firecrawl HTML response did not include HTML content");
     }
-
-    const contentTypeRaw = response.headers.get("content-type") ?? "image/png";
-    const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
-    const imageBuffer = await response.arrayBuffer();
-    const base64 = arrayBufferToBase64(imageBuffer);
 
     return {
-      dataUrl: `data:${contentType};base64,${base64}`,
-      contentType,
-      bytes: imageBuffer.byteLength,
+      rawHtml,
+      metadata: payload.data?.metadata,
     };
   } finally {
     clearTimeout(t);
   }
 }
 
-export async function fetchFirecrawlScreenshotDataUrl(url: string): Promise<ScreenshotDataUrl> {
+export async function fetchScreenshotDataUrl(url: string): Promise<ScreenshotDataUrl> {
   const token = process.env.FIRECRAWL_API_KEY;
   if (!token) throw new Error("Missing FIRECRAWL_API_KEY");
 

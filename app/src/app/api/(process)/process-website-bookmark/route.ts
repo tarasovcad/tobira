@@ -2,10 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {fetchBestFaviconOne} from "@/lib/fetch/web/favicon";
 import {isRecord} from "@/lib/fetch/web/http";
 import {fetchResolvedOgImageUrl} from "@/lib/fetch/web/og";
-import {
-  fetchBrowserlessScreenshotDataUrl,
-  fetchFirecrawlScreenshotDataUrl,
-} from "@/lib/fetch/web/screenshot";
+import {fetchScreenshotDataUrl} from "@/lib/fetch/web/screenshot";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {uploadToR2, existsInR2} from "@/lib/storage/r2-storage";
@@ -220,10 +217,7 @@ async function runEnrichment(inputUrl: string) {
     ),
     fetchAndUpload(
       keys.preview,
-      () =>
-        process.env.USE_FIRECRAWL === "true"
-          ? fetchFirecrawlScreenshotDataUrl(normalized)
-          : fetchBrowserlessScreenshotDataUrl(normalized),
+      () => fetchScreenshotDataUrl(normalized),
       async (preview) => {
         if (
           preview &&

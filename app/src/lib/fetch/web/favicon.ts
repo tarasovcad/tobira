@@ -1,6 +1,6 @@
 import {fetchJsonWithTimeout, fetchTextWithTimeout, isRecord} from "./http";
 import {isHtmlContentType, looksLikeChallengeHtml, stripWrappingQuotes} from "./html";
-import {fetchBrowserlessRenderedHtml} from "./screenshot";
+import {fetchHtmlViaFirecrawl} from "./screenshot";
 
 export type IconSource = "html" | "manifest" | "fallback";
 
@@ -229,10 +229,10 @@ export async function fetchFaviconCandidates(
 
     if (html && looksLikeChallengeHtml(html)) {
       try {
-        html = await fetchBrowserlessRenderedHtml(url);
+        html = (await fetchHtmlViaFirecrawl(url)).rawHtml;
         finalUrl = url;
       } catch {
-        // Browserless fallback failed; continue with whatever we got.
+        // Firecrawl fallback failed; continue with whatever we got.
       }
     }
 

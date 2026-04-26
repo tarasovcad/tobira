@@ -1,6 +1,6 @@
 import {fetchTextWithTimeout} from "./http";
 import {extractOgImageUrlFromHtml, isHtmlContentType, looksLikeChallengeHtml} from "./html";
-import {fetchBrowserlessRenderedHtml} from "./screenshot";
+import {fetchHtmlViaFirecrawl} from "./screenshot";
 
 export async function fetchResolvedOgImageUrl(url: string) {
   const res = await fetchTextWithTimeout(url, 8000, {
@@ -11,10 +11,18 @@ export async function fetchResolvedOgImageUrl(url: string) {
   if (!isHtmlContentType(contentType)) return undefined;
 
   let html = await res.text();
+  let baseUrl = res.url || url;
 
   if (looksLikeChallengeHtml(html)) {
     try {
-      html = await fetchBrowserlessRenderedHtml(url);
+      const firecrawl = await fetchHtmlViaFirecrawl(url);
+      html = firecrawl.rawHtml;
+      baseUrl = firecrawl.metadata?.sourceURL ?? firecrawl.metadata?.url ?? baseUrl;
+
+      const firecrawlOg = firecrawl.metadata?.ogImage ?? firecrawl.metadata?.["og:image"];
+      if (firecrawlOg) {
+        return new URL(firecrawlOg, baseUrl).toString();
+      }
     } catch {
       return undefined;
     }
@@ -23,7 +31,7 @@ export async function fetchResolvedOgImageUrl(url: string) {
   const og = extractOgImageUrlFromHtml(html);
   if (!og) return undefined;
   try {
-    return new URL(og, res.url || url).toString();
+    return new URL(og, baseUrl).toString();
   } catch {
     return undefined;
   }
