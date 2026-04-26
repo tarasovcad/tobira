@@ -5,10 +5,12 @@ export default function WebsiteBookmarkHoverActions({
   className,
   variant = "default",
   onOptions,
+  onExpand,
 }: {
   className?: string;
   variant?: "default" | "glass";
   onOptions?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onExpand?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   const getButtonClassName = (hasRightBorder?: boolean) => {
     if (variant === "glass") {
@@ -39,6 +41,31 @@ export default function WebsiteBookmarkHoverActions({
         "group-data-[selection-mode=true]/bookmark-row:pointer-events-none! group-data-[selection-mode=true]/bookmark-row:opacity-0!",
         className,
       )}>
+      {onExpand ? (
+        <button
+          type="button"
+          aria-label="Preview"
+          className={getButtonClassName(Boolean(onOptions))}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onExpand(e);
+          }}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M8.66667 2.66667C8.66667 2.29848 8.96513 2 9.33333 2H13.3333C13.7015 2 14 2.29848 14 2.66667V6.66667C14 7.03487 13.7015 7.33333 13.3333 7.33333C12.9651 7.33333 12.6667 7.03487 12.6667 6.66667V4.27614L9.80473 7.13807C9.5444 7.3984 9.12227 7.3984 8.86193 7.13807C8.6016 6.87773 8.6016 6.45561 8.86193 6.19526L11.7239 3.33333H9.33333C8.96513 3.33333 8.66667 3.03485 8.66667 2.66667ZM2.66667 8.66667C3.03485 8.66667 3.33333 8.96513 3.33333 9.33333V11.7239L6.19526 8.86193C6.45561 8.6016 6.87773 8.6016 7.13807 8.86193C7.3984 9.12227 7.3984 9.5444 7.13807 9.80473L4.27614 12.6667H6.66667C7.03487 12.6667 7.33333 12.9651 7.33333 13.3333C7.33333 13.7015 7.03487 14 6.66667 14H2.66667C2.29848 14 2 13.7015 2 13.3333V9.33333C2 8.96513 2.29848 8.66667 2.66667 8.66667Z"
+              fill="currentColor"
+            />
+          </svg>
+        </button>
+      ) : null}
       {onOptions ? (
         <button
           type="button"

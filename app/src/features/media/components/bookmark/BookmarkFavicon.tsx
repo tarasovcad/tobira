@@ -15,9 +15,18 @@ function getDomainLetter(url: string): {letter: string; domain: string} {
   }
 }
 
-const BookmarkFavicon = ({url, bookmarkUrl}: {url: string; bookmarkUrl: string}) => {
+const BookmarkFavicon = ({
+  url,
+  bookmarkUrl,
+  variant,
+}: {
+  url: string;
+  bookmarkUrl: string;
+  variant: "compact" | "list";
+}) => {
   const {contentToggles} = useViewOptionsStore();
   const showImage = contentToggles.avatar;
+  const isCompact = variant === "compact";
   const {letter, domain} = getDomainLetter(bookmarkUrl);
   const baseSrc = buildR2PublicUrl(url);
   const maxRetries = 12;
@@ -43,15 +52,17 @@ const BookmarkFavicon = ({url, bookmarkUrl}: {url: string; bookmarkUrl: string})
     return (
       <div
         className={cn(
-          "bg-background relative shrink-0 overflow-hidden rounded-md border",
-          "size-9 object-contain",
+          "relative shrink-0 overflow-hidden",
+          isCompact
+            ? "size-[18px] border-none bg-transparent"
+            : "bg-background size-9 rounded-md border",
           "flex items-center justify-center",
         )}>
         {status !== "loaded" ? (
           <div className="text-muted-foreground/30 z-10 flex items-center justify-center">
             <svg
-              width="20"
-              height="20"
+              width={isCompact ? 16 : 20}
+              height={isCompact ? 16 : 20}
               viewBox="0 0 20 20"
               fill="none"
               xmlns="http://www.w3.org/2000/svg">
@@ -70,10 +81,11 @@ const BookmarkFavicon = ({url, bookmarkUrl}: {url: string; bookmarkUrl: string})
             <Image
               src={`${baseSrc}?v=${attempt}`}
               alt={bookmarkUrl + " favicon"}
-              width={20}
-              height={20}
+              width={isCompact ? 18 : 20}
+              height={isCompact ? 18 : 20}
               className={cn(
                 "object-contain transition-opacity duration-200 ease-in-out",
+                isCompact ? "h-[18px] w-[18px]" : undefined,
                 status === "loaded" ? "opacity-100" : "opacity-0",
               )}
               loading="lazy"
@@ -87,16 +99,20 @@ const BookmarkFavicon = ({url, bookmarkUrl}: {url: string; bookmarkUrl: string})
   }
 
   return (
-    <div className="flex size-9 items-center justify-center rounded-sm">
+    <div
+      className={cn(
+        "flex items-center justify-center rounded-sm",
+        isCompact ? "size-[18px]" : "size-9",
+      )}>
       <Avatar
         seed={domain}
         label={letter}
-        size={32}
+        size={isCompact ? 18 : 32}
         animated={false}
         showFrame={false}
         className={cn("rounded-sm")}
         style={{
-          fontSize: Math.max(10, Math.floor(36 * 0.55)) + "px",
+          fontSize: isCompact ? "10px" : Math.max(10, Math.floor(36 * 0.55)) + "px",
         }}
       />
     </div>

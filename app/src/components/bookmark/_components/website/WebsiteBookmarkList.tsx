@@ -57,7 +57,11 @@ export default function BookmarkWebsiteList({
             onCheckedChange={setSelected}
             paddingClassName="pr-3"
           />
-          <BookmarkFavicon url={item?.images?.favicon?.key ?? ""} bookmarkUrl={item.url} />
+          <BookmarkFavicon
+            url={item?.images?.favicon?.key ?? ""}
+            bookmarkUrl={item.url}
+            variant="list"
+          />
         </div>
 
         <div className="min-w-0 flex-1 text-[13px]">

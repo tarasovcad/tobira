@@ -68,7 +68,7 @@ export default function BookmarkSelectionCheckbox({
       )}
       style={{transitionDelay: `${delay}ms`}}>
       <div className="min-w-0 overflow-hidden">
-        <div className={paddingClassName}>
+        <div className={cn("flex items-center", paddingClassName)}>
           <Checkbox
             checked={checked}
             onCheckedChange={(next) => onCheckedChange?.(itemId, next === true)}

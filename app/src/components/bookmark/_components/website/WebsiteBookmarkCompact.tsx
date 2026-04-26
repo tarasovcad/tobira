@@ -5,13 +5,22 @@ import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import BookmarkFavicon from "@/features/media/components/bookmark/BookmarkFavicon";
-import {BookmarkItemProps} from "../../types";
 import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
+import {WebsiteBookmark} from "../../types";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
+
+interface BookmarkItemProps {
+  item: WebsiteBookmark;
+  onOpenMenu?: (item: WebsiteBookmark) => void;
+  selectionIndex?: number;
+  isSelected?: boolean;
+  setSelected?: (id: string, checked: boolean) => void;
+  className?: string;
+}
 
 export default function WebsiteBookmarkCompact({
   item,
@@ -40,7 +49,7 @@ export default function WebsiteBookmarkCompact({
         onOptions={() => onOpenMenu?.(item)}
       />
 
-      <div className="flex shrink-0 items-center">
+      <div className="bg- flex shrink-0 items-center self-stretch">
         <BookmarkSelectionCheckbox
           itemId={item.id}
           title={item.title}
@@ -50,14 +59,9 @@ export default function WebsiteBookmarkCompact({
           paddingClassName="pr-2"
         />
         <BookmarkFavicon
-          item={item}
-          letterClassName="size-[18px]"
-          imageContainerClassName="size-[18px] rounded-none border-none bg-transparent"
-          imageClassName="h-[18px] w-[18px] object-contain"
-          skeletonClassName="bg-transparent"
-          height={18}
-          width={18}
-          iconSize={16}
+          url={item?.images?.favicon?.key ?? ""}
+          bookmarkUrl={item.url}
+          variant="compact"
         />
       </div>
 

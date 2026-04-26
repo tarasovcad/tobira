@@ -49,6 +49,7 @@ next-env.d.ts
 
 # agents
 .agents/
+AGENTS.md
 
 # wrangler (Cloudflare Workers)
 .wrangler/

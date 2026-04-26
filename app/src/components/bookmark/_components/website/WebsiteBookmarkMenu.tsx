@@ -32,7 +32,7 @@ import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark
 import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
-import WebsiteBookmarkMenuImage from "@/features/media/components/bookmark/WebsiteBookmarkMenuImage";
+import WebsiteBookmarkMenuImage from "./WebsiteBookmarkMenuImage";
 
 const MAX_DESCRIPTION_LENGTH = 280;
 

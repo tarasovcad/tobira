@@ -1,14 +1,22 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-// import BookmarkImage from "@/features/media/components/bookmark/BookmarkImage";
-import type {BookmarkItemProps} from "@/components/bookmark/types";
+import type {WebsiteBookmark} from "@/components/bookmark/types";
+import {useState} from "react";
 import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
+import WebsiteBookmarkGridImage from "./WebsiteBookmarkGridImage";
+
+interface BookmarkItemProps {
+  item: WebsiteBookmark;
+  onOpenMenu?: (item: WebsiteBookmark) => void;
+  selectionIndex?: number;
+  isSelected?: boolean;
+  setSelected?: (id: string, checked: boolean) => void;
+}
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -21,22 +29,29 @@ export default function WebsiteBookmarkGrid({
   setSelected,
 }: BookmarkItemProps) {
   const {borderRadius, contentToggles, gridGap} = useViewOptionsStore();
-  const [previewOpenSignal, setPreviewOpenSignal] = React.useState(0);
+  const [previewOpenSignal, setPreviewOpenSignal] = useState(0);
   const zeroGap = gridGap === "none";
+
   const onlyTitle =
     !contentToggles.source &&
     !contentToggles.savedDate &&
     !(contentToggles.description && item.description) &&
     !(contentToggles.tags && item.tags && item.tags.length > 0);
 
-  const radiusClass =
-    borderRadius === "none" || zeroGap
-      ? "rounded-none"
-      : borderRadius === "sm"
-        ? "rounded-sm"
-        : borderRadius === "md"
-          ? "rounded-md"
-          : "rounded-lg";
+  const radiusClass = (() => {
+    if (zeroGap) return "rounded-none";
+
+    switch (borderRadius) {
+      case "none":
+        return "rounded-none";
+      case "sm":
+        return "rounded-sm";
+      case "md":
+        return "rounded-md";
+      default:
+        return "rounded-lg";
+    }
+  })();
 
   return (
     <Link
@@ -68,18 +83,7 @@ export default function WebsiteBookmarkGrid({
           variant="overlay"
           delayStepMs={15}
         />
-        {/* <BookmarkImage
-          bookmark_id={item.id}
-          item={item}
-          type="preview"
-          fill={true}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          quality={50}
-          loading="lazy"
-          previewOpenSignal={previewOpenSignal}
-          disablePreviewOnClick={true}
-          imageClassName="h-full w-full object-cover"
-        /> */}
+        <WebsiteBookmarkGridImage item={item} previewOpenSignal={previewOpenSignal} />
       </div>
 
       <div
