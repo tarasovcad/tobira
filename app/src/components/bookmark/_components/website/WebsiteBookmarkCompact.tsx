@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {BookmarkAvatar} from "@/features/media/components/bookmark/BookmarkAvatar";
+import BookmarkFavicon from "@/features/media/components/bookmark/BookmarkFavicon";
 import {BookmarkItemProps} from "../../types";
 import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
@@ -49,7 +49,7 @@ export default function WebsiteBookmarkCompact({
           onCheckedChange={setSelected}
           paddingClassName="pr-2"
         />
-        <BookmarkAvatar
+        <BookmarkFavicon
           item={item}
           letterClassName="size-[18px]"
           imageContainerClassName="size-[18px] rounded-none border-none bg-transparent"

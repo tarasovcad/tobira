@@ -3,7 +3,6 @@
 import {useState, useMemo, useEffect, useCallback} from "react";
 import {Controller} from "react-hook-form";
 import {formatDateWithTime} from "@/lib/utils/dates";
-import {BookmarkImage} from "@/features/media/components/bookmark/BookmarkImage";
 import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/components/ui/coss/sheet";
 import {Button} from "@/components/ui/coss/button";
 import {Separator} from "@/components/ui/legacy-shadcn/separator";
@@ -26,13 +25,14 @@ import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
-import {BookmarkPreviewDialog} from "@/features/media/components/bookmark/BookmarkPreviewDialog";
+import BookmarkPreviewDialog from "@/features/media/components/bookmark/BookmarkPreviewDialog";
 import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
 import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark-schema";
 import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
+import WebsiteBookmarkMenuImage from "@/features/media/components/bookmark/WebsiteBookmarkMenuImage";
 
 const MAX_DESCRIPTION_LENGTH = 280;
 
@@ -241,12 +241,14 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
     }
   }, [item, onDelete]);
 
-  const websiteImages = isWebsiteImages(item?.images) ? item.images : undefined;
+  const websiteImages = isWebsiteImages(item?.images) ? item?.images : undefined;
 
-  const ogImageUrl = websiteImages?.og?.key ? buildR2PublicUrl(websiteImages.og.key) : "";
+  const ogImageUrl = websiteImages?.og?.key
+    ? `${buildR2PublicUrl(websiteImages.og.key)}?size=medium`
+    : "";
 
   const previewImageUrl = websiteImages?.preview?.key
-    ? buildR2PublicUrl(websiteImages.preview.key)
+    ? `${buildR2PublicUrl(websiteImages.preview.key)}?size=medium`
     : "";
 
   const handlePreviewClick = useCallback(() => {
@@ -273,8 +275,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
   );
 
   const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isResetting;
-  console.log(item, "item");
-  console.log(currentValues.selected_image, "currentValues.selected_image");
+
   return (
     <>
       <Sheet open={open} onOpenChange={setMenuOpen}>
@@ -290,8 +291,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
               <SheetPanel className="p-0 pt-0!">
                 {item?.id && item.kind === "website" ? (
                   <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
-                    <BookmarkImage
-                      bookmark_id={item.id}
+                    <WebsiteBookmarkMenuImage
                       item={item}
                       type={currentValues.selected_image ?? "preview"}
                       fill

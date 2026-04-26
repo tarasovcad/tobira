@@ -3,14 +3,23 @@
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {BookmarkAvatar} from "@/features/media/components/bookmark/BookmarkAvatar";
-import type {BookmarkItemProps} from "@/components/bookmark/types";
+import type {WebsiteBookmark} from "@/components/bookmark/types";
 import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
+import BookmarkFavicon from "@/features/media/components/bookmark/BookmarkFavicon";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
+
+interface WebsiteBookmarkListProps {
+  item: WebsiteBookmark;
+  onOpenMenu?: (item: WebsiteBookmark) => void;
+  className?: string;
+  selectionIndex?: number;
+  isSelected?: boolean;
+  setSelected?: (id: string, checked: boolean) => void;
+}
 
 export default function BookmarkWebsiteList({
   item,
@@ -19,9 +28,8 @@ export default function BookmarkWebsiteList({
   selectionIndex = 0,
   isSelected = false,
   setSelected,
-}: BookmarkItemProps) {
+}: WebsiteBookmarkListProps) {
   const {contentToggles} = useViewOptionsStore();
-
   return (
     <Link
       href={item.url}
@@ -49,14 +57,7 @@ export default function BookmarkWebsiteList({
             onCheckedChange={setSelected}
             paddingClassName="pr-3"
           />
-          <BookmarkAvatar
-            item={item}
-            className="size-9"
-            imageClassName="h-5 w-5 object-contain"
-            height={20}
-            width={20}
-            iconSize={36}
-          />
+          <BookmarkFavicon url={item?.images?.favicon?.key ?? ""} bookmarkUrl={item.url} />
         </div>
 
         <div className="min-w-0 flex-1 text-[13px]">

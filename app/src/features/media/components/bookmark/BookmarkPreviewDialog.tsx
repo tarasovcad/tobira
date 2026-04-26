@@ -1,6 +1,6 @@
 "use client";
 
-import {memo, useState} from "react";
+import {useState} from "react";
 import Image from "next/image";
 import {cn} from "@/lib/utils";
 import {
@@ -73,7 +73,7 @@ function PreviewOptionImage({src, alt}: {src: string; alt: string}) {
   );
 }
 
-function BookmarkPreviewDialogImpl({
+export default function BookmarkPreviewDialog({
   open,
   onOpenChange,
   ogImageUrl,
@@ -84,25 +84,61 @@ function BookmarkPreviewDialogImpl({
 }: BookmarkPreviewDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPopup className="max-w-2xl">
+      <DialogPopup className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Change Preview Image</DialogTitle>
           <DialogDescription>Choose which image to use as the bookmark preview.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 px-6 pb-6">
+        <div className="grid grid-cols-2 gap-6 px-6 pb-6">
           {/* OG Image option */}
           <button
             type="button"
             onClick={() => onSelectPreview("og")}
             className={cn(
-              "group/preview border-border relative cursor-pointer overflow-hidden rounded-lg border transition-all duration-200",
+              "group/preview focus-visible:ring-ring relative cursor-pointer rounded-xl border-2 p-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               selectedPreview === "og"
-                ? "border-primary"
-                : "border-transparent opacity-50 hover:opacity-75",
+                ? "border-highlight ring-highlight/20"
+                : "hover:bg-accent/50 border-transparent opacity-70 hover:opacity-100",
             )}>
-            <PreviewOptionImage src={ogImageUrl} alt="OG Image" />
-            <div className="text-foreground/90 my-3 text-center text-sm font-medium">OG Image</div>
+            <div className="relative overflow-hidden rounded-lg shadow-sm">
+              <PreviewOptionImage src={ogImageUrl} alt="OG Image" />
+              <div
+                className={cn(
+                  "bg-primary/10 absolute inset-0 transition-opacity duration-200",
+                  selectedPreview === "og" ? "opacity-100" : "opacity-0",
+                )}
+              />
+              <div
+                className={cn(
+                  "bg-primary text-primary-foreground absolute top-2 right-2 flex h-6 w-6 scale-50 items-center justify-center rounded-full opacity-0 shadow-sm transition-all duration-200",
+                  selectedPreview === "og" && "scale-100 opacity-100",
+                )}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M5.16699 8.6154L7.04199 10.5L10.167 5.83333"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div
+              className={cn(
+                "my-2.5 text-center text-sm font-[450] transition-colors",
+                selectedPreview === "og"
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover/preview:text-foreground",
+              )}>
+              OG Image
+            </div>
           </button>
 
           {/* Preview Image option */}
@@ -110,13 +146,47 @@ function BookmarkPreviewDialogImpl({
             type="button"
             onClick={() => onSelectPreview("preview")}
             className={cn(
-              "group/preview border-border relative cursor-pointer overflow-hidden rounded-lg border transition-all duration-200",
+              "group/preview focus-visible:ring-ring relative cursor-pointer rounded-xl border-2 p-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               selectedPreview === "preview"
-                ? "border-primary"
-                : "border-transparent opacity-50 hover:opacity-75",
+                ? "border-highlight ring-highlight/20"
+                : "hover:bg-accent/50 border-transparent opacity-70 hover:opacity-100",
             )}>
-            <PreviewOptionImage src={previewImageUrl} alt="Preview Image" />
-            <div className="text-foreground/90 my-3 text-center text-sm font-medium">
+            <div className="relative overflow-hidden rounded-lg">
+              <PreviewOptionImage src={previewImageUrl} alt="Preview Image" />
+              <div
+                className={cn(
+                  "bg-primary/10 absolute inset-0 transition-opacity duration-200",
+                  selectedPreview === "preview" ? "opacity-100" : "opacity-0",
+                )}
+              />
+              <div
+                className={cn(
+                  "bg-primary text-primary-foreground absolute top-2 right-2 flex h-6 w-6 scale-50 items-center justify-center rounded-full opacity-0 shadow-sm transition-all duration-200",
+                  selectedPreview === "preview" && "scale-100 opacity-100",
+                )}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M5.16699 8.6154L7.04199 10.5L10.167 5.83333"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div
+              className={cn(
+                "my-2.5 text-center text-sm font-medium transition-colors",
+                selectedPreview === "preview"
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover/preview:text-foreground",
+              )}>
               Screenshot
             </div>
           </button>
@@ -132,5 +202,3 @@ function BookmarkPreviewDialogImpl({
     </Dialog>
   );
 }
-
-export const BookmarkPreviewDialog = memo(BookmarkPreviewDialogImpl);

@@ -27,7 +27,6 @@ type BookmarkMediaPreviewItem = {
 };
 
 export type BookmarkMediaPreviewSize = "small" | "medium" | "large";
-
 const VIDEO_PROXY_WORKER_URL = process.env.NEXT_PUBLIC_VIDEO_PROXY_WORKER_URL;
 
 function getMediaItems(images: Bookmark["images"] | undefined): MediaImages["items"] {
@@ -199,21 +198,4 @@ export function getBookmarkMediaPreviewItem(
 export function getBookmarkMediaTileCount(item: Bookmark) {
   const previewItems = getBookmarkMediaPreviewItems(item);
   return previewItems.length > 0 ? previewItems.length : 1;
-}
-
-export function getBookmarkImageSrc(
-  item: Bookmark,
-  bookmarkId: string,
-  type: "preview" | "favicon" | "og",
-) {
-  const websiteImages = isWebsiteImages(item.images) ? item.images : undefined;
-
-  switch (type) {
-    case "preview":
-      return buildR2PublicUrl(websiteImages?.preview?.key ?? `websites/${bookmarkId}/preview.png`);
-    case "favicon":
-      return buildR2PublicUrl(websiteImages?.favicon?.key ?? `websites/${bookmarkId}/favicon.png`);
-    case "og":
-      return buildR2PublicUrl(websiteImages?.og?.key ?? `websites/${bookmarkId}/og.png`);
-  }
 }

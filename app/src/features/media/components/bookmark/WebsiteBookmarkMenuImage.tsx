@@ -4,13 +4,13 @@ import * as React from "react";
 import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import type {Bookmark} from "@/components/bookmark/types";
-import type {WebsiteOrMediaMetadata} from "@/components/bookmark/types/metadata";
-import {getBookmarkImageSrc, isWebsiteImages} from "./bookmark-images";
+import type {WebsiteBookmark} from "@/components/bookmark/types";
+import {WebsiteImages} from "@/db/schema";
+import {buildR2PublicUrl} from "@/lib/storage/r2-public";
+import {isWebsiteImages} from "./bookmark-images";
 
 interface BookmarkImageProps {
-  bookmark_id: string;
-  item: Bookmark;
+  item: WebsiteBookmark;
   type: "preview" | "favicon" | "og";
   sizes?: string;
   quality?: number;
@@ -27,12 +27,27 @@ interface BookmarkImageProps {
   onPreviewOpenChange?: (open: boolean) => void;
 }
 
-function BookmarkImageImpl({
-  bookmark_id,
+function getWebsiteImageKey(
+  images: WebsiteImages | undefined,
+  type: "preview" | "favicon" | "og",
+): string | undefined {
+  if (!images) return undefined;
+
+  switch (type) {
+    case "preview":
+      return images.preview?.key;
+    case "favicon":
+      return images.favicon?.key;
+    case "og":
+      return images.og?.key;
+    default:
+      return undefined;
+  }
+}
+
+export default function WebsiteBookmarkMenuImage({
   item,
   type,
-  sizes,
-  quality,
   loading,
   previewOpenSignal,
   disablePreviewOnClick,
@@ -45,26 +60,18 @@ function BookmarkImageImpl({
   fill,
   onPreviewOpenChange,
 }: BookmarkImageProps) {
-  const baseSrc = getBookmarkImageSrc(item, bookmark_id, type);
+  const imageKey = isWebsiteImages(item.images) ? getWebsiteImageKey(item.images, type) : undefined;
+  const baseSrc = imageKey ? buildR2PublicUrl(imageKey) : "";
 
   const maxRetries = 12;
   const retryMs = 2000;
   const imageWidth = width ?? 1200;
   const imageHeight = height ?? 1200;
   const imageLoading = loading ?? "lazy";
-  const imageQuality = quality ?? (type === "preview" ? 50 : 60);
-  const imageSizes =
-    sizes ??
-    (type === "favicon"
-      ? `${imageWidth}px`
-      : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw");
 
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
-
-  const isVideo = baseSrc.toLowerCase().endsWith(".mp4") || baseSrc.toLowerCase().endsWith(".mov");
   const hasValidImage = !!baseSrc && status === "loaded";
-  const showFallbackInPreview = type === "preview" && !hasValidImage;
 
   useEffect(() => {
     if (status !== "error") return;
@@ -97,8 +104,8 @@ function BookmarkImageImpl({
             fallbackClassName,
           )}>
           <svg
-            width={type === "favicon" && width ? width : 20}
-            height={type === "favicon" && height ? height : 20}
+            width={26}
+            height={26}
             viewBox="0 0 20 20"
             fill="none"
             xmlns="http://www.w3.org/2000/svg">
@@ -120,23 +127,17 @@ function BookmarkImageImpl({
           skeletonClassName,
         )}>
         <MediaPreview
-          src={`${baseSrc}?v=${attempt}`}
-          alt={`${bookmark_id} ${type}`}
+          src={baseSrc ? `${baseSrc}?size=medium&v=${attempt}` : ""}
+          fullSizeSrc={baseSrc ? `${baseSrc}?size=large&v=${attempt}` : ""}
+          alt={`${item.id} ${type}`}
           width={imageWidth}
           height={imageHeight}
-          sizes={imageSizes}
-          quality={imageQuality}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw)"
+          quality={100}
           loading={imageLoading}
           openSignal={previewOpenSignal}
           disableClickToOpen={disablePreviewOnClick}
-          addZoom={!isVideo && hasValidImage}
-          type={isVideo ? "video" : "image"}
-          showFallback={showFallbackInPreview}
-          poster={
-            isVideo
-              ? ((item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url ?? undefined)
-              : undefined
-          }
+          showFallback={!hasValidImage}
           className={cn(
             status === "loaded" ? "opacity-100" : "opacity-0",
             "transition-opacity duration-300 ease-in-out",
@@ -144,40 +145,10 @@ function BookmarkImageImpl({
           )}
           buttonClassName="flex h-full w-full items-center justify-center"
           onOpenChange={onPreviewOpenChange}
-          onLoad={!isVideo ? () => setStatus("loaded") : undefined}
-          onCanPlay={isVideo ? () => setStatus("loaded") : undefined}
+          onLoad={() => setStatus("loaded")}
           onError={() => setStatus("error")}
         />
       </div>
     </div>
   );
 }
-
-export const BookmarkImage = React.memo(BookmarkImageImpl, (prev, next) => {
-  return (
-    prev.bookmark_id === next.bookmark_id &&
-    prev.type === next.type &&
-    prev.sizes === next.sizes &&
-    prev.quality === next.quality &&
-    prev.loading === next.loading &&
-    prev.previewOpenSignal === next.previewOpenSignal &&
-    prev.disablePreviewOnClick === next.disablePreviewOnClick &&
-    prev.divClassName === next.divClassName &&
-    prev.imageClassName === next.imageClassName &&
-    prev.skeletonClassName === next.skeletonClassName &&
-    prev.height === next.height &&
-    prev.width === next.width &&
-    prev.fallbackClassName === next.fallbackClassName &&
-    prev.fill === next.fill &&
-    prev.onPreviewOpenChange === next.onPreviewOpenChange &&
-    prev.item.id === next.item.id &&
-    (isWebsiteImages(prev.item.images) ? prev.item.images.preview?.key : undefined) ===
-      (isWebsiteImages(next.item.images) ? next.item.images.preview?.key : undefined) &&
-    (isWebsiteImages(prev.item.images) ? prev.item.images.favicon?.key : undefined) ===
-      (isWebsiteImages(next.item.images) ? next.item.images.favicon?.key : undefined) &&
-    (isWebsiteImages(prev.item.images) ? prev.item.images.og?.key : undefined) ===
-      (isWebsiteImages(next.item.images) ? next.item.images.og?.key : undefined) &&
-    (prev.item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url ===
-      (next.item.metadata as WebsiteOrMediaMetadata | undefined)?.thumbnail_url
-  );
-});

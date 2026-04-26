@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {cn} from "@/lib/utils";
-import type {Bookmark} from "@/components/bookmark/types";
+import type {Bookmark, WebsiteBookmark} from "@/components/bookmark/types";
 
 import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
@@ -32,7 +32,7 @@ import PostBookmarkPlaceholderList from "@/components/bookmark/_components/post/
 export type AllItemsAnimatedVariant = "list" | "grid";
 
 export interface AllItemsBookmarkComponentProps {
-  item: Bookmark;
+  item: WebsiteBookmark;
   onOpenMenu?: (item: Bookmark) => void;
   onDelete?: (item: Bookmark) => void;
   onSave?: (item: Bookmark) => void;

@@ -7,7 +7,9 @@ export function WebsiteSkeletonList() {
 
   return (
     <div className="flex w-full gap-5 border-b px-6 py-5 pr-16">
-      <Skeleton className="size-9 rounded-md" />
+      <div className="flex items-center">
+        <Skeleton className="size-9 rounded-md" />
+      </div>
       <div className="min-w-0 flex-1">
         <Skeleton className="h-[20px] w-48 rounded-[2px]" />
         {(contentToggles.source || contentToggles.savedDate) && (

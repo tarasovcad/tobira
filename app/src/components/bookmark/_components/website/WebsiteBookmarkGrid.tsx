@@ -4,8 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {BookmarkImage} from "@/features/media/components/bookmark/BookmarkImage";
-import {BookmarkItemProps} from "@/components/bookmark/types";
+// import BookmarkImage from "@/features/media/components/bookmark/BookmarkImage";
+import type {BookmarkItemProps} from "@/components/bookmark/types";
 import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
@@ -68,7 +68,7 @@ export default function WebsiteBookmarkGrid({
           variant="overlay"
           delayStepMs={15}
         />
-        <BookmarkImage
+        {/* <BookmarkImage
           bookmark_id={item.id}
           item={item}
           type="preview"
@@ -79,7 +79,7 @@ export default function WebsiteBookmarkGrid({
           previewOpenSignal={previewOpenSignal}
           disablePreviewOnClick={true}
           imageClassName="h-full w-full object-cover"
-        />
+        /> */}
       </div>
 
       <div
