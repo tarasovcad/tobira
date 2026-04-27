@@ -4,12 +4,12 @@ import * as React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import BookmarkFavicon from "@/features/media/components/bookmark/BookmarkFavicon";
+import BookmarkFavicon from "./BookmarkFavicon";
 import {formatDateAbsolute} from "@/lib/utils/dates";
-import {BookmarkItemProps} from "../../types";
-import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
+import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import {getDomainName} from "./WebsiteBookmarkMeta";
+import {WebsiteBookmark} from "../../types";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -30,6 +30,15 @@ export function getTableBookmarkColumnsClass(showSource: boolean, showSavedDate:
   return "md:grid-cols-[auto_minmax(0,1fr)]";
 }
 
+interface WebsiteBookmarkTableProps {
+  item: WebsiteBookmark;
+  onOpenMenu?: (item: WebsiteBookmark) => void;
+  className?: string;
+  selectionIndex?: number;
+  isSelected?: boolean;
+  setSelected?: (id: string, checked: boolean) => void;
+}
+
 export default function WebsiteBookmarkTable({
   item,
   onOpenMenu,
@@ -37,7 +46,7 @@ export default function WebsiteBookmarkTable({
   selectionIndex = 0,
   isSelected = false,
   setSelected,
-}: BookmarkItemProps) {
+}: WebsiteBookmarkTableProps) {
   const {contentToggles} = useViewOptionsStore();
   const showSource = contentToggles.source;
   const showSavedDate = contentToggles.savedDate;
@@ -55,7 +64,7 @@ export default function WebsiteBookmarkTable({
         className,
         "transition-none!",
       )}>
-      <WebsiteBookmarkHoverActions
+      <BookmarkHoverActions
         className={cn("top-2.5 right-2", selectionModeHoverActionsClass)}
         onOptions={() => onOpenMenu?.(item)}
       />
@@ -70,12 +79,9 @@ export default function WebsiteBookmarkTable({
           paddingClassName="pr-2"
         />
         <BookmarkFavicon
-          item={item}
-          className="size-8"
-          imageClassName="h-4 w-4 object-contain"
-          height={16}
-          width={16}
-          iconSize={16}
+          url={item?.images?.favicon?.key ?? ""}
+          bookmarkUrl={item.url}
+          variant="compact"
         />
       </div>
 

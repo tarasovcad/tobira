@@ -25,7 +25,7 @@ import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
-import BookmarkPreviewDialog from "@/features/media/components/bookmark/BookmarkPreviewDialog";
+import WebsiteBookmarkPreviewDialog from "./WebsiteBookmarkPreviewDialog";
 import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
 import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark-schema";
@@ -466,7 +466,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
         </SheetContent>
       </Sheet>
 
-      <BookmarkPreviewDialog
+      <WebsiteBookmarkPreviewDialog
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
         ogImageUrl={ogImageUrl}

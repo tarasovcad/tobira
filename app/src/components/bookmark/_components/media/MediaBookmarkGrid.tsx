@@ -4,8 +4,7 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import type {WebsiteOrMediaMetadata} from "@/components/bookmark/types/metadata";
-import type {BookmarkItemProps} from "@/components/bookmark/types";
+
 import {
   getBookmarkMediaPreviewSizeForColumnSize,
   getBookmarkMediaQualityForColumnSize,
@@ -13,10 +12,34 @@ import {
   getBookmarkMediaPreviewItem,
 } from "@/features/media/components/bookmark/bookmark-images";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
-import MediaBookmarkHoverAction from "./MediaBookmarkHoverAction";
+import {MediaBookmark} from "../../types";
+import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
+
+interface MediaBookmarkGridProps {
+  item: MediaBookmark;
+  onOpenMenu?: (item: MediaBookmark) => void;
+  className?: string;
+  mediaIndex?: number;
+  selectionIndex?: number;
+  isSelected?: boolean;
+  setSelected?: (id: string, checked: boolean) => void;
+}
+
+function getRadiusClass(borderRadius: string): string {
+  switch (borderRadius) {
+    case "none":
+      return "rounded-none";
+    case "sm":
+      return "rounded-sm";
+    case "md":
+      return "rounded-md";
+    default:
+      return "rounded-lg";
+  }
+}
 
 export default function MediaBookmarkGrid({
   item,
@@ -26,22 +49,16 @@ export default function MediaBookmarkGrid({
   selectionIndex = 0,
   isSelected = false,
   setSelected,
-}: BookmarkItemProps) {
+}: MediaBookmarkGridProps) {
+  console.log("MediaBookmarkGrid", item);
   const {borderRadius, columnSize, gridGap} = useViewOptionsStore();
   const previewSize = getBookmarkMediaPreviewSizeForColumnSize(columnSize);
   const imageSizes = getBookmarkMediaSizesForColumnSize(columnSize);
   const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);
   const previewItem = getBookmarkMediaPreviewItem(item, mediaIndex, previewSize);
-  const radiusClass =
-    borderRadius === "none"
-      ? "rounded-none"
-      : borderRadius === "sm"
-        ? "rounded-sm"
-        : borderRadius === "md"
-          ? "rounded-md"
-          : "rounded-lg";
+  const radiusClass = getRadiusClass(borderRadius);
 
-  const meta = item.metadata as WebsiteOrMediaMetadata | undefined;
+  const meta = item.metadata;
   const width = previewItem?.width ?? meta?.width ?? 1200;
   const height = previewItem?.height ?? meta?.height ?? 1200;
   const aspectRatio = width > 0 && height > 0 ? `${width} / ${height}` : "16/9";
@@ -58,7 +75,7 @@ export default function MediaBookmarkGrid({
         "transition-none!",
         className,
       )}>
-      <MediaBookmarkHoverAction
+      <BookmarkHoverActions
         variant="glass"
         className={selectionModeHoverActionsClass}
         onOptions={() => onOpenMenu?.(item)}

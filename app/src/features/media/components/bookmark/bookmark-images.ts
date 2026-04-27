@@ -89,23 +89,8 @@ function getImagePreviewSrc(
     return buildProcessingImageSrc(mediaItem.source_url, previewSize);
   }
 
-  switch (previewSize) {
-    case "small":
-      return toPublicUrl(
-        mediaItem.key_small ?? mediaItem.key_medium ?? mediaItem.key_large,
-        mediaItem.source_url,
-      );
-    case "medium":
-      return toPublicUrl(
-        mediaItem.key_medium ?? mediaItem.key_small ?? mediaItem.key_large,
-        mediaItem.source_url,
-      );
-    case "large":
-      return toPublicUrl(
-        mediaItem.key_large ?? mediaItem.key_medium ?? mediaItem.key_small,
-        mediaItem.source_url,
-      );
-  }
+  const baseSrc = toPublicUrl(mediaItem.media_key, mediaItem.source_url);
+  return `${baseSrc}?size=${previewSize}`;
 }
 
 export function getBookmarkMediaPreviewSizeForColumnSize(
@@ -159,10 +144,7 @@ export function getBookmarkMediaPreviewItems(
         src: getImagePreviewSrc(mediaItem, previewSize, processing),
         fullSizeSrc: processing
           ? buildProcessingImageSrc(mediaItem.source_url, "large")
-          : toPublicUrl(
-              mediaItem.key_large ?? mediaItem.key_medium ?? mediaItem.key_small,
-              mediaItem.source_url,
-            ),
+          : `${toPublicUrl(mediaItem.media_key, mediaItem.source_url)}?size=large`,
       };
     }
 

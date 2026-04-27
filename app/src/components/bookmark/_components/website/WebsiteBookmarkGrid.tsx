@@ -5,7 +5,7 @@ import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {WebsiteBookmark} from "@/components/bookmark/types";
 import {useState} from "react";
-import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
+import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
 import WebsiteBookmarkGridImage from "./WebsiteBookmarkGridImage";
@@ -66,7 +66,7 @@ export default function WebsiteBookmarkGrid({
         "transition-none!",
       )}>
       <div className="bg-muted relative aspect-16/10 w-full shrink-0">
-        <WebsiteBookmarkHoverActions
+        <BookmarkHoverActions
           variant="glass"
           className={selectionModeHoverActionsClass}
           onExpand={() => {

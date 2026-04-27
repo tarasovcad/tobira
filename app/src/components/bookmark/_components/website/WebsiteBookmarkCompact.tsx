@@ -4,8 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import BookmarkFavicon from "@/features/media/components/bookmark/BookmarkFavicon";
-import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
+import BookmarkFavicon from "./BookmarkFavicon";
+import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
 import {WebsiteBookmark} from "../../types";
@@ -44,7 +44,7 @@ export default function WebsiteBookmarkCompact({
         className,
         "transition-none!",
       )}>
-      <WebsiteBookmarkHoverActions
+      <BookmarkHoverActions
         className={cn("top-1.5 right-2", selectionModeHoverActionsClass)}
         onOptions={() => onOpenMenu?.(item)}
       />

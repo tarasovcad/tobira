@@ -73,7 +73,7 @@ function PreviewOptionImage({src, alt}: {src: string; alt: string}) {
   );
 }
 
-export default function BookmarkPreviewDialog({
+export default function WebsiteBookmarkPreviewDialog({
   open,
   onOpenChange,
   ogImageUrl,

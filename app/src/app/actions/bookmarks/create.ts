@@ -2,18 +2,18 @@
 
 import {Client} from "@upstash/qstash";
 import {randomUUID} from "crypto";
+import {eq} from "drizzle-orm";
 import {db} from "@/db";
 import {bookmarks, bookmarkCollections} from "@/db/schema";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
-import {prepareMediaBookmarkCreation} from "@/features/media/server/prepare";
+import {prepareMediaBookmark} from "./prepareMediaBookmark";
 import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
 import {buildWebsiteImages} from "@/features/media/utils";
 import {attachTagsToBookmark} from "@/lib/bookmarks/tags";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {logger} from "@/lib/shared/logger";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
-
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 
 export type AddWebsiteBookmarkResult = {
@@ -150,14 +150,19 @@ export async function addMediaBookmark(input: {
     throw new Error("Invalid kind");
   }
 
-  const prepared = await prepareMediaBookmarkCreation({
+  const prepared = await prepareMediaBookmark({
     url: input.url,
     selectedMediaUrls: input.selectedMediaUrls,
     userId,
   });
 
   if (prepared.requiresSelection) {
-    return {ok: true, url: input.url, media: prepared.mediaUrls, mediaItems: prepared.mediaItems};
+    return {
+      ok: true,
+      url: prepared.normalized.toString(),
+      media: prepared.mediaUrls,
+      mediaItems: prepared.mediaItems,
+    };
   }
 
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
@@ -166,18 +171,32 @@ export async function addMediaBookmark(input: {
 
   if (input.collectionId) {
     attachments.push(
-      db
-        .insert(bookmarkCollections)
-        .values({
-          bookmarkId: prepared.bookmarkId,
-          collectionId: input.collectionId,
-        })
-        .onConflictDoNothing(),
+      (async () => {
+        try {
+          await db
+            .insert(bookmarkCollections)
+            .values({
+              bookmarkId: prepared.bookmarkId,
+              collectionId: input.collectionId!,
+            })
+            .onConflictDoNothing();
+        } catch (error) {
+          console.error("Failed to attach media bookmark to collection:", error);
+        }
+      })(),
     );
   }
 
   if (input.tags && input.tags.length > 0) {
-    attachments.push(attachTagsToBookmark(prepared.bookmarkId, userId, input.tags));
+    attachments.push(
+      (async () => {
+        try {
+          await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags!);
+        } catch (error) {
+          console.error("Failed to attach tags to media bookmark:", error);
+        }
+      })(),
+    );
   }
 
   await Promise.all(attachments);
@@ -192,11 +211,17 @@ export async function addMediaBookmark(input: {
     });
   } catch (error) {
     console.error("Failed to queue media bookmark processing job:", error);
+    try {
+      await db.delete(bookmarks).where(eq(bookmarks.id, prepared.bookmarkId));
+    } catch (cleanupError) {
+      console.error("Failed to delete media bookmark after queue failure:", cleanupError);
+    }
+    throw new Error("Failed to queue media bookmark processing job");
   }
 
   return {
     ok: true,
-    url: input.url,
+    url: prepared.normalized.toString(),
     media: prepared.mediaUrls,
     mediaItems: prepared.mediaItems,
     ids: [prepared.bookmarkId],

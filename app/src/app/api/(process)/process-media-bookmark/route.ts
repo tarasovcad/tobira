@@ -1,139 +1,151 @@
-import {NextRequest, NextResponse} from "next/server";
 import {and, eq} from "drizzle-orm";
+import {NextRequest, NextResponse} from "next/server";
 import {db} from "@/db";
-import {bookmarks, type MediaImages} from "@/db/schema";
-import {
-  buildTwitterSizedUrl,
-  downloadAndUploadToR2,
-  verifyQstashRequest,
-} from "@/features/media/server/qstash";
+import {bookmarks, type ImageItem, type MediaImages, type VideoItem} from "@/db/schema";
+import {downloadAndUploadToR2, verifyQstashRequest} from "@/features/media/server/qstash";
+import {existsInR2} from "@/lib/storage/r2-storage";
 
 export const runtime = "nodejs";
 
 type MediaBookmarkItem = MediaImages["items"][number];
-
-async function processImageItem(
-  item: Extract<MediaBookmarkItem, {type: "image"}>,
-  bookmarkId: string,
-  index: number,
-): Promise<MediaBookmarkItem> {
-  const baseKey = `posts/${bookmarkId}/media_${index}`;
-  const smallSrcUrl = buildTwitterSizedUrl(item.source_url, "small");
-  const mediumSrcUrl = buildTwitterSizedUrl(item.source_url, "medium");
-  const largeSrcUrl = buildTwitterSizedUrl(item.source_url, "large");
-
-  const [key_small, key_medium, key_large] = await Promise.all([
-    smallSrcUrl
-      ? downloadAndUploadToR2(smallSrcUrl, `${baseKey}_small.jpg`)
-      : Promise.resolve(null),
-    mediumSrcUrl
-      ? downloadAndUploadToR2(mediumSrcUrl, `${baseKey}_medium.jpg`)
-      : Promise.resolve(null),
-    largeSrcUrl
-      ? downloadAndUploadToR2(largeSrcUrl, `${baseKey}_large.jpg`)
-      : Promise.resolve(null),
-  ]);
-
-  return {
-    ...item,
-    ...(key_small ? {key_small} : {}),
-    ...(key_medium ? {key_medium} : {}),
-    ...(key_large ? {key_large} : {}),
-  };
-}
-
-async function processVideoItem(
-  item: Extract<MediaBookmarkItem, {type: "video" | "gif"}>,
-  bookmarkId: string,
-  index: number,
-): Promise<MediaBookmarkItem> {
-  const baseKey = `posts/${bookmarkId}/media_${index}`;
-
-  const [key, key_thumbnail] = await Promise.all([
-    downloadAndUploadToR2(item.source_url, `${baseKey}.mp4`),
-    item.source_thumbnail_url
-      ? downloadAndUploadToR2(item.source_thumbnail_url, `${baseKey}_thumbnail.jpg`)
-      : Promise.resolve(null),
-  ]);
-
-  return {
-    ...item,
-    ...(key ? {key} : {}),
-    ...(key_thumbnail ? {key_thumbnail} : {}),
-  };
-}
-
-async function processMediaBookmarkItems(
-  items: MediaImages["items"],
-  bookmarkId: string,
-): Promise<MediaImages["items"]> {
-  return Promise.all(
-    items.map((item, index) => {
-      if (item.type === "image") {
-        return processImageItem(item, bookmarkId, index);
-      }
-
-      return processVideoItem(item, bookmarkId, index);
-    }),
-  );
-}
+type UploadResult = {status: "skipped"} | {status: "success"; key: string} | {status: "failed"};
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text().catch(() => "");
 
-  const isValid = await verifyQstashRequest(request, rawBody);
-  if (!isValid) {
+  if (!(await verifyQstashRequest(request, rawBody))) {
     return NextResponse.json({error: "Unauthorized"}, {status: 401});
   }
 
-  let bookmarkId: string | undefined;
+  const bookmarkId = getBookmarkIdFromBody(rawBody);
+  if (bookmarkId instanceof NextResponse) {
+    return bookmarkId;
+  }
+
+  const bookmark = await getMediaBookmark(bookmarkId);
+  if (!bookmark) {
+    return NextResponse.json({error: "Bookmark not found"}, {status: 404});
+  }
+
+  const images = bookmark.images;
+  if (!isMediaImages(images)) {
+    return NextResponse.json({ok: true, skipped: "no media items"});
+  }
+
   try {
-    const parsed: unknown = JSON.parse(rawBody);
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      "id" in parsed &&
-      typeof (parsed as {id: unknown}).id === "string"
-    ) {
-      bookmarkId = (parsed as {id: string}).id;
+    const processed = await Promise.all(images.items.map(processMediaBookmarkItem));
+
+    if (processed.some((result) => result.status === "failed")) {
+      throw new Error("One or more media uploads failed");
     }
+
+    await db
+      .update(bookmarks)
+      .set({
+        images: {
+          processing: false,
+          items: processed.map((result) => result.item),
+        },
+      })
+      .where(eq(bookmarks.id, bookmarkId));
+  } catch (error) {
+    console.error("process-media-bookmark failed", error);
+    return NextResponse.json({error: "Processing failed"}, {status: 500});
+  }
+
+  return NextResponse.json({ok: true}, {headers: {"cache-control": "no-store"}});
+}
+
+function getBookmarkIdFromBody(rawBody: string): string | NextResponse {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({error: "Invalid payload"}, {status: 400});
   }
 
-  if (!bookmarkId) {
+  if (!parsed || typeof parsed !== "object" || !("id" in parsed) || typeof parsed.id !== "string") {
     return NextResponse.json({error: "Missing id"}, {status: 400});
   }
 
-  try {
-    const [bookmark] = await db
-      .select({id: bookmarks.id, images: bookmarks.images})
-      .from(bookmarks)
-      .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "media")));
+  return parsed.id;
+}
 
-    if (!bookmark) {
-      return NextResponse.json({error: "Bookmark not found"}, {status: 404});
-    }
+async function getMediaBookmark(bookmarkId: string) {
+  const [bookmark] = await db
+    .select({id: bookmarks.id, images: bookmarks.images})
+    .from(bookmarks)
+    .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "media")));
 
-    const images = bookmark.images;
-    if (
-      !images ||
-      typeof images !== "object" ||
-      !("items" in images) ||
-      !Array.isArray(images.items)
-    ) {
-      return NextResponse.json({ok: true, skipped: "no media items"});
-    }
+  return bookmark ?? null;
+}
 
-    const processedItems = await processMediaBookmarkItems(images.items, bookmarkId);
+function isMediaImages(images: unknown): images is MediaImages {
+  return !!images && typeof images === "object" && "items" in images && Array.isArray(images.items);
+}
 
-    await db
-      .update(bookmarks)
-      .set({images: {processing: false, items: processedItems}})
-      .where(eq(bookmarks.id, bookmarkId));
-  } catch (error) {
-    console.error("process-media-bookmark failed", error);
+async function processMediaBookmarkItem(
+  item: MediaBookmarkItem,
+): Promise<{item: MediaBookmarkItem; status: UploadResult["status"]}> {
+  if (item.type === "image") {
+    return processImageItem(item);
   }
 
-  return NextResponse.json({ok: true}, {headers: {"cache-control": "no-store"}});
+  return processVideoItem(item);
+}
+
+async function processImageItem(
+  item: ImageItem,
+): Promise<{item: ImageItem; status: UploadResult["status"]}> {
+  const mediaUpload = await ensureUploaded(item.source_url, item.media_key);
+
+  return {
+    item: {
+      ...item,
+      ...(mediaUpload.status === "success" ? {media_key: mediaUpload.key} : {}),
+    },
+    status: mediaUpload.status,
+  };
+}
+
+async function processVideoItem(
+  item: VideoItem,
+): Promise<{item: VideoItem; status: UploadResult["status"]}> {
+  const [keyUpload, thumbnailUpload] = await Promise.all([
+    ensureUploaded(item.source_url, item.key),
+    ensureUploaded(item.source_thumbnail_url, item.key_thumbnail),
+  ]);
+
+  const status =
+    keyUpload.status === "failed" || thumbnailUpload.status === "failed" ? "failed" : "success";
+
+  return {
+    item: {
+      ...item,
+      ...(keyUpload.status === "success" ? {key: keyUpload.key} : {}),
+      ...(thumbnailUpload.status === "success" ? {key_thumbnail: thumbnailUpload.key} : {}),
+    },
+    status,
+  };
+}
+
+async function ensureUploaded(
+  sourceUrl: string | null | undefined,
+  objectKey: string | null | undefined,
+): Promise<UploadResult> {
+  if (!sourceUrl || !objectKey) {
+    return {status: "skipped"};
+  }
+
+  if (await existsInR2(objectKey)) {
+    return {status: "success", key: objectKey};
+  }
+
+  const uploadedKey = await downloadAndUploadToR2(sourceUrl, objectKey);
+  if (!uploadedKey) {
+    return {status: "failed"};
+  }
+
+  return {status: "success", key: uploadedKey};
 }

@@ -4,10 +4,10 @@ import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {WebsiteBookmark} from "@/components/bookmark/types";
-import WebsiteBookmarkHoverActions from "./WebsiteBookmarkHoverActions";
+import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
-import BookmarkFavicon from "@/features/media/components/bookmark/BookmarkFavicon";
+import BookmarkFavicon from "./BookmarkFavicon";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -42,7 +42,7 @@ export default function BookmarkWebsiteList({
         className,
         "transition-none!",
       )}>
-      <WebsiteBookmarkHoverActions
+      <BookmarkHoverActions
         className={cn("top-4 right-4", selectionModeHoverActionsClass)}
         onOptions={() => onOpenMenu?.(item)}
       />

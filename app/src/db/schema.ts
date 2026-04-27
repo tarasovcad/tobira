@@ -14,18 +14,16 @@ import {
 } from "drizzle-orm/pg-core";
 import {sql} from "drizzle-orm";
 
-type ImageItem = {
+export type ImageItem = {
   type: "image";
   width?: number;
   height?: number;
   alt?: string | null;
   source_url: string;
-  key_small?: string;
-  key_medium?: string;
-  key_large?: string;
+  media_key?: string;
 };
 
-type VideoItem = {
+export type VideoItem = {
   type: "video" | "gif";
   width?: number;
   height?: number;
@@ -36,8 +34,6 @@ type VideoItem = {
   key_thumbnail?: string;
 };
 
-export type PostMediaItem = ImageItem | VideoItem;
-
 export type WebsiteImages = {
   favicon?: {key: string};
   og?: {key: string; width?: number; height?: number};
@@ -46,12 +42,12 @@ export type WebsiteImages = {
 };
 
 export type PostImages = {
-  items: PostMediaItem[];
+  items: (ImageItem | VideoItem)[];
 };
 
 export type MediaImages = {
   processing?: boolean;
-  items: PostMediaItem[];
+  items: (ImageItem | VideoItem)[];
 };
 
 export type BookmarkImages = WebsiteImages | PostImages | MediaImages;

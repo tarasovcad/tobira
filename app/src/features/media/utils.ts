@@ -35,3 +35,11 @@ export async function buildWebsiteImages(url: string): Promise<WebsiteImages> {
     selected: "preview",
   };
 }
+
+export async function buildMediaAssetKey(sourceUrl: string): Promise<string> {
+  return `media/${await hashUrlToKey(sourceUrl)}`;
+}
+
+export async function buildVideoAssetKey(sourceUrl: string): Promise<string> {
+  return `videos/${await hashUrlToKey(sourceUrl)}`;
+}
