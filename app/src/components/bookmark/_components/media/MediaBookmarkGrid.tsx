@@ -41,6 +41,31 @@ function getRadiusClass(borderRadius: string): string {
   }
 }
 
+function getMediaPreviewSrc(src: string, type: "image" | "video") {
+  if (type !== "video") {
+    return src;
+  }
+
+  try {
+    const url = new URL(src);
+    if (url.hostname === "video.twimg.com") {
+      url.protocol = "https:";
+      url.hostname = "video.tobira.app";
+      return url.toString();
+    }
+
+    if (url.pathname.startsWith("/videos/")) {
+      url.protocol = "https:";
+      url.hostname = "video.tobira.app";
+      return url.toString();
+    }
+  } catch {
+    return src;
+  }
+
+  return src;
+}
+
 export default function MediaBookmarkGrid({
   item,
   onOpenMenu,
@@ -56,6 +81,7 @@ export default function MediaBookmarkGrid({
   const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);
   const previewItem = getBookmarkMediaPreviewItem(item, mediaIndex, previewSize);
   const radiusClass = getRadiusClass(borderRadius);
+  const previewSrc = previewItem ? getMediaPreviewSrc(previewItem.src, previewItem.type) : null;
 
   const meta = item.metadata;
   const width = previewItem?.width ?? meta?.width ?? 1200;
@@ -102,7 +128,7 @@ export default function MediaBookmarkGrid({
       {previewItem ? (
         <div style={{aspectRatio}}>
           <MediaPreview
-            src={previewItem.src}
+            src={previewSrc ?? previewItem.src}
             fullSizeSrc={previewItem.type === "image" ? previewItem.fullSizeSrc : undefined}
             alt={previewItem.alt}
             width={previewItem.width}

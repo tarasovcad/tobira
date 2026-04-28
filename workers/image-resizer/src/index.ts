@@ -35,7 +35,9 @@ export default {
       url.searchParams.get("format") || "original"
     ).toLowerCase() as FormatType;
 
-    const originalPath = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
+    const originalPath = url.pathname.startsWith("/")
+      ? url.pathname.slice(1)
+      : url.pathname;
     if (!originalPath) {
       return Response.json({ error: "Missing image path" }, { status: 400 });
     }
