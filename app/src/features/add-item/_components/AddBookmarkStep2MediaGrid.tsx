@@ -5,7 +5,7 @@ import Image from "next/image";
 import {cn} from "@/lib/utils";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
 
-type AddItemStep2MediaGridProps = {
+type AddBookmarkStep2MediaGridProps = {
   mediaItems: MediaMediaItem[];
   selectedMediaUrls: string[];
   onToggleMediaUrl: (url: string) => void;
@@ -74,11 +74,11 @@ function MediaGridCheckIcon() {
   );
 }
 
-export function AddItemStep2MediaGrid({
+export function AddBookmarkStep2MediaGrid({
   mediaItems,
   selectedMediaUrls,
   onToggleMediaUrl,
-}: AddItemStep2MediaGridProps) {
+}: AddBookmarkStep2MediaGridProps) {
   return (
     <div
       className={cn(

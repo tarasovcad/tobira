@@ -1,7 +1,7 @@
 import {z} from "zod";
-import {ALLOWED_MEDIA_DOMAINS, ALLOWED_POST_DOMAINS} from "./add-item-constants";
+import {ALLOWED_MEDIA_DOMAINS, ALLOWED_POST_DOMAINS} from "./add-bookmark-constants";
 
-export const addItemSchema = z
+export const addBookmarkSchema = z
   .object({
     url: z
       .string()
@@ -56,4 +56,4 @@ export const addItemSchema = z
     } catch {}
   });
 
-export type AddItemFormValues = z.infer<typeof addItemSchema>;
+export type AddBookmarkFormValues = z.infer<typeof addBookmarkSchema>;

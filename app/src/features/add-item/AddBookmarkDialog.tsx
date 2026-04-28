@@ -13,21 +13,21 @@ import {
 } from "@/components/ui/coss/dialog";
 import {User as AuthUser} from "@/lib/auth/auth-client";
 import {cn} from "@/lib/utils";
-import {AddItemStep1Form} from "./_components/AddItemStep1Form";
-import {AddItemStep2MediaGrid} from "./_components/AddItemStep2MediaGrid";
-import {useAddItemFlow} from "./_hooks/use-add-item-flow";
+import {AddBookmarkStep2MediaGrid} from "./_components/AddBookmarkStep2MediaGrid";
+import {useAddBookmarkFlow} from "./_hooks/use-add-bookmark-flow";
+import {AddBookmarkStep1Form} from "./_components/AddBookmarkStep1Form";
 
-export type AddItemDialogUser = AuthUser & {
+export type AddBookmarkDialogUser = AuthUser & {
   aiContext?: string | null;
   enableAiOptimization?: boolean;
 };
 
-export function AddItemDialog({
+export function AddBookmarkDialog({
   isAuthenticated = false,
   user,
 }: {
   isAuthenticated?: boolean;
-  user?: AddItemDialogUser | null;
+  user?: AddBookmarkDialogUser | null;
 }) {
   const userId = user?.id;
   const userAiContext = user?.enableAiOptimization ? user?.aiContext : null;
@@ -52,7 +52,7 @@ export function AddItemDialog({
     handleOpenDialogClick,
     handleSubmitForm,
     confirmMediaSelection,
-  } = useAddItemFlow({userId, isAuthenticated});
+  } = useAddBookmarkFlow({userId, isAuthenticated});
 
   const tagNames = tags.map((t) => t.name);
 
@@ -90,7 +90,7 @@ export function AddItemDialog({
 
           {step === 1 ? (
             <div key="step1">
-              <AddItemStep1Form
+              <AddBookmarkStep1Form
                 register={register}
                 control={control}
                 errors={errors}
@@ -105,7 +105,7 @@ export function AddItemDialog({
             </div>
           ) : (
             <div key="step2">
-              <AddItemStep2MediaGrid
+              <AddBookmarkStep2MediaGrid
                 mediaItems={mediaItems}
                 selectedMediaUrls={selectedMediaUrls}
                 onToggleMediaUrl={toggleMediaUrl}

@@ -1,4 +1,4 @@
-export const ITEM_TYPES = [
+export const BOOKMARK_TYPES = [
   {value: "website", label: "Website"},
   {value: "media", label: "Media"},
   {value: "post", label: "Post"},

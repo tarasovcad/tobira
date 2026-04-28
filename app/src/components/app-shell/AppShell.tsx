@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useMemo} from "react";
-import {AddItemDialog} from "@/features/add-item/AddItemDialog";
+import {AddBookmarkDialog} from "@/features/add-item/AddBookmarkDialog";
 import {WebsiteBookmarkMenu} from "@/components/bookmark/_components/website/WebsiteBookmarkMenu";
 import {MediaBookmarkMenu} from "@/components/bookmark/_components/media/MediaBookmarkMenu";
 import {Sidebar} from "./sidebar/Sidebar";
@@ -45,7 +45,7 @@ const AppShell = ({
       </div>
 
       {displayAddBookmarkDialog && (
-        <AddItemDialog isAuthenticated={Boolean(session)} user={session?.user ?? null} />
+        <AddBookmarkDialog isAuthenticated={Boolean(session)} user={session?.user ?? null} />
       )}
       {BookmarkMenu}
       <CollectionDialog isAuthenticated={Boolean(session)} />

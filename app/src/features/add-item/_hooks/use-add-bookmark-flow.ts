@@ -21,9 +21,9 @@ import {
   useTagsQuery,
 } from "@/features/home/hooks/use-home-metadata-query";
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
-import {addItemSchema, type AddItemFormValues} from "../add-item-schema";
+import {addBookmarkSchema, type AddBookmarkFormValues} from "../add-bookmark-schema";
 
-export function useAddItemFlow({
+export function useAddBookmarkFlow({
   userId,
   isAuthenticated,
 }: {
@@ -56,8 +56,8 @@ export function useAddItemFlow({
     trigger,
     formState: {errors, isValid},
     getValues,
-  } = useForm<AddItemFormValues>({
-    resolver: zodResolver(addItemSchema),
+  } = useForm<AddBookmarkFormValues>({
+    resolver: zodResolver(addBookmarkSchema),
     defaultValues: {
       url: "",
       tags: [],
@@ -143,7 +143,7 @@ export function useAddItemFlow({
     },
   });
 
-  const onSubmit = (data: AddItemFormValues) => {
+  const onSubmit = (data: AddBookmarkFormValues) => {
     switch (data.type) {
       case "website":
         addItemMutation.mutate({

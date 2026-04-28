@@ -31,25 +31,25 @@ import {
   SelectItem,
 } from "@/components/ui/coss/select";
 import {DialogPanel} from "@/components/ui/coss/dialog";
-import {ITEM_TYPES} from "../add-item-constants";
-import type {AddItemFormValues} from "../add-item-schema";
+import {BOOKMARK_TYPES} from "../add-bookmark-constants";
+import type {AddBookmarkFormValues} from "../add-bookmark-schema";
 
 type CollectionOption = {label: string; value: string};
 
-type AddItemStep1FormProps = {
-  register: UseFormRegister<AddItemFormValues>;
-  control: Control<AddItemFormValues>;
-  errors: FieldErrors<AddItemFormValues>;
-  trigger: UseFormTrigger<AddItemFormValues>;
+type AddBookmarkStep1FormProps = {
+  register: UseFormRegister<AddBookmarkFormValues>;
+  control: Control<AddBookmarkFormValues>;
+  errors: FieldErrors<AddBookmarkFormValues>;
+  trigger: UseFormTrigger<AddBookmarkFormValues>;
   collectionItems: CollectionOption[];
   tagNames: string[];
   userAiContext: string | null;
   watchedUrl: string;
-  watchedType: AddItemFormValues["type"];
+  watchedType: AddBookmarkFormValues["type"];
   onValidSubmit: (e?: BaseSyntheticEvent) => Promise<void>;
 };
 
-export function AddItemStep1Form({
+export function AddBookmarkStep1Form({
   register,
   control,
   errors,
@@ -60,7 +60,7 @@ export function AddItemStep1Form({
   watchedUrl,
   watchedType,
   onValidSubmit,
-}: AddItemStep1FormProps) {
+}: AddBookmarkStep1FormProps) {
   return (
     <DialogPanel>
       <form id="add-item-form" className="flex flex-col gap-5" onSubmit={onValidSubmit}>
@@ -89,11 +89,11 @@ export function AddItemStep1Form({
                 }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type">
-                    {ITEM_TYPES.find((t) => t.value === field.value)?.label}
+                    {BOOKMARK_TYPES.find((t) => t.value === field.value)?.label}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup alignItemWithTrigger={false}>
-                  {ITEM_TYPES.map((type) => (
+                  {BOOKMARK_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
                     </SelectItem>
