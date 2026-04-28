@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type PointerEvent,
@@ -15,11 +16,16 @@ import {
   getTargetRect,
 } from "../components/preview/utils";
 import {usePreviewEffects} from "./usePreviewEffects";
+import {isEditableElementActive} from "@/features/video-player/utils";
+
+let activePreviewInstance: symbol | null = null;
 
 type UseMediaPreviewParams = {
   width: number;
   height: number;
   onOpenChange?: (open: boolean) => void;
+  type?: "image" | "video";
+  addZoom?: boolean;
 };
 
 type UseMediaPreviewResult = {
@@ -49,9 +55,13 @@ export function useMediaPreview({
   width,
   height,
   onOpenChange,
+  type = "image",
+  addZoom = true,
 }: UseMediaPreviewParams): UseMediaPreviewResult {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  const previewInstanceRef = useRef(Symbol("media-preview"));
+  const closeTimeoutRef = useRef<number | null>(null);
 
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -106,6 +116,10 @@ export function useMediaPreview({
   }, []);
 
   const openPreview = useCallback(() => {
+    if (activePreviewInstance !== null && activePreviewInstance !== previewInstanceRef.current) {
+      return;
+    }
+
     const trigger = triggerRef.current;
     if (!trigger) return;
 
@@ -129,6 +143,12 @@ export function useMediaPreview({
       width: thumbRect.width,
       height: thumbRect.height,
     });
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+
+    activePreviewInstance = previewInstanceRef.current;
     setToRect(getTargetRect(ratio));
     setCloseRequested(false);
     resetInteractiveState();
@@ -151,10 +171,14 @@ export function useMediaPreview({
     resetInteractiveState();
     setExpanded(false);
 
-    window.setTimeout(() => {
+    closeTimeoutRef.current = window.setTimeout(() => {
       setOpen(false);
       onOpenChange?.(false);
       setCloseRequested(false);
+      if (activePreviewInstance === previewInstanceRef.current) {
+        activePreviewInstance = null;
+      }
+      closeTimeoutRef.current = null;
     }, OVERLAY_TRANSITION_MS);
   }, [closeRequested, open, resetInteractiveState, onOpenChange]);
 
@@ -253,6 +277,71 @@ export function useMediaPreview({
 
     handleZoomControlClick();
   }, [handleZoomControlClick]);
+
+  useEffect(() => {
+    if (type !== "image") return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isEditableElementActive()) return;
+
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+
+      const isHovered = trigger.matches(":hover");
+      const isFocusedWithin = trigger.contains(document.activeElement);
+
+      if (!open && !isHovered && !isFocusedWithin) {
+        return;
+      }
+
+      const normalizedKey = event.key.toLowerCase();
+      const isZoomInKey =
+        event.key === "+" || event.code === "NumpadAdd" || (event.shiftKey && event.key === "=");
+      const isZoomOutKey =
+        event.key === "-" || event.code === "NumpadSubtract" || event.key === "_";
+
+      if (normalizedKey === "f") {
+        event.preventDefault();
+
+        if (open) {
+          closePreview();
+        } else {
+          openPreview();
+        }
+        return;
+      }
+
+      if (!open || !addZoom) return;
+
+      if (isZoomInKey) {
+        event.preventDefault();
+        applyZoom((prev) => prev + ZOOM_STEP);
+        return;
+      }
+
+      if (isZoomOutKey) {
+        event.preventDefault();
+        applyZoom((prev) => prev - ZOOM_STEP);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [addZoom, applyZoom, closePreview, open, openPreview, type]);
+
+  useEffect(() => {
+    const previewInstance = previewInstanceRef.current;
+
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+
+      if (activePreviewInstance === previewInstance) {
+        activePreviewInstance = null;
+      }
+    };
+  }, []);
 
   usePreviewEffects({open, overlayRef, onEscape: closePreview});
 

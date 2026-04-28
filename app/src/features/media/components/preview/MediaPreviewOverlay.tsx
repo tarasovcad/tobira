@@ -113,6 +113,7 @@ export function MediaPreviewOverlay({
         onPointerCancel={handleMediaPointerCancel}
         className={cn(
           previewClassName,
+          // !showFallback && "bg-black",
           showFallback && "bg-muted flex flex-col items-center justify-center gap-3",
         )}>
         {type === "video" ? (

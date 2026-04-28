@@ -1,8 +1,8 @@
 "use client";
-
 import Spinner from "@/components/ui/app/spinner";
 import {Button} from "@/components/ui/coss/button";
 import {Button as ShadcnButton} from "@/components/ui/legacy-shadcn/button";
+import {useSearchParams} from "next/navigation";
 import {
   Dialog,
   DialogClose,
@@ -29,8 +29,11 @@ export function AddBookmarkDialog({
   isAuthenticated?: boolean;
   user?: AddBookmarkDialogUser | null;
 }) {
+  const searchParams = useSearchParams();
   const userId = user?.id;
   const userAiContext = user?.enableAiOptimization ? user?.aiContext : null;
+  const typeParam = searchParams.get("type");
+  const defaultType = typeParam === "media" ? "media" : typeParam === "post" ? "post" : "website";
 
   const {
     open,
@@ -52,7 +55,7 @@ export function AddBookmarkDialog({
     handleOpenDialogClick,
     handleSubmitForm,
     confirmMediaSelection,
-  } = useAddBookmarkFlow({userId, isAuthenticated});
+  } = useAddBookmarkFlow({userId, isAuthenticated, defaultType});
 
   const tagNames = tags.map((t) => t.name);
 
@@ -62,7 +65,7 @@ export function AddBookmarkDialog({
         <ShadcnButton
           variant="default"
           size="icon-lg"
-          className="relative z-40 size-12 rounded-full"
+          className="relative z-40 size-12 rounded-full hover:bg-[#454545] dark:bg-white dark:hover:bg-[#D0D0D0]"
           onClick={handleOpenDialogClick}>
           <svg
             width="20"
@@ -85,7 +88,7 @@ export function AddBookmarkDialog({
             step === 2 && mediaItems.length > 2 && "max-w-2xl",
           )}>
           <DialogHeader>
-            <DialogTitle>{step === 1 ? "Add item" : "Select Media"}</DialogTitle>
+            <DialogTitle>{step === 1 ? "Add Bookmark" : "Select Media"}</DialogTitle>
           </DialogHeader>
 
           {step === 1 ? (

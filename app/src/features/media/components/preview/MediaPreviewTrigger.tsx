@@ -52,6 +52,10 @@ export function MediaPreviewTrigger({
   const canOpenPreview = type !== "video" && !disableClickToOpen;
   const isThumbnailPlaying = isHovered && !isManuallyPaused;
 
+  // Check if the element is in selection mode and if so, don't show the hover state
+  const isSelectionModeActive = (element: HTMLDivElement) =>
+    element.closest('[data-selection-mode="true"]') !== null;
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!canOpenPreview) return;
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -66,7 +70,12 @@ export function MediaPreviewTrigger({
       tabIndex={0}
       ref={triggerRef}
       onClick={canOpenPreview ? openPreview : undefined}
-      onMouseEnter={() => {
+      onMouseEnter={(event) => {
+        if (isSelectionModeActive(event.currentTarget)) {
+          setIsHovered(false);
+          return;
+        }
+
         setIsHovered(true);
         setHasInteracted(true);
       }}

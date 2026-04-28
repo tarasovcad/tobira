@@ -53,7 +53,7 @@ export default function MediaPreview({
     handleMediaPointerUp,
     handleMediaPointerCancel,
     handleMediaClick,
-  } = useMediaPreview({width, height, onOpenChange});
+  } = useMediaPreview({width, height, onOpenChange, type, addZoom});
 
   useEffect(() => {
     if (!openSignal) return;

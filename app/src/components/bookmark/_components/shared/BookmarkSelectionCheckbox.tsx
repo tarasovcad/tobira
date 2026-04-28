@@ -10,6 +10,8 @@ const selectionModeCheckboxClass =
 const selectionModeOverlayClass =
   "group-data-[selection-mode=true]/bookmark-row:scale-100 group-data-[selection-mode=true]/bookmark-row:opacity-100";
 
+type BookmarkSelectionCheckboxSize = "default" | "large";
+
 interface BookmarkSelectionControlProps {
   itemId: string;
   title: string;
@@ -17,11 +19,20 @@ interface BookmarkSelectionControlProps {
   selectionIndex: number;
   onCheckedChange?: (id: string, checked: boolean) => void;
   variant?: "inline" | "overlay";
+  size?: BookmarkSelectionCheckboxSize;
   className?: string;
   innerClassName?: string;
   paddingClassName?: string;
   maxDelayMs?: number;
   delayStepMs?: number;
+}
+
+function getSelectionCheckboxSizeClass(size: BookmarkSelectionCheckboxSize): string {
+  if (size === "large") {
+    return "size-4.5 sm:size-4.5 [&_svg]:size-3";
+  }
+
+  return "";
 }
 
 export default function BookmarkSelectionCheckbox({
@@ -31,6 +42,7 @@ export default function BookmarkSelectionCheckbox({
   selectionIndex,
   onCheckedChange,
   variant = "inline",
+  size = "default",
   className,
   innerClassName,
   paddingClassName,
@@ -38,6 +50,7 @@ export default function BookmarkSelectionCheckbox({
   delayStepMs = 20,
 }: BookmarkSelectionControlProps) {
   const delay = Math.min(selectionIndex * delayStepMs, maxDelayMs);
+  const sizeClass = getSelectionCheckboxSizeClass(size);
 
   if (variant === "overlay") {
     return (
@@ -53,7 +66,11 @@ export default function BookmarkSelectionCheckbox({
           onCheckedChange={(next) => onCheckedChange?.(itemId, next === true)}
           onClick={(e) => e.stopPropagation()}
           aria-label={`Select ${title}`}
-          className={cn("focus-visible:ring-0 focus-visible:ring-offset-0", innerClassName)}
+          className={cn(
+            "focus-visible:ring-0 focus-visible:ring-offset-0",
+            sizeClass,
+            innerClassName,
+          )}
         />
       </div>
     );
@@ -74,7 +91,11 @@ export default function BookmarkSelectionCheckbox({
             onCheckedChange={(next) => onCheckedChange?.(itemId, next === true)}
             onClick={(e) => e.stopPropagation()}
             aria-label={`Select ${title}`}
-            className={cn("focus-visible:ring-0 focus-visible:ring-offset-0", innerClassName)}
+            className={cn(
+              "focus-visible:ring-0 focus-visible:ring-offset-0",
+              sizeClass,
+              innerClassName,
+            )}
           />
         </div>
       </div>

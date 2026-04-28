@@ -50,7 +50,6 @@ export default function MediaBookmarkGrid({
   isSelected = false,
   setSelected,
 }: MediaBookmarkGridProps) {
-  console.log("MediaBookmarkGrid", item);
   const {borderRadius, columnSize, gridGap} = useViewOptionsStore();
   const previewSize = getBookmarkMediaPreviewSizeForColumnSize(columnSize);
   const imageSizes = getBookmarkMediaSizesForColumnSize(columnSize);
@@ -88,7 +87,16 @@ export default function MediaBookmarkGrid({
         selectionIndex={selectionIndex}
         onCheckedChange={setSelected}
         variant="overlay"
+        size="large"
         delayStepMs={15}
+      />
+
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 z-10 bg-black/15 opacity-0 transition-opacity duration-200 group-data-[selection-mode=true]/bookmark-row:opacity-100",
+          isSelected && "bg-black/25",
+        )}
       />
 
       {previewItem ? (
