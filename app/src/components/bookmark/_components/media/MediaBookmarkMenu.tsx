@@ -96,18 +96,22 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
   const onArchive = useBookmarkMenuStore((state) => state.onArchive);
   const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
   const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
+  const mediaItem = item?.kind === "media" ? item : undefined;
+  const isOpen = open && !!mediaItem;
 
   const data = useMemo(() => {
     return {
-      source: item?.url,
-      type: item?.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : undefined,
-      saved: formatDateWithTime(item?.created_at ?? ""),
-      updated: formatDateWithTime(item?.updated_at ?? ""),
-      metadata: item?.metadata,
+      source: mediaItem?.url,
+      type: mediaItem?.kind
+        ? mediaItem.kind.charAt(0).toUpperCase() + mediaItem.kind.slice(1)
+        : undefined,
+      saved: formatDateWithTime(mediaItem?.created_at ?? ""),
+      updated: formatDateWithTime(mediaItem?.updated_at ?? ""),
+      metadata: mediaItem?.metadata,
     };
-  }, [item]);
+  }, [mediaItem]);
 
-  const {form, originalValues, setOriginalValues, hasChanges} = useBookmarkForm(item, open);
+  const {form, originalValues, setOriginalValues, hasChanges} = useBookmarkForm(mediaItem, isOpen);
   const {
     control,
     handleSubmit,
@@ -117,12 +121,12 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
 
   const {data: collections = []} = useCollectionsQuery({
     userId,
-    enabled: open && !!userId,
+    enabled: isOpen && !!userId,
   });
 
   const {data: tags = []} = useTagsQuery({
     userId,
-    enabled: open && !!userId,
+    enabled: isOpen && !!userId,
   });
 
   const collectionItems = useMemo(
@@ -140,9 +144,9 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
     setOriginalValues,
     form,
     onItemReset: ({title, description, updatedAt}) => {
-      if (!item) return;
+      if (!mediaItem) return;
       setMenuItem({
-        ...item,
+        ...mediaItem,
         title,
         description,
         updated_at: updatedAt,
@@ -155,7 +159,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
 
   const onSubmit = useCallback(
     (values: BookmarkFormValues) => {
-      if (!item || item.kind !== "media") return;
+      if (!mediaItem) return;
 
       const updates: UpdateBookmarkData = {};
 
@@ -179,41 +183,41 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
         return;
       }
 
-      updateBookmark({bookmarkId: item.id, updates});
+      updateBookmark({bookmarkId: mediaItem.id, updates});
     },
-    [item, originalValues, updateBookmark],
+    [mediaItem, originalValues, updateBookmark],
   );
 
   const handleReset = useCallback(() => {
-    if (item && item.kind === "media") {
-      resetBookmark(item.id);
+    if (mediaItem) {
+      resetBookmark(mediaItem.id);
     }
-  }, [item, resetBookmark]);
+  }, [mediaItem, resetBookmark]);
 
   const handleClearChanges = useCallback(() => {
     reset(originalValues);
   }, [originalValues, reset]);
 
   const handleArchive = useCallback(() => {
-    if (item && item.kind === "media") {
+    if (mediaItem) {
       if (onArchive) {
-        onArchive(item);
+        onArchive(mediaItem);
       } else {
-        archiveBookmark(item.id);
+        archiveBookmark(mediaItem.id);
       }
     }
-  }, [archiveBookmark, item, onArchive]);
+  }, [archiveBookmark, mediaItem, onArchive]);
 
   const handleDelete = useCallback(() => {
-    if (item && item.kind === "media" && onDelete) {
-      onDelete(item);
+    if (mediaItem && onDelete) {
+      onDelete(mediaItem);
     }
-  }, [item, onDelete]);
+  }, [mediaItem, onDelete]);
 
   const mediaPreviewItem = useMemo(() => {
-    if (!item || item.kind !== "media") return null;
-    return getMediaBookmarkMenuPreviewItem(item, 0);
-  }, [item]);
+    if (!mediaItem) return null;
+    return getMediaBookmarkMenuPreviewItem(mediaItem, 0);
+  }, [mediaItem]);
 
   const actionProps = useMemo(
     () => ({
@@ -231,7 +235,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
   const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isResetting;
 
   return (
-    <Sheet open={open} onOpenChange={setMenuOpen}>
+    <Sheet open={isOpen} onOpenChange={setMenuOpen}>
       <SheetContent
         side="right"
         className="max-w-[560px]"
@@ -242,7 +246,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
         <form onSubmit={handleSubmit(onSubmit)} className="flex h-full flex-col overflow-hidden">
           <div className="min-h-0 flex-1">
             <SheetPanel className="p-0 pt-0!">
-              {item?.id && item.kind === "media" && mediaPreviewItem ? (
+              {mediaItem?.id && mediaPreviewItem ? (
                 <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
                   <MediaPreview
                     src={mediaPreviewItem.src}
@@ -271,7 +275,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
 
               <div className="p-6">
                 <BookmarkDescriptionField
-                  key={`${item?.id ?? "none"}:${open ? "open" : "closed"}`}
+                  key={`${mediaItem?.id ?? "none"}:${isOpen ? "open" : "closed"}`}
                   control={control}
                   error={errors.description?.message}
                 />
@@ -286,7 +290,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
                 metadata={data.metadata}
                 saved={data.saved}
                 updated={data.updated}
-                showUpdated={item?.updated_at !== item?.created_at}
+                showUpdated={mediaItem?.updated_at !== mediaItem?.created_at}
               />
 
               <Separator />
@@ -351,7 +355,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
                         placeholder="Add tags..."
                         availableTags={tags.map((t) => t.name)}
                         userTags={tags.map((t) => t.name)}
-                        sourceUrl={item?.url}
+                        sourceUrl={mediaItem?.url}
                         itemType="media"
                         labelClassName="text-[15px]! font-[550]"
                         containerClassName="max-w-full gap-3"

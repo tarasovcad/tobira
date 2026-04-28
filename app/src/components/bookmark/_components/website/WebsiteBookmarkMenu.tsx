@@ -98,25 +98,29 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
   const onArchive = useBookmarkMenuStore((state) => state.onArchive);
   const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
   const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
+  const websiteItem = item?.kind === "website" ? item : undefined;
+  const isOpen = open && !!websiteItem;
 
   const data = useMemo(() => {
     return {
-      title: item?.title,
-      description: item?.description,
-      source: item?.url,
-      type: item?.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : undefined,
-      saved: formatDateWithTime(item?.created_at ?? ""),
-      updated: formatDateWithTime(item?.updated_at ?? ""),
-      tags: item?.tags ?? [],
-      collections: item?.collections ?? [],
-      kind: item?.kind,
-      metadata: item?.metadata,
+      title: websiteItem?.title,
+      description: websiteItem?.description,
+      source: websiteItem?.url,
+      type: websiteItem?.kind
+        ? websiteItem.kind.charAt(0).toUpperCase() + websiteItem.kind.slice(1)
+        : undefined,
+      saved: formatDateWithTime(websiteItem?.created_at ?? ""),
+      updated: formatDateWithTime(websiteItem?.updated_at ?? ""),
+      tags: websiteItem?.tags ?? [],
+      collections: websiteItem?.collections ?? [],
+      kind: websiteItem?.kind,
+      metadata: websiteItem?.metadata,
     };
-  }, [item]);
+  }, [websiteItem]);
 
   const {form, originalValues, setOriginalValues, currentValues, hasChanges} = useBookmarkForm(
-    item,
-    open,
+    websiteItem,
+    isOpen,
   );
   const {
     control,
@@ -128,12 +132,12 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
   const {data: collections = []} = useCollectionsQuery({
     userId,
-    enabled: open && !!userId,
+    enabled: isOpen && !!userId,
   });
 
   const {data: tags = []} = useTagsQuery({
     userId,
-    enabled: open && !!userId,
+    enabled: isOpen && !!userId,
   });
 
   const collectionItems = useMemo(
@@ -149,13 +153,13 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
   const [selectedPreview, setSelectedPreview] = useState<"og" | "preview">("preview");
 
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       const timer = setTimeout(() => {
         setPreviewDialogOpen(false);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [open]);
+  }, [isOpen]);
 
   const {updateMutation, archiveMutation, resetMutation} = useBookmarkMutations({
     onOpenChange: setMenuOpen,
@@ -163,9 +167,9 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
     setOriginalValues,
     form,
     onItemReset: ({title, description, updatedAt}) => {
-      if (!item) return;
+      if (!websiteItem) return;
       setMenuItem({
-        ...item,
+        ...websiteItem,
         title,
         description,
         updated_at: updatedAt,
@@ -178,7 +182,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
   const onSubmit = useCallback(
     (values: BookmarkFormValues) => {
-      if (!item || item.kind !== "website") return;
+      if (!websiteItem) return;
 
       const updates: UpdateBookmarkData = {};
 
@@ -210,38 +214,38 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
         return;
       }
 
-      updateBookmark({bookmarkId: item.id, updates});
+      updateBookmark({bookmarkId: websiteItem.id, updates});
     },
-    [item, originalValues, updateBookmark],
+    [originalValues, updateBookmark, websiteItem],
   );
 
   const handleReset = useCallback(() => {
-    if (item && item.kind === "website") {
-      resetBookmark(item.id);
+    if (websiteItem) {
+      resetBookmark(websiteItem.id);
     }
-  }, [item, resetBookmark]);
+  }, [resetBookmark, websiteItem]);
 
   const handleClearChanges = useCallback(() => {
     reset(originalValues);
   }, [originalValues, reset]);
 
   const handleArchive = useCallback(() => {
-    if (item && item.kind === "website") {
+    if (websiteItem) {
       if (onArchive) {
-        onArchive(item);
+        onArchive(websiteItem);
       } else {
-        archiveBookmark(item.id);
+        archiveBookmark(websiteItem.id);
       }
     }
-  }, [archiveBookmark, item, onArchive]);
+  }, [archiveBookmark, onArchive, websiteItem]);
 
   const handleDelete = useCallback(() => {
-    if (item && item.kind === "website" && onDelete) {
-      onDelete(item);
+    if (websiteItem && onDelete) {
+      onDelete(websiteItem);
     }
-  }, [item, onDelete]);
+  }, [onDelete, websiteItem]);
 
-  const websiteImages = isWebsiteImages(item?.images) ? item?.images : undefined;
+  const websiteImages = isWebsiteImages(websiteItem?.images) ? websiteItem.images : undefined;
 
   const ogImageUrl = websiteImages?.og?.key
     ? `${buildR2PublicUrl(websiteImages.og.key)}?size=medium`
@@ -278,7 +282,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={setMenuOpen}>
+      <Sheet open={isOpen} onOpenChange={setMenuOpen}>
         <SheetContent
           side="right"
           className="max-w-[560px]"
@@ -289,10 +293,10 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
           <form onSubmit={handleSubmit(onSubmit)} className="flex h-full flex-col overflow-hidden">
             <div className="min-h-0 flex-1">
               <SheetPanel className="p-0 pt-0!">
-                {item?.id && item.kind === "website" ? (
+                {websiteItem?.id ? (
                   <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
                     <WebsiteBookmarkMenuImage
-                      item={item}
+                      item={websiteItem}
                       type={currentValues.selected_image ?? "preview"}
                       fill
                       imageClassName="object-cover"
@@ -330,7 +334,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
                 <div className="p-6">
                   <BookmarkDescriptionField
-                    key={`${item?.id ?? "none"}:${open ? "open" : "closed"}`}
+                    key={`${websiteItem?.id ?? "none"}:${isOpen ? "open" : "closed"}`}
                     control={control}
                     error={errors.description?.message}
                   />
@@ -345,7 +349,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                   metadata={data.metadata}
                   saved={data.saved}
                   updated={data.updated}
-                  showUpdated={item?.updated_at !== item?.created_at}
+                  showUpdated={websiteItem?.updated_at !== websiteItem?.created_at}
                 />
 
                 <Separator />
@@ -410,7 +414,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                           placeholder="Add tags..."
                           availableTags={tags.map((t) => t.name)}
                           userTags={tags.map((t) => t.name)}
-                          sourceUrl={item?.url}
+                          sourceUrl={websiteItem?.url}
                           itemType="website"
                           labelClassName="text-[15px]! font-[550]"
                           containerClassName="max-w-full gap-3"

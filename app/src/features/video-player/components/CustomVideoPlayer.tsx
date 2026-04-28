@@ -73,7 +73,7 @@ export const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         autoPlay={autoPlay}
         muted={muted}
         playsInline={playsInline}
-        className={videoClassName ?? "h-full w-full cursor-pointer object-contain"}
+        className={cn("h-full w-full cursor-pointer object-contain", videoClassName)}
         onClick={(event) => {
           if (!disableClickToggle) {
             actions.handleVideoClick();

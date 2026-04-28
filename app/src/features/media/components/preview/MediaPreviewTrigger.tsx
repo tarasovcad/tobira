@@ -113,7 +113,7 @@ export function MediaPreviewTrigger({
               sizes={sizes}
               quality={quality}
               loading={loading}
-              className={cn(className, "absolute inset-0 h-full w-full object-cover")}
+              className={cn(className, "absolute inset-0 h-full w-full object-contain")}
               unoptimized={unoptimized}
               onLoad={onCanPlay}
               onError={onError}
@@ -122,7 +122,7 @@ export function MediaPreviewTrigger({
             <CustomVideoPlayer
               src={src}
               className={className}
-              videoClassName="h-full w-full object-cover"
+              videoClassName="h-full w-full"
               loop
               autoPlay={isThumbnailPlaying}
               playing={isThumbnailPlaying}

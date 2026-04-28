@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 import {AddBookmarkDialog} from "@/features/add-item/AddBookmarkDialog";
 import {WebsiteBookmarkMenu} from "@/components/bookmark/_components/website/WebsiteBookmarkMenu";
 import {MediaBookmarkMenu} from "@/components/bookmark/_components/media/MediaBookmarkMenu";
@@ -12,7 +12,6 @@ import {DeleteTagDialog} from "../library/DeleteTagDialog";
 import {TagDialog} from "../library/TagDialog";
 import {Header, type AppShellSession} from "./Header";
 import SyncSetupSheet from "@/app/sync/_components/SyncSetupSheet";
-import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 
 const AppShell = ({
   children,
@@ -25,17 +24,6 @@ const AppShell = ({
   sidebar?: React.ReactNode;
   displayAddBookmarkDialog?: boolean;
 }) => {
-  const bookmarkKind = useBookmarkMenuStore((state) => state.item?.kind);
-
-  const BookmarkMenu = useMemo(() => {
-    switch (bookmarkKind) {
-      case "website":
-        return <WebsiteBookmarkMenu userId={session?.user?.id ?? null} />;
-      case "media":
-        return <MediaBookmarkMenu userId={session?.user?.id ?? null} />;
-    }
-  }, [bookmarkKind, session?.user?.id]);
-
   return (
     <main className="flex h-dvh min-h-screen flex-col">
       <Header session={session} />
@@ -47,7 +35,8 @@ const AppShell = ({
       {displayAddBookmarkDialog && (
         <AddBookmarkDialog isAuthenticated={Boolean(session)} user={session?.user ?? null} />
       )}
-      {BookmarkMenu}
+      <WebsiteBookmarkMenu userId={session?.user?.id ?? null} />
+      <MediaBookmarkMenu userId={session?.user?.id ?? null} />
       <CollectionDialog isAuthenticated={Boolean(session)} />
       <DeleteBookmarkDialog />
       <DeleteCollectionDialog />
