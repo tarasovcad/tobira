@@ -52,7 +52,7 @@ function PreviewOptionImage({src, alt}: {src: string; alt: string}) {
   const isLoaded = hasSrc && status === "loaded";
 
   return (
-    <div className="bg-muted relative grid aspect-video w-full place-items-center overflow-hidden rounded-md">
+    <div className="bg-muted border-border relative grid aspect-video w-full place-items-center overflow-hidden rounded-md">
       {!isLoaded ? <BookmarkImageFallback /> : null}
 
       {hasSrc ? (
@@ -65,11 +65,70 @@ function PreviewOptionImage({src, alt}: {src: string; alt: string}) {
             isLoaded ? "opacity-100" : "opacity-0",
           )}
           unoptimized
+          loading="lazy"
           onLoad={() => setStatus("loaded")}
           onError={() => setStatus("error")}
         />
       ) : null}
     </div>
+  );
+}
+
+function PreviewImageOptionCheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M5.16699 8.6154L7.04199 10.5L10.167 5.83333"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function PreviewImageOption({
+  imageSrc,
+  imageAlt,
+  label,
+  isSelected,
+  onSelect,
+}: {
+  imageSrc: string;
+  imageAlt: string;
+  label: string;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "ring-offset-background relative cursor-pointer rounded-xl p-1.5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-[1.5px]",
+        isSelected
+          ? "ring-highlight-hovered ring-2 ring-offset-[1.5px] focus-visible:ring-blue-600"
+          : "hover:ring-muted-foreground/40 focus-visible:ring-muted-foreground/40 hover:ring-2 hover:ring-offset-[1.5px]",
+      )}>
+      <div className="relative overflow-hidden rounded-lg">
+        <PreviewOptionImage src={imageSrc} alt={imageAlt} />
+        <div
+          className={cn(
+            "bg-primary text-primary-foreground absolute top-2 right-2 flex h-6 w-6 scale-50 items-center justify-center rounded-full opacity-0 shadow-sm transition-all duration-200",
+            isSelected && "scale-100 opacity-100",
+          )}>
+          <PreviewImageOptionCheckIcon />
+        </div>
+      </div>
+      <div
+        className={cn(
+          "my-2 text-center text-sm font-medium transition-colors",
+          isSelected ? "text-foreground" : "text-muted-foreground",
+        )}>
+        {label}
+      </div>
+    </button>
   );
 }
 
@@ -91,105 +150,20 @@ export default function WebsiteBookmarkPreviewDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-6 px-6 pb-6">
-          {/* OG Image option */}
-          <button
-            type="button"
-            onClick={() => onSelectPreview("og")}
-            className={cn(
-              "group/preview focus-visible:ring-ring relative cursor-pointer rounded-xl border-2 p-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-              selectedPreview === "og"
-                ? "border-highlight ring-highlight/20"
-                : "hover:bg-accent/50 border-transparent opacity-70 hover:opacity-100",
-            )}>
-            <div className="relative overflow-hidden rounded-lg shadow-sm">
-              <PreviewOptionImage src={ogImageUrl} alt="OG Image" />
-              <div
-                className={cn(
-                  "bg-primary/10 absolute inset-0 transition-opacity duration-200",
-                  selectedPreview === "og" ? "opacity-100" : "opacity-0",
-                )}
-              />
-              <div
-                className={cn(
-                  "bg-primary text-primary-foreground absolute top-2 right-2 flex h-6 w-6 scale-50 items-center justify-center rounded-full opacity-0 shadow-sm transition-all duration-200",
-                  selectedPreview === "og" && "scale-100 opacity-100",
-                )}>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M5.16699 8.6154L7.04199 10.5L10.167 5.83333"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div
-              className={cn(
-                "my-2.5 text-center text-sm font-[450] transition-colors",
-                selectedPreview === "og"
-                  ? "text-primary"
-                  : "text-muted-foreground group-hover/preview:text-foreground",
-              )}>
-              OG Image
-            </div>
-          </button>
-
-          {/* Preview Image option */}
-          <button
-            type="button"
-            onClick={() => onSelectPreview("preview")}
-            className={cn(
-              "group/preview focus-visible:ring-ring relative cursor-pointer rounded-xl border-2 p-1.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-              selectedPreview === "preview"
-                ? "border-highlight ring-highlight/20"
-                : "hover:bg-accent/50 border-transparent opacity-70 hover:opacity-100",
-            )}>
-            <div className="relative overflow-hidden rounded-lg">
-              <PreviewOptionImage src={previewImageUrl} alt="Preview Image" />
-              <div
-                className={cn(
-                  "bg-primary/10 absolute inset-0 transition-opacity duration-200",
-                  selectedPreview === "preview" ? "opacity-100" : "opacity-0",
-                )}
-              />
-              <div
-                className={cn(
-                  "bg-primary text-primary-foreground absolute top-2 right-2 flex h-6 w-6 scale-50 items-center justify-center rounded-full opacity-0 shadow-sm transition-all duration-200",
-                  selectedPreview === "preview" && "scale-100 opacity-100",
-                )}>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M5.16699 8.6154L7.04199 10.5L10.167 5.83333"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div
-              className={cn(
-                "my-2.5 text-center text-sm font-medium transition-colors",
-                selectedPreview === "preview"
-                  ? "text-primary"
-                  : "text-muted-foreground group-hover/preview:text-foreground",
-              )}>
-              Screenshot
-            </div>
-          </button>
+          <PreviewImageOption
+            imageSrc={ogImageUrl}
+            imageAlt="OG Image"
+            label="OG Image"
+            isSelected={selectedPreview === "og"}
+            onSelect={() => onSelectPreview("og")}
+          />
+          <PreviewImageOption
+            imageSrc={previewImageUrl}
+            imageAlt="Preview Image"
+            label="Screenshot"
+            isSelected={selectedPreview === "preview"}
+            onSelect={() => onSelectPreview("preview")}
+          />
         </div>
 
         <DialogFooter variant="default">

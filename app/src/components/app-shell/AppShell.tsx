@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useMemo} from "react";
-import {AddItemDialog} from "../bookmark/AddItemDialog";
+import {AddItemDialog} from "@/features/add-item/AddItemDialog";
 import {WebsiteBookmarkMenu} from "@/components/bookmark/_components/website/WebsiteBookmarkMenu";
 import {MediaBookmarkMenu} from "@/components/bookmark/_components/media/MediaBookmarkMenu";
 import {Sidebar} from "./sidebar/Sidebar";
