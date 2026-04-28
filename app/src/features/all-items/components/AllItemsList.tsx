@@ -15,7 +15,7 @@ import {
 import {AllItemsAnimatingPlaceholders} from "@/features/all-items/components/AllItemsAnimatingPlaceholders";
 import {AllItemsBookmarkRow} from "@/features/all-items/components/AllItemsBookmarkRow";
 import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
-import {flattenMediaGridBookmarks} from "@/features/media/components/bookmark/media-grid-render";
+import {flattenMediaGridBookmarks} from "@/components/bookmark/_utils/media-grid-render";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
 
 function LoadingSpinner({className}: {className?: string}) {

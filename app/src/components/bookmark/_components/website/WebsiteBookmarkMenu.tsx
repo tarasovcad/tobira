@@ -23,7 +23,7 @@ import {
 import {SelectButton, Select} from "@/components/ui/coss/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
-import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
+import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import WebsiteBookmarkPreviewDialog from "./WebsiteBookmarkPreviewDialog";
 import Spinner from "@/components/ui/app/spinner";

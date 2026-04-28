@@ -7,7 +7,7 @@ import {
   normalizeTagsForCompare,
 } from "../_utils/bookmark-schema";
 import type {Bookmark} from "@/components/bookmark/types";
-import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
+import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

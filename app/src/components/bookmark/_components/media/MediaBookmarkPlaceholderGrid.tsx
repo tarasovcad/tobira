@@ -2,16 +2,16 @@ import {cn} from "@/lib/utils";
 import {Skeleton} from "@/components/ui/coss/skeleton";
 import type {Bookmark} from "@/components/bookmark/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
+import {useEffect} from "react";
 
 import CrossFade from "../shared/NewBookmarkCrossFade";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
 import {
-  getBookmarkMediaPreviewItem,
   getBookmarkMediaPreviewSizeForColumnSize,
   getBookmarkMediaQualityForColumnSize,
   getBookmarkMediaSizesForColumnSize,
-} from "@/features/media/components/bookmark/bookmark-images";
-import {useEffect} from "react";
+} from "@/components/bookmark/_utils/media-grid-image-config";
+import {getMediaBookmarkGridPreviewItem} from "@/components/bookmark/_utils/media-bookmark-preview";
 import {PLACEHOLDER_DONE_DELAY_MS} from "../../_hooks/use-placeholder-transition";
 import MediaPreview from "@/features/media/components/MediaPreview";
 
@@ -33,7 +33,7 @@ export default function MediaBookmarkPlaceholderGrid({
   const imageSizes = getBookmarkMediaSizesForColumnSize(columnSize);
   const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);
   const previewItem = bookmark
-    ? getBookmarkMediaPreviewItem(bookmark, mediaIndex, previewSize)
+    ? getMediaBookmarkGridPreviewItem(bookmark, mediaIndex, previewSize)
     : null;
 
   const radiusClass =

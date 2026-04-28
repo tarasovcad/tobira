@@ -13,7 +13,7 @@ import {
   getBookmarkWidthForType,
 } from "@/features/all-items/components/all-items-list-view-options";
 import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
-import {flattenMediaGridBookmarks} from "@/features/media/components/bookmark/media-grid-render";
+import {flattenMediaGridBookmarks} from "@/components/bookmark/_utils/media-grid-render";
 import {SyncItemRow} from "./SyncItemRow";
 import type {SyncItem} from "../_types";
 

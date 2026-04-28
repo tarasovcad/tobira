@@ -7,7 +7,7 @@ import type {WebsiteBookmark} from "@/components/bookmark/types";
 import type {WebsiteImages} from "@/db/schema";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import {isWebsiteImages} from "@/features/media/components/bookmark/bookmark-images";
+import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
 import {useEffect, useState} from "react";
 
 interface WebsiteBookmarkGridImageProps {

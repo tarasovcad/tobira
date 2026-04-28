@@ -24,13 +24,13 @@ import {
 import {SelectButton, Select} from "@/components/ui/coss/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
-import {getBookmarkMediaPreviewItem} from "@/features/media/components/bookmark/bookmark-images";
 import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
 import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark-schema";
 import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
+import {getMediaBookmarkMenuPreviewItem} from "@/components/bookmark/_utils/media-bookmark-preview";
 
 const MAX_DESCRIPTION_LENGTH = 280;
 
@@ -212,7 +212,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
 
   const mediaPreviewItem = useMemo(() => {
     if (!item || item.kind !== "media") return null;
-    return getBookmarkMediaPreviewItem(item, 0, "medium");
+    return getMediaBookmarkMenuPreviewItem(item, 0);
   }, [item]);
 
   const actionProps = useMemo(
@@ -245,25 +245,16 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
               {item?.id && item.kind === "media" && mediaPreviewItem ? (
                 <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
                   <MediaPreview
-                    src={
-                      mediaPreviewItem.type === "image"
-                        ? mediaPreviewItem.src
-                        : mediaPreviewItem.src
-                    }
-                    fullSizeSrc={
-                      mediaPreviewItem.type === "image"
-                        ? mediaPreviewItem.fullSizeSrc
-                        : mediaPreviewItem.poster
-                    }
+                    src={mediaPreviewItem.src}
+                    fullSizeSrc={mediaPreviewItem.fullSizeSrc}
                     alt={mediaPreviewItem.alt}
                     width={mediaPreviewItem.width}
                     height={mediaPreviewItem.height}
                     type={mediaPreviewItem.type}
-                    poster={mediaPreviewItem.type === "video" ? mediaPreviewItem.poster : undefined}
                     sizes="100vw"
                     quality={60}
                     loading="lazy"
-                    addZoom={mediaPreviewItem.type === "image"}
+                    addZoom
                     className="h-full w-full object-cover"
                     buttonClassName="h-full w-full"
                   />

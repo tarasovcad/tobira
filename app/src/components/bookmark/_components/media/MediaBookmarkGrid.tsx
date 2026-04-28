@@ -4,13 +4,12 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import MediaPreview from "@/features/media/components/MediaPreview";
-
 import {
   getBookmarkMediaPreviewSizeForColumnSize,
   getBookmarkMediaQualityForColumnSize,
   getBookmarkMediaSizesForColumnSize,
-  getBookmarkMediaPreviewItem,
-} from "@/features/media/components/bookmark/bookmark-images";
+} from "@/components/bookmark/_utils/media-grid-image-config";
+import {getMediaBookmarkGridPreviewItem} from "@/components/bookmark/_utils/media-bookmark-preview";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import {MediaBookmark} from "../../types";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
@@ -41,31 +40,6 @@ function getRadiusClass(borderRadius: string): string {
   }
 }
 
-function getMediaPreviewSrc(src: string, type: "image" | "video") {
-  if (type !== "video") {
-    return src;
-  }
-
-  try {
-    const url = new URL(src);
-    if (url.hostname === "video.twimg.com") {
-      url.protocol = "https:";
-      url.hostname = "video.tobira.app";
-      return url.toString();
-    }
-
-    if (url.pathname.startsWith("/videos/")) {
-      url.protocol = "https:";
-      url.hostname = "video.tobira.app";
-      return url.toString();
-    }
-  } catch {
-    return src;
-  }
-
-  return src;
-}
-
 export default function MediaBookmarkGrid({
   item,
   onOpenMenu,
@@ -79,9 +53,8 @@ export default function MediaBookmarkGrid({
   const previewSize = getBookmarkMediaPreviewSizeForColumnSize(columnSize);
   const imageSizes = getBookmarkMediaSizesForColumnSize(columnSize);
   const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);
-  const previewItem = getBookmarkMediaPreviewItem(item, mediaIndex, previewSize);
+  const previewItem = getMediaBookmarkGridPreviewItem(item, mediaIndex, previewSize);
   const radiusClass = getRadiusClass(borderRadius);
-  const previewSrc = previewItem ? getMediaPreviewSrc(previewItem.src, previewItem.type) : null;
 
   const meta = item.metadata;
   const width = previewItem?.width ?? meta?.width ?? 1200;
@@ -128,7 +101,7 @@ export default function MediaBookmarkGrid({
       {previewItem ? (
         <div style={{aspectRatio}}>
           <MediaPreview
-            src={previewSrc ?? previewItem.src}
+            src={previewItem.src}
             fullSizeSrc={previewItem.type === "image" ? previewItem.fullSizeSrc : undefined}
             alt={previewItem.alt}
             width={previewItem.width}

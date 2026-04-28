@@ -1,5 +1,5 @@
 import type {Bookmark} from "@/components/bookmark/types";
-import {getBookmarkMediaTileCount} from "./bookmark-images";
+import {getMediaBookmarkGridTileCount} from "@/components/bookmark/_utils/media-bookmark-preview";
 
 export type MediaGridRenderEntry<T extends Bookmark = Bookmark> = {
   item: T;
@@ -12,7 +12,7 @@ export function flattenMediaGridBookmarks<T extends Bookmark>(
   items: T[],
 ): MediaGridRenderEntry<T>[] {
   return items.flatMap((item, bookmarkIndex) =>
-    Array.from({length: getBookmarkMediaTileCount(item)}, (_, mediaIndex) => ({
+    Array.from({length: getMediaBookmarkGridTileCount(item)}, (_, mediaIndex) => ({
       item,
       bookmarkIndex,
       mediaIndex,
