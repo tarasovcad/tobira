@@ -1,5 +1,5 @@
 import Image from "next/image";
-import {useState, type KeyboardEvent, type RefObject} from "react";
+import {useState, type FocusEvent, type KeyboardEvent, type RefObject} from "react";
 import CustomVideoPlayer from "@/features/video-player/components/CustomVideoPlayer";
 import {cn} from "@/lib/utils";
 
@@ -45,16 +45,43 @@ export function MediaPreviewTrigger({
   openPreview,
 }: MediaPreviewTriggerProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const [isManuallyPaused, setIsManuallyPaused] = useState(false);
   const [isThumbnailMuted, setIsThumbnailMuted] = useState(true);
 
   const canOpenPreview = type !== "video" && !disableClickToOpen;
-  const isThumbnailPlaying = isHovered && !isManuallyPaused;
+  const isThumbnailPlaying = isVideoReady && isHovered && !isManuallyPaused;
+  const shouldRenderVideo = type === "video" && (shouldLoadVideo || !poster);
+  const shouldShowPoster = type === "video" && !!poster && !isVideoReady;
 
   // Check if the element is in selection mode and if so, don't show the hover state
   const isSelectionModeActive = (element: HTMLDivElement) =>
     element.closest('[data-selection-mode="true"]') !== null;
+
+  const warmVideo = () => {
+    if (type !== "video") return;
+    setShouldLoadVideo(true);
+  };
+
+  const handleVideoIntentStart = (element: HTMLDivElement) => {
+    if (isSelectionModeActive(element)) {
+      setIsHovered(false);
+      return;
+    }
+
+    setIsHovered(true);
+    warmVideo();
+  };
+
+  const handleFocus = (event: FocusEvent<HTMLDivElement>) => {
+    if (type !== "video") return;
+    if (isSelectionModeActive(event.currentTarget)) {
+      return;
+    }
+
+    warmVideo();
+  };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!canOpenPreview) return;
@@ -66,24 +93,22 @@ export function MediaPreviewTrigger({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
+      role={canOpenPreview ? "button" : undefined}
+      tabIndex={canOpenPreview ? 0 : undefined}
       ref={triggerRef}
       onClick={canOpenPreview ? openPreview : undefined}
       onMouseEnter={(event) => {
-        if (isSelectionModeActive(event.currentTarget)) {
-          setIsHovered(false);
-          return;
+        if (type === "video") {
+          handleVideoIntentStart(event.currentTarget);
         }
-
-        setIsHovered(true);
-        setHasInteracted(true);
       }}
       onMouseLeave={() => {
-        setIsHovered(false);
-        setIsManuallyPaused(false);
-        setIsThumbnailMuted(true);
+        if (type === "video") {
+          setIsHovered(false);
+          setIsManuallyPaused(false);
+        }
       }}
+      onFocus={handleFocus}
       onKeyDown={handleKeyDown}
       className={cn(
         "block h-full w-full focus-visible:outline-none",
@@ -97,6 +122,16 @@ export function MediaPreviewTrigger({
           onClick={(event) => {
             event.stopPropagation();
 
+            if (!shouldLoadVideo) {
+              setIsHovered(true);
+              warmVideo();
+              return;
+            }
+
+            if (!isVideoReady) {
+              return;
+            }
+
             if (isThumbnailMuted) {
               setIsThumbnailMuted(false);
               return;
@@ -104,7 +139,31 @@ export function MediaPreviewTrigger({
 
             setIsManuallyPaused((prev) => !prev);
           }}>
-          {poster && !hasInteracted ? (
+          {shouldRenderVideo ? (
+            <CustomVideoPlayer
+              src={src}
+              className={cn(className, "absolute inset-0 h-full w-full")}
+              videoClassName="h-full w-full"
+              loop
+              autoPlay={isThumbnailPlaying}
+              playing={isThumbnailPlaying}
+              muted={isThumbnailMuted}
+              playsInline
+              preload="auto"
+              showMainPlayIcon={false}
+              minimal
+              controlsVisible={isHovered}
+              disableClickToggle
+              onCanPlay={() => {
+                setIsVideoReady(true);
+                onCanPlay?.();
+              }}
+              onError={onError}
+              poster={poster}
+            />
+          ) : null}
+
+          {shouldShowPoster ? (
             <Image
               src={poster}
               alt={alt}
@@ -113,31 +172,16 @@ export function MediaPreviewTrigger({
               sizes={sizes}
               quality={quality}
               loading={loading}
-              className={cn(className, "absolute inset-0 h-full w-full object-contain")}
+              className={cn(
+                className,
+                "absolute inset-0 h-full w-full object-contain transition-opacity",
+                shouldRenderVideo ? "pointer-events-none" : undefined,
+              )}
               unoptimized={unoptimized}
               onLoad={onCanPlay}
               onError={onError}
             />
-          ) : (
-            <CustomVideoPlayer
-              src={src}
-              className={className}
-              videoClassName="h-full w-full"
-              loop
-              autoPlay={isThumbnailPlaying}
-              playing={isThumbnailPlaying}
-              muted={isThumbnailMuted}
-              playsInline
-              preload="metadata"
-              showMainPlayIcon={false}
-              minimal
-              controlsVisible={isHovered}
-              disableClickToggle
-              onCanPlay={onCanPlay}
-              onError={onError}
-              poster={poster}
-            />
-          )}
+          ) : null}
         </div>
       ) : (
         <Image

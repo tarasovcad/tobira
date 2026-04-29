@@ -1,7 +1,7 @@
 "use client";
 
 import type {CSSProperties, PointerEvent as ReactPointerEvent} from "react";
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 type VideoProgressControlProps = {
   currentTime: number;
@@ -35,6 +35,40 @@ export function VideoProgressControl({
 }: VideoProgressControlProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const pendingSeekTimeRef = useRef<number | null>(null);
+  const seekAnimationFrameRef = useRef<number | null>(null);
+
+  const cancelScheduledSeek = () => {
+    if (seekAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(seekAnimationFrameRef.current);
+      seekAnimationFrameRef.current = null;
+    }
+  };
+
+  const flushPendingSeek = () => {
+    const nextTime = pendingSeekTimeRef.current;
+    if (nextTime === null) return;
+
+    seekAnimationFrameRef.current = null;
+    pendingSeekTimeRef.current = null;
+    onSeek(nextTime);
+  };
+
+  const scheduleLiveSeek = (nextTime: number) => {
+    pendingSeekTimeRef.current = nextTime;
+
+    if (seekAnimationFrameRef.current !== null) return;
+
+    seekAnimationFrameRef.current = requestAnimationFrame(() => {
+      flushPendingSeek();
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      cancelScheduledSeek();
+    };
+  }, []);
 
   const handlePreviewMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (duration <= 0) return null;
@@ -50,6 +84,8 @@ export function VideoProgressControl({
 
     setIsDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
+    pendingSeekTimeRef.current = null;
+    cancelScheduledSeek();
     onSeek(nextPreview.time);
   };
 
@@ -57,7 +93,7 @@ export function VideoProgressControl({
     const nextPreview = handlePreviewMove(event);
     if (!nextPreview || !isDragging) return;
 
-    onSeek(nextPreview.time);
+    scheduleLiveSeek(nextPreview.time);
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -66,6 +102,11 @@ export function VideoProgressControl({
     setIsDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (pendingSeekTimeRef.current !== null) {
+      cancelScheduledSeek();
+      flushPendingSeek();
     }
 
     if (!event.currentTarget.matches(":hover")) {
