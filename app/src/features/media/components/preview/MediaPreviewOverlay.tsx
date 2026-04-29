@@ -2,7 +2,8 @@ import type {PointerEventHandler, ReactNode, RefObject, WheelEventHandler} from 
 import {PreviewToolbar} from "./PreviewToolbar";
 import {PreviewSurface} from "./PreviewSurface";
 import type {Pan, Rect} from "./types";
-import CustomVideoPlayer from "@/features/video-player/components/CustomVideoPlayer";
+import {VideoPlayerShell} from "@/features/video-player/components/VideoPlayerShell";
+import type {VideoPlayerSession} from "@/features/video-player/types";
 import {cn} from "@/lib/utils";
 
 type MediaPreviewOverlayProps = {
@@ -20,7 +21,7 @@ type MediaPreviewOverlayProps = {
   addZoom: boolean;
   showFallback: boolean;
   fallback?: ReactNode;
-  poster?: string;
+  videoSession?: VideoPlayerSession;
   closePreview: () => void;
   handleZoomControlClick: () => void;
   handleMediaClick: () => void;
@@ -68,7 +69,7 @@ export function MediaPreviewOverlay({
   addZoom,
   showFallback,
   fallback,
-  poster,
+  videoSession,
   closePreview,
   handleZoomControlClick,
   handleMediaClick,
@@ -78,13 +79,19 @@ export function MediaPreviewOverlay({
   handleMediaPointerUp,
   handleMediaPointerCancel,
 }: MediaPreviewOverlayProps) {
-  const isInteractive = addZoom && !showFallback;
+  const isInteractive = type === "image" && addZoom && !showFallback;
+  const previewContentClassName =
+    type === "video"
+      ? "bg-black flex items-center justify-center"
+      : showFallback
+        ? "bg-muted flex flex-col items-center justify-center gap-3"
+        : undefined;
 
   return (
     <div ref={overlayRef} className="fixed inset-0 z-100">
       <button
         type="button"
-        aria-label="Close image preview"
+        aria-label="Close preview"
         className={cn(
           "absolute inset-0 bg-black/60 transition-opacity duration-250",
           expanded ? "opacity-100" : "opacity-0",
@@ -111,23 +118,17 @@ export function MediaPreviewOverlay({
         onPointerMove={handleMediaPointerMove}
         onPointerUp={handleMediaPointerUp}
         onPointerCancel={handleMediaPointerCancel}
-        className={cn(
-          previewClassName,
-          // !showFallback && "bg-black",
-          showFallback && "bg-muted flex flex-col items-center justify-center gap-3",
-        )}>
+        className={cn(previewClassName, previewContentClassName)}>
         {type === "video" ? (
-          <CustomVideoPlayer
-            src={src}
-            className="h-full w-full object-cover"
-            loop
-            autoPlay
-            muted={false}
-            playsInline
-            showMainPlayIcon
-            minimal
-            poster={poster}
-          />
+          videoSession ? (
+            <VideoPlayerShell
+              session={videoSession}
+              className="h-full w-full bg-black"
+              videoClassName="h-full w-full object-contain"
+              showMainPlayIcon
+              minimal
+            />
+          ) : null
         ) : showFallback ? (
           (fallback ?? <DefaultFallback />)
         ) : (

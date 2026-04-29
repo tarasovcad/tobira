@@ -1,15 +1,25 @@
 import type React from "react";
+import type {ReactNode, RefObject} from "react";
 
-export interface CustomVideoPlayerProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
-  src: string;
+export interface VideoPlayerSessionOptions extends Omit<
+  React.VideoHTMLAttributes<HTMLVideoElement>,
+  "children" | "className" | "poster" | "src"
+> {
+  enabled?: boolean;
+  src?: string;
   poster?: string;
+  playing?: boolean;
+}
+
+export interface CustomVideoPlayerProps extends VideoPlayerSessionOptions {
+  src: string;
   className?: string;
   videoClassName?: string;
   showMainPlayIcon?: boolean;
   minimal?: boolean;
-  playing?: boolean;
   controlsVisible?: boolean;
   disableClickToggle?: boolean;
+  onRequestFullscreen?: () => void;
 }
 
 export interface VideoPlayerState {
@@ -33,7 +43,7 @@ export interface VideoPlayerActions {
   toggleFullscreen: () => void;
   handleContainerMouseMove: () => void;
   handleContainerMouseLeave: () => void;
-  handleVideoPointerDown: (event: React.PointerEvent<HTMLVideoElement>) => void;
+  handleVideoPointerDown: (event: PointerEvent) => void;
   handleVideoPointerUpOrLeave: () => void;
   handleVideoClick: () => void;
   handleTimeUpdate: () => void;
@@ -47,9 +57,32 @@ export interface VideoPlayerActions {
   handlePause: () => void;
 }
 
-export interface VideoPlayerController {
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
+export interface VideoPlayerHostOptions {
+  containerNode: HTMLDivElement | null;
+  mountNode: HTMLDivElement | null;
+  videoClassName?: string;
+  disableClickToggle?: boolean;
+  onRequestFullscreen?: () => void;
+}
+
+export interface VideoPlayerSession {
+  videoRef: RefObject<HTMLVideoElement | null>;
+  isReady: boolean;
   state: VideoPlayerState;
   actions: VideoPlayerActions;
+  attachToHost: (host: VideoPlayerHostOptions) => void;
+  detachFromHost: (containerNode: HTMLDivElement | null) => void;
+}
+
+export interface VideoPlayerShellProps {
+  session: VideoPlayerSession;
+  className?: string;
+  videoClassName?: string;
+  showMainPlayIcon?: boolean;
+  minimal?: boolean;
+  controlsVisible?: boolean;
+  disableClickToggle?: boolean;
+  onRequestFullscreen?: () => void;
+  attachVideo?: boolean;
+  placeholder?: ReactNode;
 }

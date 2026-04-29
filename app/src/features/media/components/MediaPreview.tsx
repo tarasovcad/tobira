@@ -3,9 +3,10 @@
 import {createPortal} from "react-dom";
 import type {MediaPreviewProps} from "./preview/types";
 import {useMediaPreview} from "../hooks/useMediaPreview";
-import {useEffect} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
 import {MediaPreviewTrigger} from "./preview/MediaPreviewTrigger";
+import {useVideoPlayerSession} from "@/features/video-player/hooks/useVideoPlayerSession";
 
 // Renders a thumbnail image or video with fullscreen, zoom, and pan preview behavior.
 export default function MediaPreview({
@@ -55,6 +56,35 @@ export default function MediaPreview({
     handleMediaClick,
   } = useMediaPreview({width, height, onOpenChange, type, addZoom});
 
+  const isVideo = type === "video";
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(isVideo && !poster);
+  const [isVideoHovered, setIsVideoHovered] = useState(false);
+  const [hasOpenedVideoPreview, setHasOpenedVideoPreview] = useState(false);
+  const openedFromSignal = isVideo && Boolean(openSignal);
+  const hasPersistentVideoState = hasOpenedVideoPreview || openedFromSignal;
+  const openMediaPreview = useCallback(() => {
+    if (isVideo) {
+      setShouldLoadVideo(true);
+      setHasOpenedVideoPreview(true);
+    }
+
+    openPreview();
+  }, [isVideo, openPreview]);
+
+  const videoSession = useVideoPlayerSession({
+    enabled: isVideo,
+    src: isVideo && (shouldLoadVideo || open || hasPersistentVideoState) ? src : undefined,
+    poster,
+    loop: isVideo,
+    autoPlay: isVideo && !hasPersistentVideoState ? isVideoHovered : undefined,
+    muted: isVideo && !hasPersistentVideoState ? true : undefined,
+    playsInline: isVideo,
+    preload: isVideo && (shouldLoadVideo || open || hasPersistentVideoState) ? "auto" : undefined,
+    playing: isVideo && !hasPersistentVideoState ? isVideoHovered : undefined,
+    onCanPlay: isVideo ? onCanPlay : undefined,
+    onError: isVideo ? onError : undefined,
+  });
+
   useEffect(() => {
     if (!openSignal) return;
     openPreview();
@@ -83,7 +113,13 @@ export default function MediaPreview({
         onError={onError}
         onCanPlay={onCanPlay}
         poster={poster}
-        openPreview={openPreview}
+        videoSession={isVideo ? videoSession : undefined}
+        attachVideo={isVideo ? !open : false}
+        controlsVisible={isVideo ? isVideoHovered : false}
+        warmVideo={isVideo ? () => setShouldLoadVideo(true) : undefined}
+        setVideoHovered={isVideo ? setIsVideoHovered : undefined}
+        onVideoLeave={undefined}
+        openPreview={openMediaPreview}
       />
 
       {shouldRenderOverlay
@@ -103,7 +139,7 @@ export default function MediaPreview({
               addZoom={addZoom}
               showFallback={showFallback}
               fallback={fallback}
-              poster={poster}
+              videoSession={isVideo ? videoSession : undefined}
               closePreview={closePreview}
               handleZoomControlClick={handleZoomControlClick}
               handleMediaClick={handleMediaClick}
