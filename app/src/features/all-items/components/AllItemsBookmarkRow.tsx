@@ -3,16 +3,14 @@
 import * as React from "react";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {
-  AllItemsAnimatedVariant,
-  AllItemsBookmarkComponentProps,
-} from "./all-items-list-layout";
+import type {AllItemsAnimatedVariant, AllItemsBookmarkComponent} from "./all-items-list-layout";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
 
 interface AllItemsBookmarkRowProps {
   item: Bookmark;
   renderId?: string;
+  galleryIndex?: number;
   mediaIndex?: number;
   selectionIndex: number;
   isRemoving: boolean;
@@ -21,11 +19,12 @@ interface AllItemsBookmarkRowProps {
   isSelected: boolean;
   animatedVariant: AllItemsAnimatedVariant;
   isMasonry: boolean;
-  BookmarkItem: React.ComponentType<AllItemsBookmarkComponentProps>;
+  BookmarkItem: AllItemsBookmarkComponent;
   className?: string;
   onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
+  onOpenGallery?: (galleryIndex: number, triggerElement: HTMLDivElement) => void;
   onMenuArchive: (item: Bookmark) => void;
   onMenuDelete: (item: Bookmark) => void;
 }
@@ -33,6 +32,7 @@ interface AllItemsBookmarkRowProps {
 function AllItemsBookmarkRowImpl({
   item,
   renderId,
+  galleryIndex,
   mediaIndex,
   selectionIndex,
   isRemoving,
@@ -46,6 +46,7 @@ function AllItemsBookmarkRowImpl({
   onItemRemoved,
   toggleSelected,
   setSelected,
+  onOpenGallery,
   onMenuArchive,
   onMenuDelete,
 }: AllItemsBookmarkRowProps) {
@@ -93,7 +94,9 @@ function AllItemsBookmarkRowImpl({
         <BookmarkItem
           item={item}
           onOpenMenu={handleOpenMenu}
+          onOpenGallery={onOpenGallery}
           onDelete={handleDelete}
+          galleryIndex={galleryIndex}
           mediaIndex={mediaIndex}
           selectionIndex={selectionIndex}
           isSelected={isSelected}
@@ -110,6 +113,7 @@ export const AllItemsBookmarkRow = React.memo(
   (prev, next) =>
     prev.item === next.item &&
     prev.renderId === next.renderId &&
+    prev.galleryIndex === next.galleryIndex &&
     prev.mediaIndex === next.mediaIndex &&
     prev.selectionIndex === next.selectionIndex &&
     prev.isRemoving === next.isRemoving &&
@@ -123,6 +127,7 @@ export const AllItemsBookmarkRow = React.memo(
     prev.onItemRemoved === next.onItemRemoved &&
     prev.toggleSelected === next.toggleSelected &&
     prev.setSelected === next.setSelected &&
+    prev.onOpenGallery === next.onOpenGallery &&
     prev.onMenuArchive === next.onMenuArchive &&
     prev.onMenuDelete === next.onMenuDelete,
 );

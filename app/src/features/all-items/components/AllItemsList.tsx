@@ -1,5 +1,5 @@
 "use client";
-import {useCallback, useMemo} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
@@ -15,8 +15,12 @@ import {
 import {AllItemsAnimatingPlaceholders} from "@/features/all-items/components/AllItemsAnimatingPlaceholders";
 import {AllItemsBookmarkRow} from "@/features/all-items/components/AllItemsBookmarkRow";
 import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
-import {flattenMediaGridBookmarks} from "@/components/bookmark/_utils/media-grid-render";
+import {buildMediaGalleryEntries} from "@/components/bookmark/_utils/media-grid-render";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import {getBookmarkMediaPreviewSizeForColumnSize} from "@/components/bookmark/_utils/media-grid-image-config";
+import type {Rect} from "@/features/media/components/preview/types";
+import {useMediaGalleryPreview} from "@/features/media/hooks/useMediaGalleryPreview";
+import {MediaGalleryOverlay} from "@/features/media/components/MediaGalleryOverlay";
 
 function LoadingSpinner({className}: {className?: string}) {
   return (
@@ -82,6 +86,7 @@ export function AllItemsList({
   const bookmarkWidth = useViewOptionsStore((state) =>
     getBookmarkWidthForType(state.bookmarkWidthByType, typeFilter),
   );
+  const mediaPreviewSize = getBookmarkMediaPreviewSizeForColumnSize(columnSize);
 
   const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
     {
@@ -124,6 +129,71 @@ export function AllItemsList({
     [selectionMode],
   );
 
+  const mediaGalleryEntries = useMemo(
+    () => (isMediaGrid ? buildMediaGalleryEntries(visibleItems, mediaPreviewSize) : []),
+    [isMediaGrid, mediaPreviewSize, visibleItems],
+  );
+  const [currentMediaIndex, setCurrentMediaIndex] = useState<number | null>(null);
+  const boundedCurrentMediaIndex =
+    currentMediaIndex === null || mediaGalleryEntries.length === 0
+      ? null
+      : Math.min(currentMediaIndex, mediaGalleryEntries.length - 1);
+  const currentMediaEntry =
+    boundedCurrentMediaIndex !== null
+      ? (mediaGalleryEntries.at(boundedCurrentMediaIndex) ?? null)
+      : null;
+
+  const mediaGalleryPreview = useMediaGalleryPreview({
+    type: currentMediaEntry?.previewItem.type ?? "image",
+    addZoom: true,
+    onOpenChange: (open) => {
+      if (!open) {
+        setCurrentMediaIndex(null);
+      }
+    },
+  });
+  const {openPreviewFromRect, closePreview} = mediaGalleryPreview;
+
+  const handleOpenMediaGallery = useCallback(
+    (galleryIndex: number, triggerElement: HTMLDivElement) => {
+      const entry = mediaGalleryEntries.at(galleryIndex);
+      if (!entry) {
+        return;
+      }
+
+      const mediaElement = triggerElement.querySelector("img, video");
+      if (!mediaElement) {
+        return;
+      }
+
+      const thumbRect = mediaElement.getBoundingClientRect();
+      const fromRect: Rect = {
+        top: thumbRect.top,
+        left: thumbRect.left,
+        width: thumbRect.width,
+        height: thumbRect.height,
+      };
+
+      setCurrentMediaIndex(galleryIndex);
+      openPreviewFromRect({
+        fromRect,
+        width: entry.previewItem.width,
+        height: entry.previewItem.height,
+      });
+    },
+    [mediaGalleryEntries, openPreviewFromRect],
+  );
+
+  useEffect(() => {
+    if (currentMediaIndex === null) {
+      return;
+    }
+
+    if (mediaGalleryEntries.length === 0) {
+      closePreview();
+    }
+  }, [closePreview, currentMediaIndex, mediaGalleryEntries.length]);
+
   const content = useMemo(() => {
     if (isInitialLoad) {
       return Array.from({length: skeletonCount}, (_, index) =>
@@ -132,7 +202,7 @@ export function AllItemsList({
     }
 
     const renderEntries = isMediaGrid
-      ? flattenMediaGridBookmarks(visibleItems)
+      ? mediaGalleryEntries
       : visibleItems.map((item, bookmarkIndex) => ({
           item,
           bookmarkIndex,
@@ -140,11 +210,12 @@ export function AllItemsList({
           renderId: item.id,
         }));
 
-    return renderEntries.map((entry) => (
+    return renderEntries.map((entry, entryIndex) => (
       <AllItemsBookmarkRow
         key={entry.renderId}
         item={entry.item}
         renderId={entry.renderId}
+        galleryIndex={isMediaGrid ? entryIndex : undefined}
         mediaIndex={entry.mediaIndex}
         selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
         isRemoving={removingIds.has(entry.item.id)}
@@ -158,6 +229,7 @@ export function AllItemsList({
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
+        onOpenGallery={isMediaGrid ? handleOpenMediaGallery : undefined}
         onMenuArchive={onMenuArchive}
         onMenuDelete={onMenuDelete}
       />
@@ -169,6 +241,8 @@ export function AllItemsList({
     bookmarkItemComponent,
     animatedVariant,
     getItemSelectionIndex,
+    handleOpenMediaGallery,
+    mediaGalleryEntries,
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,
@@ -198,16 +272,30 @@ export function AllItemsList({
   );
 
   return (
-    <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
-      <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
-        <div className={layoutConfig.wrapperClassName}>
-          <div className={layoutConfig.containerClassName}>
-            {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
-            {!layoutConfig.isMasonry ? (
+    <>
+      <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
+        <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
+          <div className={layoutConfig.wrapperClassName}>
+            <div className={layoutConfig.containerClassName}>
+              {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
+              {!layoutConfig.isMasonry ? (
+                <>
+                  {isFetchingNextPage && (
+                    <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+                  )}
+                  <div
+                    ref={bottomSentinelRef}
+                    aria-hidden
+                    className={layoutConfig.sentinelClassName}
+                  />
+                </>
+              ) : null}
+            </div>
+            {layoutConfig.isMasonry ? (
               <>
-                {isFetchingNextPage && (
+                {isFetchingNextPage ? (
                   <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
-                )}
+                ) : null}
                 <div
                   ref={bottomSentinelRef}
                   aria-hidden
@@ -216,16 +304,14 @@ export function AllItemsList({
               </>
             ) : null}
           </div>
-          {layoutConfig.isMasonry ? (
-            <>
-              {isFetchingNextPage ? (
-                <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
-              ) : null}
-              <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
-            </>
-          ) : null}
-        </div>
-      </ScrollArea>
-    </div>
+        </ScrollArea>
+      </div>
+      <MediaGalleryOverlay
+        entries={mediaGalleryEntries}
+        currentIndex={boundedCurrentMediaIndex}
+        onSelectIndex={setCurrentMediaIndex}
+        {...mediaGalleryPreview}
+      />
+    </>
   );
 }

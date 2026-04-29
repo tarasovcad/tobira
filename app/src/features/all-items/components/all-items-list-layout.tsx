@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {cn} from "@/lib/utils";
-import type {Bookmark, WebsiteBookmark} from "@/components/bookmark/types";
+import type {Bookmark} from "@/components/bookmark/types";
 
 import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
@@ -32,17 +32,21 @@ import PostBookmarkPlaceholderList from "@/components/bookmark/_components/post/
 export type AllItemsAnimatedVariant = "list" | "grid";
 
 export interface AllItemsBookmarkComponentProps {
-  item: WebsiteBookmark;
+  item: Bookmark;
   onOpenMenu?: (item: Bookmark) => void;
+  onOpenGallery?: (galleryIndex: number, triggerElement: HTMLDivElement) => void;
   onDelete?: (item: Bookmark) => void;
   onSave?: (item: Bookmark) => void;
   onDismiss?: (item: Bookmark) => void;
   className?: string;
+  galleryIndex?: number;
   mediaIndex?: number;
   selectionIndex?: number;
   isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;
 }
+
+export type AllItemsBookmarkComponent = React.ComponentType<AllItemsBookmarkComponentProps>;
 
 export interface AllItemsNewBookmarkPlaceholderProps {
   url: string;
@@ -61,7 +65,7 @@ export interface AllItemsListLayoutConfig {
   animatedVariant: AllItemsAnimatedVariant;
   isTable: boolean;
   isMasonry: boolean;
-  BookmarkItem: React.ComponentType<AllItemsBookmarkComponentProps>;
+  BookmarkItem: AllItemsBookmarkComponent;
   NewBookmarkPlaceholder: React.ComponentType<AllItemsNewBookmarkPlaceholderProps>;
   renderSkeletonItem: (index: number) => React.ReactNode;
 }
@@ -137,7 +141,7 @@ export function getAllItemsListLayoutConfig({
           animatedVariant: "grid",
           isTable: false,
           isMasonry: true,
-          BookmarkItem: MediaBookmarkGrid,
+          BookmarkItem: MediaBookmarkGrid as AllItemsBookmarkComponent,
           NewBookmarkPlaceholder: MediaBookmarkPlaceholderGrid,
           renderSkeletonItem: (index) => (
             <MediaSkeletonGrid key={index} index={index} borderRadiusClass={borderRadiusClass} />
@@ -157,7 +161,7 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "grid",
         isTable: false,
         isMasonry: false,
-        BookmarkItem: WebsiteBookmarkGrid,
+        BookmarkItem: WebsiteBookmarkGrid as AllItemsBookmarkComponent,
         NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderGrid,
         renderSkeletonItem: (index) => (
           <WebsiteSkeletonGrid key={index} borderRadiusClass={borderRadiusClass} />
@@ -172,7 +176,7 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "list",
         isTable: true,
         isMasonry: false,
-        BookmarkItem: WebsiteBookmarkTable,
+        BookmarkItem: WebsiteBookmarkTable as AllItemsBookmarkComponent,
         NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderTable,
         renderSkeletonItem: (index) => <WebsiteSkeletonTable key={index} />,
       };
@@ -185,7 +189,7 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "list",
         isTable: false,
         isMasonry: false,
-        BookmarkItem: WebsiteBookmarkCompact,
+        BookmarkItem: WebsiteBookmarkCompact as AllItemsBookmarkComponent,
         NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderCompact,
         renderSkeletonItem: (index) => <WebsiteSkeletonCompact key={index} />,
       };
@@ -199,7 +203,7 @@ export function getAllItemsListLayoutConfig({
           animatedVariant: "list",
           isTable: false,
           isMasonry: false,
-          BookmarkItem: PostBookmarkList,
+          BookmarkItem: PostBookmarkList as AllItemsBookmarkComponent,
           NewBookmarkPlaceholder: PostBookmarkPlaceholderList,
           renderSkeletonItem: (index) => <PostSkeletonList key={index} />,
         };
@@ -212,7 +216,7 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "list",
         isTable: false,
         isMasonry: false,
-        BookmarkItem: WebsiteBookmarkList,
+        BookmarkItem: WebsiteBookmarkList as AllItemsBookmarkComponent,
         NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderList,
         renderSkeletonItem: (index) => <WebsiteSkeletonList key={index} />,
       };

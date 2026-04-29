@@ -20,7 +20,9 @@ const selectionModeHoverActionsClass =
 interface MediaBookmarkGridProps {
   item: MediaBookmark;
   onOpenMenu?: (item: MediaBookmark) => void;
+  onOpenGallery?: (galleryIndex: number, triggerElement: HTMLDivElement) => void;
   className?: string;
+  galleryIndex?: number;
   mediaIndex?: number;
   selectionIndex?: number;
   isSelected?: boolean;
@@ -43,7 +45,9 @@ function getRadiusClass(borderRadius: string): string {
 export default function MediaBookmarkGrid({
   item,
   onOpenMenu,
+  onOpenGallery,
   className,
+  galleryIndex,
   mediaIndex = 0,
   selectionIndex = 0,
   isSelected = false,
@@ -60,6 +64,18 @@ export default function MediaBookmarkGrid({
   const width = previewItem?.width ?? meta?.width ?? 1200;
   const height = previewItem?.height ?? meta?.height ?? 1200;
   const aspectRatio = width > 0 && height > 0 ? `${width} / ${height}` : "16/9";
+  const canOpenGallery = galleryIndex !== undefined && !!onOpenGallery;
+
+  const handleOpenGallery = React.useCallback(
+    (triggerElement: HTMLDivElement) => {
+      if (!onOpenGallery || galleryIndex === undefined) {
+        return;
+      }
+
+      onOpenGallery(galleryIndex, triggerElement);
+    },
+    [galleryIndex, onOpenGallery],
+  );
 
   return (
     <div
@@ -99,7 +115,26 @@ export default function MediaBookmarkGrid({
       />
 
       {previewItem ? (
-        <div style={{aspectRatio}}>
+        <div
+          style={{aspectRatio}}
+          role={canOpenGallery ? "button" : undefined}
+          tabIndex={canOpenGallery ? 0 : undefined}
+          className={cn(canOpenGallery && "focus-visible:ring-ring focus-visible:ring-2")}
+          onClickCapture={(event) => {
+            if (!canOpenGallery) {
+              return;
+            }
+
+            handleOpenGallery(event.currentTarget);
+          }}
+          onKeyDown={(event) => {
+            if (!canOpenGallery || (event.key !== "Enter" && event.key !== " ")) {
+              return;
+            }
+
+            event.preventDefault();
+            handleOpenGallery(event.currentTarget);
+          }}>
           <MediaPreview
             src={previewItem.src}
             fullSizeSrc={previewItem.type === "image" ? previewItem.fullSizeSrc : undefined}
@@ -111,6 +146,7 @@ export default function MediaBookmarkGrid({
             sizes={imageSizes}
             quality={imageQuality}
             loading="lazy"
+            disableClickToOpen={canOpenGallery}
             className="h-full w-full object-cover"
             buttonClassName="h-full w-full"
           />

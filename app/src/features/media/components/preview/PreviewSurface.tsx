@@ -9,6 +9,7 @@ type PreviewSurfaceProps = {
   pan: Pan;
   isDragging: boolean;
   interactive?: boolean;
+  animateLayout?: boolean;
   className?: string;
   children: ReactNode;
   onClick?: () => void;
@@ -25,6 +26,7 @@ export function PreviewSurface({
   pan,
   isDragging,
   interactive = false,
+  animateLayout = true,
   className,
   children,
   onClick,
@@ -44,9 +46,11 @@ export function PreviewSurface({
       onPointerCancel={interactive ? onPointerCancel : undefined}
       className={cn(
         "absolute overflow-hidden rounded-xl shadow-2xl ease-out",
-        isDragging
-          ? "transition-[top,left,width,height,border-radius]"
-          : "transition-[top,left,width,height,transform,border-radius] duration-250",
+        !animateLayout
+          ? "transition-none"
+          : isDragging
+            ? "transition-[top,left,width,height,border-radius]"
+            : "transition-[top,left,width,height,transform,border-radius] duration-250",
         className,
       )}
       style={{
