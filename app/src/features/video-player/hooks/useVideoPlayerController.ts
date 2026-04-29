@@ -68,6 +68,7 @@ export function useVideoPlayerController({
       const clampedTime = Math.max(0, Math.min(maxDuration, nextTime));
 
       video.currentTime = clampedTime;
+      setCurrentTime(clampedTime);
     },
     [duration],
   );

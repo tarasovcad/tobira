@@ -1,6 +1,7 @@
 "use client";
 
-import React, {useEffect, useRef, useState} from "react";
+import type {MouseEvent as ReactMouseEvent} from "react";
+import {useEffect, useRef, useState} from "react";
 
 type VideoVolumeControlProps = {
   isMuted: boolean;
@@ -116,6 +117,9 @@ export function VideoVolumeControl({
     <div className="group/volume relative flex shrink-0 items-center">
       <button
         type="button"
+        onMouseDown={(event: ReactMouseEvent<HTMLButtonElement>) => {
+          event.preventDefault();
+        }}
         onClick={onToggleMute}
         aria-label={isSilent ? "Unmute" : "Mute"}
         aria-pressed={isSilent}
@@ -182,6 +186,9 @@ export function VideoVolumeControl({
             aria-orientation="vertical"
             className="hit-area-3 relative flex h-24 w-4 cursor-pointer items-center justify-center py-2.5 outline-hidden"
             style={{"--video-volume-percent": `${volumePercent}%`} as React.CSSProperties}
+            onMouseDown={(event: ReactMouseEvent<HTMLDivElement>) => {
+              event.preventDefault();
+            }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
