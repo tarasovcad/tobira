@@ -424,11 +424,23 @@ export function useVideoPlayerSession({
       const video = videoRef.current;
       if (!video || !mountNode) return;
 
+      const wasPlayingBeforeAttach = !video.paused && !video.ended;
+
       if (video.parentElement !== mountNode || mountNode.childNodes.length !== 1) {
         mountNode.replaceChildren(video);
       }
+
+      if (wasPlayingBeforeAttach) {
+        requestAnimationFrame(() => {
+          if (videoRef.current !== video || video.parentElement !== mountNode || !video.paused) {
+            return;
+          }
+
+          safePlay();
+        });
+      }
     },
-    [applyVideoClassName],
+    [applyVideoClassName, safePlay],
   );
 
   const detachFromHost = useCallback((containerNode: HTMLDivElement | null) => {

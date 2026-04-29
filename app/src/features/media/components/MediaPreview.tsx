@@ -59,13 +59,9 @@ export default function MediaPreview({
   const isVideo = type === "video";
   const [shouldLoadVideo, setShouldLoadVideo] = useState(isVideo && !poster);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
-  const [hasOpenedVideoPreview, setHasOpenedVideoPreview] = useState(false);
-  const openedFromSignal = isVideo && Boolean(openSignal);
-  const hasPersistentVideoState = hasOpenedVideoPreview || openedFromSignal;
   const openMediaPreview = useCallback(() => {
     if (isVideo) {
       setShouldLoadVideo(true);
-      setHasOpenedVideoPreview(true);
     }
 
     openPreview();
@@ -73,14 +69,11 @@ export default function MediaPreview({
 
   const videoSession = useVideoPlayerSession({
     enabled: isVideo,
-    src: isVideo && (shouldLoadVideo || open || hasPersistentVideoState) ? src : undefined,
+    src: isVideo && (shouldLoadVideo || open) ? src : undefined,
     poster,
     loop: isVideo,
-    autoPlay: isVideo && !hasPersistentVideoState ? isVideoHovered : undefined,
-    muted: isVideo && !hasPersistentVideoState ? true : undefined,
     playsInline: isVideo,
-    preload: isVideo && (shouldLoadVideo || open || hasPersistentVideoState) ? "auto" : undefined,
-    playing: isVideo && !hasPersistentVideoState ? isVideoHovered : undefined,
+    preload: isVideo && (shouldLoadVideo || open) ? "auto" : undefined,
     onCanPlay: isVideo ? onCanPlay : undefined,
     onError: isVideo ? onError : undefined,
   });

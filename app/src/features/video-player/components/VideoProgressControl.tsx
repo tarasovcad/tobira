@@ -133,7 +133,7 @@ export function VideoProgressControl({
 
   return (
     <div
-      className="group/progress mx-1.5 flex min-w-0 flex-1 cursor-pointer items-center py-3 @max-[364px]/video-player:order-first @max-[364px]/video-player:mx-0 @max-[364px]/video-player:basis-full @max-[364px]/video-player:py-1"
+      className="group/progress hit-area-2 mx-1.5 flex min-w-0 flex-1 cursor-pointer items-center py-3 @max-[364px]/video-player:order-first @max-[364px]/video-player:mx-0 @max-[364px]/video-player:basis-full @max-[364px]/video-player:py-1"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

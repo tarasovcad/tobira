@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useRef} from "react";
+import {useLayoutEffect, useRef} from "react";
 import {VideoPlayerControls} from "@/features/video-player/components/VideoPlayerControls";
 import {VideoPlayerOverlays} from "@/features/video-player/components/VideoPlayerOverlays";
 import type {VideoPlayerShellProps} from "@/features/video-player/types";
@@ -23,7 +23,7 @@ export function VideoPlayerShell({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mountRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!attachVideo) return;
 
     const containerNode = containerRef.current;
