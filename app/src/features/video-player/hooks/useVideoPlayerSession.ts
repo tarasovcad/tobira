@@ -43,6 +43,7 @@ export function useVideoPlayerSession({
   playsInline,
   preload,
   playing,
+  unmuteOnFirstInteraction = false,
   onCanPlay,
   onClick,
   onEnded,
@@ -97,6 +98,7 @@ export function useVideoPlayerSession({
   const fastForwardTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasFastForwardingRef = useRef(false);
   const previousVolumeRef = useRef(1);
+  const hasConsumedFirstInteractionUnmuteRef = useRef(false);
 
   const applyVideoClassName = useCallback((className?: string) => {
     const video = videoRef.current;
@@ -117,10 +119,34 @@ export function useVideoPlayerSession({
     });
   }, []);
 
+  const consumeFirstInteractionUnmute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !unmuteOnFirstInteraction || hasConsumedFirstInteractionUnmuteRef.current) {
+      return;
+    }
+
+    hasConsumedFirstInteractionUnmuteRef.current = true;
+    video.muted = false;
+    setIsMuted(false);
+
+    const nextVolume = video.volume > 0 ? video.volume : previousVolumeRef.current || 1;
+    if (video.volume === 0) {
+      video.volume = nextVolume;
+    }
+
+    setVolume(video.volume);
+
+    if (video.volume > 0) {
+      previousVolumeRef.current = video.volume;
+    }
+  }, [unmuteOnFirstInteraction]);
+
   const seekTo = useCallback(
     (nextTime: number) => {
       const video = videoRef.current;
       if (!video) return;
+
+      consumeFirstInteractionUnmute();
 
       const maxDuration =
         Number.isFinite(video.duration) && video.duration > 0 ? video.duration : duration;
@@ -129,33 +155,40 @@ export function useVideoPlayerSession({
       video.currentTime = clampedTime;
       setCurrentTime(clampedTime);
     },
-    [duration],
+    [consumeFirstInteractionUnmute, duration],
   );
 
-  const setVideoVolume = useCallback((nextVolume: number, options?: {commit?: boolean}) => {
-    const video = videoRef.current;
-    if (!video) return;
+  const setVideoVolume = useCallback(
+    (nextVolume: number, options?: {commit?: boolean}) => {
+      const video = videoRef.current;
+      if (!video) return;
 
-    const clampedVolume = Math.max(0, Math.min(1, nextVolume));
-    const nextMutedState = clampedVolume === 0;
-    const shouldCommit = options?.commit ?? true;
+      consumeFirstInteractionUnmute();
 
-    video.volume = clampedVolume;
-    video.muted = nextMutedState;
+      const clampedVolume = Math.max(0, Math.min(1, nextVolume));
+      const nextMutedState = clampedVolume === 0;
+      const shouldCommit = options?.commit ?? true;
 
-    if (shouldCommit) {
-      setVolume(clampedVolume);
-      setIsMuted(nextMutedState);
-    }
+      video.volume = clampedVolume;
+      video.muted = nextMutedState;
 
-    if (clampedVolume > 0) {
-      previousVolumeRef.current = clampedVolume;
-    }
-  }, []);
+      if (shouldCommit) {
+        setVolume(clampedVolume);
+        setIsMuted(nextMutedState);
+      }
+
+      if (clampedVolume > 0) {
+        previousVolumeRef.current = clampedVolume;
+      }
+    },
+    [consumeFirstInteractionUnmute],
+  );
 
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    consumeFirstInteractionUnmute();
 
     if (isMuted || volume === 0) {
       const restoredVolume = previousVolumeRef.current > 0 ? previousVolumeRef.current : 1;
@@ -170,11 +203,13 @@ export function useVideoPlayerSession({
     }
 
     setVideoVolume(0);
-  }, [isMuted, setVideoVolume, volume]);
+  }, [consumeFirstInteractionUnmute, isMuted, setVideoVolume, volume]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    consumeFirstInteractionUnmute();
 
     if (video.paused) {
       safePlay();
@@ -182,9 +217,20 @@ export function useVideoPlayerSession({
     }
 
     video.pause();
+  }, [consumeFirstInteractionUnmute, safePlay]);
+
+  const startMutedPlayback = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    setIsMuted(true);
+    safePlay();
   }, [safePlay]);
 
   const toggleFullscreen = useCallback(() => {
+    consumeFirstInteractionUnmute();
+
     const onRequestFullscreen = hostOptionsRef.current.onRequestFullscreen;
     if (onRequestFullscreen) {
       onRequestFullscreen();
@@ -202,7 +248,7 @@ export function useVideoPlayerSession({
     }
 
     document.exitFullscreen();
-  }, []);
+  }, [consumeFirstInteractionUnmute]);
 
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
@@ -261,6 +307,8 @@ export function useVideoPlayerSession({
     (event: PointerEvent) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
+      consumeFirstInteractionUnmute();
+
       wasFastForwardingRef.current = false;
 
       if (fastForwardTimeoutRef.current) {
@@ -281,7 +329,7 @@ export function useVideoPlayerSession({
         }
       }, 400);
     },
-    [safePlay],
+    [consumeFirstInteractionUnmute, safePlay],
   );
 
   const handleVideoPointerUpOrLeave = useCallback(() => {
@@ -330,7 +378,9 @@ export function useVideoPlayerSession({
 
   const actions = useMemo<VideoPlayerActions>(
     () => ({
+      consumeFirstInteractionUnmute,
       togglePlay,
+      startMutedPlayback,
       seekTo,
       setVideoVolume,
       toggleMute,
@@ -351,6 +401,7 @@ export function useVideoPlayerSession({
       handlePause,
     }),
     [
+      consumeFirstInteractionUnmute,
       handleCanPlay,
       handleContainerMouseLeave,
       handleContainerMouseMove,
@@ -370,6 +421,7 @@ export function useVideoPlayerSession({
       toggleFullscreen,
       toggleMute,
       togglePlay,
+      startMutedPlayback,
     ],
   );
   const actionsRef = useRef<VideoPlayerActions | null>(null);
@@ -674,6 +726,8 @@ export function useVideoPlayerSession({
     if (!video) return;
 
     if (src === undefined) {
+      hasConsumedFirstInteractionUnmuteRef.current = false;
+
       if (video.getAttribute("src") !== null) {
         video.pause();
         video.removeAttribute("src");
@@ -691,6 +745,7 @@ export function useVideoPlayerSession({
     }
 
     if (video.getAttribute("src") !== src) {
+      hasConsumedFirstInteractionUnmuteRef.current = false;
       video.src = src;
       video.load();
       startTransition(() => {
@@ -775,18 +830,6 @@ export function useVideoPlayerSession({
 
   useEffect(() => {
     const video = videoRef.current;
-    if (playing === undefined || !video) return;
-
-    if (playing) {
-      safePlay();
-      return;
-    }
-
-    video.pause();
-  }, [playing, safePlay]);
-
-  useEffect(() => {
-    const video = videoRef.current;
     if (muted === undefined || !video) return;
 
     const nextMutedState = Boolean(muted) || video.volume === 0;
@@ -802,6 +845,22 @@ export function useVideoPlayerSession({
 
     return () => cancelAnimationFrame(syncMutedStateFrame);
   }, [muted]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (playing === undefined || !video) return;
+
+    if (playing) {
+      if (muted) {
+        video.muted = true;
+      }
+
+      safePlay();
+      return;
+    }
+
+    video.pause();
+  }, [muted, playing, safePlay]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

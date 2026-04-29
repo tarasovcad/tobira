@@ -6,6 +6,9 @@ export function shouldSilencePlayError(err: unknown) {
 
   return (
     name === "AbortError" ||
+    name === "NotAllowedError" ||
+    message.includes("user didn't interact with the document first") ||
+    message.includes("play() failed because the user didn't interact with the document first") ||
     message.includes("play() request was interrupted") ||
     message.includes("interrupted by a call to pause") ||
     message.includes("interrupted by a new load request")

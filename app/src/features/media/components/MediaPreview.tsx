@@ -3,7 +3,7 @@
 import {createPortal} from "react-dom";
 import type {MediaPreviewProps} from "./preview/types";
 import {useMediaPreview} from "../hooks/useMediaPreview";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
 import {MediaPreviewTrigger} from "./preview/MediaPreviewTrigger";
 import {useVideoPlayerSession} from "@/features/video-player/hooks/useVideoPlayerSession";
@@ -59,13 +59,10 @@ export default function MediaPreview({
   const isVideo = type === "video";
   const [shouldLoadVideo, setShouldLoadVideo] = useState(isVideo && !poster);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
-  const openMediaPreview = useCallback(() => {
-    if (isVideo) {
-      setShouldLoadVideo(true);
-    }
-
-    openPreview();
-  }, [isVideo, openPreview]);
+  const [hasTriggeredFirstRevealAutoplay, setHasTriggeredFirstRevealAutoplay] = useState(
+    isVideo && !poster,
+  );
+  const pendingFirstRevealAutoplayRef = useRef(false);
 
   const videoSession = useVideoPlayerSession({
     enabled: isVideo,
@@ -74,9 +71,33 @@ export default function MediaPreview({
     loop: isVideo,
     playsInline: isVideo,
     preload: isVideo && (shouldLoadVideo || open) ? "auto" : undefined,
+    unmuteOnFirstInteraction: isVideo,
     onCanPlay: isVideo ? onCanPlay : undefined,
     onError: isVideo ? onError : undefined,
   });
+
+  const openMediaPreview = useCallback(() => {
+    if (isVideo) {
+      setShouldLoadVideo(true);
+      videoSession.actions.consumeFirstInteractionUnmute();
+    }
+
+    openPreview();
+  }, [isVideo, openPreview, videoSession]);
+
+  useEffect(() => {
+    if (!isVideo || !isVideoHovered || open || !pendingFirstRevealAutoplayRef.current) {
+      return;
+    }
+
+    const video = videoSession.videoRef.current;
+    if (!video || !video.getAttribute("src")) {
+      return;
+    }
+
+    pendingFirstRevealAutoplayRef.current = false;
+    videoSession.actions.startMutedPlayback();
+  }, [isVideo, isVideoHovered, open, shouldLoadVideo, videoSession]);
 
   useEffect(() => {
     if (!openSignal) return;
@@ -109,7 +130,20 @@ export default function MediaPreview({
         videoSession={isVideo ? videoSession : undefined}
         attachVideo={isVideo ? !open : false}
         controlsVisible={isVideo ? isVideoHovered : false}
-        warmVideo={isVideo ? () => setShouldLoadVideo(true) : undefined}
+        warmVideo={
+          isVideo
+            ? () => {
+                if (!shouldLoadVideo) {
+                  setShouldLoadVideo(true);
+
+                  if (!hasTriggeredFirstRevealAutoplay) {
+                    pendingFirstRevealAutoplayRef.current = true;
+                    setHasTriggeredFirstRevealAutoplay(true);
+                  }
+                }
+              }
+            : undefined
+        }
         setVideoHovered={isVideo ? setIsVideoHovered : undefined}
         onVideoLeave={undefined}
         openPreview={openMediaPreview}

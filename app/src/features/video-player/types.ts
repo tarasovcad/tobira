@@ -9,6 +9,7 @@ export interface VideoPlayerSessionOptions extends Omit<
   src?: string;
   poster?: string;
   playing?: boolean;
+  unmuteOnFirstInteraction?: boolean;
 }
 
 export interface CustomVideoPlayerProps extends VideoPlayerSessionOptions {
@@ -36,7 +37,9 @@ export interface VideoPlayerState {
 }
 
 export interface VideoPlayerActions {
+  consumeFirstInteractionUnmute: () => void;
   togglePlay: () => void;
+  startMutedPlayback: () => void;
   seekTo: (nextTime: number) => void;
   setVideoVolume: (nextVolume: number, options?: {commit?: boolean}) => void;
   toggleMute: () => void;
