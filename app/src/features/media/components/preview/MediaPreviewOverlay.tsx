@@ -28,6 +28,10 @@ type MediaPreviewOverlayProps = {
   onNext?: () => void;
   hasPrevious?: boolean;
   hasNext?: boolean;
+  slideshowActive?: boolean;
+  slideshowProgress?: number;
+  onToggleSlideshow?: () => void;
+  slideshowDisabled?: boolean;
   animateLayout?: boolean;
   onToggleThumbnailRail?: () => void;
   handleZoomControlClick: () => void;
@@ -83,6 +87,10 @@ export function MediaPreviewOverlay({
   onNext,
   hasPrevious = false,
   hasNext = false,
+  slideshowActive = false,
+  slideshowProgress = 0,
+  onToggleSlideshow,
+  slideshowDisabled = false,
   animateLayout = true,
   onToggleThumbnailRail,
   handleZoomControlClick,
@@ -116,6 +124,10 @@ export function MediaPreviewOverlay({
         zoom={zoom}
         expanded={expanded}
         onZoomToggle={handleZoomControlClick}
+        slideshowActive={slideshowActive}
+        slideshowProgress={slideshowProgress}
+        onToggleSlideshow={onToggleSlideshow}
+        slideshowDisabled={slideshowDisabled}
         onToggleDisplayMode={onToggleThumbnailRail}
         onClose={closePreview}
         addZoom={isInteractive}

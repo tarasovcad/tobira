@@ -18,6 +18,9 @@ type MediaGalleryOverlayProps = {
   controller: MediaGalleryController;
 } & UseMediaGalleryPreviewResult;
 
+const SLIDESHOW_DURATION_MS = 2500;
+const SLIDESHOW_TICK_MS = 100;
+
 export function MediaGalleryOverlay({
   entries,
   controller,
@@ -40,10 +43,13 @@ export function MediaGalleryOverlay({
 }: MediaGalleryOverlayProps) {
   const galleryState = useMediaGalleryControllerSnapshot(controller);
   const [thumbnailRailVisible, setThumbnailRailVisible] = useState(true);
+  const [isSlideshowActive, setIsSlideshowActive] = useState(false);
+  const [slideshowProgress, setSlideshowProgress] = useState(0);
   const activeIndex = galleryState.currentIndex;
   const currentEntry = activeIndex !== null ? (entries.at(activeIndex) ?? null) : null;
   const hasPrevious = activeIndex !== null && activeIndex > 0;
   const hasNext = activeIndex !== null && activeIndex < entries.length - 1;
+  const canRunSlideshow = entries.length > 1 && activeIndex !== null;
 
   const activePreviewItem = currentEntry?.previewItem ?? null;
   const isCenterVideo = activePreviewItem?.type === "video";
@@ -74,6 +80,7 @@ export function MediaGalleryOverlay({
         return;
       }
 
+      setSlideshowProgress(0);
       controller.selectItem({
         index: nextIndex,
         renderId: nextEntry.renderId,
@@ -103,6 +110,50 @@ export function MediaGalleryOverlay({
   const handleToggleThumbnailRail = useCallback(() => {
     setThumbnailRailVisible((visible) => !visible);
   }, []);
+
+  const handleToggleSlideshow = useCallback(() => {
+    if (!canRunSlideshow) {
+      return;
+    }
+
+    setIsSlideshowActive((active) => !active);
+    setSlideshowProgress(0);
+  }, [canRunSlideshow]);
+
+  useEffect(() => {
+    if (open && canRunSlideshow) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsSlideshowActive(false);
+      setSlideshowProgress(0);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [canRunSlideshow, open]);
+
+  useEffect(() => {
+    if (!open || !isSlideshowActive || activeIndex === null || entries.length < 2) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setSlideshowProgress((currentProgress) => {
+        const nextProgress = currentProgress + SLIDESHOW_TICK_MS / SLIDESHOW_DURATION_MS;
+
+        if (nextProgress < 1) {
+          return nextProgress;
+        }
+
+        const nextIndex = activeIndex + 1 < entries.length ? activeIndex + 1 : 0;
+        handleSelectEntry(nextIndex);
+        return 0;
+      });
+    }, SLIDESHOW_TICK_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeIndex, entries.length, handleSelectEntry, isSlideshowActive, open]);
 
   useEffect(() => {
     if (!open) {
@@ -171,6 +222,10 @@ export function MediaGalleryOverlay({
         onNext={handleNext}
         hasPrevious={hasPrevious}
         hasNext={hasNext}
+        slideshowActive={isSlideshowActive}
+        slideshowProgress={slideshowProgress}
+        onToggleSlideshow={handleToggleSlideshow}
+        slideshowDisabled={!canRunSlideshow}
         onToggleThumbnailRail={handleToggleThumbnailRail}
         handleZoomControlClick={handleZoomControlClick}
         handleMediaClick={handleMediaClick}
