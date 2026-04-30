@@ -3,10 +3,10 @@
 import {createPortal} from "react-dom";
 import type {MediaPreviewProps} from "./preview/types";
 import {useMediaPreview} from "../hooks/useMediaPreview";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect} from "react";
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
 import {MediaPreviewTrigger} from "./preview/MediaPreviewTrigger";
-import {useVideoPlayerSession} from "@/features/video-player/hooks/useVideoPlayerSession";
+import {useVideoPreviewSession} from "@/features/media/hooks/useVideoPreviewSession";
 
 // Renders a thumbnail image or video with fullscreen, zoom, and pan preview behavior.
 export default function MediaPreview({
@@ -29,9 +29,6 @@ export default function MediaPreview({
   onError,
   onCanPlay,
   addZoom = true,
-  forceLoadVideo = false,
-  videoSessionStore,
-  videoSessionKey,
   poster,
   showFallback = false,
   fallback,
@@ -42,8 +39,6 @@ export default function MediaPreview({
     overlayRef,
     open,
     expanded,
-    fromRect,
-    activeRect,
     animatedRect,
     zoom,
     pan,
@@ -60,68 +55,30 @@ export default function MediaPreview({
   } = useMediaPreview({width, height, onOpenChange, type, addZoom});
 
   const isVideo = type === "video";
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(isVideo && !poster);
-  const [isVideoHovered, setIsVideoHovered] = useState(false);
-  const [hasTriggeredFirstRevealAutoplay, setHasTriggeredFirstRevealAutoplay] = useState(
-    isVideo && !poster,
-  );
-  const pendingFirstRevealAutoplayRef = useRef(false);
-
-  const videoSession = useVideoPlayerSession({
-    enabled: isVideo,
-    src: isVideo && (shouldLoadVideo || open || forceLoadVideo) ? src : undefined,
-    poster,
-    loop: isVideo,
-    playsInline: isVideo,
-    preload: isVideo && (shouldLoadVideo || open || forceLoadVideo) ? "auto" : undefined,
-    unmuteOnFirstInteraction: isVideo,
-    onCanPlay: isVideo ? onCanPlay : undefined,
-    onError: isVideo ? onError : undefined,
-  });
+  const {videoSession, isVideoHovered, prepareForOpen, setVideoHovered, warmVideo} =
+    useVideoPreviewSession({
+      enabled: isVideo,
+      src,
+      poster,
+      open,
+      onCanPlay,
+      onError,
+    });
 
   const openMediaPreview = useCallback(() => {
     if (isVideo) {
-      setShouldLoadVideo(true);
-      videoSession.actions.consumeFirstInteractionUnmute();
+      prepareForOpen();
     }
 
     openPreview();
-  }, [isVideo, openPreview, videoSession]);
-
-  useEffect(() => {
-    if (!isVideo || !isVideoHovered || open || !pendingFirstRevealAutoplayRef.current) {
-      return;
-    }
-
-    const video = videoSession.videoRef.current;
-    if (!video || !video.getAttribute("src")) {
-      return;
-    }
-
-    pendingFirstRevealAutoplayRef.current = false;
-    videoSession.actions.startMutedPlayback();
-  }, [isVideo, isVideoHovered, open, shouldLoadVideo, videoSession]);
-
-  useEffect(() => {
-    if (!isVideo || !videoSessionStore || !videoSessionKey) {
-      return;
-    }
-
-    videoSessionStore.setSession(videoSessionKey, videoSession);
-
-    return () => {
-      videoSessionStore.setSession(videoSessionKey, null);
-    };
-  }, [isVideo, videoSession, videoSessionKey, videoSessionStore]);
+  }, [isVideo, openPreview, prepareForOpen]);
 
   useEffect(() => {
     if (!openSignal) return;
     openPreview();
   }, [openPreview, openSignal]);
 
-  const shouldRenderOverlay =
-    typeof document !== "undefined" && open && fromRect && activeRect && animatedRect;
-  const shouldAttachInlineVideo = isVideo ? !open && !forceLoadVideo : false;
+  const shouldRenderOverlay = typeof document !== "undefined" && open && animatedRect;
 
   return (
     <>
@@ -144,23 +101,10 @@ export default function MediaPreview({
         onCanPlay={onCanPlay}
         poster={poster}
         videoSession={isVideo ? videoSession : undefined}
-        attachVideo={shouldAttachInlineVideo}
+        attachVideo={isVideo ? !open : false}
         controlsVisible={isVideo ? isVideoHovered : false}
-        warmVideo={
-          isVideo
-            ? () => {
-                if (!shouldLoadVideo) {
-                  setShouldLoadVideo(true);
-
-                  if (!hasTriggeredFirstRevealAutoplay) {
-                    pendingFirstRevealAutoplayRef.current = true;
-                    setHasTriggeredFirstRevealAutoplay(true);
-                  }
-                }
-              }
-            : undefined
-        }
-        setVideoHovered={isVideo ? setIsVideoHovered : undefined}
+        warmVideo={isVideo ? warmVideo : undefined}
+        setVideoHovered={isVideo ? setVideoHovered : undefined}
         onVideoLeave={undefined}
         openPreview={openMediaPreview}
       />

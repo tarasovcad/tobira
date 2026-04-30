@@ -13,6 +13,7 @@ export function usePreviewEffects({
     if (!open) return;
 
     const overlay = overlayRef.current;
+    const previousBodyOverflow = document.body.style.overflow;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -30,7 +31,7 @@ export function usePreviewEffects({
     overlay?.addEventListener("touchmove", preventScroll, {passive: false});
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousBodyOverflow;
       window.removeEventListener("keydown", onKeyDown, {capture: true});
       overlay?.removeEventListener("wheel", preventScroll);
       overlay?.removeEventListener("touchmove", preventScroll);

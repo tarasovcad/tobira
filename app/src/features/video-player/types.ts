@@ -38,6 +38,7 @@ export interface VideoPlayerState {
 
 export interface VideoPlayerActions {
   consumeFirstInteractionUnmute: () => void;
+  pausePlayback: () => void;
   togglePlay: () => void;
   startMutedPlayback: () => void;
   seekTo: (nextTime: number) => void;
@@ -68,10 +69,16 @@ export interface VideoPlayerHostOptions {
   onRequestFullscreen?: () => void;
 }
 
-export interface VideoPlayerSession {
-  videoRef: RefObject<HTMLVideoElement | null>;
+export interface VideoPlayerSessionSnapshot {
   isReady: boolean;
   state: VideoPlayerState;
+}
+
+export interface VideoPlayerSession {
+  videoRef: RefObject<HTMLVideoElement | null>;
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => VideoPlayerSessionSnapshot;
+  getServerSnapshot: () => VideoPlayerSessionSnapshot;
   actions: VideoPlayerActions;
   attachToHost: (host: VideoPlayerHostOptions) => void;
   detachFromHost: (containerNode: HTMLDivElement | null) => void;

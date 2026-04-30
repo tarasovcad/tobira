@@ -8,7 +8,6 @@ import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
 import type {TypeFilter} from "@/features/home/types";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
-import type {MediaGalleryVideoSessionStore} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
 import MediaBookmarkGrid from "@/components/bookmark/_components/media/MediaBookmarkGrid";
 import MediaBookmarkPlaceholderGrid from "@/components/bookmark/_components/media/MediaBookmarkPlaceholderGrid";
 import WebsiteBookmarkPlaceholderGrid from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderGrid";
@@ -29,22 +28,24 @@ import WebsiteBookmarkList from "@/components/bookmark/_components/website/Websi
 import WebsiteBookmarkPlaceholderList from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderList ";
 import PostBookmarkList from "@/components/bookmark/_components/post/PostBookmarkList";
 import PostBookmarkPlaceholderList from "@/components/bookmark/_components/post/PostBookmarkPlaceholderList ";
+import type {MediaGalleryController} from "@/features/media/hooks/useMediaGalleryController";
 
 export type AllItemsAnimatedVariant = "list" | "grid";
 
 export interface AllItemsBookmarkComponentProps {
   item: Bookmark;
   onOpenMenu?: (item: Bookmark) => void;
-  onOpenGallery?: (galleryIndex: number, triggerElement: HTMLDivElement) => void;
   onDelete?: (item: Bookmark) => void;
   onSave?: (item: Bookmark) => void;
   onDismiss?: (item: Bookmark) => void;
   className?: string;
   renderId?: string;
-  galleryIndex?: number;
   mediaIndex?: number;
-  isActiveGalleryItem?: boolean;
-  videoSessionStore?: MediaGalleryVideoSessionStore;
+  galleryItem?: {
+    index: number;
+    renderId: string;
+    controller: MediaGalleryController;
+  };
   selectionIndex?: number;
   isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;

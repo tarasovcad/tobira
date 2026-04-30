@@ -1,5 +1,5 @@
 "use client";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo} from "react";
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
@@ -18,10 +18,12 @@ import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-i
 import {buildMediaGalleryEntries} from "@/components/bookmark/_utils/media-grid-render";
 import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
 import {getBookmarkMediaPreviewSizeForColumnSize} from "@/components/bookmark/_utils/media-grid-image-config";
-import type {Rect} from "@/features/media/components/preview/types";
 import {useMediaGalleryPreview} from "@/features/media/hooks/useMediaGalleryPreview";
 import {MediaGalleryOverlay} from "@/features/media/components/MediaGalleryOverlay";
-import {createMediaGalleryVideoSessionStore} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
+import {
+  createMediaGalleryController,
+  useMediaGalleryControllerSnapshot,
+} from "@/features/media/hooks/useMediaGalleryController";
 
 function LoadingSpinner({className}: {className?: string}) {
   return (
@@ -134,12 +136,12 @@ export function AllItemsList({
     () => (isMediaGrid ? buildMediaGalleryEntries(visibleItems, mediaPreviewSize) : []),
     [isMediaGrid, mediaPreviewSize, visibleItems],
   );
-  const mediaGalleryVideoSessionStore = useMemo(() => createMediaGalleryVideoSessionStore(), []);
-  const [currentMediaIndex, setCurrentMediaIndex] = useState<number | null>(null);
+  const mediaGalleryController = useMemo(() => createMediaGalleryController(), []);
+  const mediaGalleryState = useMediaGalleryControllerSnapshot(mediaGalleryController);
   const boundedCurrentMediaIndex =
-    currentMediaIndex === null || mediaGalleryEntries.length === 0
+    mediaGalleryState.currentIndex === null || mediaGalleryEntries.length === 0
       ? null
-      : Math.min(currentMediaIndex, mediaGalleryEntries.length - 1);
+      : Math.min(mediaGalleryState.currentIndex, mediaGalleryEntries.length - 1);
   const currentMediaEntry =
     boundedCurrentMediaIndex !== null
       ? (mediaGalleryEntries.at(boundedCurrentMediaIndex) ?? null)
@@ -148,54 +150,39 @@ export function AllItemsList({
   const mediaGalleryPreview = useMediaGalleryPreview({
     type: currentMediaEntry?.previewItem.type ?? "image",
     addZoom: true,
+    onEscape: mediaGalleryController.requestClose,
     onOpenChange: (open) => {
       if (!open) {
-        setCurrentMediaIndex(null);
+        mediaGalleryController.handlePreviewClosed();
       }
     },
   });
-  const {openPreviewFromRect, closePreview} = mediaGalleryPreview;
-
-  const handleOpenMediaGallery = useCallback(
-    (galleryIndex: number, triggerElement: HTMLDivElement) => {
-      const entry = mediaGalleryEntries.at(galleryIndex);
-      if (!entry) {
-        return;
-      }
-
-      const mediaElement = triggerElement.querySelector("img, video");
-      if (!mediaElement) {
-        return;
-      }
-
-      const thumbRect = mediaElement.getBoundingClientRect();
-      const fromRect: Rect = {
-        top: thumbRect.top,
-        left: thumbRect.left,
-        width: thumbRect.width,
-        height: thumbRect.height,
-      };
-
-      setCurrentMediaIndex(galleryIndex);
-      openPreviewFromRect({
-        fromRect,
-        width: entry.previewItem.width,
-        height: entry.previewItem.height,
-        originKey: entry.renderId,
-      });
-    },
-    [mediaGalleryEntries, openPreviewFromRect],
-  );
 
   useEffect(() => {
-    if (currentMediaIndex === null) {
+    mediaGalleryController.attachPreview(mediaGalleryPreview);
+    return () => {
+      mediaGalleryController.attachPreview(null);
+    };
+  }, [mediaGalleryController, mediaGalleryPreview]);
+
+  useEffect(() => {
+    if (!mediaGalleryState.open) {
       return;
     }
 
-    if (mediaGalleryEntries.length === 0) {
-      closePreview();
+    if (
+      mediaGalleryEntries.length === 0 ||
+      mediaGalleryState.currentIndex === null ||
+      mediaGalleryState.currentIndex >= mediaGalleryEntries.length
+    ) {
+      mediaGalleryController.requestClose();
     }
-  }, [closePreview, currentMediaIndex, mediaGalleryEntries.length]);
+  }, [
+    mediaGalleryController,
+    mediaGalleryEntries.length,
+    mediaGalleryState.currentIndex,
+    mediaGalleryState.open,
+  ]);
 
   const content = useMemo(() => {
     if (isInitialLoad) {
@@ -218,10 +205,16 @@ export function AllItemsList({
         key={entry.renderId}
         item={entry.item}
         renderId={entry.renderId}
-        galleryIndex={isMediaGrid ? entryIndex : undefined}
         mediaIndex={entry.mediaIndex}
-        isActiveGalleryItem={isMediaGrid ? boundedCurrentMediaIndex === entryIndex : undefined}
-        videoSessionStore={isMediaGrid ? mediaGalleryVideoSessionStore : undefined}
+        galleryItem={
+          isMediaGrid
+            ? {
+                index: entryIndex,
+                renderId: entry.renderId,
+                controller: mediaGalleryController,
+              }
+            : undefined
+        }
         selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
         isRemoving={removingIds.has(entry.item.id)}
         removalKind={removingIds.get(entry.item.id) ?? "delete"}
@@ -234,7 +227,6 @@ export function AllItemsList({
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
-        onOpenGallery={isMediaGrid ? handleOpenMediaGallery : undefined}
         onMenuArchive={onMenuArchive}
         onMenuDelete={onMenuDelete}
       />
@@ -246,10 +238,8 @@ export function AllItemsList({
     bookmarkItemComponent,
     animatedVariant,
     getItemSelectionIndex,
-    handleOpenMediaGallery,
     mediaGalleryEntries,
-    mediaGalleryVideoSessionStore,
-    boundedCurrentMediaIndex,
+    mediaGalleryController,
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,
@@ -315,9 +305,7 @@ export function AllItemsList({
       </div>
       <MediaGalleryOverlay
         entries={mediaGalleryEntries}
-        currentIndex={boundedCurrentMediaIndex}
-        onSelectIndex={setCurrentMediaIndex}
-        videoSessionStore={mediaGalleryVideoSessionStore}
+        controller={mediaGalleryController}
         {...mediaGalleryPreview}
       />
     </>

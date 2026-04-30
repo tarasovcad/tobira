@@ -1,21 +1,7 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent,
-  type RefObject,
-  type WheelEvent,
-} from "react";
-import {MIN_ZOOM, OVERLAY_TRANSITION_MS, ZOOM_STEP} from "../components/preview/constants";
-import type {Pan, PanBounds, Rect} from "../components/preview/types";
-import {
-  applyElasticPan,
-  clampPanToBounds,
-  clampZoom,
-  getTargetRect,
-} from "../components/preview/utils";
-import {usePreviewEffects} from "./usePreviewEffects";
+"use client";
+
+import {useCallback, useEffect, useRef, type RefObject} from "react";
+import {usePreviewOverlayController} from "./usePreviewOverlayController";
 import {isEditableElementActive} from "@/features/video-player/utils";
 
 let activePreviewInstance: symbol | null = null;
@@ -33,24 +19,23 @@ type UseMediaPreviewResult = {
   overlayRef: RefObject<HTMLDivElement | null>;
   open: boolean;
   expanded: boolean;
-  fromRect: Rect | null;
-  activeRect: Rect | null;
-  animatedRect: Rect | null;
+  animatedRect: ReturnType<typeof usePreviewOverlayController>["animatedRect"];
   zoom: number;
-  pan: Pan;
+  pan: ReturnType<typeof usePreviewOverlayController>["pan"];
   isDragging: boolean;
   openPreview: () => void;
   closePreview: () => void;
   handleZoomControlClick: () => void;
-  handleWheelZoom: (event: WheelEvent<HTMLElement>) => void;
-  handleMediaPointerDown: (event: PointerEvent<HTMLElement>) => void;
-  handleMediaPointerMove: (event: PointerEvent<HTMLElement>) => void;
-  handleMediaPointerUp: (event: PointerEvent<HTMLElement>) => void;
-  handleMediaPointerCancel: (event: PointerEvent<HTMLElement>) => void;
+  handleWheelZoom: ReturnType<typeof usePreviewOverlayController>["handleWheelZoom"];
+  handleMediaPointerDown: ReturnType<typeof usePreviewOverlayController>["handleMediaPointerDown"];
+  handleMediaPointerMove: ReturnType<typeof usePreviewOverlayController>["handleMediaPointerMove"];
+  handleMediaPointerUp: ReturnType<typeof usePreviewOverlayController>["handleMediaPointerUp"];
+  handleMediaPointerCancel: ReturnType<
+    typeof usePreviewOverlayController
+  >["handleMediaPointerCancel"];
   handleMediaClick: () => void;
 };
 
-// Encapsulates all interaction and viewport state for MediaPreview.
 export function useMediaPreview({
   width,
   height,
@@ -59,61 +44,12 @@ export function useMediaPreview({
   addZoom = true,
 }: UseMediaPreviewParams): UseMediaPreviewResult {
   const triggerRef = useRef<HTMLDivElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
   const previewInstanceRef = useRef(Symbol("media-preview"));
-  const closeTimeoutRef = useRef<number | null>(null);
-
-  const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [fromRect, setFromRect] = useState<Rect | null>(null);
-  const [toRect, setToRect] = useState<Rect | null>(null);
-  const [closeRequested, setCloseRequested] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<Pan>({x: 0, y: 0});
-  const [isDragging, setIsDragging] = useState(false);
-
-  const dragPointerIdRef = useRef<number | null>(null);
-  const dragStartPointRef = useRef({x: 0, y: 0});
-  const dragStartPanRef = useRef<Pan>({x: 0, y: 0});
-  const didDragRef = useRef(false);
-
-  const activeRect = toRect;
-
-  const getPanBounds = useCallback((): PanBounds | null => {
-    if (activeRect) {
-      return {width: activeRect.width, height: activeRect.height};
-    }
-
-    return null;
-  }, [activeRect]);
-
-  const applyZoom = useCallback(
-    (updater: (prev: number) => number) => {
-      setZoom((prevZoom) => {
-        const nextZoom = clampZoom(updater(prevZoom));
-
-        setPan((prevPan) => {
-          const panBounds = getPanBounds();
-          if (!panBounds) {
-            return {x: 0, y: 0};
-          }
-
-          return clampPanToBounds(prevPan, panBounds, nextZoom);
-        });
-
-        return nextZoom;
-      });
-    },
-    [getPanBounds],
-  );
-
-  const resetInteractiveState = useCallback(() => {
-    setZoom(1);
-    setPan({x: 0, y: 0});
-    setIsDragging(false);
-    dragPointerIdRef.current = null;
-    didDragRef.current = false;
-  }, []);
+  const preview = usePreviewOverlayController({
+    onOpenChange,
+    type,
+    addZoom,
+  });
 
   const openPreview = useCallback(() => {
     if (activePreviewInstance !== null && activePreviewInstance !== previewInstanceRef.current) {
@@ -123,160 +59,35 @@ export function useMediaPreview({
     const trigger = triggerRef.current;
     if (!trigger) return;
 
-    const mediaEl = trigger.querySelector("img, video");
-    if (!mediaEl) return;
+    const mediaElement = trigger.querySelector("img, video");
+    if (!mediaElement) return;
 
-    const thumbRect = mediaEl.getBoundingClientRect();
+    const thumbRect = mediaElement.getBoundingClientRect();
     const naturalWidth =
-      (mediaEl as HTMLImageElement).naturalWidth ||
-      (mediaEl as HTMLVideoElement).videoWidth ||
+      (mediaElement as HTMLImageElement).naturalWidth ||
+      (mediaElement as HTMLVideoElement).videoWidth ||
       width;
     const naturalHeight =
-      (mediaEl as HTMLImageElement).naturalHeight ||
-      (mediaEl as HTMLVideoElement).videoHeight ||
+      (mediaElement as HTMLImageElement).naturalHeight ||
+      (mediaElement as HTMLVideoElement).videoHeight ||
       height;
-    const ratio = naturalWidth / naturalHeight;
-
-    setFromRect({
-      top: thumbRect.top,
-      left: thumbRect.left,
-      width: thumbRect.width,
-      height: thumbRect.height,
-    });
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
 
     activePreviewInstance = previewInstanceRef.current;
-    setToRect(getTargetRect(ratio));
-    setCloseRequested(false);
-    resetInteractiveState();
-    setOpen(true);
-    onOpenChange?.(true);
-
-    // Wait one painted frame after mount so opening from external triggers
-    // still animates from the thumbnail rect instead of jumping to expanded.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setExpanded(true);
-      });
+    preview.openPreviewFromRect({
+      fromRect: {
+        top: thumbRect.top,
+        left: thumbRect.left,
+        width: thumbRect.width,
+        height: thumbRect.height,
+      },
+      width: naturalWidth,
+      height: naturalHeight,
     });
-  }, [height, resetInteractiveState, onOpenChange, width]);
+  }, [height, preview, width]);
 
   const closePreview = useCallback(() => {
-    if (!open || closeRequested) return;
-
-    setCloseRequested(true);
-    resetInteractiveState();
-    setExpanded(false);
-
-    closeTimeoutRef.current = window.setTimeout(() => {
-      setOpen(false);
-      onOpenChange?.(false);
-      setCloseRequested(false);
-      if (activePreviewInstance === previewInstanceRef.current) {
-        activePreviewInstance = null;
-      }
-      closeTimeoutRef.current = null;
-    }, OVERLAY_TRANSITION_MS);
-  }, [closeRequested, open, resetInteractiveState, onOpenChange]);
-
-  const handleZoomControlClick = useCallback(() => {
-    if (zoom > MIN_ZOOM) {
-      applyZoom((prev) => prev - ZOOM_STEP);
-      return;
-    }
-
-    applyZoom((prev) => prev + ZOOM_STEP);
-  }, [applyZoom, zoom]);
-
-  const handleWheelZoom = useCallback(
-    (event: WheelEvent<HTMLElement>) => {
-      event.preventDefault();
-
-      const direction = event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
-      applyZoom((prev) => prev + direction);
-    },
-    [applyZoom],
-  );
-
-  const handleMediaPointerDown = useCallback(
-    (event: PointerEvent<HTMLElement>) => {
-      if (zoom <= MIN_ZOOM) return;
-
-      event.preventDefault();
-      dragPointerIdRef.current = event.pointerId;
-      dragStartPointRef.current = {x: event.clientX, y: event.clientY};
-      dragStartPanRef.current = pan;
-      didDragRef.current = false;
-      setIsDragging(true);
-      event.currentTarget.setPointerCapture(event.pointerId);
-    },
-    [pan, zoom],
-  );
-
-  const handleMediaPointerMove = useCallback(
-    (event: PointerEvent<HTMLElement>) => {
-      if (dragPointerIdRef.current !== event.pointerId) return;
-
-      const panBounds = getPanBounds();
-      if (!panBounds) return;
-
-      const deltaX = event.clientX - dragStartPointRef.current.x;
-      const deltaY = event.clientY - dragStartPointRef.current.y;
-      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
-        didDragRef.current = true;
-      }
-
-      const nextX = dragStartPanRef.current.x + deltaX;
-      const nextY = dragStartPanRef.current.y + deltaY;
-
-      setPan(applyElasticPan({x: nextX, y: nextY}, panBounds, zoom));
-    },
-    [getPanBounds, zoom],
-  );
-
-  const stopDragging = useCallback(
-    (pointerId?: number) => {
-      if (pointerId !== undefined && dragPointerIdRef.current !== pointerId) return;
-
-      dragPointerIdRef.current = null;
-      setIsDragging(false);
-      setPan((prevPan) => {
-        const panBounds = getPanBounds();
-        if (!panBounds) {
-          return {x: 0, y: 0};
-        }
-
-        return clampPanToBounds(prevPan, panBounds, zoom);
-      });
-    },
-    [getPanBounds, zoom],
-  );
-
-  const handleMediaPointerUp = useCallback(
-    (event: PointerEvent<HTMLElement>) => {
-      stopDragging(event.pointerId);
-    },
-    [stopDragging],
-  );
-
-  const handleMediaPointerCancel = useCallback(
-    (event: PointerEvent<HTMLElement>) => {
-      stopDragging(event.pointerId);
-    },
-    [stopDragging],
-  );
-
-  const handleMediaClick = useCallback(() => {
-    if (didDragRef.current) {
-      didDragRef.current = false;
-      return;
-    }
-
-    handleZoomControlClick();
-  }, [handleZoomControlClick]);
+    preview.closePreview();
+  }, [preview]);
 
   useEffect(() => {
     if (type !== "image") return;
@@ -290,85 +101,60 @@ export function useMediaPreview({
       const isHovered = trigger.matches(":hover");
       const isFocusedWithin = trigger.contains(document.activeElement);
 
-      if (!open && !isHovered && !isFocusedWithin) {
+      if (!preview.open && !isHovered && !isFocusedWithin) {
         return;
       }
 
-      const normalizedKey = event.key.toLowerCase();
-      const isZoomInKey =
-        event.key === "+" || event.code === "NumpadAdd" || (event.shiftKey && event.key === "=");
-      const isZoomOutKey =
-        event.key === "-" || event.code === "NumpadSubtract" || event.key === "_";
-
-      if (normalizedKey === "f") {
-        event.preventDefault();
-
-        if (open) {
-          closePreview();
-        } else {
-          openPreview();
-        }
+      if (event.key.toLowerCase() !== "f") {
         return;
       }
 
-      if (!open || !addZoom) return;
+      event.preventDefault();
 
-      if (isZoomInKey) {
-        event.preventDefault();
-        applyZoom((prev) => prev + ZOOM_STEP);
-        return;
-      }
-
-      if (isZoomOutKey) {
-        event.preventDefault();
-        applyZoom((prev) => prev - ZOOM_STEP);
+      if (preview.open) {
+        closePreview();
+      } else {
+        openPreview();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [addZoom, applyZoom, closePreview, open, openPreview, type]);
+  }, [closePreview, openPreview, preview.open, type]);
 
   useEffect(() => {
     const previewInstance = previewInstanceRef.current;
 
     return () => {
-      if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
-
       if (activePreviewInstance === previewInstance) {
         activePreviewInstance = null;
       }
     };
   }, []);
 
-  usePreviewEffects({open, overlayRef, onEscape: closePreview});
-
-  const animatedRect = (() => {
-    if (!fromRect || !activeRect) return null;
-    return expanded ? activeRect : fromRect;
-  })();
+  useEffect(() => {
+    if (!preview.open && activePreviewInstance === previewInstanceRef.current) {
+      activePreviewInstance = null;
+    }
+  }, [preview.open]);
 
   return {
     triggerRef,
-    overlayRef,
-    open,
-    expanded,
-    fromRect,
-    activeRect,
-    animatedRect,
-    zoom,
-    pan,
-    isDragging,
+    overlayRef: preview.overlayRef,
+    open: preview.open,
+    expanded: preview.expanded,
+    animatedRect: preview.animatedRect,
+    zoom: preview.zoom,
+    pan: preview.pan,
+    isDragging: preview.isDragging,
     openPreview,
     closePreview,
-    handleZoomControlClick,
-    handleWheelZoom,
-    handleMediaPointerDown,
-    handleMediaPointerMove,
-    handleMediaPointerUp,
-    handleMediaPointerCancel,
-    handleMediaClick,
+    handleZoomControlClick: preview.handleZoomControlClick,
+    handleWheelZoom: preview.handleWheelZoom,
+    handleMediaPointerDown: preview.handleMediaPointerDown,
+    handleMediaPointerMove: preview.handleMediaPointerMove,
+    handleMediaPointerUp: preview.handleMediaPointerUp,
+    handleMediaPointerCancel: preview.handleMediaPointerCancel,
+    handleMediaClick: preview.handleMediaClick,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import {useLayoutEffect, useRef} from "react";
+import {useLayoutEffect, useRef, useSyncExternalStore} from "react";
 import {VideoPlayerControls} from "@/features/video-player/components/VideoPlayerControls";
 import {VideoPlayerOverlays} from "@/features/video-player/components/VideoPlayerOverlays";
 import type {VideoPlayerShellProps} from "@/features/video-player/types";
@@ -22,6 +22,11 @@ export function VideoPlayerShell({
   const {attachToHost, detachFromHost} = session;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const {state} = useSyncExternalStore(
+    session.subscribe,
+    session.getSnapshot,
+    session.getServerSnapshot,
+  );
 
   useLayoutEffect(() => {
     if (!attachVideo) return;
@@ -61,11 +66,11 @@ export function VideoPlayerShell({
       {attachVideo ? (
         <>
           <VideoPlayerOverlays
-            isFastForwarding={session.state.isFastForwarding}
-            isLoading={session.state.isLoading}
-            isPlaying={session.state.isPlaying}
+            isFastForwarding={state.isFastForwarding}
+            isLoading={state.isLoading}
+            isPlaying={state.isPlaying}
             minimal={minimal}
-            showControls={session.state.showControls}
+            showControls={state.showControls}
             showMainPlayIcon={showMainPlayIcon}
             onTogglePlay={session.actions.togglePlay}
           />
@@ -73,7 +78,7 @@ export function VideoPlayerShell({
           <div ref={mountRef} className="h-full w-full" />
 
           <VideoPlayerControls
-            state={session.state}
+            state={state}
             controlsVisible={controlsVisible}
             formatTime={formatVideoTime}
             onSeek={session.actions.seekTo}

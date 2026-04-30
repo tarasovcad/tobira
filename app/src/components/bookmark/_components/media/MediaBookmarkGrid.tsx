@@ -4,7 +4,7 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import type {MediaGalleryVideoSessionStore} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
+import {MediaGalleryTilePreview} from "@/features/media/components/MediaGalleryTilePreview";
 import {
   getBookmarkMediaPreviewSizeForColumnSize,
   getBookmarkMediaQualityForColumnSize,
@@ -14,6 +14,7 @@ import {getMediaBookmarkGridPreviewItem} from "@/components/bookmark/_utils/medi
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import {MediaBookmark} from "../../types";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
+import type {MediaGalleryController} from "@/features/media/hooks/useMediaGalleryController";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -21,13 +22,14 @@ const selectionModeHoverActionsClass =
 interface MediaBookmarkGridProps {
   item: MediaBookmark;
   onOpenMenu?: (item: MediaBookmark) => void;
-  onOpenGallery?: (galleryIndex: number, triggerElement: HTMLDivElement) => void;
   className?: string;
   renderId?: string;
-  galleryIndex?: number;
   mediaIndex?: number;
-  isActiveGalleryItem?: boolean;
-  videoSessionStore?: MediaGalleryVideoSessionStore;
+  galleryItem?: {
+    index: number;
+    renderId: string;
+    controller: MediaGalleryController;
+  };
   selectionIndex?: number;
   isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;
@@ -49,13 +51,9 @@ function getRadiusClass(borderRadius: string): string {
 export default function MediaBookmarkGrid({
   item,
   onOpenMenu,
-  onOpenGallery,
   className,
-  renderId,
-  galleryIndex,
   mediaIndex = 0,
-  isActiveGalleryItem = false,
-  videoSessionStore,
+  galleryItem,
   selectionIndex = 0,
   isSelected = false,
   setSelected,
@@ -71,18 +69,7 @@ export default function MediaBookmarkGrid({
   const width = previewItem?.width ?? meta?.width ?? 1200;
   const height = previewItem?.height ?? meta?.height ?? 1200;
   const aspectRatio = width > 0 && height > 0 ? `${width} / ${height}` : "16/9";
-  const canOpenGallery = galleryIndex !== undefined && !!onOpenGallery;
-
-  const handleOpenGallery = React.useCallback(
-    (triggerElement: HTMLDivElement) => {
-      if (!onOpenGallery || galleryIndex === undefined) {
-        return;
-      }
-
-      onOpenGallery(galleryIndex, triggerElement);
-    },
-    [galleryIndex, onOpenGallery],
-  );
+  const canOpenGallery = galleryItem !== undefined;
 
   return (
     <div
@@ -124,42 +111,40 @@ export default function MediaBookmarkGrid({
       {previewItem ? (
         <div
           style={{aspectRatio}}
-          role={canOpenGallery ? "button" : undefined}
-          tabIndex={canOpenGallery ? 0 : undefined}
-          className={cn(canOpenGallery && "focus-visible:ring-ring focus-visible:ring-2")}
-          onClick={(event) => {
-            if (!canOpenGallery) {
-              return;
-            }
-
-            handleOpenGallery(event.currentTarget);
-          }}
-          onKeyDown={(event) => {
-            if (!canOpenGallery || (event.key !== "Enter" && event.key !== " ")) {
-              return;
-            }
-
-            event.preventDefault();
-            handleOpenGallery(event.currentTarget);
-          }}>
-          <MediaPreview
-            src={previewItem.src}
-            fullSizeSrc={previewItem.type === "image" ? previewItem.fullSizeSrc : undefined}
-            alt={previewItem.alt}
-            width={previewItem.width}
-            height={previewItem.height}
-            poster={previewItem.poster}
-            type={previewItem.type}
-            sizes={imageSizes}
-            quality={imageQuality}
-            loading="lazy"
-            disableClickToOpen={canOpenGallery}
-            forceLoadVideo={isActiveGalleryItem}
-            videoSessionStore={videoSessionStore}
-            videoSessionKey={renderId}
-            className="h-full w-full object-cover"
-            buttonClassName="h-full w-full"
-          />
+          className={cn(canOpenGallery && "focus-visible:ring-ring focus-visible:ring-2")}>
+          {galleryItem ? (
+            <MediaGalleryTilePreview
+              controller={galleryItem.controller}
+              index={galleryItem.index}
+              renderId={galleryItem.renderId}
+              src={previewItem.src}
+              alt={previewItem.alt}
+              width={previewItem.width}
+              height={previewItem.height}
+              poster={previewItem.poster}
+              type={previewItem.type}
+              sizes={imageSizes}
+              quality={imageQuality}
+              loading="lazy"
+              className="h-full w-full object-cover"
+              buttonClassName="h-full w-full"
+            />
+          ) : (
+            <MediaPreview
+              src={previewItem.src}
+              fullSizeSrc={previewItem.type === "image" ? previewItem.fullSizeSrc : undefined}
+              alt={previewItem.alt}
+              width={previewItem.width}
+              height={previewItem.height}
+              poster={previewItem.poster}
+              type={previewItem.type}
+              sizes={imageSizes}
+              quality={imageQuality}
+              loading="lazy"
+              className="h-full w-full object-cover"
+              buttonClassName="h-full w-full"
+            />
+          )}
         </div>
       ) : null}
     </div>

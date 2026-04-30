@@ -6,24 +6,20 @@ import type {MediaGalleryEntry} from "@/components/bookmark/_utils/media-grid-re
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
 import {useVideoPlayerSession} from "@/features/video-player/hooks/useVideoPlayerSession";
 import {
-  useMediaGalleryVideoSession,
-  type MediaGalleryVideoSessionStore,
-} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
+  useMediaGalleryControllerSnapshot,
+  type MediaGalleryController,
+} from "@/features/media/hooks/useMediaGalleryController";
 import type {UseMediaGalleryPreviewResult} from "@/features/media/hooks/useMediaGalleryPreview";
 import {isEditableElementActive} from "@/features/video-player/utils";
 
 type MediaGalleryOverlayProps = {
   entries: MediaGalleryEntry[];
-  currentIndex: number | null;
-  onSelectIndex: (index: number) => void;
-  videoSessionStore?: MediaGalleryVideoSessionStore;
+  controller: MediaGalleryController;
 } & UseMediaGalleryPreviewResult;
 
 export function MediaGalleryOverlay({
   entries,
-  currentIndex,
-  onSelectIndex,
-  videoSessionStore,
+  controller,
   overlayRef,
   open,
   expanded,
@@ -33,9 +29,6 @@ export function MediaGalleryOverlay({
   zoom,
   pan,
   isDragging,
-  closePreview,
-  setPreviewSize,
-  resetInteractionState,
   handleZoomControlClick,
   handleMediaClick,
   handleWheelZoom,
@@ -44,15 +37,15 @@ export function MediaGalleryOverlay({
   handleMediaPointerUp,
   handleMediaPointerCancel,
 }: MediaGalleryOverlayProps) {
-  const activeIndex = currentIndex;
+  const galleryState = useMediaGalleryControllerSnapshot(controller);
+  const activeIndex = galleryState.currentIndex;
   const currentEntry = activeIndex !== null ? (entries.at(activeIndex) ?? null) : null;
   const hasPrevious = activeIndex !== null && activeIndex > 0;
   const hasNext = activeIndex !== null && activeIndex < entries.length - 1;
 
   const activePreviewItem = currentEntry?.previewItem ?? null;
   const isCenterVideo = activePreviewItem?.type === "video";
-  const sharedCenterVideoSession = useMediaGalleryVideoSession(
-    videoSessionStore,
+  const sharedCenterVideoSession = controller.getVideoSession(
     isCenterVideo ? (currentEntry?.renderId ?? null) : null,
   );
 
@@ -79,13 +72,14 @@ export function MediaGalleryOverlay({
         return;
       }
 
-      setPreviewSize(nextEntry.previewItem.width, nextEntry.previewItem.height, {
-        entryKey: nextEntry.renderId,
+      controller.selectItem({
+        index: nextIndex,
+        renderId: nextEntry.renderId,
+        width: nextEntry.previewItem.width,
+        height: nextEntry.previewItem.height,
       });
-      resetInteractionState();
-      onSelectIndex(nextIndex);
     },
-    [activeIndex, onSelectIndex, resetInteractionState, setPreviewSize, entries],
+    [activeIndex, controller, entries],
   );
 
   const handlePrevious = useCallback(() => {
@@ -149,7 +143,7 @@ export function MediaGalleryOverlay({
       addZoom={activePreviewItem.type === "image"}
       showFallback={false}
       videoSession={isCenterVideo ? centerVideoSession : undefined}
-      closePreview={closePreview}
+      closePreview={controller.requestClose}
       onPrevious={handlePrevious}
       onNext={handleNext}
       hasPrevious={hasPrevious}
