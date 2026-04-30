@@ -1,11 +1,11 @@
-import { PhotonImage, SamplingFilter, resize } from "@cf-wasm/photon/workerd";
+import { PhotonImage, SamplingFilter, resize, crop } from "@cf-wasm/photon/workerd";
 
 export interface Env {
   BOOKMARKS: R2Bucket;
 }
 
 const SIZES = {
-  thumb: 150,
+  thumb: 50,
   small: 680,
   medium: 1200,
   large: 2048,
@@ -109,7 +109,31 @@ export default {
         const originalWidth = inputImage.get_width();
         const originalHeight = inputImage.get_height();
 
-        if (originalWidth > targetWidth) {
+        if (sizeParam === "thumb") {
+          // Exact square with center crop
+          const targetSize = targetWidth;
+          const scale = Math.max(targetSize / originalWidth, targetSize / originalHeight);
+          const scaledWidth = Math.max(targetSize, Math.round(originalWidth * scale));
+          const scaledHeight = Math.max(targetSize, Math.round(originalHeight * scale));
+
+          let scaledImage = inputImage;
+          let needsFree = false;
+
+          if (scaledWidth !== originalWidth || scaledHeight !== originalHeight) {
+            scaledImage = resize(inputImage, scaledWidth, scaledHeight, SamplingFilter.Lanczos3);
+            needsFree = true;
+          }
+
+          const x1 = Math.floor((scaledWidth - targetSize) / 2);
+          const y1 = Math.floor((scaledHeight - targetSize) / 2);
+
+          processedImage = crop(scaledImage, x1, y1, x1 + targetSize, y1 + targetSize);
+          
+          if (needsFree) {
+            scaledImage.free();
+          }
+          resized = true;
+        } else if (originalWidth > targetWidth) {
           // Using Lanczos3 for better quality downscaling
           const targetHeight = Math.round(
             (originalHeight / originalWidth) * targetWidth,

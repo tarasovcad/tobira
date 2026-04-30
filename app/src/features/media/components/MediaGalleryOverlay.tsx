@@ -1,9 +1,10 @@
 "use client";
 
-import {useCallback, useEffect} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {createPortal} from "react-dom";
 import type {MediaGalleryEntry} from "@/components/bookmark/_utils/media-grid-render";
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
+import {PreviewThumbnailRail} from "./preview/PreviewThumbnailRail";
 import {useVideoPlayerSession} from "@/features/video-player/hooks/useVideoPlayerSession";
 import {
   useMediaGalleryControllerSnapshot,
@@ -38,6 +39,7 @@ export function MediaGalleryOverlay({
   handleMediaPointerCancel,
 }: MediaGalleryOverlayProps) {
   const galleryState = useMediaGalleryControllerSnapshot(controller);
+  const [thumbnailRailVisible, setThumbnailRailVisible] = useState(true);
   const activeIndex = galleryState.currentIndex;
   const currentEntry = activeIndex !== null ? (entries.at(activeIndex) ?? null) : null;
   const hasPrevious = activeIndex !== null && activeIndex > 0;
@@ -98,6 +100,10 @@ export function MediaGalleryOverlay({
     handleSelectEntry(activeIndex + 1);
   }, [activeIndex, handleSelectEntry]);
 
+  const handleToggleThumbnailRail = useCallback(() => {
+    setThumbnailRailVisible((visible) => !visible);
+  }, []);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -126,36 +132,62 @@ export function MediaGalleryOverlay({
     return null;
   }
 
+  const overlayRect =
+    thumbnailRailVisible && expanded
+      ? (() => {
+          const scale = 0.96;
+          const width = animatedRect.width * scale;
+          const height = animatedRect.height * scale;
+
+          return {
+            top: animatedRect.top - 28 + (animatedRect.height - height) / 2,
+            left: animatedRect.left + (animatedRect.width - width) / 2,
+            width,
+            height,
+          };
+        })()
+      : animatedRect;
+
   return createPortal(
-    <MediaPreviewOverlay
-      overlayRef={overlayRef}
-      expanded={expanded}
-      animatedRect={animatedRect}
-      animateLayout={animateLayout}
-      fadeSurfaceOnClose={fadeSurfaceOnClose}
-      zoom={zoom}
-      pan={pan}
-      isDragging={isDragging}
-      src={activePreviewItem.src}
-      fullSizeSrc={activePreviewItem.type === "image" ? activePreviewItem.fullSizeSrc : undefined}
-      alt={activePreviewItem.alt}
-      type={activePreviewItem.type}
-      addZoom={activePreviewItem.type === "image"}
-      showFallback={false}
-      videoSession={isCenterVideo ? centerVideoSession : undefined}
-      closePreview={controller.requestClose}
-      onPrevious={handlePrevious}
-      onNext={handleNext}
-      hasPrevious={hasPrevious}
-      hasNext={hasNext}
-      handleZoomControlClick={handleZoomControlClick}
-      handleMediaClick={handleMediaClick}
-      handleWheelZoom={handleWheelZoom}
-      handleMediaPointerDown={handleMediaPointerDown}
-      handleMediaPointerMove={handleMediaPointerMove}
-      handleMediaPointerUp={handleMediaPointerUp}
-      handleMediaPointerCancel={handleMediaPointerCancel}
-    />,
+    <>
+      <MediaPreviewOverlay
+        overlayRef={overlayRef}
+        expanded={expanded}
+        animatedRect={overlayRect}
+        animateLayout={animateLayout}
+        fadeSurfaceOnClose={fadeSurfaceOnClose}
+        zoom={zoom}
+        pan={pan}
+        isDragging={isDragging}
+        src={activePreviewItem.src}
+        fullSizeSrc={activePreviewItem.type === "image" ? activePreviewItem.fullSizeSrc : undefined}
+        alt={activePreviewItem.alt}
+        type={activePreviewItem.type}
+        addZoom={activePreviewItem.type === "image"}
+        showFallback={false}
+        videoSession={isCenterVideo ? centerVideoSession : undefined}
+        closePreview={controller.requestClose}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        onToggleThumbnailRail={handleToggleThumbnailRail}
+        handleZoomControlClick={handleZoomControlClick}
+        handleMediaClick={handleMediaClick}
+        handleWheelZoom={handleWheelZoom}
+        handleMediaPointerDown={handleMediaPointerDown}
+        handleMediaPointerMove={handleMediaPointerMove}
+        handleMediaPointerUp={handleMediaPointerUp}
+        handleMediaPointerCancel={handleMediaPointerCancel}
+      />
+      <PreviewThumbnailRail
+        entries={entries}
+        currentIndex={activeIndex}
+        expanded={expanded}
+        visible={thumbnailRailVisible}
+        onSelect={handleSelectEntry}
+      />
+    </>,
     document.body,
   );
 }

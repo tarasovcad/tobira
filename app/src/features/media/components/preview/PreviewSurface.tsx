@@ -40,6 +40,16 @@ export function PreviewSurface({
   onPointerUp,
   onPointerCancel,
 }: PreviewSurfaceProps) {
+  const transitionClassName = !animateLayout
+    ? "transition-none"
+    : isDragging
+      ? fadeWhenCollapsed
+        ? "transition-[top,left,width,height,border-radius,opacity] duration-[160ms]"
+        : "transition-[top,left,width,height,border-radius] duration-[160ms]"
+      : fadeWhenCollapsed
+        ? "transition-[top,left,width,height,transform,border-radius,opacity] duration-[240ms]"
+        : "transition-[top,left,width,height,transform,border-radius] duration-[240ms]";
+
   return (
     <div
       onClick={interactive ? onClick : undefined}
@@ -50,12 +60,7 @@ export function PreviewSurface({
       onPointerCancel={interactive ? onPointerCancel : undefined}
       className={cn(
         "absolute overflow-hidden rounded-xl shadow-2xl ease-out",
-        !animateLayout
-          ? "transition-none"
-          : isDragging
-            ? "transition-[top,left,width,height,border-radius]"
-            : "transition-[top,left,width,height,transform,border-radius] duration-250",
-        fadeWhenCollapsed && "transition-opacity duration-250",
+        transitionClassName,
         className,
       )}
       style={{

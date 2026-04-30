@@ -29,6 +29,7 @@ type MediaPreviewOverlayProps = {
   hasPrevious?: boolean;
   hasNext?: boolean;
   animateLayout?: boolean;
+  onToggleThumbnailRail?: () => void;
   handleZoomControlClick: () => void;
   handleMediaClick: () => void;
   handleWheelZoom: WheelEventHandler<HTMLDivElement>;
@@ -83,6 +84,7 @@ export function MediaPreviewOverlay({
   hasPrevious = false,
   hasNext = false,
   animateLayout = true,
+  onToggleThumbnailRail,
   handleZoomControlClick,
   handleMediaClick,
   handleWheelZoom,
@@ -105,7 +107,7 @@ export function MediaPreviewOverlay({
         type="button"
         aria-label="Close preview"
         className={cn(
-          "absolute inset-0 bg-black/60 transition-opacity duration-250",
+          "absolute inset-0 bg-black/60 transition-opacity duration-[180ms]",
           expanded ? "opacity-100" : "opacity-0",
         )}
         onClick={closePreview}
@@ -114,6 +116,7 @@ export function MediaPreviewOverlay({
         zoom={zoom}
         expanded={expanded}
         onZoomToggle={handleZoomControlClick}
+        onToggleDisplayMode={onToggleThumbnailRail}
         onClose={closePreview}
         addZoom={isInteractive}
       />
@@ -126,7 +129,7 @@ export function MediaPreviewOverlay({
         }}
         disabled={!hasPrevious}
         className={cn(
-          "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10",
+          "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10",
           expanded && onPrevious && hasPrevious ? "opacity-100" : "pointer-events-none opacity-0",
         )}>
         <svg
@@ -150,7 +153,7 @@ export function MediaPreviewOverlay({
         }}
         disabled={!hasNext}
         className={cn(
-          "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10",
+          "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10",
           expanded && onNext && hasNext ? "opacity-100" : "pointer-events-none opacity-0",
         )}>
         <svg
