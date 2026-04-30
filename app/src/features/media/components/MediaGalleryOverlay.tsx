@@ -5,6 +5,10 @@ import {createPortal} from "react-dom";
 import type {MediaGalleryEntry} from "@/components/bookmark/_utils/media-grid-render";
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
 import {useVideoPlayerSession} from "@/features/video-player/hooks/useVideoPlayerSession";
+import {
+  useMediaGalleryVideoSession,
+  type MediaGalleryVideoSessionStore,
+} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
 import type {UseMediaGalleryPreviewResult} from "@/features/media/hooks/useMediaGalleryPreview";
 import {isEditableElementActive} from "@/features/video-player/utils";
 
@@ -12,17 +16,20 @@ type MediaGalleryOverlayProps = {
   entries: MediaGalleryEntry[];
   currentIndex: number | null;
   onSelectIndex: (index: number) => void;
+  videoSessionStore?: MediaGalleryVideoSessionStore;
 } & UseMediaGalleryPreviewResult;
 
 export function MediaGalleryOverlay({
   entries,
   currentIndex,
   onSelectIndex,
+  videoSessionStore,
   overlayRef,
   open,
   expanded,
   animatedRect,
   animateLayout,
+  fadeSurfaceOnClose,
   zoom,
   pan,
   isDragging,
@@ -44,9 +51,13 @@ export function MediaGalleryOverlay({
 
   const activePreviewItem = currentEntry?.previewItem ?? null;
   const isCenterVideo = activePreviewItem?.type === "video";
+  const sharedCenterVideoSession = useMediaGalleryVideoSession(
+    videoSessionStore,
+    isCenterVideo ? (currentEntry?.renderId ?? null) : null,
+  );
 
-  const centerVideoSession = useVideoPlayerSession({
-    enabled: isCenterVideo,
+  const fallbackCenterVideoSession = useVideoPlayerSession({
+    enabled: isCenterVideo && !sharedCenterVideoSession,
     src: isCenterVideo && open ? activePreviewItem?.src : undefined,
     poster: isCenterVideo ? activePreviewItem?.poster : undefined,
     loop: isCenterVideo,
@@ -54,16 +65,23 @@ export function MediaGalleryOverlay({
     preload: isCenterVideo && open ? "auto" : undefined,
     unmuteOnFirstInteraction: isCenterVideo,
   });
+  const centerVideoSession = sharedCenterVideoSession ?? fallbackCenterVideoSession;
 
   const handleSelectEntry = useCallback(
     (nextIndex: number) => {
+      if (nextIndex < 0 || nextIndex >= entries.length) {
+        return;
+      }
+
       const nextEntry = entries.at(nextIndex);
 
       if (!nextEntry || nextIndex === activeIndex) {
         return;
       }
 
-      setPreviewSize(nextEntry.previewItem.width, nextEntry.previewItem.height);
+      setPreviewSize(nextEntry.previewItem.width, nextEntry.previewItem.height, {
+        entryKey: nextEntry.renderId,
+      });
       resetInteractionState();
       onSelectIndex(nextIndex);
     },
@@ -120,6 +138,7 @@ export function MediaGalleryOverlay({
       expanded={expanded}
       animatedRect={animatedRect}
       animateLayout={animateLayout}
+      fadeSurfaceOnClose={fadeSurfaceOnClose}
       zoom={zoom}
       pan={pan}
       isDragging={isDragging}

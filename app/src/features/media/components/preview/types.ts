@@ -1,4 +1,5 @@
 import type {ReactNode} from "react";
+import type {MediaGalleryVideoSessionStore} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
 
 export type Rect = {
   top: number;
@@ -38,6 +39,9 @@ export type MediaPreviewProps = {
   onError?: () => void;
   onCanPlay?: () => void;
   addZoom?: boolean;
+  forceLoadVideo?: boolean;
+  videoSessionStore?: MediaGalleryVideoSessionStore;
+  videoSessionKey?: string;
   /** When true, the preview overlay shows fallback content instead of the image */
   showFallback?: boolean;
   /** Content to render in the overlay when showFallback is true (e.g. placeholder icon) */

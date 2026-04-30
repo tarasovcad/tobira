@@ -24,6 +24,7 @@ type OpenMediaGalleryPreviewArgs = {
   fromRect: Rect;
   width: number;
   height: number;
+  originKey?: string;
 };
 
 type UseMediaGalleryPreviewParams = {
@@ -38,12 +39,13 @@ export type UseMediaGalleryPreviewResult = {
   expanded: boolean;
   animatedRect: Rect | null;
   animateLayout: boolean;
+  fadeSurfaceOnClose: boolean;
   zoom: number;
   pan: Pan;
   isDragging: boolean;
   openPreviewFromRect: (args: OpenMediaGalleryPreviewArgs) => void;
   closePreview: () => void;
-  setPreviewSize: (width: number, height: number) => void;
+  setPreviewSize: (width: number, height: number, options?: {entryKey?: string | null}) => void;
   resetInteractionState: () => void;
   handleZoomControlClick: () => void;
   handleWheelZoom: (event: WheelEvent<HTMLElement>) => void;
@@ -62,6 +64,7 @@ export function useMediaGalleryPreview({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const restoreLayoutAnimationFrameRef = useRef<number | null>(null);
+  const originKeyRef = useRef<string | null>(null);
 
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -69,6 +72,7 @@ export function useMediaGalleryPreview({
   const [toRect, setToRect] = useState<Rect | null>(null);
   const [closeRequested, setCloseRequested] = useState(false);
   const [animateLayout, setAnimateLayout] = useState(true);
+  const [shouldCloseToOrigin, setShouldCloseToOrigin] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Pan>({x: 0, y: 0});
   const [isDragging, setIsDragging] = useState(false);
@@ -121,6 +125,7 @@ export function useMediaGalleryPreview({
       fromRect: nextFromRect,
       width: nextWidth,
       height: nextHeight,
+      originKey,
     }: OpenMediaGalleryPreviewArgs) => {
       if (closeTimeoutRef.current !== null) {
         window.clearTimeout(closeTimeoutRef.current);
@@ -133,8 +138,10 @@ export function useMediaGalleryPreview({
 
       setFromRect(nextFromRect);
       setToRect(getTargetRect(nextWidth / nextHeight));
+      originKeyRef.current = originKey ?? null;
       setCloseRequested(false);
       setAnimateLayout(true);
+      setShouldCloseToOrigin(true);
       resetInteractionState();
       setOpen(true);
       onOpenChange?.(true);
@@ -163,18 +170,24 @@ export function useMediaGalleryPreview({
     }, OVERLAY_TRANSITION_MS);
   }, [closeRequested, onOpenChange, open, resetInteractionState]);
 
-  const setPreviewSize = useCallback((nextWidth: number, nextHeight: number) => {
-    if (restoreLayoutAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(restoreLayoutAnimationFrameRef.current);
-    }
+  const setPreviewSize = useCallback(
+    (nextWidth: number, nextHeight: number, options?: {entryKey?: string | null}) => {
+      if (restoreLayoutAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(restoreLayoutAnimationFrameRef.current);
+      }
 
-    setAnimateLayout(false);
-    setToRect(getTargetRect(nextWidth / nextHeight));
-    restoreLayoutAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      setAnimateLayout(true);
-      restoreLayoutAnimationFrameRef.current = null;
-    });
-  }, []);
+      setAnimateLayout(false);
+      setShouldCloseToOrigin(
+        options?.entryKey !== undefined && options.entryKey === originKeyRef.current,
+      );
+      setToRect(getTargetRect(nextWidth / nextHeight));
+      restoreLayoutAnimationFrameRef.current = window.requestAnimationFrame(() => {
+        setAnimateLayout(true);
+        restoreLayoutAnimationFrameRef.current = null;
+      });
+    },
+    [],
+  );
 
   const handleZoomControlClick = useCallback(() => {
     if (zoom > MIN_ZOOM) {
@@ -317,8 +330,12 @@ export function useMediaGalleryPreview({
   usePreviewEffects({open, overlayRef, onEscape: closePreview});
 
   const animatedRect = (() => {
-    if (!fromRect || !activeRect) return null;
-    return expanded ? activeRect : fromRect;
+    if (!activeRect) return null;
+
+    const collapsedRect = shouldCloseToOrigin ? fromRect : activeRect;
+    if (!collapsedRect) return null;
+
+    return expanded ? activeRect : collapsedRect;
   })();
 
   return {
@@ -327,6 +344,7 @@ export function useMediaGalleryPreview({
     expanded,
     animatedRect,
     animateLayout,
+    fadeSurfaceOnClose: !shouldCloseToOrigin,
     zoom,
     pan,
     isDragging,

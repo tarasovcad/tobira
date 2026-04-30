@@ -4,6 +4,7 @@ import * as React from "react";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import MediaPreview from "@/features/media/components/MediaPreview";
+import type {MediaGalleryVideoSessionStore} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
 import {
   getBookmarkMediaPreviewSizeForColumnSize,
   getBookmarkMediaQualityForColumnSize,
@@ -22,8 +23,11 @@ interface MediaBookmarkGridProps {
   onOpenMenu?: (item: MediaBookmark) => void;
   onOpenGallery?: (galleryIndex: number, triggerElement: HTMLDivElement) => void;
   className?: string;
+  renderId?: string;
   galleryIndex?: number;
   mediaIndex?: number;
+  isActiveGalleryItem?: boolean;
+  videoSessionStore?: MediaGalleryVideoSessionStore;
   selectionIndex?: number;
   isSelected?: boolean;
   setSelected?: (id: string, checked: boolean) => void;
@@ -47,8 +51,11 @@ export default function MediaBookmarkGrid({
   onOpenMenu,
   onOpenGallery,
   className,
+  renderId,
   galleryIndex,
   mediaIndex = 0,
+  isActiveGalleryItem = false,
+  videoSessionStore,
   selectionIndex = 0,
   isSelected = false,
   setSelected,
@@ -120,7 +127,7 @@ export default function MediaBookmarkGrid({
           role={canOpenGallery ? "button" : undefined}
           tabIndex={canOpenGallery ? 0 : undefined}
           className={cn(canOpenGallery && "focus-visible:ring-ring focus-visible:ring-2")}
-          onClickCapture={(event) => {
+          onClick={(event) => {
             if (!canOpenGallery) {
               return;
             }
@@ -147,6 +154,9 @@ export default function MediaBookmarkGrid({
             quality={imageQuality}
             loading="lazy"
             disableClickToOpen={canOpenGallery}
+            forceLoadVideo={isActiveGalleryItem}
+            videoSessionStore={videoSessionStore}
+            videoSessionKey={renderId}
             className="h-full w-full object-cover"
             buttonClassName="h-full w-full"
           />

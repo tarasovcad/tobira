@@ -29,6 +29,9 @@ export default function MediaPreview({
   onError,
   onCanPlay,
   addZoom = true,
+  forceLoadVideo = false,
+  videoSessionStore,
+  videoSessionKey,
   poster,
   showFallback = false,
   fallback,
@@ -66,11 +69,11 @@ export default function MediaPreview({
 
   const videoSession = useVideoPlayerSession({
     enabled: isVideo,
-    src: isVideo && (shouldLoadVideo || open) ? src : undefined,
+    src: isVideo && (shouldLoadVideo || open || forceLoadVideo) ? src : undefined,
     poster,
     loop: isVideo,
     playsInline: isVideo,
-    preload: isVideo && (shouldLoadVideo || open) ? "auto" : undefined,
+    preload: isVideo && (shouldLoadVideo || open || forceLoadVideo) ? "auto" : undefined,
     unmuteOnFirstInteraction: isVideo,
     onCanPlay: isVideo ? onCanPlay : undefined,
     onError: isVideo ? onError : undefined,
@@ -100,12 +103,25 @@ export default function MediaPreview({
   }, [isVideo, isVideoHovered, open, shouldLoadVideo, videoSession]);
 
   useEffect(() => {
+    if (!isVideo || !videoSessionStore || !videoSessionKey) {
+      return;
+    }
+
+    videoSessionStore.setSession(videoSessionKey, videoSession);
+
+    return () => {
+      videoSessionStore.setSession(videoSessionKey, null);
+    };
+  }, [isVideo, videoSession, videoSessionKey, videoSessionStore]);
+
+  useEffect(() => {
     if (!openSignal) return;
     openPreview();
   }, [openPreview, openSignal]);
 
   const shouldRenderOverlay =
     typeof document !== "undefined" && open && fromRect && activeRect && animatedRect;
+  const shouldAttachInlineVideo = isVideo ? !open && !forceLoadVideo : false;
 
   return (
     <>
@@ -128,7 +144,7 @@ export default function MediaPreview({
         onCanPlay={onCanPlay}
         poster={poster}
         videoSession={isVideo ? videoSession : undefined}
-        attachVideo={isVideo ? !open : false}
+        attachVideo={shouldAttachInlineVideo}
         controlsVisible={isVideo ? isVideoHovered : false}
         warmVideo={
           isVideo

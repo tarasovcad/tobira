@@ -119,8 +119,8 @@ export function MediaPreviewTrigger({
         <div
           className="bg-muted relative h-full w-full"
           onClick={(event) => {
-            event.stopPropagation();
             if (canOpenPreview) {
+              event.stopPropagation();
               openPreview();
             }
           }}>
@@ -133,7 +133,7 @@ export function MediaPreviewTrigger({
               minimal
               controlsVisible={controlsVisible}
               disableClickToggle
-              onRequestFullscreen={canOpenPreview ? openPreview : undefined}
+              onRequestFullscreen={openPreview}
               attachVideo={attachVideo}
               placeholder={
                 poster ? (

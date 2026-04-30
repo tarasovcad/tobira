@@ -21,6 +21,7 @@ import {getBookmarkMediaPreviewSizeForColumnSize} from "@/components/bookmark/_u
 import type {Rect} from "@/features/media/components/preview/types";
 import {useMediaGalleryPreview} from "@/features/media/hooks/useMediaGalleryPreview";
 import {MediaGalleryOverlay} from "@/features/media/components/MediaGalleryOverlay";
+import {createMediaGalleryVideoSessionStore} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
 
 function LoadingSpinner({className}: {className?: string}) {
   return (
@@ -133,6 +134,7 @@ export function AllItemsList({
     () => (isMediaGrid ? buildMediaGalleryEntries(visibleItems, mediaPreviewSize) : []),
     [isMediaGrid, mediaPreviewSize, visibleItems],
   );
+  const mediaGalleryVideoSessionStore = useMemo(() => createMediaGalleryVideoSessionStore(), []);
   const [currentMediaIndex, setCurrentMediaIndex] = useState<number | null>(null);
   const boundedCurrentMediaIndex =
     currentMediaIndex === null || mediaGalleryEntries.length === 0
@@ -179,6 +181,7 @@ export function AllItemsList({
         fromRect,
         width: entry.previewItem.width,
         height: entry.previewItem.height,
+        originKey: entry.renderId,
       });
     },
     [mediaGalleryEntries, openPreviewFromRect],
@@ -217,6 +220,8 @@ export function AllItemsList({
         renderId={entry.renderId}
         galleryIndex={isMediaGrid ? entryIndex : undefined}
         mediaIndex={entry.mediaIndex}
+        isActiveGalleryItem={isMediaGrid ? boundedCurrentMediaIndex === entryIndex : undefined}
+        videoSessionStore={isMediaGrid ? mediaGalleryVideoSessionStore : undefined}
         selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
         isRemoving={removingIds.has(entry.item.id)}
         removalKind={removingIds.get(entry.item.id) ?? "delete"}
@@ -243,6 +248,8 @@ export function AllItemsList({
     getItemSelectionIndex,
     handleOpenMediaGallery,
     mediaGalleryEntries,
+    mediaGalleryVideoSessionStore,
+    boundedCurrentMediaIndex,
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,
@@ -310,6 +317,7 @@ export function AllItemsList({
         entries={mediaGalleryEntries}
         currentIndex={boundedCurrentMediaIndex}
         onSelectIndex={setCurrentMediaIndex}
+        videoSessionStore={mediaGalleryVideoSessionStore}
         {...mediaGalleryPreview}
       />
     </>

@@ -10,6 +10,7 @@ type MediaPreviewOverlayProps = {
   overlayRef: RefObject<HTMLDivElement | null>;
   expanded: boolean;
   animatedRect: Rect;
+  fadeSurfaceOnClose?: boolean;
   zoom: number;
   pan: Pan;
   isDragging: boolean;
@@ -63,6 +64,7 @@ export function MediaPreviewOverlay({
   overlayRef,
   expanded,
   animatedRect,
+  fadeSurfaceOnClose = false,
   zoom,
   pan,
   isDragging,
@@ -125,8 +127,7 @@ export function MediaPreviewOverlay({
         disabled={!hasPrevious}
         className={cn(
           "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10",
-          expanded && onPrevious ? "opacity-100" : "pointer-events-none opacity-0",
-          !hasPrevious && "cursor-default opacity-40 hover:bg-black/40",
+          expanded && onPrevious && hasPrevious ? "opacity-100" : "pointer-events-none opacity-0",
         )}>
         <svg
           width="24"
@@ -150,8 +151,7 @@ export function MediaPreviewOverlay({
         disabled={!hasNext}
         className={cn(
           "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-250 hover:bg-white/10",
-          expanded && onNext ? "opacity-100" : "pointer-events-none opacity-0",
-          !hasNext && "cursor-default opacity-40 hover:bg-black/40",
+          expanded && onNext && hasNext ? "opacity-100" : "pointer-events-none opacity-0",
         )}>
         <svg
           width="24"
@@ -168,11 +168,13 @@ export function MediaPreviewOverlay({
 
       <PreviewSurface
         animatedRect={animatedRect}
+        expanded={expanded}
         zoom={zoom}
         pan={pan}
         isDragging={isDragging}
         interactive={isInteractive}
         animateLayout={animateLayout}
+        fadeWhenCollapsed={fadeSurfaceOnClose}
         onClick={handleMediaClick}
         onWheel={handleWheelZoom}
         onPointerDown={handleMediaPointerDown}

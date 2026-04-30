@@ -5,11 +5,13 @@ import {cn} from "@/lib/utils";
 
 type PreviewSurfaceProps = {
   animatedRect: Rect;
+  expanded?: boolean;
   zoom: number;
   pan: Pan;
   isDragging: boolean;
   interactive?: boolean;
   animateLayout?: boolean;
+  fadeWhenCollapsed?: boolean;
   className?: string;
   children: ReactNode;
   onClick?: () => void;
@@ -22,11 +24,13 @@ type PreviewSurfaceProps = {
 
 export function PreviewSurface({
   animatedRect,
+  expanded = true,
   zoom,
   pan,
   isDragging,
   interactive = false,
   animateLayout = true,
+  fadeWhenCollapsed = false,
   className,
   children,
   onClick,
@@ -51,6 +55,7 @@ export function PreviewSurface({
           : isDragging
             ? "transition-[top,left,width,height,border-radius]"
             : "transition-[top,left,width,height,transform,border-radius] duration-250",
+        fadeWhenCollapsed && "transition-opacity duration-250",
         className,
       )}
       style={{
@@ -58,6 +63,7 @@ export function PreviewSurface({
         left: animatedRect.left,
         width: animatedRect.width,
         height: animatedRect.height,
+        opacity: fadeWhenCollapsed && !expanded ? 0 : 1,
         transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
         transformOrigin: "center center",
         cursor: !interactive

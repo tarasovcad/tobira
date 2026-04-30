@@ -4,6 +4,7 @@ import * as React from "react";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {AllItemsAnimatedVariant, AllItemsBookmarkComponent} from "./all-items-list-layout";
+import type {MediaGalleryVideoSessionStore} from "@/features/media/hooks/useMediaGalleryVideoSessionStore";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
 
@@ -12,6 +13,8 @@ interface AllItemsBookmarkRowProps {
   renderId?: string;
   galleryIndex?: number;
   mediaIndex?: number;
+  isActiveGalleryItem?: boolean;
+  videoSessionStore?: MediaGalleryVideoSessionStore;
   selectionIndex: number;
   isRemoving: boolean;
   removalKind: "delete" | "archive";
@@ -34,6 +37,8 @@ function AllItemsBookmarkRowImpl({
   renderId,
   galleryIndex,
   mediaIndex,
+  isActiveGalleryItem,
+  videoSessionStore,
   selectionIndex,
   isRemoving,
   removalKind,
@@ -96,8 +101,11 @@ function AllItemsBookmarkRowImpl({
           onOpenMenu={handleOpenMenu}
           onOpenGallery={onOpenGallery}
           onDelete={handleDelete}
+          renderId={renderId}
           galleryIndex={galleryIndex}
           mediaIndex={mediaIndex}
+          isActiveGalleryItem={isActiveGalleryItem}
+          videoSessionStore={videoSessionStore}
           selectionIndex={selectionIndex}
           isSelected={isSelected}
           setSelected={setSelected}
@@ -115,6 +123,8 @@ export const AllItemsBookmarkRow = React.memo(
     prev.renderId === next.renderId &&
     prev.galleryIndex === next.galleryIndex &&
     prev.mediaIndex === next.mediaIndex &&
+    prev.isActiveGalleryItem === next.isActiveGalleryItem &&
+    prev.videoSessionStore === next.videoSessionStore &&
     prev.selectionIndex === next.selectionIndex &&
     prev.isRemoving === next.isRemoving &&
     prev.removalKind === next.removalKind &&
