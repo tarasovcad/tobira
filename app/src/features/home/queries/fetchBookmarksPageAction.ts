@@ -1,5 +1,10 @@
 "use server";
-import type {Bookmark} from "@/components/bookmark/types";
+import type {
+  Bookmark,
+  MediaBookmark,
+  PostBookmark,
+  WebsiteBookmark,
+} from "@/components/bookmark/types";
 import {bookmarks, bookmarkTags, bookmarkCollections, tags} from "@/db/schema";
 import {and, eq, asc, desc, exists, isNull} from "drizzle-orm";
 import {db} from "@/db";
@@ -19,7 +24,7 @@ export default async function fetchBookmarksPageAction(params: {
     eq(bookmarks.userId, userId),
     isNull(bookmarks.archivedAt),
     isNull(bookmarks.deletedAt),
-    eq(bookmarks.kind, typeFilter as "website" | "media"),
+    eq(bookmarks.kind, typeFilter as Bookmark["kind"]),
   ];
 
   if (tagFilter) {
@@ -72,28 +77,52 @@ export default async function fetchBookmarksPageAction(params: {
     orderBy,
   });
 
-  const data: Bookmark[] = rows.map((row) => ({
-    id: row.id,
-    kind: (row.kind as "website" | "media") || "website",
-    title: row.title || "",
-    description: row.description || "",
-    url: row.url,
-    user_id: row.userId,
-    images: (row.images ?? undefined) as Bookmark["images"],
-    created_at: row.createdAt,
-    updated_at: row.updatedAt || row.createdAt,
-    archived_at: row.archivedAt || "",
-    deleted_at: row.deletedAt || "",
-    notes: row.notes || "",
-    metadata: row.metadata as Bookmark["metadata"],
-    tags: row.bookmarkTags
-      .map((bt) => bt.tag.name)
-      .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"})),
-    collections: row.bookmarkCollections.map((bc) => ({
-      id: bc.collection.id,
-      name: bc.collection.name,
-    })),
-  }));
+  const data: Bookmark[] = rows.map((row) => {
+    const base = {
+      id: row.id,
+      title: row.title || "",
+      description: row.description || "",
+      url: row.url,
+      user_id: row.userId,
+      created_at: row.createdAt,
+      updated_at: row.updatedAt || row.createdAt,
+      archived_at: row.archivedAt || "",
+      deleted_at: row.deletedAt || "",
+      notes: row.notes || "",
+      tags: row.bookmarkTags
+        .map((bt) => bt.tag.name)
+        .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"})),
+      collections: row.bookmarkCollections.map((bc) => ({
+        id: bc.collection.id,
+        name: bc.collection.name,
+      })),
+    };
+
+    if (row.kind === "website") {
+      return {
+        ...base,
+        kind: "website",
+        images: (row.images ?? undefined) as WebsiteBookmark["images"],
+        metadata: (row.metadata ?? undefined) as WebsiteBookmark["metadata"],
+      };
+    }
+
+    if (row.kind === "media") {
+      return {
+        ...base,
+        kind: "media",
+        images: (row.images ?? undefined) as MediaBookmark["images"],
+        metadata: (row.metadata ?? undefined) as MediaBookmark["metadata"],
+      };
+    }
+
+    return {
+      ...base,
+      kind: "post",
+      images: (row.images ?? undefined) as PostBookmark["images"],
+      metadata: (row.metadata ?? undefined) as PostBookmark["metadata"],
+    };
+  });
 
   return {data, count: null};
 }

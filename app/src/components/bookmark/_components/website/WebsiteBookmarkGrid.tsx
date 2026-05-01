@@ -3,20 +3,13 @@
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import type {WebsiteBookmark} from "@/components/bookmark/types";
+
 import {useState} from "react";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
 import WebsiteBookmarkGridImage from "./WebsiteBookmarkGridImage";
-
-interface BookmarkItemProps {
-  item: WebsiteBookmark;
-  onOpenMenu?: (item: WebsiteBookmark) => void;
-  selectionIndex?: number;
-  isSelected?: boolean;
-  setSelected?: (id: string, checked: boolean) => void;
-}
+import {AllItemsBookmarkComponentProps} from "@/features/all-items/components/all-items-list-layout";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -27,7 +20,7 @@ export default function WebsiteBookmarkGrid({
   selectionIndex = 0,
   isSelected = false,
   setSelected,
-}: BookmarkItemProps) {
+}: AllItemsBookmarkComponentProps) {
   const {borderRadius, contentToggles, gridGap} = useViewOptionsStore();
   const [previewOpenSignal, setPreviewOpenSignal] = useState(0);
   const zeroGap = gridGap === "none";

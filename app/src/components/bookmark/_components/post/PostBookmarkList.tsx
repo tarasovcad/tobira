@@ -9,7 +9,9 @@ import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {Tag} from "@/components/ui/app/tag";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import {BookmarkItemProps} from "../../types";
+import {PostBookmark} from "../../types";
+import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
+import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 
 type PostMediaItem = PostBookmarkMetadata["media_extended"][number];
 
@@ -177,6 +179,17 @@ function QuotedPost({qrt}: {qrt: NonNullable<PostBookmarkMetadata["qrt"]>}) {
 
 const MAX_LENGTH = 280;
 
+interface PostBookmarkListProps {
+  item: PostBookmark;
+  onOpenMenu?: (item: PostBookmark) => void;
+  onSave?: (item: PostBookmark) => void;
+  onDismiss?: (item: PostBookmark) => void;
+  className?: string;
+  selectionIndex?: number;
+  isSelected?: boolean;
+  setSelected?: (id: string, checked: boolean) => void;
+}
+
 export default function PostBookmarkList({
   item,
   onOpenMenu,
@@ -186,7 +199,7 @@ export default function PostBookmarkList({
   selectionIndex = 0,
   isSelected = false,
   setSelected,
-}: BookmarkItemProps) {
+}: PostBookmarkListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
 
@@ -239,7 +252,7 @@ export default function PostBookmarkList({
       />
 
       {/* Hover actions */}
-      {/* <BookmarkHoverActions
+      <BookmarkHoverActions
         className="top-3 right-3 z-[3]"
         onSave={
           onSave
@@ -265,11 +278,11 @@ export default function PostBookmarkList({
               }
             : undefined
         }
-      /> */}
+      />
 
       {/* When author is hidden, selection control sits in the corner (no layout impact) */}
-      {/* {!showAuthor && (
-        <BookmarkSelectionControl
+      {!showAuthor && (
+        <BookmarkSelectionCheckbox
           itemId={item.id}
           title={meta.user_name}
           checked={isSelected}
@@ -277,12 +290,12 @@ export default function PostBookmarkList({
           onCheckedChange={setSelected}
           variant="overlay"
         />
-      )} */}
+      )}
 
       {/* Author row */}
-      {/* {showAuthor && (
+      {showAuthor && (
         <div className="relative z-[1] flex items-center">
-          <BookmarkSelectionControl
+          <BookmarkSelectionCheckbox
             itemId={item.id}
             title={meta.user_name}
             checked={isSelected}
@@ -297,13 +310,13 @@ export default function PostBookmarkList({
             onClick={(e) => e.stopPropagation()}
             className="group/author flex w-fit cursor-pointer items-center gap-2">
             <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={meta.user_profile_image_url}
                 alt={meta.user_name}
                 width={40}
                 height={40}
                 className="h-full w-full object-cover transition-all group-hover/author:brightness-95"
-                unoptimized
               />
             </div>
             <div className="flex items-center gap-[6px]">
@@ -316,7 +329,7 @@ export default function PostBookmarkList({
             </div>
           </Link>
         </div>
-      )} */}
+      )}
 
       {/* Content */}
       <div className="relative z-[1] min-w-0 flex-1 space-y-[14px]">

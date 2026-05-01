@@ -3,7 +3,7 @@
 import * as React from "react";
 import {cn} from "@/lib/utils";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import type {WebsiteBookmark} from "@/components/bookmark/types";
+import type {Bookmark} from "@/components/bookmark/types";
 import type {WebsiteImages} from "@/db/schema";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {useViewOptionsStore} from "@/store/use-view-options";
@@ -11,7 +11,7 @@ import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guard
 import {useEffect, useState} from "react";
 
 interface WebsiteBookmarkGridImageProps {
-  item: WebsiteBookmark;
+  item: Bookmark;
   previewOpenSignal?: number;
   divClassName?: string;
   skeletonClassName?: string;

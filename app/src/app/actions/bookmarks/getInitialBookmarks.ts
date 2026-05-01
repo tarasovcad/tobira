@@ -4,7 +4,12 @@ import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
 import {desc, asc} from "drizzle-orm";
 import {getBookmarkFilters} from "./filters";
-import type {Bookmark} from "@/components/bookmark/types";
+import type {
+  Bookmark,
+  MediaBookmark,
+  PostBookmark,
+  WebsiteBookmark,
+} from "@/components/bookmark/types";
 import {PAGE_SIZE} from "@/features/home/constants";
 import type {TypeFilter, SortMode} from "@/features/home/types";
 import {DatabaseError} from "@/lib/shared/errors";
@@ -77,28 +82,52 @@ export async function getInitialBookmarks({
     throw new DatabaseError("Failed to load your bookmarks. Please try again.");
   }
 
-  const initialBookmarks: Bookmark[] = bookmarkRows.map((row) => ({
-    id: row.id,
-    kind: (row.kind as TypeFilter) || "website",
-    title: row.title || "",
-    description: row.description || "",
-    url: row.url,
-    user_id: row.userId,
-    images: row.images ?? undefined,
-    created_at: row.createdAt,
-    updated_at: row.updatedAt || row.createdAt,
-    archived_at: row.archivedAt || "",
-    deleted_at: row.deletedAt || "",
-    notes: row.notes || "",
-    metadata: row.metadata as Bookmark["metadata"],
-    tags: row.bookmarkTags
-      .map((bt) => bt.tag.name)
-      .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"})),
-    collections: row.bookmarkCollections.map((bc) => ({
-      id: bc.collection.id,
-      name: bc.collection.name,
-    })),
-  }));
+  const initialBookmarks: Bookmark[] = bookmarkRows.map((row) => {
+    const base = {
+      id: row.id,
+      title: row.title || "",
+      description: row.description || "",
+      url: row.url,
+      user_id: row.userId,
+      created_at: row.createdAt,
+      updated_at: row.updatedAt || row.createdAt,
+      archived_at: row.archivedAt || "",
+      deleted_at: row.deletedAt || "",
+      notes: row.notes || "",
+      tags: row.bookmarkTags
+        .map((bt) => bt.tag.name)
+        .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"})),
+      collections: row.bookmarkCollections.map((bc) => ({
+        id: bc.collection.id,
+        name: bc.collection.name,
+      })),
+    };
+
+    if (row.kind === "website") {
+      return {
+        ...base,
+        kind: "website",
+        images: (row.images ?? undefined) as WebsiteBookmark["images"],
+        metadata: (row.metadata ?? undefined) as WebsiteBookmark["metadata"],
+      };
+    }
+
+    if (row.kind === "media") {
+      return {
+        ...base,
+        kind: "media",
+        images: (row.images ?? undefined) as MediaBookmark["images"],
+        metadata: (row.metadata ?? undefined) as MediaBookmark["metadata"],
+      };
+    }
+
+    return {
+      ...base,
+      kind: "post",
+      images: (row.images ?? undefined) as PostBookmark["images"],
+      metadata: (row.metadata ?? undefined) as PostBookmark["metadata"],
+    };
+  });
 
   const endTime = performance.now();
   // logger.info("getInitialBookmarks: completed", {
