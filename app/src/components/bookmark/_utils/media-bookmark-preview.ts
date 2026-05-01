@@ -9,6 +9,7 @@ type MediaItem = MediaImages["items"][number];
 export type MediaBookmarkPreviewItem = {
   type: "image" | "video";
   src: string;
+  thumbnailSrc?: string;
   fullSizeSrc?: string;
   poster?: string;
   width: number;
@@ -51,11 +52,9 @@ function getBasePreviewItem(mediaItem: MediaItem): Omit<MediaBookmarkPreviewItem
   };
 }
 
-function buildR2SizedImageUrl(
-  key: string,
-  size: BookmarkMediaPreviewSize,
-  format?: "webp",
-): string {
+type MediaAssetSize = BookmarkMediaPreviewSize | "thumb";
+
+function buildR2SizedImageUrl(key: string, size: MediaAssetSize, format?: "webp"): string {
   const url = new URL(buildR2PublicUrl(key));
   url.searchParams.set("size", size);
 
@@ -68,7 +67,7 @@ function buildR2SizedImageUrl(
   return url.toString();
 }
 
-function buildProcessingImageUrl(sourceUrl: string, size: BookmarkMediaPreviewSize): string {
+function buildProcessingImageUrl(sourceUrl: string, size: MediaAssetSize): string {
   try {
     const url = new URL(sourceUrl);
     url.searchParams.set("name", size);
@@ -117,6 +116,9 @@ function getGridImagePreviewItem(
     src: processing
       ? buildProcessingImageUrl(mediaItem.source_url, previewSize)
       : buildR2SizedImageUrl(mediaItem.media_key!, previewSize, "webp"),
+    thumbnailSrc: processing
+      ? buildProcessingImageUrl(mediaItem.source_url, "thumb")
+      : buildR2SizedImageUrl(mediaItem.media_key!, "thumb", "webp"),
     fullSizeSrc: processing
       ? buildProcessingImageUrl(mediaItem.source_url, "large")
       : buildR2SizedImageUrl(mediaItem.media_key!, "large"),
@@ -135,6 +137,9 @@ function getMenuImagePreviewItem(
     src: processing
       ? buildProcessingImageUrl(mediaItem.source_url, "small")
       : buildR2SizedImageUrl(mediaItem.media_key!, "small"),
+    thumbnailSrc: processing
+      ? buildProcessingImageUrl(mediaItem.source_url, "thumb")
+      : buildR2SizedImageUrl(mediaItem.media_key!, "thumb", "webp"),
     fullSizeSrc: processing
       ? buildProcessingImageUrl(mediaItem.source_url, "large")
       : buildR2SizedImageUrl(mediaItem.media_key!, "large"),
@@ -147,6 +152,7 @@ function getGridVideoPreviewItem(
   previewSize: BookmarkMediaPreviewSize,
 ): MediaBookmarkPreviewItem {
   const baseItem = getBasePreviewItem(mediaItem);
+  const processingPoster = mediaItem.source_thumbnail_url ?? undefined;
 
   return {
     ...baseItem,
@@ -154,9 +160,16 @@ function getGridVideoPreviewItem(
     src: processing
       ? rewriteProcessingVideoUrl(mediaItem.source_url)
       : rewriteStoredVideoUrl(mediaItem.key!),
-    poster: processing
-      ? (mediaItem.source_thumbnail_url ?? undefined)
-      : buildR2SizedImageUrl(mediaItem.key_thumbnail!, previewSize),
+    thumbnailSrc: processingPoster
+      ? buildProcessingImageUrl(processingPoster, "thumb")
+      : processing
+        ? undefined
+        : buildR2SizedImageUrl(mediaItem.key_thumbnail!, "thumb", "webp"),
+    poster: processingPoster
+      ? buildProcessingImageUrl(processingPoster, previewSize)
+      : processing
+        ? undefined
+        : buildR2SizedImageUrl(mediaItem.key_thumbnail!, previewSize),
   };
 }
 
@@ -173,6 +186,11 @@ function getMenuVideoPreviewItem(
     ...baseItem,
     type: "image",
     src: previewSrc,
+    thumbnailSrc: processing
+      ? mediaItem.source_thumbnail_url
+        ? buildProcessingImageUrl(mediaItem.source_thumbnail_url, "thumb")
+        : undefined
+      : buildR2SizedImageUrl(mediaItem.key_thumbnail!, "thumb", "webp"),
     fullSizeSrc: processing ? previewSrc : buildR2SizedImageUrl(mediaItem.key_thumbnail!, "large"),
   };
 }

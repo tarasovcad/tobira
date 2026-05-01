@@ -1,6 +1,7 @@
 "use client";
 
 import type {MediaGalleryEntry} from "@/components/bookmark/_utils/media-grid-render";
+import Spinner from "@/components/ui/app/spinner";
 import {cn} from "@/lib/utils";
 
 const MAX_VISIBLE_COUNT = 5;
@@ -14,30 +15,16 @@ type PreviewThumbnailRailProps = {
   currentIndex: number | null;
   expanded: boolean;
   visible: boolean;
+  isFetchingNextPage: boolean;
   onSelect: (index: number) => void;
 };
-
-function getRailThumbnailSrc(src: string) {
-  try {
-    const url = new URL(src);
-
-    if (url.hostname !== "media.tobira.app") {
-      return src;
-    }
-
-    url.searchParams.set("size", "thumb");
-    url.searchParams.set("format", "webp");
-    return url.toString();
-  } catch {
-    return src;
-  }
-}
 
 export function PreviewThumbnailRail({
   entries,
   currentIndex,
   expanded,
   visible,
+  isFetchingNextPage,
   onSelect,
 }: PreviewThumbnailRailProps) {
   const visibleCount = entries.length === 0 ? 0 : Math.min(entries.length, MAX_VISIBLE_COUNT);
@@ -82,7 +69,7 @@ export function PreviewThumbnailRail({
           ? "pointer-events-auto translate-y-0 opacity-100"
           : "pointer-events-none translate-y-3 opacity-0",
       )}>
-      <div className="rounded-xl border border-white/10 bg-black/40 p-2 shadow-xl backdrop-blur-md">
+      <div className="relative rounded-xl border border-white/10 bg-black/40 p-2 shadow-xl backdrop-blur-md">
         <div className="overflow-hidden" style={{width: viewportWidth}}>
           <div
             className="relative transition-transform duration-300 ease-out"
@@ -93,9 +80,10 @@ export function PreviewThumbnailRail({
             }}>
             {railEntries.map(({entry, index}) => {
               const thumbnailSrc =
-                entry.previewItem.type === "video"
-                  ? getRailThumbnailSrc(entry.previewItem.poster ?? entry.previewItem.src)
-                  : getRailThumbnailSrc(entry.previewItem.src);
+                entry.previewItem.thumbnailSrc ??
+                (entry.previewItem.type === "video"
+                  ? (entry.previewItem.poster ?? entry.previewItem.src)
+                  : entry.previewItem.src);
               const isActive = index === currentIndex;
               const slot = index - trackStart;
 
@@ -109,10 +97,10 @@ export function PreviewThumbnailRail({
                     onSelect(index);
                   }}
                   className={cn(
-                    "absolute top-0 left-0 cursor-pointer overflow-hidden rounded-md border transition-transform duration-300 ease-out",
+                    "bg-muted absolute top-0 left-0 cursor-pointer overflow-hidden rounded-md border transition-transform duration-300 ease-out",
                     isActive
                       ? "border-white/80 opacity-100"
-                      : "border-white/15 opacity-70 hover:opacity-100",
+                      : "border-none opacity-70 hover:opacity-100",
                   )}
                   style={{transform: `translateX(${slot * THUMB_STRIDE}px)`}}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -127,8 +115,14 @@ export function PreviewThumbnailRail({
                 </button>
               );
             })}
+            123
           </div>
         </div>
+        {isFetchingNextPage ? (
+          <div className="pointer-events-none absolute top-2 right-2 flex size-12.5 items-center justify-center rounded-md bg-black/55">
+            <Spinner className="size-4 animate-spin text-white/80" />
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -25,6 +25,8 @@ import {
   useMediaGalleryControllerSnapshot,
 } from "@/features/media/hooks/useMediaGalleryController";
 
+const GALLERY_PREFETCH_REMAINING_ITEMS = 4;
+
 function LoadingSpinner({className}: {className?: string}) {
   return (
     <div className={className}>
@@ -43,12 +45,14 @@ interface AllItemsListProps {
   pendingMediaItems?: MediaMediaItem[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
+  hasNextPage: boolean;
   isFetchingNextPage: boolean;
   selectionMode: boolean;
   selectedIds: Set<string>;
   removingIds: Map<string, "delete" | "archive">;
   scrollAreaRootRef: React.RefObject<HTMLDivElement | null>;
   bottomSentinelRef: React.RefObject<HTMLDivElement | null>;
+  fetchNextPage: () => void;
   onTransitionDone: () => void;
   onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
@@ -67,11 +71,13 @@ export function AllItemsList({
   pendingMediaItems,
   resolvedBookmarks,
   isFetchingNextPage,
+  hasNextPage,
   selectionMode,
   selectedIds,
   removingIds,
   scrollAreaRootRef,
   bottomSentinelRef,
+  fetchNextPage,
   onTransitionDone,
   onItemRemoved,
   toggleSelected,
@@ -146,6 +152,13 @@ export function AllItemsList({
     boundedCurrentMediaIndex !== null
       ? (mediaGalleryEntries.at(boundedCurrentMediaIndex) ?? null)
       : null;
+  const shouldPrefetchNextGalleryPage =
+    isMediaGrid &&
+    mediaGalleryState.open &&
+    boundedCurrentMediaIndex !== null &&
+    hasNextPage &&
+    !isFetchingNextPage &&
+    boundedCurrentMediaIndex >= mediaGalleryEntries.length - GALLERY_PREFETCH_REMAINING_ITEMS;
 
   const mediaGalleryPreview = useMediaGalleryPreview({
     type: currentMediaEntry?.previewItem.type ?? "image",
@@ -183,6 +196,14 @@ export function AllItemsList({
     mediaGalleryState.currentIndex,
     mediaGalleryState.open,
   ]);
+
+  useEffect(() => {
+    if (!shouldPrefetchNextGalleryPage) {
+      return;
+    }
+
+    void fetchNextPage();
+  }, [fetchNextPage, shouldPrefetchNextGalleryPage]);
 
   const content = useMemo(() => {
     if (isInitialLoad) {
@@ -306,6 +327,7 @@ export function AllItemsList({
       <MediaGalleryOverlay
         entries={mediaGalleryEntries}
         controller={mediaGalleryController}
+        isFetchingNextPage={isFetchingNextPage}
         {...mediaGalleryPreview}
       />
     </>

@@ -16,6 +16,7 @@ import {isEditableElementActive} from "@/features/video-player/utils";
 type MediaGalleryOverlayProps = {
   entries: MediaGalleryEntry[];
   controller: MediaGalleryController;
+  isFetchingNextPage: boolean;
 } & UseMediaGalleryPreviewResult;
 
 const SLIDESHOW_DURATION_MS = 2500;
@@ -24,6 +25,7 @@ const SLIDESHOW_TICK_MS = 100;
 export function MediaGalleryOverlay({
   entries,
   controller,
+  isFetchingNextPage,
   overlayRef,
   open,
   expanded,
@@ -240,6 +242,7 @@ export function MediaGalleryOverlay({
         currentIndex={activeIndex}
         expanded={expanded}
         visible={thumbnailRailVisible}
+        isFetchingNextPage={isFetchingNextPage}
         onSelect={handleSelectEntry}
       />
     </>,

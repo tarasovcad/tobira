@@ -220,12 +220,14 @@ export function HomeClient({
           pendingMediaItems={pendingMediaItems}
           resolvedBookmarks={resolvedBookmarks}
           isInitialLoad={isInitialLoad}
+          hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
           removingIds={removingIds}
           scrollAreaRootRef={scrollAreaRootRef}
           bottomSentinelRef={bottomSentinelRef}
+          fetchNextPage={fetchNextPage}
           onTransitionDone={handleTransitionDone}
           onItemRemoved={handleItemRemoved}
           toggleSelected={toggleSelected}

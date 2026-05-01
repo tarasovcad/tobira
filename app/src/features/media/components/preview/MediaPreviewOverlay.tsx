@@ -139,10 +139,10 @@ export function MediaPreviewOverlay({
           event.stopPropagation();
           onPrevious?.();
         }}
-        disabled={!hasPrevious}
+        disabled={!onPrevious || !hasPrevious}
         className={cn(
-          "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10",
-          expanded && onPrevious && hasPrevious ? "opacity-100" : "pointer-events-none opacity-0",
+          "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
+          expanded ? "opacity-100" : "pointer-events-none opacity-0",
         )}>
         <svg
           width="24"
@@ -163,10 +163,10 @@ export function MediaPreviewOverlay({
           event.stopPropagation();
           onNext?.();
         }}
-        disabled={!hasNext}
+        disabled={!onNext || !hasNext}
         className={cn(
-          "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10",
-          expanded && onNext && hasNext ? "opacity-100" : "pointer-events-none opacity-0",
+          "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
+          expanded ? "opacity-100" : "pointer-events-none opacity-0",
         )}>
         <svg
           width="24"
