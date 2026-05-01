@@ -1,0 +1,21 @@
+import { defineConfig } from "wxt";
+import tailwindcss from "@tailwindcss/vite";
+
+// See https://wxt.dev/api/config.html
+export default defineConfig({
+  modules: ["@wxt-dev/module-react"],
+  srcDir: "src",
+  vite: () => ({
+    plugins: [tailwindcss()],
+  }),
+  dev: {
+    server: {
+      port: 3001,
+      origin: "http://localhost:3001",
+    },
+  },
+  manifest: {
+    permissions: ["cookies", "storage"],
+    host_permissions: ["*://*.x.com/*", "*://*.twitter.com/*"],
+  },
+});
