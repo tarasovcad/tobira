@@ -16,7 +16,7 @@ import {AllItemsAnimatingPlaceholders} from "@/features/all-items/components/All
 import {AllItemsBookmarkRow} from "@/features/all-items/components/AllItemsBookmarkRow";
 import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
 import {buildMediaGalleryEntries} from "@/components/bookmark/_utils/media-grid-render";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {getBookmarkMediaPreviewSizeForColumnSize} from "@/components/bookmark/_utils/media-grid-image-config";
 import {useMediaGalleryPreview} from "@/features/media/hooks/useMediaGalleryPreview";
 import {MediaGalleryOverlay} from "@/features/media/components/MediaGalleryOverlay";
@@ -42,7 +42,7 @@ interface AllItemsListProps {
   animatingUrl: string | null;
   animatingItemCount: number;
   animatingTags?: string[];
-  pendingMediaItems?: MediaMediaItem[];
+  pendingMediaItems?: BookmarkMediaItem[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
   hasNextPage: boolean;

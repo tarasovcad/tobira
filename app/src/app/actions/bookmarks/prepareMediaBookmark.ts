@@ -1,5 +1,5 @@
 import {randomUUID} from "crypto";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import type {ImageItem, MediaImages, VideoItem} from "@/db/schema";
 import {ALLOWED_MEDIA_DOMAINS} from "@/features/media/constants";
 import {extractXMedia} from "@/features/media/server/fetch";
@@ -7,7 +7,7 @@ import {buildMediaAssetKey, buildVideoAssetKey} from "@/features/media/utils";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 type ExtractedMediaMetadata = Awaited<ReturnType<typeof extractXMedia>>;
-type VideoMediaInfo = MediaMediaItem & {type: "video" | "gif"};
+type VideoMediaInfo = BookmarkMediaItem & {type: "video" | "gif"};
 
 type BookmarkToInsert = {
   id: string;
@@ -22,7 +22,7 @@ type BookmarkToInsert = {
 export type PrepareMediaBookmarkResult = {
   normalized: URL;
   mediaUrls: string[];
-  mediaItems: MediaMediaItem[];
+  mediaItems: BookmarkMediaItem[];
 } & (
   | {requiresSelection: true}
   | {requiresSelection: false; bookmarkId: string; bookmarkToInsert: BookmarkToInsert}
@@ -131,13 +131,14 @@ function getMediaUrls(extractedMetadata: ExtractedMediaMetadata): string[] {
 function getMediaItems(
   extractedMetadata: ExtractedMediaMetadata,
   mediaUrls: string[],
-): MediaMediaItem[] {
+): BookmarkMediaItem[] {
   if (!Array.isArray(extractedMetadata.media_extended)) {
     return [];
   }
 
   return extractedMetadata.media_extended.filter(
-    (item): item is MediaMediaItem => typeof item?.url === "string" && mediaUrls.includes(item.url),
+    (item): item is BookmarkMediaItem =>
+      typeof item?.url === "string" && mediaUrls.includes(item.url),
   );
 }
 
@@ -166,7 +167,7 @@ function getSelectedMediaUrls(
 
 async function buildPendingMediaItem(input: {
   mediaUrl: string;
-  mediaItems: MediaMediaItem[] | undefined;
+  mediaItems: BookmarkMediaItem[] | undefined;
 }): Promise<ImageItem | VideoItem> {
   const mediaInfo = input.mediaItems?.find((item) => item.url === input.mediaUrl) ?? null;
 
@@ -179,7 +180,7 @@ async function buildPendingMediaItem(input: {
 
 async function buildPendingImageItem(
   sourceUrl: string,
-  mediaInfo: MediaMediaItem | null,
+  mediaInfo: BookmarkMediaItem | null,
 ): Promise<ImageItem> {
   return {
     type: "image",
@@ -212,7 +213,7 @@ async function buildPendingVideoItem(
   };
 }
 
-function isVideoMediaInfo(mediaInfo: MediaMediaItem | null): mediaInfo is VideoMediaInfo {
+function isVideoMediaInfo(mediaInfo: BookmarkMediaItem | null): mediaInfo is VideoMediaInfo {
   return mediaInfo?.type === "video" || mediaInfo?.type === "gif";
 }
 

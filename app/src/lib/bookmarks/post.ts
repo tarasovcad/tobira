@@ -1,132 +1,104 @@
 import {randomUUID} from "crypto";
 import {fetchXPostData, type VxTwitterPost, type VxTwitterMediaItem} from "@/lib/fetch/post";
-import {uploadToR2, buildR2PublicUrl} from "@/lib/storage/r2-storage";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
+import type {ImageItem, PostImages, VideoItem} from "@/db/schema";
+import {buildMediaAssetKey, buildVideoAssetKey} from "@/features/media/utils";
 
-export type PostBookmarkMediaItem = VxTwitterMediaItem & {
-  url_small?: string;
-  url_large?: string;
-};
-
-export type PostBookmarkMetadata = {
-  platform: "x";
-  tweetId: string;
-  text: string;
-  date: string;
-  date_epoch: number;
-  user_name: string;
-  user_screen_name: string;
-  user_profile_image_url: string;
-  likes: number;
-  retweets: number;
-  replies: number;
-  lang: string;
-  hashtags: string[];
-  hasMedia: boolean;
-  media_extended: PostBookmarkMediaItem[];
-  qrt: {
-    tweetId: string;
-    text: string;
-    user_name: string;
-    user_screen_name: string;
-    user_profile_image_url: string;
-    hasMedia: boolean;
-    media_extended: PostBookmarkMediaItem[];
-  } | null;
-};
+type PostMediaItem = ImageItem | VideoItem;
+type VideoPostMediaItem = VxTwitterMediaItem & {type: "video" | "gif"};
 
 export type PreparedPostBookmark = {
   bookmarkId: string;
   url: string;
   userId: string;
   kind: "post";
+  images: PostImages;
   metadata: PostBookmarkMetadata;
 };
 
-async function downloadAndUploadToR2(sourceUrl: string, r2Key: string): Promise<string | null> {
-  try {
-    const res = await fetch(sourceUrl, {cache: "no-store"});
-    if (!res.ok) return null;
-    const contentTypeRaw = res.headers.get("content-type") ?? "image/jpeg";
-    const contentType = contentTypeRaw.split(";")[0] ?? "image/jpeg";
-    await uploadToR2({key: r2Key, body: Buffer.from(await res.arrayBuffer()), contentType});
-    return buildR2PublicUrl(r2Key);
-  } catch {
-    return null;
-  }
-}
+export async function preparePostBookmarkCreation(input: {
+  url: string;
+  userId: string;
+}): Promise<PreparedPostBookmark> {
+  const normalized = normalizeInputUrl(input.url);
+  const normalizedUrl = normalized.toString();
+  const post = await fetchXPostData(normalizedUrl);
 
-function buildTwitterSizedUrl(url: string, size: "small" | "large"): string | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes("pbs.twimg.com")) return null;
-    u.searchParams.set("name", size);
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
-
-async function processPostMediaItem(
-  item: VxTwitterMediaItem,
-  bookmarkId: string,
-  index: number,
-  prefix: string,
-): Promise<PostBookmarkMediaItem> {
-  const isVideo = item.type === "video" || item.type === "gif";
-
-  if (isVideo) {
-    const [uploadedUrl, uploadedThumb] = await Promise.all([
-      downloadAndUploadToR2(item.url, `posts/${bookmarkId}/${prefix}_${index}.mp4`),
-      item.thumbnail_url
-        ? downloadAndUploadToR2(
-            item.thumbnail_url,
-            `posts/${bookmarkId}/${prefix}_${index}_thumbnail.jpg`,
-          )
-        : Promise.resolve(null),
-    ]);
-
-    return {
-      ...item,
-      ...(uploadedUrl ? {url: uploadedUrl} : {}),
-      ...(uploadedThumb ? {thumbnail_url: uploadedThumb} : {}),
-    };
-  }
-
-  const smallSrc = buildTwitterSizedUrl(item.url, "small");
-  const largeSrc = buildTwitterSizedUrl(item.url, "large");
-
-  if (!smallSrc || !largeSrc) return item;
-
-  const [url_small, url_large] = await Promise.all([
-    downloadAndUploadToR2(smallSrc, `posts/${bookmarkId}/${prefix}_${index}_small.jpg`),
-    downloadAndUploadToR2(largeSrc, `posts/${bookmarkId}/${prefix}_${index}_large.jpg`),
-  ]);
+  const bookmarkId = randomUUID();
+  const images = await buildPostImages(post);
+  const metadata = buildPostMetadata(post);
 
   return {
-    ...item,
-    ...(url_small ? {url_small} : {}),
-    ...(url_large ? {url_large} : {}),
+    bookmarkId,
+    url: normalizedUrl,
+    userId: input.userId,
+    kind: "post",
+    images,
+    metadata,
   };
 }
 
-function buildPostMetadata(
-  post: VxTwitterPost,
-  processedMedia: PostBookmarkMediaItem[],
-  processedQrtMedia: PostBookmarkMediaItem[],
-): PostBookmarkMetadata {
-  const qrt = post.qrt
-    ? {
-        tweetId: post.qrt.tweetID,
-        text: post.qrt.text,
-        user_name: post.qrt.user_name,
-        user_screen_name: post.qrt.user_screen_name,
-        user_profile_image_url: post.qrt.user_profile_image_url,
-        hasMedia: post.qrt.hasMedia,
-        media_extended: processedQrtMedia,
-      }
-    : null;
+async function buildPostImages(post: VxTwitterPost): Promise<PostImages> {
+  const [items, qrtItems] = await Promise.all([
+    buildPostMediaItems(post.media_extended),
+    buildPostMediaItems(post.qrt?.media_extended),
+  ]);
 
+  return {
+    processing: items.length > 0 || qrtItems.length > 0,
+    items,
+    ...(qrtItems.length > 0 ? {qrtItems} : {}),
+  };
+}
+
+function buildPostMediaItems(items: VxTwitterMediaItem[] | null | undefined) {
+  return Promise.all((items ?? []).map(buildPostMediaItem));
+}
+
+function buildPostMediaItem(item: VxTwitterMediaItem): Promise<PostMediaItem> {
+  return isVideoPostMediaItem(item) ? buildVideoItem(item) : buildImageItem(item);
+}
+
+async function buildImageItem(item: VxTwitterMediaItem): Promise<ImageItem> {
+  return {
+    ...getMediaDimensions(item),
+    type: "image",
+    alt: item.altText ?? null,
+    source_url: item.url,
+    media_key: await buildMediaAssetKey(item.url),
+  };
+}
+
+async function buildVideoItem(item: VideoPostMediaItem): Promise<VideoItem> {
+  const [videoKey, thumbnailKey] = await Promise.all([
+    buildVideoAssetKey(item.url),
+    item.thumbnail_url ? buildMediaAssetKey(item.thumbnail_url) : Promise.resolve(null),
+  ]);
+
+  return {
+    ...getMediaDimensions(item),
+    type: item.type,
+    alt: item.altText ?? null,
+    source_url: item.url,
+    source_thumbnail_url: item.thumbnail_url ?? null,
+    key: videoKey,
+    ...(thumbnailKey ? {key_thumbnail: thumbnailKey} : {}),
+  };
+}
+
+function getMediaDimensions(item: VxTwitterMediaItem) {
+  return {
+    width: item.size?.width ?? undefined,
+    height: item.size?.height ?? undefined,
+  };
+}
+
+function isVideoPostMediaItem(item: VxTwitterMediaItem): item is VideoPostMediaItem {
+  return item.type === "video" || item.type === "gif";
+}
+
+function buildPostMetadata(post: VxTwitterPost): PostBookmarkMetadata {
   return {
     platform: "x",
     tweetId: post.tweetID,
@@ -142,42 +114,19 @@ function buildPostMetadata(
     lang: post.lang,
     hashtags: post.hashtags ?? [],
     hasMedia: post.hasMedia,
-    media_extended: processedMedia,
-    qrt,
+    media_extended: post.media_extended ?? [],
+    qrt: post.qrt ? buildQuotedPostMetadata(post.qrt) : null,
   };
 }
 
-export async function preparePostBookmarkCreation(input: {
-  url: string;
-  userId: string;
-}): Promise<PreparedPostBookmark> {
-  const normalized = normalizeInputUrl(input.url);
-  const post = await fetchXPostData(normalized.toString());
-
-  const bookmarkId = randomUUID();
-
-  const [processedMedia, processedQrtMedia] = await Promise.all([
-    Promise.all(
-      (post.media_extended ?? []).map((item, i) =>
-        processPostMediaItem(item, bookmarkId, i, "media"),
-      ),
-    ),
-    post.qrt?.media_extended?.length
-      ? Promise.all(
-          post.qrt.media_extended.map((item, i) =>
-            processPostMediaItem(item, bookmarkId, i, "qrt_media"),
-          ),
-        )
-      : Promise.resolve([] as PostBookmarkMediaItem[]),
-  ]);
-
-  const metadata = buildPostMetadata(post, processedMedia, processedQrtMedia);
-
+function buildQuotedPostMetadata(post: VxTwitterPost): NonNullable<PostBookmarkMetadata["qrt"]> {
   return {
-    bookmarkId,
-    url: normalized.toString(),
-    userId: input.userId,
-    kind: "post",
-    metadata,
+    tweetId: post.tweetID,
+    text: post.text,
+    user_name: post.user_name,
+    user_screen_name: post.user_screen_name,
+    user_profile_image_url: post.user_profile_image_url,
+    hasMedia: post.hasMedia,
+    media_extended: post.media_extended ?? [],
   };
 }

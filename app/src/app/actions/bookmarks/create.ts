@@ -13,7 +13,7 @@ import {buildWebsiteImages} from "@/features/media/utils";
 import {attachTagsToBookmark} from "@/lib/bookmarks/tags";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {logger} from "@/lib/shared/logger";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 
 export type AddWebsiteBookmarkResult = {
@@ -26,7 +26,7 @@ export type AddMediaBookmarkResult = {
   ok: true;
   url: string;
   media?: string[];
-  mediaItems?: MediaMediaItem[];
+  mediaItems?: BookmarkMediaItem[];
   ids?: string[];
 };
 
@@ -278,6 +278,7 @@ export async function addPostBookmark(input: {
     description: null,
     userId,
     kind: "post",
+    images: prepared.images,
     metadata: prepared.metadata,
   });
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
@@ -324,6 +325,12 @@ export async function addPostBookmark(input: {
     });
   } catch (error) {
     console.error("Failed to queue post media processing job:", error);
+    try {
+      await db.delete(bookmarks).where(eq(bookmarks.id, prepared.bookmarkId));
+    } catch (cleanupError) {
+      console.error("Failed to delete post bookmark after queue failure:", cleanupError);
+    }
+    throw new Error("Failed to queue post media processing job");
   }
   timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
   timingsMs.totalAddPostBookmark = Number((performance.now() - addPostBookmarkStart).toFixed(2));

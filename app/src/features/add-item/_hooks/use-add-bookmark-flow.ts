@@ -14,7 +14,7 @@ import {
   type AddPostBookmarkResult,
 } from "@/app/actions/bookmarks";
 import {toastManager} from "@/components/ui/coss/toast";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {
   homeMetadataKeys,
   useCollectionsQuery,
@@ -37,7 +37,7 @@ export function useAddBookmarkFlow({
   const setDialogOpen = useAddItemDialogStore((state) => state.setDialogOpen);
   const closeDialog = useAddItemDialogStore((state) => state.closeDialog);
   const [step, setStep] = useState<1 | 2>(1);
-  const [mediaItems, setMediaItems] = useState<MediaMediaItem[]>([]);
+  const [mediaItems, setMediaItems] = useState<BookmarkMediaItem[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
@@ -81,7 +81,7 @@ export function useAddBookmarkFlow({
         collectionId?: string;
         kind: "media";
         selectedMediaUrls?: string[];
-        selectedMediaItems?: MediaMediaItem[];
+        selectedMediaItems?: BookmarkMediaItem[];
       }
     | {url: string; tags: string[]; collectionId?: string; kind: "post"}
   >({

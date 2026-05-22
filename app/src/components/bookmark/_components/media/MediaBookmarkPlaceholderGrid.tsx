@@ -5,7 +5,7 @@ import {useViewOptionsStore} from "@/store/use-view-options";
 import {useEffect} from "react";
 
 import CrossFade from "../shared/NewBookmarkCrossFade";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {
   getBookmarkMediaPreviewSizeForColumnSize,
   getBookmarkMediaQualityForColumnSize,
@@ -24,7 +24,7 @@ export default function MediaBookmarkPlaceholderGrid({
   url: string;
   bookmark: Bookmark | null;
   mediaIndex?: number;
-  pendingMediaItem?: MediaMediaItem;
+  pendingMediaItem?: BookmarkMediaItem;
   onDone: () => void;
 }) {
   const loaded = !!bookmark;

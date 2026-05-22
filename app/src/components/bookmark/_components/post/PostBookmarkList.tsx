@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {useState} from "react";
 import Link from "next/link";
 
@@ -12,8 +11,10 @@ import MediaPreview from "@/features/media/components/MediaPreview";
 import {PostBookmark} from "../../types";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
-
-type PostMediaItem = PostBookmarkMetadata["media_extended"][number];
+import {
+  getPostBookmarkMediaPreviewItems,
+  type PostBookmarkPreviewItem,
+} from "../../_utils/post-bookmark-preview";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -24,21 +25,6 @@ function formatFullDate(epoch: number): string {
     .toUpperCase();
   const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
   return `${time} · ${date}`;
-}
-
-function mediaThumbnail(m: PostMediaItem): string {
-  return m.thumbnail_url ?? m.url;
-}
-
-function buildTwitterSizedUrl(url: string, size: "small" | "large"): string | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes("pbs.twimg.com")) return null;
-    u.searchParams.set("name", size);
-    return u.toString();
-  } catch {
-    return null;
-  }
 }
 
 function renderText(text: string) {
@@ -65,7 +51,7 @@ function renderText(text: string) {
 
 // ── Media grid ────────────────────────────────────────────────────────────────
 
-function MediaGrid({media}: {media: PostMediaItem[]}) {
+function MediaGrid({media}: {media: PostBookmarkPreviewItem[]}) {
   if (!media.length) return null;
 
   const count = Math.min(media.length, 4);
@@ -74,8 +60,8 @@ function MediaGrid({media}: {media: PostMediaItem[]}) {
   let containerAspect = 1.777;
   if (count === 1) {
     const img = items[0];
-    const w = img.size?.width ?? 1;
-    const h = img.size?.height ?? 1;
+    const w = img.width;
+    const h = img.height;
     containerAspect = Math.max(0.8, Math.min(2.0, w / h));
   }
 
@@ -90,23 +76,21 @@ function MediaGrid({media}: {media: PostMediaItem[]}) {
         className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
         {items.map((m, i) => {
           const isFirstOfThree = count === 3 && i === 0;
-          const isVideo = m.type === "video" || m.type === "gif";
-          const displaySrc = m.url_small ?? m.url;
-          const fullSrc = m.url_large ?? buildTwitterSizedUrl(m.url, "large") ?? m.url;
+          const isVideo = m.type === "video";
           return (
             <div
-              key={m.url}
+              key={m.key}
               className={cn(
                 "bg-muted relative h-full w-full overflow-hidden",
                 isFirstOfThree && "row-span-2",
               )}>
               <MediaPreview
-                src={displaySrc}
-                fullSizeSrc={isVideo ? undefined : fullSrc}
-                alt={m.altText ?? ""}
-                width={m.size?.width ?? 1200}
-                height={m.size?.height ?? 1200}
-                poster={mediaThumbnail(m)}
+                src={m.src}
+                fullSizeSrc={isVideo ? undefined : m.fullSizeSrc}
+                alt={m.alt}
+                width={m.width}
+                height={m.height}
+                poster={m.poster}
                 type={isVideo ? "video" : "image"}
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -121,8 +105,14 @@ function MediaGrid({media}: {media: PostMediaItem[]}) {
 
 // ── Quoted post ───────────────────────────────────────────────────────────────
 
-function QuotedPost({qrt}: {qrt: NonNullable<PostBookmarkMetadata["qrt"]>}) {
-  const firstMedia = qrt.hasMedia && qrt.media_extended.length ? qrt.media_extended[0] : null;
+function QuotedPost({
+  qrt,
+  media,
+}: {
+  qrt: NonNullable<PostBookmarkMetadata["qrt"]>;
+  media: PostBookmarkPreviewItem[];
+}) {
+  const firstMedia = qrt.hasMedia && media.length ? media[0] : null;
 
   return (
     <div className="border-border hover:bg-muted/40 mt-3 rounded-2xl border p-3 transition-colors">
@@ -146,24 +136,21 @@ function QuotedPost({qrt}: {qrt: NonNullable<PostBookmarkMetadata["qrt"]>}) {
 
       {firstMedia &&
         (() => {
-          const isVideo = firstMedia.type === "video" || firstMedia.type === "gif";
-          const w = firstMedia.size?.width ?? 1;
-          const h = firstMedia.size?.height ?? 1;
+          const isVideo = firstMedia.type === "video";
+          const w = firstMedia.width;
+          const h = firstMedia.height;
           const aspect = Math.max(0.5, Math.min(2, w / h));
-          const displaySrc = firstMedia.url_small ?? firstMedia.url;
-          const fullSrc =
-            firstMedia.url_large ?? buildTwitterSizedUrl(firstMedia.url, "large") ?? firstMedia.url;
           return (
             <div
               className="mt-2 overflow-hidden rounded-xl"
               style={{aspectRatio: aspect, maxHeight: 192}}>
               <MediaPreview
-                src={displaySrc}
-                fullSizeSrc={isVideo ? undefined : fullSrc}
-                alt={firstMedia.altText ?? ""}
-                width={firstMedia.size?.width ?? 1200}
-                height={firstMedia.size?.height ?? 1200}
-                poster={mediaThumbnail(firstMedia)}
+                src={firstMedia.src}
+                fullSizeSrc={isVideo ? undefined : firstMedia.fullSizeSrc}
+                alt={firstMedia.alt}
+                width={firstMedia.width}
+                height={firstMedia.height}
+                poster={firstMedia.poster}
                 type={isVideo ? "video" : "image"}
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -228,6 +215,8 @@ export default function PostBookmarkList({
   const showQuotedPost = postContentToggles.quotedPost;
   const showTags = postContentToggles.tags;
   const showTimestamp = postContentToggles.timestamp;
+  const mediaItems = getPostBookmarkMediaPreviewItems(item, "main", "list");
+  const qrtMediaItems = getPostBookmarkMediaPreviewItems(item, "qrt", "list");
 
   return (
     <article
@@ -363,12 +352,10 @@ export default function PostBookmarkList({
         </div>
 
         {/* Media */}
-        {showMedia && meta.hasMedia && meta.media_extended.length > 0 && (
-          <MediaGrid media={meta.media_extended} />
-        )}
+        {showMedia && mediaItems.length > 0 && <MediaGrid media={mediaItems} />}
 
         {/* Quoted post */}
-        {showQuotedPost && meta.qrt && <QuotedPost qrt={meta.qrt} />}
+        {showQuotedPost && meta.qrt && <QuotedPost qrt={meta.qrt} media={qrtMediaItems} />}
 
         {/* Tags */}
         {showTags && item.tags && item.tags.length > 0 && (

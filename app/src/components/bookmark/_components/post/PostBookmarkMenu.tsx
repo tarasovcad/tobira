@@ -33,23 +33,11 @@ import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
 import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
-
-type PostMediaItem = PostBookmarkMetadata["media_extended"][number];
-
-function buildTwitterSizedUrl(url: string, size: "small" | "large"): string | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes("pbs.twimg.com")) return null;
-    u.searchParams.set("name", size);
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
-
-function mediaThumbnail(m: PostMediaItem): string {
-  return m.thumbnail_url ?? m.url;
-}
+import type {PostBookmark} from "@/components/bookmark/types";
+import {
+  getPostBookmarkMediaPreviewItems,
+  type PostBookmarkPreviewItem,
+} from "../../_utils/post-bookmark-preview";
 
 // ── 0 images ──────────────────────────────────────────────────────────────────
 
@@ -86,7 +74,7 @@ function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
 
 // ── 1–4 images ────────────────────────────────────────────────────────────────
 
-function MediaPanel({media}: {media: PostMediaItem[]}) {
+function MediaPanel({media}: {media: PostBookmarkPreviewItem[]}) {
   const count = Math.min(media.length, 4);
   const items = media.slice(0, count);
 
@@ -96,24 +84,22 @@ function MediaPanel({media}: {media: PostMediaItem[]}) {
         className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
         {items.map((m, i) => {
           const isFirstOfThree = count === 3 && i === 0;
-          const isVideo = m.type === "video" || m.type === "gif";
-          const displaySrc = m.url_small ?? m.url;
-          const fullSrc = m.url_large ?? buildTwitterSizedUrl(m.url, "large") ?? m.url;
+          const isVideo = m.type === "video";
 
           return (
             <div
-              key={m.url}
+              key={m.key}
               className={cn(
                 "bg-muted relative h-full w-full overflow-hidden",
                 isFirstOfThree && "row-span-2",
               )}>
               <MediaPreview
-                src={displaySrc}
-                fullSizeSrc={isVideo ? undefined : fullSrc}
-                alt={m.altText ?? ""}
-                width={m.size?.width ?? 1200}
-                height={m.size?.height ?? 1200}
-                poster={mediaThumbnail(m)}
+                src={m.src}
+                fullSizeSrc={isVideo ? undefined : m.fullSizeSrc}
+                alt={m.alt}
+                width={m.width}
+                height={m.height}
+                poster={m.poster}
                 type={isVideo ? "video" : "image"}
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -126,9 +112,9 @@ function MediaPanel({media}: {media: PostMediaItem[]}) {
   );
 }
 
-function PostBookmarkMenuPreview({meta}: {meta: PostBookmarkMetadata}) {
-  const hasMedia = meta.hasMedia && meta.media_extended.length > 0;
-  return hasMedia ? <MediaPanel media={meta.media_extended} /> : <NoMediaPanel meta={meta} />;
+function PostBookmarkMenuPreview({item, meta}: {item: PostBookmark; meta: PostBookmarkMetadata}) {
+  const media = getPostBookmarkMediaPreviewItems(item, "main", "menu");
+  return media.length > 0 ? <MediaPanel media={media} /> : <NoMediaPanel meta={meta} />;
 }
 
 export function PostBookmarkMenu({userId}: {userId: string | null}) {
@@ -280,7 +266,7 @@ export function PostBookmarkMenu({userId}: {userId: string | null}) {
           <div className="min-h-0 flex-1">
             <SheetPanel className="p-0 pt-0!">
               {postItem?.metadata ? (
-                <PostBookmarkMenuPreview meta={postItem.metadata} />
+                <PostBookmarkMenuPreview item={postItem} meta={postItem.metadata} />
               ) : (
                 <div className="bg-muted aspect-video w-full border-b" />
               )}

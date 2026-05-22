@@ -7,7 +7,7 @@ import type {Bookmark} from "@/components/bookmark/types";
 import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
 import type {TypeFilter} from "@/features/home/types";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import MediaBookmarkGrid from "@/components/bookmark/_components/media/MediaBookmarkGrid";
 import MediaBookmarkPlaceholderGrid from "@/components/bookmark/_components/media/MediaBookmarkPlaceholderGrid";
 import WebsiteBookmarkPlaceholderGrid from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderGrid";
@@ -57,7 +57,7 @@ export interface AllItemsNewBookmarkPlaceholderProps {
   url: string;
   bookmark: Bookmark | null;
   mediaIndex?: number;
-  pendingMediaItem?: MediaMediaItem;
+  pendingMediaItem?: BookmarkMediaItem;
   onDone: () => void;
   tags?: string[];
 }

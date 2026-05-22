@@ -4,7 +4,7 @@ import {archiveBookmarks} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/ui/coss/toast";
 import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 
 /**
  * Manages mutation tracking (add/delete/archive)
@@ -37,9 +37,11 @@ export function useBookmarksMutations({
       kind: (m.state.variables as {kind: "website" | "media"} | undefined)?.kind,
       selectedMediaUrls: (m.state.variables as {selectedMediaUrls?: string[]} | undefined)
         ?.selectedMediaUrls,
-      selectedMediaItems: (m.state.variables as {selectedMediaItems?: MediaMediaItem[]} | undefined)
-        ?.selectedMediaItems,
-      resultMediaItems: (m.state.data as {mediaItems?: MediaMediaItem[]} | undefined)?.mediaItems,
+      selectedMediaItems: (
+        m.state.variables as {selectedMediaItems?: BookmarkMediaItem[]} | undefined
+      )?.selectedMediaItems,
+      resultMediaItems: (m.state.data as {mediaItems?: BookmarkMediaItem[]} | undefined)
+        ?.mediaItems,
       hasMultipleMediaOptions:
         Array.isArray((m.state.data as {media?: string[]} | undefined)?.media) &&
         ((m.state.data as {media?: string[]} | undefined)?.media?.length ?? 0) > 1,

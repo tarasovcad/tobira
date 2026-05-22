@@ -42,7 +42,9 @@ export type WebsiteImages = {
 };
 
 export type PostImages = {
+  processing?: boolean;
   items: (ImageItem | VideoItem)[];
+  qrtItems?: (ImageItem | VideoItem)[];
 };
 
 export type MediaImages = {

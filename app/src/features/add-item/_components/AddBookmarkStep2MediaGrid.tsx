@@ -3,10 +3,10 @@
 import {useState} from "react";
 import Image from "next/image";
 import {cn} from "@/lib/utils";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 
 type AddBookmarkStep2MediaGridProps = {
-  mediaItems: MediaMediaItem[];
+  mediaItems: BookmarkMediaItem[];
   selectedMediaUrls: string[];
   onToggleMediaUrl: (url: string) => void;
 };

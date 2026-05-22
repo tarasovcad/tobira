@@ -1,140 +1,165 @@
 import {NextRequest, NextResponse} from "next/server";
 import {and, eq} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks} from "@/db/schema";
-import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
-import {buildR2PublicUrl} from "@/lib/storage/r2-storage";
-import {
-  buildTwitterSizedUrl,
-  downloadAndUploadToR2,
-  verifyQstashRequest,
-} from "@/features/media/server/qstash";
+import {bookmarks, type ImageItem, type PostImages, type VideoItem} from "@/db/schema";
+import {downloadAndUploadToR2, verifyQstashRequest} from "@/features/media/server/qstash";
+import {existsInR2} from "@/lib/storage/r2-storage";
 
 export const runtime = "nodejs";
 
-type ProcessableMediaItem = {
-  type: string;
-  url: string;
-  thumbnail_url?: string;
-  url_small?: string;
-  url_large?: string;
-  [key: string]: unknown;
+type PostMediaItem = PostImages["items"][number];
+type UploadResult = {status: "skipped"} | {status: "success"; key: string} | {status: "failed"};
+type ProcessedMediaItem<T extends PostMediaItem = PostMediaItem> = {
+  item: T;
+  status: UploadResult["status"];
 };
-
-async function processMediaItems(
-  items: ProcessableMediaItem[],
-  bookmarkId: string,
-  prefix: string,
-): Promise<ProcessableMediaItem[]> {
-  return Promise.all(
-    items.map(async (item, index) => {
-      if (item.type === "video" || item.type === "gif") {
-        const updates: Partial<ProcessableMediaItem> = {};
-
-        const uploadedUrl = await downloadAndUploadToR2(
-          item.url,
-          `posts/${bookmarkId}/${prefix}_${index}.mp4`,
-        );
-        if (uploadedUrl) updates.url = buildR2PublicUrl(uploadedUrl);
-
-        if (item.thumbnail_url) {
-          const uploadedThumb = await downloadAndUploadToR2(
-            item.thumbnail_url,
-            `posts/${bookmarkId}/${prefix}_${index}_thumbnail.jpg`,
-          );
-          if (uploadedThumb) updates.thumbnail_url = buildR2PublicUrl(uploadedThumb);
-        }
-
-        return {...item, ...updates};
-      }
-
-      const smallSrcUrl = buildTwitterSizedUrl(item.url, "small");
-      const largeSrcUrl = buildTwitterSizedUrl(item.url, "large");
-
-      if (!smallSrcUrl || !largeSrcUrl) return item;
-
-      const [url_small, url_large] = await Promise.all([
-        downloadAndUploadToR2(smallSrcUrl, `posts/${bookmarkId}/${prefix}_${index}_small.jpg`),
-        downloadAndUploadToR2(largeSrcUrl, `posts/${bookmarkId}/${prefix}_${index}_large.jpg`),
-      ]);
-
-      return {
-        ...item,
-        ...(url_small ? {url_small: buildR2PublicUrl(url_small)} : {}),
-        ...(url_large ? {url_large: buildR2PublicUrl(url_large)} : {}),
-      };
-    }),
-  );
-}
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text().catch(() => "");
 
-  const isValid = await verifyQstashRequest(request, rawBody);
-  if (!isValid) {
+  if (!(await verifyQstashRequest(request, rawBody))) {
     return NextResponse.json({error: "Unauthorized"}, {status: 401});
   }
 
-  let bookmarkId: string | undefined;
-  try {
-    const parsed: unknown = JSON.parse(rawBody);
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      "id" in parsed &&
-      typeof (parsed as {id: unknown}).id === "string"
-    ) {
-      bookmarkId = (parsed as {id: string}).id;
-    }
-  } catch {
-    return NextResponse.json({error: "Invalid payload"}, {status: 400});
-  }
-
-  if (!bookmarkId) {
-    return NextResponse.json({error: "Missing id"}, {status: 400});
+  const bookmarkId = getBookmarkIdFromBody(rawBody);
+  if (bookmarkId instanceof NextResponse) {
+    return bookmarkId;
   }
 
   try {
-    const [bookmark] = await db
-      .select({id: bookmarks.id, metadata: bookmarks.metadata})
-      .from(bookmarks)
-      .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "post")));
-
+    const bookmark = await getPostBookmark(bookmarkId);
     if (!bookmark) {
       return NextResponse.json({error: "Bookmark not found"}, {status: 404});
     }
 
-    const meta = bookmark.metadata as PostBookmarkMetadata;
-    if (meta?.platform !== "x") {
-      return NextResponse.json({ok: true, skipped: "not an X post"});
+    if (!isPostImages(bookmark.images)) {
+      return NextResponse.json({ok: true, skipped: "no post media items"});
     }
 
-    const [processedMain, processedQrt] = await Promise.all([
-      processMediaItems((meta.media_extended ?? []) as ProcessableMediaItem[], bookmarkId, "media"),
-      meta.qrt?.media_extended?.length
-        ? processMediaItems(
-            meta.qrt.media_extended as ProcessableMediaItem[],
-            bookmarkId,
-            "qrt_media",
-          )
-        : Promise.resolve(meta.qrt?.media_extended ?? []),
-    ]);
-
-    const updatedMetadata: PostBookmarkMetadata = {
-      ...meta,
-      media_extended: processedMain as PostBookmarkMetadata["media_extended"],
-      qrt: meta.qrt
-        ? {
-            ...meta.qrt,
-            media_extended: processedQrt as PostBookmarkMetadata["media_extended"],
-          }
-        : null,
-    };
-
-    await db.update(bookmarks).set({metadata: updatedMetadata}).where(eq(bookmarks.id, bookmarkId));
+    await processPostImages(bookmarkId, bookmark.images);
   } catch (error) {
     console.error("process-post-media failed", error);
+    return NextResponse.json({error: "Processing failed"}, {status: 500});
   }
 
   return NextResponse.json({ok: true}, {headers: {"cache-control": "no-store"}});
+}
+
+async function getPostBookmark(bookmarkId: string) {
+  const [bookmark] = await db
+    .select({id: bookmarks.id, images: bookmarks.images})
+    .from(bookmarks)
+    .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "post")));
+
+  return bookmark ?? null;
+}
+
+function isPostImages(images: unknown): images is PostImages {
+  return !!images && typeof images === "object" && "items" in images && Array.isArray(images.items);
+}
+
+function getBookmarkIdFromBody(rawBody: string): string | NextResponse {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({error: "Invalid payload"}, {status: 400});
+  }
+
+  if (!parsed || typeof parsed !== "object" || !("id" in parsed) || typeof parsed.id !== "string") {
+    return NextResponse.json({error: "Missing id"}, {status: 400});
+  }
+
+  return parsed.id;
+}
+
+async function processPostImages(bookmarkId: string, images: PostImages) {
+  const [items, qrtItems] = await Promise.all([
+    processPostMediaItems(images.items),
+    processPostMediaItems(images.qrtItems ?? []),
+  ]);
+
+  const processedImages = buildProcessedPostImages(items, qrtItems);
+  await db.update(bookmarks).set({images: processedImages}).where(eq(bookmarks.id, bookmarkId));
+}
+
+function buildProcessedPostImages(
+  items: ProcessedMediaItem[],
+  qrtItems: ProcessedMediaItem[],
+): PostImages {
+  const results = [...items, ...qrtItems];
+
+  if (results.some((result) => result.status === "failed")) {
+    throw new Error("One or more post media uploads failed");
+  }
+
+  return {
+    processing: false,
+    items: items.map((result) => result.item),
+    ...(qrtItems.length > 0 ? {qrtItems: qrtItems.map((result) => result.item)} : {}),
+  };
+}
+
+function processPostMediaItems(items: PostMediaItem[]): Promise<ProcessedMediaItem[]> {
+  return Promise.all(items.map(processPostMediaItem));
+}
+
+function processPostMediaItem(item: PostMediaItem): Promise<ProcessedMediaItem> {
+  if (item.type === "image") {
+    return processImageItem(item);
+  }
+
+  return processVideoItem(item);
+}
+
+async function processImageItem(item: ImageItem): Promise<ProcessedMediaItem<ImageItem>> {
+  const mediaUpload = await ensureUploaded(item.source_url, item.media_key);
+
+  return {
+    item: {
+      ...item,
+      ...(mediaUpload.status === "success" ? {media_key: mediaUpload.key} : {}),
+    },
+    status: mediaUpload.status,
+  };
+}
+
+async function processVideoItem(item: VideoItem): Promise<ProcessedMediaItem<VideoItem>> {
+  const [keyUpload, thumbnailUpload] = await Promise.all([
+    ensureUploaded(item.source_url, item.key),
+    ensureUploaded(item.source_thumbnail_url, item.key_thumbnail),
+  ]);
+
+  const status =
+    keyUpload.status === "failed" || thumbnailUpload.status === "failed" ? "failed" : "success";
+
+  return {
+    item: {
+      ...item,
+      ...(keyUpload.status === "success" ? {key: keyUpload.key} : {}),
+      ...(thumbnailUpload.status === "success" ? {key_thumbnail: thumbnailUpload.key} : {}),
+    },
+    status,
+  };
+}
+
+async function ensureUploaded(
+  sourceUrl: string | null | undefined,
+  objectKey: string | null | undefined,
+): Promise<UploadResult> {
+  if (!sourceUrl || !objectKey) {
+    return {status: "skipped"};
+  }
+
+  if (await existsInR2(objectKey)) {
+    return {status: "success", key: objectKey};
+  }
+
+  const uploadedKey = await downloadAndUploadToR2(sourceUrl, objectKey);
+  if (!uploadedKey) {
+    return {status: "failed"};
+  }
+
+  return {status: "success", key: uploadedKey};
 }

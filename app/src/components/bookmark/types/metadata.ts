@@ -1,9 +1,12 @@
-export type MediaMediaItem = {
+export type BookmarkMediaItem = {
   type: "photo" | "video" | "gif";
   url: string;
-  url_small?: string;
-  url_large?: string;
   thumbnail_url?: string | null;
+  source_url?: string;
+  source_thumbnail_url?: string | null;
+  media_key?: string;
+  key?: string;
+  key_thumbnail?: string;
   duration_millis?: number;
   size?: {width: number; height: number} | null;
   altText?: string | null;
@@ -36,7 +39,7 @@ export type PostBookmarkMetadata = {
   lang: string;
   hashtags: string[];
   hasMedia: boolean;
-  media_extended: MediaMediaItem[];
+  media_extended: BookmarkMediaItem[];
   qrt: {
     tweetId: string;
     text: string;
@@ -44,7 +47,7 @@ export type PostBookmarkMetadata = {
     user_screen_name: string;
     user_profile_image_url: string;
     hasMedia: boolean;
-    media_extended: MediaMediaItem[];
+    media_extended: BookmarkMediaItem[];
   } | null;
 };
 
