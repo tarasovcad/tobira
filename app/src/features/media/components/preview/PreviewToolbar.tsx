@@ -40,6 +40,7 @@ type PreviewToolbarProps = {
   slideshowDisabled?: boolean;
   onToggleDisplayMode?: () => void;
   onClose: () => void;
+  isGallery?: boolean;
   addZoom?: boolean;
 };
 
@@ -53,11 +54,12 @@ export function PreviewToolbar({
   slideshowDisabled = false,
   onToggleDisplayMode,
   onClose,
+  isGallery = false,
   addZoom = true,
 }: PreviewToolbarProps) {
   return (
     <div
-      className={`absolute top-5 right-5 z-10 overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md transition-opacity duration-[180ms] ${
+      className={`absolute top-5 right-5 z-10 overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md transition-opacity duration-180 ${
         expanded ? "opacity-100" : "opacity-0"
       }`}>
       <div className="relative z-10 flex items-center">
@@ -90,72 +92,81 @@ export function PreviewToolbar({
             </svg>
           </ToolbarButton>
         )}
-        <ToolbarButton
-          label={slideshowActive ? "Pause slideshow" : "Start slideshow"}
-          onClick={onToggleSlideshow}
-          disabled={!expanded || slideshowDisabled}
-          className="group/play relative overflow-hidden">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-0 bg-white/12 transition-[width,opacity] duration-100 ease-linear"
-            style={{
-              width: `${Math.max(0, Math.min(slideshowProgress, 1)) * 100}%`,
-              opacity: slideshowActive ? 1 : 0,
-            }}
-          />
-          <span className="relative z-10 flex items-center justify-center">
-            <span
-              className={`transition-all duration-200 ${
-                slideshowActive ? "opacity-100 blur-none" : "opacity-0 blur-[2px]"
-              }`}>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <rect x="5" y="4" width="3.25" height="12" rx="1.25" fill="currentColor" />
-                <rect x="11.75" y="4" width="3.25" height="12" rx="1.25" fill="currentColor" />
-              </svg>
+        {isGallery ? (
+          <ToolbarButton
+            label={slideshowActive ? "Pause slideshow" : "Start slideshow"}
+            onClick={onToggleSlideshow}
+            disabled={!expanded || slideshowDisabled || !onToggleSlideshow}
+            className="group/play relative overflow-hidden">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-0 bg-white/12 transition-[width,opacity] duration-100 ease-linear"
+              style={{
+                width: `${Math.max(0, Math.min(slideshowProgress, 1)) * 100}%`,
+                opacity: slideshowActive ? 1 : 0,
+              }}
+            />
+            <span className="relative z-10 flex items-center justify-center">
+              <span
+                className={`transition-all duration-200 ${
+                  slideshowActive ? "opacity-100 blur-none" : "opacity-0 blur-[2px]"
+                }`}>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="4" width="3.25" height="12" rx="1.25" fill="currentColor" />
+                  <rect x="11.75" y="4" width="3.25" height="12" rx="1.25" fill="currentColor" />
+                </svg>
+              </span>
+              <span
+                className={`absolute transition-all duration-200 ${
+                  slideshowActive
+                    ? "scale-0 opacity-0 blur-[2px]"
+                    : "scale-100 opacity-100 blur-none"
+                }`}>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M9.33091 2.26523C7.11435 0.808627 4.16699 2.39858 4.16699 5.05092V14.9489C4.16699 17.6012 7.11436 19.1912 9.33091 17.7346L16.862 12.7856C18.8657 11.4689 18.8657 8.53092 16.862 7.21422L9.33091 2.26523Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
             </span>
-            <span
-              className={`absolute transition-all duration-200 ${
-                slideshowActive ? "scale-0 opacity-0 blur-[2px]" : "scale-100 opacity-100 blur-none"
-              }`}>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M9.33091 2.26523C7.11435 0.808627 4.16699 2.39858 4.16699 5.05092V14.9489C4.16699 17.6012 7.11436 19.1912 9.33091 17.7346L16.862 12.7856C18.8657 11.4689 18.8657 8.53092 16.862 7.21422L9.33091 2.26523Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-          </span>
-        </ToolbarButton>
+          </ToolbarButton>
+        ) : null}
 
-        <ToolbarButton label="Display mode" onClick={onToggleDisplayMode}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M5.00033 2.5C3.15938 2.5 1.66699 3.80584 1.66699 5.41667V11.25C1.66699 12.8608 3.15938 14.1667 5.00033 14.1667H15.0003C16.8412 14.1667 18.3337 12.8608 18.3337 11.25V5.41667C18.3337 3.80584 16.8412 2.5 15.0003 2.5H5.00033Z"
-              fill="currentColor"
-            />
-            <path
-              d="M3.33301 17.5H4.16634M7.49967 17.5H8.33301M11.6663 17.5H12.4997M15.833 17.5H16.6663"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-            />
-          </svg>
-        </ToolbarButton>
+        {isGallery ? (
+          <ToolbarButton
+            label="Display mode"
+            onClick={onToggleDisplayMode}
+            disabled={!expanded || !onToggleDisplayMode}>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M5.00033 2.5C3.15938 2.5 1.66699 3.80584 1.66699 5.41667V11.25C1.66699 12.8608 3.15938 14.1667 5.00033 14.1667H15.0003C16.8412 14.1667 18.3337 12.8608 18.3337 11.25V5.41667C18.3337 3.80584 16.8412 2.5 15.0003 2.5H5.00033Z"
+                fill="currentColor"
+              />
+              <path
+                d="M3.33301 17.5H4.16634M7.49967 17.5H8.33301M11.6663 17.5H12.4997M15.833 17.5H16.6663"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              />
+            </svg>
+          </ToolbarButton>
+        ) : null}
         <ToolbarButton label="Close preview" onClick={onClose} hasRightBorder={false}>
           <svg
             width="20"

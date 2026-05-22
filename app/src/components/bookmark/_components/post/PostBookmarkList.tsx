@@ -233,7 +233,7 @@ export default function PostBookmarkList({
     <article
       className={cn(
         "border-border group relative isolate flex flex-col gap-[14px] border-b px-4 py-3",
-        "hover:bg-muted/80",
+        // "hover:bg-muted/80",
         "cursor-pointer transition-none!",
         "pt-4",
         isSelected && "bg-muted",
@@ -316,7 +316,7 @@ export default function PostBookmarkList({
                 alt={meta.user_name}
                 width={40}
                 height={40}
-                className="h-full w-full object-cover transition-all group-hover/author:brightness-95"
+                className="h-full w-full object-cover transition-all duration-100 group-hover/author:brightness-95"
               />
             </div>
             <div className="flex items-center gap-[6px]">

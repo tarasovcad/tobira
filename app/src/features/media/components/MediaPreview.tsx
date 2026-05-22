@@ -3,7 +3,7 @@
 import {createPortal} from "react-dom";
 import type {MediaPreviewProps} from "./preview/types";
 import {useMediaPreview} from "../hooks/useMediaPreview";
-import {useCallback, useEffect} from "react";
+import {useCallback, useEffect, useRef} from "react";
 import {MediaPreviewOverlay} from "./preview/MediaPreviewOverlay";
 import {MediaPreviewTrigger} from "./preview/MediaPreviewTrigger";
 import {useVideoPreviewSession} from "@/features/media/hooks/useVideoPreviewSession";
@@ -20,6 +20,7 @@ export default function MediaPreview({
   loading = "lazy",
   openSignal,
   disableClickToOpen = false,
+  isGallery = false,
   className,
   buttonClassName,
   previewClassName,
@@ -54,6 +55,7 @@ export default function MediaPreview({
     handleMediaClick,
   } = useMediaPreview({width, height, onOpenChange, type, addZoom});
 
+  const handledOpenSignalRef = useRef<number | undefined>(undefined);
   const isVideo = type === "video";
   const {videoSession, isVideoHovered, prepareForOpen, setVideoHovered, warmVideo} =
     useVideoPreviewSession({
@@ -75,8 +77,11 @@ export default function MediaPreview({
 
   useEffect(() => {
     if (!openSignal) return;
-    openPreview();
-  }, [openPreview, openSignal]);
+    if (handledOpenSignalRef.current === openSignal) return;
+
+    handledOpenSignalRef.current = openSignal;
+    openMediaPreview();
+  }, [openMediaPreview, openSignal]);
 
   const shouldRenderOverlay = typeof document !== "undefined" && open && animatedRect;
 
@@ -123,6 +128,7 @@ export default function MediaPreview({
               alt={alt}
               previewClassName={previewClassName}
               type={type}
+              isGallery={isGallery}
               addZoom={addZoom}
               showFallback={showFallback}
               fallback={fallback}

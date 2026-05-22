@@ -19,6 +19,7 @@ type MediaPreviewOverlayProps = {
   alt: string;
   previewClassName?: string;
   type: "image" | "video";
+  isGallery?: boolean;
   addZoom: boolean;
   showFallback: boolean;
   fallback?: ReactNode;
@@ -78,6 +79,7 @@ export function MediaPreviewOverlay({
   alt,
   previewClassName,
   type,
+  isGallery = false,
   addZoom,
   showFallback,
   fallback,
@@ -115,7 +117,7 @@ export function MediaPreviewOverlay({
         type="button"
         aria-label="Close preview"
         className={cn(
-          "absolute inset-0 bg-black/60 transition-opacity duration-[180ms]",
+          "absolute inset-0 bg-black/60 transition-opacity duration-180",
           expanded ? "opacity-100" : "opacity-0",
         )}
         onClick={closePreview}
@@ -130,56 +132,61 @@ export function MediaPreviewOverlay({
         slideshowDisabled={slideshowDisabled}
         onToggleDisplayMode={onToggleThumbnailRail}
         onClose={closePreview}
+        isGallery={isGallery}
         addZoom={isInteractive}
       />
-      <button
-        type="button"
-        aria-label="Previous item"
-        onClick={(event) => {
-          event.stopPropagation();
-          onPrevious?.();
-        }}
-        disabled={!onPrevious || !hasPrevious}
-        className={cn(
-          "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
-          expanded ? "opacity-100" : "pointer-events-none opacity-0",
-        )}>
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M16.2071 18.707C15.8166 19.0975 15.1836 19.0975 14.793 18.707L8.793 12.707C8.4025 12.3165 8.4025 11.6835 8.793 11.2929L14.793 5.29288C15.1836 4.90238 15.8166 4.90238 16.2071 5.29288C16.5976 5.68348 16.5976 6.31648 16.2071 6.70698L10.9141 12L16.2071 17.2929C16.5976 17.6834 16.5976 18.3165 16.2071 18.707Z"
-            fill="currentColor"
-          />
-        </svg>
-      </button>
-      <button
-        type="button"
-        aria-label="Next item"
-        onClick={(event) => {
-          event.stopPropagation();
-          onNext?.();
-        }}
-        disabled={!onNext || !hasNext}
-        className={cn(
-          "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
-          expanded ? "opacity-100" : "pointer-events-none opacity-0",
-        )}>
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M8.79289 5.29289C9.18342 4.90237 9.81643 4.90237 10.207 5.29289L16.207 11.2929C16.5975 11.6834 16.5975 12.3164 16.207 12.707L10.207 18.707C9.81643 19.0975 9.18342 19.0975 8.79289 18.707C8.40237 18.3164 8.40237 17.6834 8.79289 17.2929L14.0859 11.9999L8.79289 6.70696C8.40237 6.31643 8.40237 5.68342 8.79289 5.29289Z"
-            fill="currentColor"
-          />
-        </svg>
-      </button>
+      {isGallery ? (
+        <>
+          <button
+            type="button"
+            aria-label="Previous item"
+            onClick={(event) => {
+              event.stopPropagation();
+              onPrevious?.();
+            }}
+            disabled={!onPrevious || !hasPrevious}
+            className={cn(
+              "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-180 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
+              expanded ? "opacity-100" : "pointer-events-none opacity-0",
+            )}>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M16.2071 18.707C15.8166 19.0975 15.1836 19.0975 14.793 18.707L8.793 12.707C8.4025 12.3165 8.4025 11.6835 8.793 11.2929L14.793 5.29288C15.1836 4.90238 15.8166 4.90238 16.2071 5.29288C16.5976 5.68348 16.5976 6.31648 16.2071 6.70698L10.9141 12L16.2071 17.2929C16.5976 17.6834 16.5976 18.3165 16.2071 18.707Z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label="Next item"
+            onClick={(event) => {
+              event.stopPropagation();
+              onNext?.();
+            }}
+            disabled={!onNext || !hasNext}
+            className={cn(
+              "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-180 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
+              expanded ? "opacity-100" : "pointer-events-none opacity-0",
+            )}>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M8.79289 5.29289C9.18342 4.90237 9.81643 4.90237 10.207 5.29289L16.207 11.2929C16.5975 11.6834 16.5975 12.3164 16.207 12.707L10.207 18.707C9.81643 19.0975 9.18342 19.0975 8.79289 18.707C8.40237 18.3164 8.40237 17.6834 8.79289 17.2929L14.0859 11.9999L8.79289 6.70696C8.40237 6.31643 8.40237 5.68342 8.79289 5.29289Z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+        </>
+      ) : null}
 
       <PreviewSurface
         animatedRect={animatedRect}

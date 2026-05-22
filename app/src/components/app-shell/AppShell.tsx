@@ -4,6 +4,7 @@ import React from "react";
 import {AddBookmarkDialog} from "@/features/add-item/AddBookmarkDialog";
 import {WebsiteBookmarkMenu} from "@/components/bookmark/_components/website/WebsiteBookmarkMenu";
 import {MediaBookmarkMenu} from "@/components/bookmark/_components/media/MediaBookmarkMenu";
+import {PostBookmarkMenu} from "@/components/bookmark/_components/post/PostBookmarkMenu";
 import {Sidebar} from "./sidebar/Sidebar";
 import {CollectionDialog} from "../library/CollectionDialog";
 import {DeleteBookmarkDialog} from "../bookmark/DeleteBookmarkDialog";
@@ -37,6 +38,7 @@ const AppShell = ({
       )}
       <WebsiteBookmarkMenu userId={session?.user?.id ?? null} />
       <MediaBookmarkMenu userId={session?.user?.id ?? null} />
+      <PostBookmarkMenu userId={session?.user?.id ?? null} />
       <CollectionDialog isAuthenticated={Boolean(session)} />
       <DeleteBookmarkDialog />
       <DeleteCollectionDialog />
