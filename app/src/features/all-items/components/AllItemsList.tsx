@@ -244,7 +244,9 @@ export function AllItemsList({
         animatedVariant={animatedVariant}
         isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
-        className={typeFilter === "post" && entry.bookmarkIndex === 0 ? "pt-6" : undefined}
+        className={
+          typeFilter === "post" && entry.bookmarkIndex === 0 && !animatingUrl ? "pt-6" : undefined
+        }
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
@@ -254,6 +256,7 @@ export function AllItemsList({
     ));
   }, [
     isInitialLoad,
+    animatingUrl,
     isMediaGrid,
     layoutConfig,
     bookmarkItemComponent,
@@ -275,6 +278,7 @@ export function AllItemsList({
 
   const body = (
     <>
+      {/* <PostBookmarkPlaceholderList /> */}
       <AllItemsAnimatingPlaceholders
         animatingUrl={animatingUrl}
         animatingItemCount={animatingItemCount}

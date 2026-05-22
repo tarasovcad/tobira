@@ -15,6 +15,18 @@ type SizeType = keyof typeof SIZES | "original";
 type FormatType = "webp" | "jpg" | "jpeg" | "png" | "original";
 
 const CACHE_CONTROL = "public, max-age=31536000, immutable";
+const FAVICON_URL = "https://tobira.app/logo/favicon.svg";
+const FAVICON_PATHS = new Set(["/favicon.ico", "/favicon.svg"]);
+
+function faviconResponse(): Response {
+  return new Response(null, {
+    status: 308,
+    headers: {
+      Location: FAVICON_URL,
+      "Cache-Control": CACHE_CONTROL,
+    },
+  });
+}
 
 export default {
   async fetch(
@@ -23,6 +35,10 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
+
+    if (FAVICON_PATHS.has(url.pathname)) {
+      return faviconResponse();
+    }
 
     if (request.method !== "GET") {
       return Response.json({ error: "Method not allowed" }, { status: 405 });
@@ -128,7 +144,7 @@ export default {
           const y1 = Math.floor((scaledHeight - targetSize) / 2);
 
           processedImage = crop(scaledImage, x1, y1, x1 + targetSize, y1 + targetSize);
-          
+
           if (needsFree) {
             scaledImage.free();
           }

@@ -110,6 +110,26 @@ function buildStoredPreviewItem(
 
   const sourcePoster = item.source_thumbnail_url ?? undefined;
 
+  if (variant === "menu") {
+    const previewSrc =
+      processing || !item.key_thumbnail
+        ? sourcePoster
+          ? buildProcessingImageUrl(sourcePoster, "small")
+          : ""
+        : buildR2SizedImageUrl(item.key_thumbnail, "small");
+
+    return {
+      ...baseItem,
+      key: item.key ?? item.source_url,
+      type: "image",
+      src: previewSrc,
+      fullSizeSrc:
+        processing || !item.key_thumbnail
+          ? previewSrc
+          : buildR2SizedImageUrl(item.key_thumbnail, "large"),
+    };
+  }
+
   return {
     ...baseItem,
     key: item.key ?? item.source_url,
