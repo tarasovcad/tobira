@@ -46,7 +46,8 @@ export async function downloadAndUploadToR2(
   r2Key: string,
 ): Promise<string | null> {
   try {
-    const res = await fetch(sourceUrl, {cache: "no-store"});
+    const downloadUrl = buildTwitterSizedUrl(sourceUrl, "large") ?? sourceUrl;
+    const res = await fetch(downloadUrl, {cache: "no-store"});
     if (!res.ok) return null;
 
     const contentTypeRaw = res.headers.get("content-type") ?? "image/jpeg";
