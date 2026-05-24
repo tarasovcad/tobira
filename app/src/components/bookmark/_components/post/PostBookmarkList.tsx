@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useMemo, useState} from "react";
 import Link from "next/link";
 
 import {cn} from "@/lib/utils";
@@ -8,13 +8,14 @@ import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {Tag} from "@/components/ui/app/tag";
 import MediaPreview from "@/features/media/components/MediaPreview";
-import {PostBookmark} from "../../types";
+import type {PostBookmark} from "../../types";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import {
   getPostBookmarkMediaPreviewItems,
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
+import PostBookmarkMediaGrid from "./PostBookmarkMediaGrid";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,58 +51,6 @@ function renderText(text: string) {
 }
 
 // ── Media grid ────────────────────────────────────────────────────────────────
-
-function MediaGrid({media}: {media: PostBookmarkPreviewItem[]}) {
-  if (!media.length) return null;
-
-  const count = Math.min(media.length, 4);
-  const items = media.slice(0, count);
-
-  let containerAspect = 1.777;
-  if (count === 1) {
-    const img = items[0];
-    const w = img.width;
-    const h = img.height;
-    containerAspect = Math.max(0.8, Math.min(2.0, w / h));
-  }
-
-  return (
-    <div
-      className="bg-muted/30 dark:border-border mt-3 overflow-hidden rounded-[16px] border border-[#CFD9DE]"
-      style={{
-        aspectRatio: containerAspect,
-        maxHeight: count === 1 ? 512 : undefined,
-      }}>
-      <div
-        className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
-        {items.map((m, i) => {
-          const isFirstOfThree = count === 3 && i === 0;
-          const isVideo = m.type === "video";
-          return (
-            <div
-              key={m.key}
-              className={cn(
-                "bg-muted relative h-full w-full overflow-hidden",
-                isFirstOfThree && "row-span-2",
-              )}>
-              <MediaPreview
-                src={m.src}
-                fullSizeSrc={isVideo ? undefined : m.fullSizeSrc}
-                alt={m.alt}
-                width={m.width}
-                height={m.height}
-                poster={m.poster}
-                type={isVideo ? "video" : "image"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Quoted post ───────────────────────────────────────────────────────────────
 
@@ -191,6 +140,10 @@ export default function PostBookmarkList({
   const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
 
   const meta = item.metadata as PostBookmarkMetadata | undefined;
+  const qrtMediaItems = useMemo(
+    () => getPostBookmarkMediaPreviewItems(item, "qrt", "list"),
+    [item],
+  );
 
   if (!meta || meta.platform !== "x") {
     return (
@@ -215,8 +168,6 @@ export default function PostBookmarkList({
   const showQuotedPost = postContentToggles.quotedPost;
   const showTags = postContentToggles.tags;
   const showTimestamp = postContentToggles.timestamp;
-  const mediaItems = getPostBookmarkMediaPreviewItems(item, "main", "list");
-  const qrtMediaItems = getPostBookmarkMediaPreviewItems(item, "qrt", "list");
 
   return (
     <article
@@ -352,7 +303,7 @@ export default function PostBookmarkList({
         </div>
 
         {/* Media */}
-        {showMedia && mediaItems.length > 0 && <MediaGrid media={mediaItems} />}
+        {showMedia && <PostBookmarkMediaGrid item={item} />}
 
         {/* Quoted post */}
         {showQuotedPost && meta.qrt && <QuotedPost qrt={meta.qrt} media={qrtMediaItems} />}

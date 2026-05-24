@@ -2,6 +2,7 @@ import type {PostBookmark} from "@/components/bookmark/types";
 import type {PostImages} from "@/db/schema";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {isPostImages} from "./bookmark-image-guards";
+import type {MediaGalleryEntry} from "./media-grid-render";
 
 type StoredPostMediaItem = PostImages["items"][number];
 type PostMediaGroup = "main" | "qrt";
@@ -17,6 +18,11 @@ export type PostBookmarkPreviewItem = {
   height: number;
   alt: string;
 };
+
+export type PostBookmarkMediaGalleryEntry = MediaGalleryEntry<
+  PostBookmark,
+  PostBookmarkPreviewItem
+>;
 
 function buildR2SizedImageUrl(key: string, size: "thumb" | "small" | "medium" | "large"): string {
   const url = new URL(buildR2PublicUrl(key));
@@ -155,4 +161,18 @@ export function getPostBookmarkMediaPreviewItems(
   const storedItems = getStoredPostMediaItems(item.images, group);
   const processing = isPostMediaProcessing(item.images);
   return storedItems.map((mediaItem) => buildStoredPreviewItem(mediaItem, processing, variant));
+}
+
+export function buildPostBookmarkMediaGalleryEntries(
+  item: PostBookmark,
+  group: PostMediaGroup = "main",
+  variant: PostPreviewVariant = "list",
+): PostBookmarkMediaGalleryEntry[] {
+  return getPostBookmarkMediaPreviewItems(item, group, variant).map((previewItem, mediaIndex) => ({
+    item,
+    bookmarkIndex: 0,
+    mediaIndex,
+    renderId: `${item.id}:${group}:${mediaIndex}`,
+    previewItem,
+  }));
 }

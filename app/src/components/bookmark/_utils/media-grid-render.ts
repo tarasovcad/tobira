@@ -13,12 +13,26 @@ export type MediaGridRenderEntry<T extends Bookmark = Bookmark> = {
   renderId: string;
 };
 
-export type MediaGalleryEntry<T extends MediaBookmark = MediaBookmark> = {
+export type MediaGalleryPreviewItem = {
+  type: "image" | "video";
+  src: string;
+  thumbnailSrc?: string;
+  fullSizeSrc?: string;
+  poster?: string;
+  width: number;
+  height: number;
+  alt: string;
+};
+
+export type MediaGalleryEntry<
+  T extends Bookmark = Bookmark,
+  TPreviewItem extends MediaGalleryPreviewItem = MediaGalleryPreviewItem,
+> = {
   item: T;
   bookmarkIndex: number;
   mediaIndex: number;
   renderId: string;
-  previewItem: MediaBookmarkPreviewItem;
+  previewItem: TPreviewItem;
 };
 
 function isMediaBookmark(item: Bookmark): item is MediaBookmark {
@@ -28,8 +42,8 @@ function isMediaBookmark(item: Bookmark): item is MediaBookmark {
 export function buildMediaGalleryEntries<T extends Bookmark>(
   items: T[],
   previewSize: BookmarkMediaPreviewSize = "medium",
-): MediaGalleryEntry<Extract<T, MediaBookmark>>[] {
-  const entries: MediaGalleryEntry<Extract<T, MediaBookmark>>[] = [];
+): MediaGalleryEntry<Extract<T, MediaBookmark>, MediaBookmarkPreviewItem>[] {
+  const entries: MediaGalleryEntry<Extract<T, MediaBookmark>, MediaBookmarkPreviewItem>[] = [];
 
   items.forEach((item, bookmarkIndex) => {
     if (!isMediaBookmark(item)) {
