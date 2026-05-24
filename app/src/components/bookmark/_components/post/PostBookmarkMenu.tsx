@@ -38,6 +38,7 @@ import {
   getPostBookmarkMediaPreviewItems,
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
+import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
 
 // ── 0 images ──────────────────────────────────────────────────────────────────
 
@@ -74,12 +75,22 @@ function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
 
 // ── 1–4 images ────────────────────────────────────────────────────────────────
 
-function MediaPanel({media}: {media: PostBookmarkPreviewItem[]}) {
+function MediaPanel({
+  media,
+  disableClickToOpen,
+}: {
+  media: PostBookmarkPreviewItem[];
+  disableClickToOpen: boolean;
+}) {
   const count = Math.min(media.length, 4);
   const items = media.slice(0, count);
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden border-b">
+    <div
+      className={cn(
+        "relative aspect-video w-full overflow-hidden border-b",
+        disableClickToOpen && "pointer-events-none",
+      )}>
       <div
         className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
         {items.map((m, i) => {
@@ -103,6 +114,7 @@ function MediaPanel({media}: {media: PostBookmarkPreviewItem[]}) {
                 type={isVideo ? "video" : "image"}
                 className="h-full w-full object-cover"
                 loading="lazy"
+                disableClickToOpen={disableClickToOpen}
               />
             </div>
           );
@@ -112,9 +124,21 @@ function MediaPanel({media}: {media: PostBookmarkPreviewItem[]}) {
   );
 }
 
-function PostBookmarkMenuPreview({item, meta}: {item: PostBookmark; meta: PostBookmarkMetadata}) {
+function PostBookmarkMenuPreview({
+  item,
+  meta,
+  disableClickToOpen,
+}: {
+  item: PostBookmark;
+  meta: PostBookmarkMetadata;
+  disableClickToOpen: boolean;
+}) {
   const media = getPostBookmarkMediaPreviewItems(item, "main", "menu");
-  return media.length > 0 ? <MediaPanel media={media} /> : <NoMediaPanel meta={meta} />;
+  return media.length > 0 ? (
+    <MediaPanel media={media} disableClickToOpen={disableClickToOpen} />
+  ) : (
+    <NoMediaPanel meta={meta} />
+  );
 }
 
 export function PostBookmarkMenu({userId}: {userId: string | null}) {
@@ -126,6 +150,7 @@ export function PostBookmarkMenu({userId}: {userId: string | null}) {
   const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
   const postItem = item?.kind === "post" ? item : undefined;
   const isOpen = open && !!postItem;
+  const canClickMediaPreview = useBookmarkMenuPreviewClick(isOpen, postItem?.id);
 
   const data = useMemo(() => {
     return {
@@ -266,7 +291,11 @@ export function PostBookmarkMenu({userId}: {userId: string | null}) {
           <div className="min-h-0 flex-1">
             <SheetPanel className="p-0 pt-0!">
               {postItem?.metadata ? (
-                <PostBookmarkMenuPreview item={postItem} meta={postItem.metadata} />
+                <PostBookmarkMenuPreview
+                  item={postItem}
+                  meta={postItem.metadata}
+                  disableClickToOpen={!canClickMediaPreview}
+                />
               ) : (
                 <div className="bg-muted aspect-video w-full border-b" />
               )}

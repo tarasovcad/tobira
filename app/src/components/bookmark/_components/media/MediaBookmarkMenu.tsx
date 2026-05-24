@@ -1,6 +1,7 @@
 "use client";
 
 import {useState, useMemo, useCallback} from "react";
+import {cn} from "@/lib/utils";
 import {Controller} from "react-hook-form";
 import {formatDateWithTime} from "@/lib/utils/dates";
 import MediaPreview from "@/features/media/components/MediaPreview";
@@ -31,6 +32,7 @@ import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
 import {getMediaBookmarkMenuPreviewItem} from "@/components/bookmark/_utils/media-bookmark-preview";
+import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
 
 const MAX_DESCRIPTION_LENGTH = 280;
 
@@ -98,6 +100,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
   const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
   const mediaItem = item?.kind === "media" ? item : undefined;
   const isOpen = open && !!mediaItem;
+  const canClickMediaPreview = useBookmarkMenuPreviewClick(isOpen, mediaItem?.id);
 
   const data = useMemo(() => {
     return {
@@ -247,7 +250,11 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
           <div className="min-h-0 flex-1">
             <SheetPanel className="p-0 pt-0!">
               {mediaItem?.id && mediaPreviewItem ? (
-                <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
+                <div
+                  className={cn(
+                    "bg-muted relative aspect-video w-full overflow-hidden border-b",
+                    !canClickMediaPreview && "pointer-events-none",
+                  )}>
                   <MediaPreview
                     src={mediaPreviewItem.src}
                     fullSizeSrc={mediaPreviewItem.fullSizeSrc}
@@ -261,6 +268,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
                     addZoom
                     className="h-full w-full object-cover"
                     buttonClassName="h-full w-full"
+                    disableClickToOpen={!canClickMediaPreview}
                   />
                 </div>
               ) : (
