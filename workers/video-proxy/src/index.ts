@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = [
 
 const PROXY_CACHE_CONTROL =
   "public, max-age=86400, stale-while-revalidate=3600";
+const PROXY_VARY = "Accept-Encoding, Origin";
 const R2_CACHE_CONTROL = "public, max-age=31536000, immutable";
 const FAVICON_URL = "https://tobira.app/logo/favicon.svg";
 const FAVICON_PATHS = new Set(["/favicon.ico", "/favicon.svg"]);
@@ -198,13 +199,16 @@ async function handleTwitterProxy(
 
   const cache = caches.default;
   const cacheKey = new Request(targetUrl, { method: "GET" });
-  const cached = request.method === "GET" ? await cache.match(cacheKey) : null;
+  const hasRange = request.headers.has("range");
+  const cached =
+    request.method === "GET" && !hasRange ? await cache.match(cacheKey) : null;
   if (cached) {
     const response = new Response(cached.body, cached);
     response.headers.set("cf-cache-status", "HIT");
     for (const [key, value] of Object.entries(corsHeaders(origin))) {
       response.headers.set(key, value);
     }
+    response.headers.set("vary", PROXY_VARY);
     return response;
   }
 
@@ -236,7 +240,7 @@ async function handleTwitterProxy(
     upstream.headers.get("content-type") ?? "video/mp4"
   );
   headers.set("cache-control", PROXY_CACHE_CONTROL);
-  headers.set("vary", "Accept-Encoding, Origin");
+  headers.set("vary", PROXY_VARY);
 
   const passthroughHeaders = [
     "accept-ranges",
@@ -260,7 +264,7 @@ async function handleTwitterProxy(
     }
   );
 
-  if (request.method === "GET" && upstream.status === 200) {
+  if (request.method === "GET" && !hasRange && upstream.status === 200) {
     await cache.put(cacheKey, response.clone());
   }
 
