@@ -93,6 +93,7 @@ export function HomeClient({
     handleTransitionDone,
     archiveMutation,
   } = useBookmarksMutations({
+    typeFilter,
     tagFilter,
     activeTagName: activeTag?.name ?? null,
     allBookmarks,
