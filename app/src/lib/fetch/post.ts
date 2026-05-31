@@ -66,11 +66,22 @@ export type FreebirdXArticle = {
   title?: string;
 };
 
+export type FreebirdXPostCommunity = {
+  id: string | null;
+  isCommunityPost: boolean;
+};
+
+export type FreebirdXPostHashtag = {
+  indices: [number, number];
+  text: string;
+};
+
 export type FreebirdXPost = {
   allSameType: boolean;
   article: FreebirdXArticle | null;
   card?: FreebirdXPostCard | null;
   combinedMediaUrl: string | null;
+  community?: FreebirdXPostCommunity | null;
   communityNote: unknown | null;
   conversationID: string;
   date: string;
@@ -79,7 +90,7 @@ export type FreebirdXPost = {
   entities?: FreebirdXPostEntities;
   fetched_on: number;
   hasMedia: boolean;
-  hashtags: string[];
+  hashtags: FreebirdXPostHashtag[];
   lang: string;
   mediaURLs: string[];
   media_extended: FreebirdXPostMediaItem[];

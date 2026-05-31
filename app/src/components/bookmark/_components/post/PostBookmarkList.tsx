@@ -1,9 +1,14 @@
 "use client";
 
-import {useMemo, useState} from "react";
+import {useMemo, useState, type ReactNode} from "react";
 import Link from "next/link";
 
-import type {FreebirdXPostCard, FreebirdXPostResponse} from "@/lib/fetch/post";
+import type {
+  FreebirdXPostCard,
+  FreebirdXPostCommunity,
+  FreebirdXPostHashtag,
+  FreebirdXPostResponse,
+} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {Tag} from "@/components/ui/app/tag";
@@ -37,26 +42,127 @@ function formatShortDate(epoch: number): string {
   return d.toLocaleDateString("en-US", {month: "short", day: "numeric"});
 }
 
-function renderText(text: string) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  return parts.map((part, i) => {
-    if (part.match(urlRegex)) {
-      const displayUrl = part.replace(/^https?:\/\//, "").replace(/\/$/, "");
-      return (
+type RenderableHashtag = Pick<FreebirdXPostHashtag, "indices" | "text">;
+
+type TextEntity = {
+  end: number;
+  node: ReactNode;
+  start: number;
+};
+
+function getDisplayHashtags(
+  rawText: string,
+  hashtags: FreebirdXPostHashtag[],
+  cardUrl?: string | null,
+): RenderableHashtag[] {
+  const cardUrlLength = cardUrl?.length ?? 0;
+  const cardUrlIndex = cardUrl ? rawText.indexOf(cardUrl) : -1;
+  const cardUrlEnd = cardUrlIndex >= 0 ? cardUrlIndex + cardUrlLength : -1;
+
+  return hashtags
+    .map((tag) => {
+      const [start, end] = tag.indices;
+
+      if (cardUrlIndex >= 0 && start >= cardUrlEnd) {
+        return {
+          indices: [start - cardUrlLength, end - cardUrlLength] as [number, number],
+          text: tag.text,
+        };
+      }
+
+      if (cardUrlIndex >= 0 && end <= cardUrlIndex) {
+        return tag;
+      }
+
+      if (cardUrlIndex >= 0 && start < cardUrlEnd && end > cardUrlIndex) {
+        return null;
+      }
+
+      return tag;
+    })
+    .filter((tag): tag is RenderableHashtag => tag != null)
+    .filter((tag) => tag.indices[0] >= 0 && tag.indices[1] > tag.indices[0]);
+}
+
+function getHashtagBaseUrl(community?: FreebirdXPostCommunity | null) {
+  if (community?.isCommunityPost && community.id) {
+    return `https://x.com/i/communities/${community.id}`;
+  }
+
+  return "https://x.com";
+}
+
+function renderText(
+  text: string,
+  hashtags: RenderableHashtag[] = [],
+  hashtagBaseUrl = "https://x.com",
+) {
+  const entities: TextEntity[] = [];
+
+  for (const match of text.matchAll(/https?:\/\/[^\s]+/g)) {
+    const url = match[0];
+    const start = match.index;
+    if (start == null) continue;
+
+    entities.push({
+      end: start + url.length,
+      node: (
         <Link
-          key={i}
-          href={part}
+          key={`url-${start}-${start + url.length}`}
+          href={url}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline"
           onClick={(e) => e.stopPropagation()}>
-          {displayUrl}
+          {url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
         </Link>
-      );
+      ),
+      start,
+    });
+  }
+
+  for (const tag of hashtags) {
+    const [start, end] = tag.indices;
+    if (start >= text.length || end > text.length) continue;
+
+    entities.push({
+      end,
+      node: (
+        <Link
+          key={`hashtag-${start}-${end}`}
+          href={`${hashtagBaseUrl}/hashtag/${encodeURIComponent(tag.text)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline"
+          onClick={(e) => e.stopPropagation()}>
+          {text.slice(start, end)}
+        </Link>
+      ),
+      start,
+    });
+  }
+
+  entities.sort((a, b) => a.start - b.start || a.end - b.end);
+
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+
+  entities.forEach((entity) => {
+    if (entity.start < cursor) return;
+
+    if (entity.start > cursor) {
+      parts.push(text.slice(cursor, entity.start));
     }
-    return part;
+
+    parts.push(entity.node);
+    cursor = entity.end;
   });
+
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor));
+  }
+
+  return parts;
 }
 
 function getDisplayedText(text: string, expanded: boolean) {
@@ -161,6 +267,11 @@ function CompactMediaGrid({media}: {media: PostBookmarkPreviewItem[]}) {
 }
 
 function SmallPost({post, media}: {post: FreebirdXPostResponse; media: PostBookmarkPreviewItem[]}) {
+  const rawText = post.post.text ?? "";
+  const cleanText = post.post.card ? rawText.replace(post.post.card.url, "").trimEnd() : rawText;
+  const hashtags = getDisplayHashtags(rawText, post.post.hashtags, post.post.card?.url);
+  const hashtagBaseUrl = getHashtagBaseUrl(post.post.community);
+
   return (
     <div className="border-border mt-3 rounded-2xl border p-3">
       <div className="flex items-center gap-2 text-[14px]">
@@ -180,9 +291,9 @@ function SmallPost({post, media}: {post: FreebirdXPostResponse; media: PostBookm
         </span>
       </div>
 
-      {post.post.text ? (
+      {cleanText ? (
         <p className="text-foreground mt-2 line-clamp-4 text-[14px] whitespace-pre-wrap">
-          {renderText(post.post.text)}
+          {renderText(cleanText, hashtags, hashtagBaseUrl)}
         </p>
       ) : null}
 
@@ -252,6 +363,8 @@ export default function PostBookmarkList({
   const rawText = post.text ?? "";
   const cleanText = post.card ? rawText.replace(post.card.url, "").trimEnd() : rawText;
   const displayedText = getDisplayedText(cleanText, isExpanded);
+  const displayedHashtags = getDisplayHashtags(rawText, post.hashtags, post.card?.url);
+  const hashtagBaseUrl = getHashtagBaseUrl(post.community);
   const isLongText = cleanText.length > MAX_LENGTH;
 
   const showAuthor = postContentToggles.author;
@@ -407,7 +520,7 @@ export default function PostBookmarkList({
 
         <div>
           <p className="text-foreground text-[15px] whitespace-pre-wrap">
-            {renderText(displayedText)}
+            {renderText(displayedText, displayedHashtags, hashtagBaseUrl)}
           </p>
           {!isExpanded && isLongText && (
             <button

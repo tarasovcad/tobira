@@ -223,13 +223,13 @@ export default function BookmarkDetails({
                 <div className="flex flex-wrap gap-1">
                   {post.hashtags.map((tag) => (
                     <CopyableExternalLink
-                      key={tag}
-                      href={`https://x.com/hashtag/${tag}`}
-                      copyKey={`hashtag-${tag}`}
-                      copied={copiedKey === `hashtag-${tag}`}
+                      key={tag.text}
+                      href={`https://x.com/hashtag/${tag.text}`}
+                      copyKey={`hashtag-${tag.text}`}
+                      copied={copiedKey === `hashtag-${tag.text}`}
                       onCopy={handleCopyLink}
                       className="text-[#1D9BF0]">
-                      #{tag}
+                      #{tag.text}
                     </CopyableExternalLink>
                   ))}
                 </div>
