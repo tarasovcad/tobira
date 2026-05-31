@@ -1,7 +1,13 @@
 import {NextRequest, NextResponse} from "next/server";
 import {and, eq} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks, type ImageItem, type PostImages, type VideoItem} from "@/db/schema";
+import {
+  bookmarks,
+  type ArticleImageItem,
+  type ImageItem,
+  type PostImages,
+  type VideoItem,
+} from "@/db/schema";
 import {downloadAndUploadToR2, verifyQstashRequest} from "@/features/media/server/qstash";
 import {existsInR2} from "@/lib/storage/r2-storage";
 
@@ -75,13 +81,14 @@ function getBookmarkIdFromBody(rawBody: string): string | NextResponse {
 }
 
 async function processPostImages(bookmarkId: string, images: PostImages) {
-  const [items, qrtItems, replyItems] = await Promise.all([
+  const [items, qrtItems, replyItems, articleItems] = await Promise.all([
     processPostMediaItems(images.items),
     processPostMediaItems(images.qrtItems ?? []),
     processReplyMediaItems(images.replyItems ?? []),
+    processArticleMediaItems(images.articleItems ?? []),
   ]);
 
-  const processedImages = buildProcessedPostImages(items, qrtItems, replyItems);
+  const processedImages = buildProcessedPostImages(items, qrtItems, replyItems, articleItems);
   await db.update(bookmarks).set({images: processedImages}).where(eq(bookmarks.id, bookmarkId));
 }
 
@@ -89,8 +96,14 @@ function buildProcessedPostImages(
   items: ProcessedMediaItem[],
   qrtItems: ProcessedMediaItem[],
   replyItems: ProcessedReplyMediaItems[],
+  articleItems: ProcessedArticleMediaItem[],
 ): PostImages {
-  const results = [...items, ...qrtItems, ...replyItems.flatMap((reply) => reply.items)];
+  const results = [
+    ...items,
+    ...qrtItems,
+    ...replyItems.flatMap((reply) => reply.items),
+    ...articleItems,
+  ];
 
   if (results.some((result) => result.status === "failed")) {
     throw new Error("One or more post media uploads failed");
@@ -108,6 +121,7 @@ function buildProcessedPostImages(
           })),
         }
       : {}),
+    ...(articleItems.length > 0 ? {articleItems: articleItems.map((result) => result.item)} : {}),
   };
 }
 
@@ -127,6 +141,12 @@ function processReplyMediaItems(
   );
 }
 
+type ProcessedArticleMediaItem = ProcessedMediaItem<ArticleImageItem>;
+
+function processArticleMediaItems(items: ArticleImageItem[]): Promise<ProcessedArticleMediaItem[]> {
+  return Promise.all(items.map(processImageItem));
+}
+
 function processPostMediaItems(items: PostMediaItem[]): Promise<ProcessedMediaItem[]> {
   return Promise.all(items.map(processPostMediaItem));
 }
@@ -139,7 +159,7 @@ function processPostMediaItem(item: PostMediaItem): Promise<ProcessedMediaItem> 
   return processVideoItem(item);
 }
 
-async function processImageItem(item: ImageItem): Promise<ProcessedMediaItem<ImageItem>> {
+async function processImageItem<T extends ImageItem>(item: T): Promise<ProcessedMediaItem<T>> {
   const mediaUpload = await ensureUploaded(item.source_url, item.media_key);
 
   return {

@@ -28,9 +28,33 @@ export type FreebirdXPostEntities = {
   user_mentions: FreebirdXPostUserMentionEntity[];
 };
 
+export type FreebirdXArticleMedia = {
+  id: string;
+  media_id: string;
+  media_info: {
+    __typename: "ApiImage" | string;
+    original_img_height: number;
+    original_img_url: string;
+    original_img_width: number;
+  };
+  media_key: string;
+};
+
+export type FreebirdXArticle = {
+  content_state?: unknown;
+  cover_media?: FreebirdXArticleMedia | null;
+  id: string;
+  lifecycle_state?: unknown;
+  media_entities?: FreebirdXArticleMedia[];
+  metadata?: unknown;
+  preview_text?: string;
+  rest_id: string;
+  title?: string;
+};
+
 export type FreebirdXPost = {
   allSameType: boolean;
-  article: unknown | null;
+  article: FreebirdXArticle | null;
   combinedMediaUrl: string | null;
   communityNote: unknown | null;
   conversationID: string;
