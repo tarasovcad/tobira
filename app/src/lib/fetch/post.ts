@@ -1,35 +1,90 @@
-export type VxTwitterMediaItem = {
+export type FreebirdXPostMediaItem = {
   altText: string | null;
-  duration_millis: number;
+  aspect_ratio?: [number, number];
+  duration_millis: number | null;
   id_str: string;
   size: {height: number; width: number} | null;
-  thumbnail_url: string;
+  thumbnail_url: string | null;
   type: "photo" | "video" | "gif";
   url: string;
 };
 
-export type VxTwitterPost = {
-  tweetID: string;
+export type FreebirdXPostUrlEntity = {
+  display_url: string;
+  expanded_url: string;
+  indices: [number, number];
+  url: string;
+};
+
+export type FreebirdXPostUserMentionEntity = {
+  id_str?: string;
+  indices?: [number, number];
+  name?: string;
+  screen_name?: string;
+};
+
+export type FreebirdXPostEntities = {
+  urls: FreebirdXPostUrlEntity[];
+  user_mentions: FreebirdXPostUserMentionEntity[];
+};
+
+export type FreebirdXPost = {
+  allSameType: boolean;
+  article: unknown | null;
+  combinedMediaUrl: string | null;
+  communityNote: unknown | null;
   conversationID: string;
-  text: string;
   date: string;
   date_epoch: number;
-  user_name: string;
-  user_screen_name: string;
-  user_profile_image_url: string;
-  likes: number;
-  retweets: number;
-  replies: number;
-  lang: string;
-  hashtags: string[];
+  display_text_range?: [number, number];
+  entities?: FreebirdXPostEntities;
+  fetched_on: number;
   hasMedia: boolean;
+  hashtags: string[];
+  lang: string;
   mediaURLs: string[];
-  media_extended: VxTwitterMediaItem[];
-  possibly_sensitive: boolean;
-  qrt: VxTwitterPost | null;
+  media_extended: FreebirdXPostMediaItem[];
+  pollData: unknown | null;
+  possibly_sensitive: boolean | null;
+  qrt: FreebirdXPostResponse | null;
   qrtURL: string | null;
   replyingTo: string | null;
   replyingToID: string | null;
+  retweet: unknown | null;
+  retweetURL: string | null;
+  text: string;
+  translation: string | null;
+  tweetID: string;
+  tweetURL: string;
+};
+
+export type FreebirdXPostMetrics = {
+  likes: number;
+  replies: number;
+  retweets: number;
+};
+
+export type FreebirdXPostUser = {
+  user_name: string;
+  user_profile_image_url: string;
+  user_screen_name: string;
+  is_blue_verified?: boolean;
+  verification?: {
+    verified_type: string | null;
+  };
+  affiliates_highlighted_label?: unknown | null;
+};
+
+export type FreebirdXPostResponse = {
+  post: FreebirdXPost;
+  metrics: FreebirdXPostMetrics;
+  user: FreebirdXPostUser;
+};
+
+export type FreebirdXPostData = {
+  tweet: FreebirdXPostResponse;
+  reply_chain?: FreebirdXPostResponse[];
+  reply_chain_complete?: boolean;
 };
 
 function extractTweetId(url: string): string | null {
@@ -46,25 +101,25 @@ function extractTweetId(url: string): string | null {
   }
 }
 
-export async function fetchXPostData(url: string): Promise<VxTwitterPost> {
+export async function fetchXPostData(url: string): Promise<FreebirdXPostData> {
   const tweetId = extractTweetId(url);
   if (!tweetId) {
-    throw new Error("Invalid X/Twitter URL — could not extract tweet ID");
+    throw new Error("Invalid X/Twitter URL - could not extract tweet ID");
   }
 
-  const apiUrl = `https://api.vxtwitter.com/Twitter/status/${tweetId}`;
+  const apiUrl = `https://freebird-api.com/status/${tweetId}/format/simple`;
   const res = await fetch(apiUrl, {cache: "no-store"});
 
   if (!res.ok) {
-    throw new Error(`vxtwitter API error: ${res.status} ${res.statusText}`);
+    throw new Error(`Freebird API error: ${res.status} ${res.statusText}`);
   }
 
   const text = await res.text();
-  let data: VxTwitterPost;
+  let data: FreebirdXPostData;
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("vxtwitter returned a non-JSON response (possible Cloudflare block)");
+    throw new Error("Freebird returned a non-JSON response");
   }
 
   return data;

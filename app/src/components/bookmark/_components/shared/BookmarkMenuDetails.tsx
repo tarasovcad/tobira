@@ -19,11 +19,13 @@ interface BookmarkDetailsProps {
 
 function formatPostedDate(epoch: number): string {
   const d = new Date(epoch * 1000);
-  const time = d
-    .toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit", hour12: true})
-    .toUpperCase();
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
   const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
-  return `${date} · ${time}`;
+  return `${date} -  ${time}`;
 }
 
 function CopyableExternalLink({
@@ -195,8 +197,10 @@ export default function BookmarkDetails({
               copyKey="author"
               copied={copiedKey === "author"}
               onCopy={handleCopyLink}>
-              <span>{postMeta.user_name}</span>
-              <span className="text-muted-foreground">@{postMeta.user_screen_name}</span>
+              <span>
+                {postMeta.user_name}
+                <span className="text-muted-foreground"> @{postMeta.user_screen_name}</span>
+              </span>
             </CopyableExternalLink>
 
             {postedDate && (

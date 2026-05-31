@@ -21,11 +21,18 @@ import PostBookmarkMediaGrid from "./PostBookmarkMediaGrid";
 
 function formatFullDate(epoch: number): string {
   const d = new Date(epoch * 1000);
-  const time = d
-    .toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit", hour12: true})
-    .toUpperCase();
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
   const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
   return `${time} · ${date}`;
+}
+
+function formatQuotedPostDate(epoch: number): string {
+  const d = new Date(epoch * 1000);
+  return d.toLocaleDateString("en-US", {month: "short", day: "numeric"});
 }
 
 function renderText(text: string) {
@@ -62,51 +69,53 @@ function QuotedPost({
   media: PostBookmarkPreviewItem[];
 }) {
   const firstMedia = qrt.hasMedia && media.length ? media[0] : null;
+  const isVideo = firstMedia?.type === "video";
 
   return (
-    <div className="border-border hover:bg-muted/40 mt-3 rounded-2xl border p-3 transition-colors">
-      <div className="flex items-center gap-2">
-        <div className="bg-muted ring-border h-5 w-5 shrink-0 overflow-hidden rounded-full ring-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={qrt.user_profile_image_url}
-            alt={qrt.user_name}
-            className="h-full w-full object-cover"
-          />
+    <div className="border-border hover:bg-muted/40 mt-3 overflow-hidden rounded-2xl border transition-colors">
+      <div className="p-3">
+        <div className="flex items-center gap-1 text-[15px]">
+          <div className="bg-muted ring-border ring-0.5 mr-1 h-6 w-6 shrink-0 overflow-hidden rounded-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={qrt.user_profile_image_url}
+              alt={qrt.user_name}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <span className="text-foreground truncate font-semibold">{qrt.user_name}</span>
+          <span className="text-muted-foreground shrink-0">@{qrt.user_screen_name}</span>
+          {qrt.date_epoch != null && (
+            <>
+              <span className="text-muted-foreground shrink-0">·</span>
+              <span className="text-muted-foreground shrink-0">
+                {formatQuotedPostDate(qrt.date_epoch)}
+              </span>
+            </>
+          )}
         </div>
-        <span className="text-foreground truncate text-[14px] font-semibold">{qrt.user_name}</span>
-        <span className="text-muted-foreground shrink-0 text-[13px]">@{qrt.user_screen_name}</span>
-        <span className="text-muted-foreground shrink-0">·</span>
+
+        <p className="text-foreground mt-1.5 line-clamp-4 text-[14px] leading-normal whitespace-pre-wrap">
+          {renderText(qrt.text)}
+        </p>
       </div>
 
-      <p className="text-foreground mt-1.5 line-clamp-4 text-[14px] leading-normal whitespace-pre-wrap">
-        {renderText(qrt.text)}
-      </p>
-
-      {firstMedia &&
-        (() => {
-          const isVideo = firstMedia.type === "video";
-          const w = firstMedia.width;
-          const h = firstMedia.height;
-          const aspect = Math.max(0.5, Math.min(2, w / h));
-          return (
-            <div
-              className="mt-2 overflow-hidden rounded-xl"
-              style={{aspectRatio: aspect, maxHeight: 192}}>
-              <MediaPreview
-                src={firstMedia.src}
-                fullSizeSrc={isVideo ? undefined : firstMedia.fullSizeSrc}
-                alt={firstMedia.alt}
-                width={firstMedia.width}
-                height={firstMedia.height}
-                poster={firstMedia.poster}
-                type={isVideo ? "video" : "image"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          );
-        })()}
+      {firstMedia && (
+        <div className="bg-muted aspect-video w-full overflow-hidden">
+          <MediaPreview
+            src={firstMedia.src}
+            fullSizeSrc={isVideo ? undefined : firstMedia.fullSizeSrc}
+            alt={firstMedia.alt}
+            width={firstMedia.width}
+            height={firstMedia.height}
+            poster={firstMedia.poster}
+            type={isVideo ? "video" : "image"}
+            className="h-full w-full object-cover"
+            buttonClassName="h-full w-full"
+            loading="lazy"
+          />
+        </div>
+      )}
     </div>
   );
 }

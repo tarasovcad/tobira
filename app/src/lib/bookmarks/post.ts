@@ -1,20 +1,31 @@
 import {randomUUID} from "crypto";
-import {fetchXPostData, type VxTwitterPost, type VxTwitterMediaItem} from "@/lib/fetch/post";
+import {
+  fetchXPostData,
+  type FreebirdXPostData,
+  type FreebirdXPostMediaItem,
+} from "@/lib/fetch/post";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
-import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import type {ImageItem, PostImages, VideoItem} from "@/db/schema";
 import {buildMediaAssetKey, buildVideoAssetKey} from "@/features/media/utils";
 
 type PostMediaItem = ImageItem | VideoItem;
-type VideoPostMediaItem = VxTwitterMediaItem & {type: "video" | "gif"};
+type VideoPostMediaItem = FreebirdXPostMediaItem & {type: "video" | "gif"};
+
+type BookmarkToInsert = {
+  id: string;
+  url: string;
+  title: null;
+  description: null;
+  userId: string;
+  kind: "post";
+  images: PostImages;
+  metadata: FreebirdXPostData;
+};
 
 export type PreparedPostBookmark = {
   bookmarkId: string;
   url: string;
-  userId: string;
-  kind: "post";
-  images: PostImages;
-  metadata: PostBookmarkMetadata;
+  bookmarkToInsert: BookmarkToInsert;
 };
 
 export async function preparePostBookmarkCreation(input: {
@@ -23,44 +34,66 @@ export async function preparePostBookmarkCreation(input: {
 }): Promise<PreparedPostBookmark> {
   const normalized = normalizeInputUrl(input.url);
   const normalizedUrl = normalized.toString();
-  const post = await fetchXPostData(normalizedUrl);
+  const postResponse = await fetchXPostData(normalizedUrl);
 
   const bookmarkId = randomUUID();
-  const images = await buildPostImages(post);
-  const metadata = buildPostMetadata(post);
+  const images = await buildPostImages(postResponse);
+  const bookmarkToInsert = {
+    id: bookmarkId,
+    url: normalizedUrl,
+    title: null,
+    description: null,
+    userId: input.userId,
+    kind: "post",
+    images,
+    metadata: postResponse,
+  } satisfies BookmarkToInsert;
 
   return {
     bookmarkId,
     url: normalizedUrl,
-    userId: input.userId,
-    kind: "post",
-    images,
-    metadata,
+    bookmarkToInsert,
   };
 }
 
-async function buildPostImages(post: VxTwitterPost): Promise<PostImages> {
-  const [items, qrtItems] = await Promise.all([
+async function buildPostImages(postData: FreebirdXPostData): Promise<PostImages> {
+  const post = postData.tweet.post;
+  const replies = postData.reply_chain ?? [];
+  const [items, qrtItems, replyItems] = await Promise.all([
     buildPostMediaItems(post.media_extended),
-    buildPostMediaItems(post.qrt?.media_extended),
+    buildPostMediaItems(post.qrt?.post.media_extended),
+    buildReplyMediaItems(replies),
   ]);
 
   return {
-    processing: items.length > 0 || qrtItems.length > 0,
+    processing:
+      items.length > 0 || qrtItems.length > 0 || replyItems.some((reply) => reply.items.length > 0),
     items,
     ...(qrtItems.length > 0 ? {qrtItems} : {}),
+    ...(replyItems.length > 0 ? {replyItems} : {}),
   };
 }
 
-function buildPostMediaItems(items: VxTwitterMediaItem[] | null | undefined) {
+async function buildReplyMediaItems(replies: FreebirdXPostData["reply_chain"]) {
+  const replyItems = await Promise.all(
+    (replies ?? []).map(async (reply) => ({
+      tweetId: reply.post.tweetID,
+      items: await buildPostMediaItems(reply.post.media_extended),
+    })),
+  );
+
+  return replyItems.filter((reply) => reply.items.length > 0);
+}
+
+function buildPostMediaItems(items: FreebirdXPostMediaItem[] | null | undefined) {
   return Promise.all((items ?? []).map(buildPostMediaItem));
 }
 
-function buildPostMediaItem(item: VxTwitterMediaItem): Promise<PostMediaItem> {
+function buildPostMediaItem(item: FreebirdXPostMediaItem): Promise<PostMediaItem> {
   return isVideoPostMediaItem(item) ? buildVideoItem(item) : buildImageItem(item);
 }
 
-async function buildImageItem(item: VxTwitterMediaItem): Promise<ImageItem> {
+async function buildImageItem(item: FreebirdXPostMediaItem): Promise<ImageItem> {
   return {
     ...getMediaDimensions(item),
     type: "image",
@@ -87,46 +120,13 @@ async function buildVideoItem(item: VideoPostMediaItem): Promise<VideoItem> {
   };
 }
 
-function getMediaDimensions(item: VxTwitterMediaItem) {
+function getMediaDimensions(item: FreebirdXPostMediaItem) {
   return {
     width: item.size?.width ?? undefined,
     height: item.size?.height ?? undefined,
   };
 }
 
-function isVideoPostMediaItem(item: VxTwitterMediaItem): item is VideoPostMediaItem {
+function isVideoPostMediaItem(item: FreebirdXPostMediaItem): item is VideoPostMediaItem {
   return item.type === "video" || item.type === "gif";
-}
-
-function buildPostMetadata(post: VxTwitterPost): PostBookmarkMetadata {
-  return {
-    platform: "x",
-    tweetId: post.tweetID,
-    text: post.text,
-    date: post.date,
-    date_epoch: post.date_epoch,
-    user_name: post.user_name,
-    user_screen_name: post.user_screen_name,
-    user_profile_image_url: post.user_profile_image_url,
-    likes: post.likes,
-    retweets: post.retweets,
-    replies: post.replies,
-    lang: post.lang,
-    hashtags: post.hashtags ?? [],
-    hasMedia: post.hasMedia,
-    media_extended: post.media_extended ?? [],
-    qrt: post.qrt ? buildQuotedPostMetadata(post.qrt) : null,
-  };
-}
-
-function buildQuotedPostMetadata(post: VxTwitterPost): NonNullable<PostBookmarkMetadata["qrt"]> {
-  return {
-    tweetId: post.tweetID,
-    text: post.text,
-    user_name: post.user_name,
-    user_screen_name: post.user_screen_name,
-    user_profile_image_url: post.user_profile_image_url,
-    hasMedia: post.hasMedia,
-    media_extended: post.media_extended ?? [],
-  };
 }

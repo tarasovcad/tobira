@@ -271,16 +271,7 @@ export async function addPostBookmark(input: {
   );
 
   const dbInsertStart = performance.now();
-  await db.insert(bookmarks).values({
-    id: prepared.bookmarkId,
-    url: prepared.url,
-    title: null,
-    description: null,
-    userId,
-    kind: "post",
-    images: prepared.images,
-    metadata: prepared.metadata,
-  });
+  await db.insert(bookmarks).values(prepared.bookmarkToInsert);
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
   const attachments: Promise<unknown>[] = [];

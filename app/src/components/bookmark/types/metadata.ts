@@ -43,6 +43,8 @@ export type PostBookmarkMetadata = {
   qrt: {
     tweetId: string;
     text: string;
+    date: string;
+    date_epoch: number;
     user_name: string;
     user_screen_name: string;
     user_profile_image_url: string;

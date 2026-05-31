@@ -75,20 +75,22 @@ function getBookmarkIdFromBody(rawBody: string): string | NextResponse {
 }
 
 async function processPostImages(bookmarkId: string, images: PostImages) {
-  const [items, qrtItems] = await Promise.all([
+  const [items, qrtItems, replyItems] = await Promise.all([
     processPostMediaItems(images.items),
     processPostMediaItems(images.qrtItems ?? []),
+    processReplyMediaItems(images.replyItems ?? []),
   ]);
 
-  const processedImages = buildProcessedPostImages(items, qrtItems);
+  const processedImages = buildProcessedPostImages(items, qrtItems, replyItems);
   await db.update(bookmarks).set({images: processedImages}).where(eq(bookmarks.id, bookmarkId));
 }
 
 function buildProcessedPostImages(
   items: ProcessedMediaItem[],
   qrtItems: ProcessedMediaItem[],
+  replyItems: ProcessedReplyMediaItems[],
 ): PostImages {
-  const results = [...items, ...qrtItems];
+  const results = [...items, ...qrtItems, ...replyItems.flatMap((reply) => reply.items)];
 
   if (results.some((result) => result.status === "failed")) {
     throw new Error("One or more post media uploads failed");
@@ -98,7 +100,31 @@ function buildProcessedPostImages(
     processing: false,
     items: items.map((result) => result.item),
     ...(qrtItems.length > 0 ? {qrtItems: qrtItems.map((result) => result.item)} : {}),
+    ...(replyItems.length > 0
+      ? {
+          replyItems: replyItems.map((reply) => ({
+            tweetId: reply.tweetId,
+            items: reply.items.map((result) => result.item),
+          })),
+        }
+      : {}),
   };
+}
+
+type ProcessedReplyMediaItems = {
+  tweetId: string;
+  items: ProcessedMediaItem[];
+};
+
+function processReplyMediaItems(
+  replies: NonNullable<PostImages["replyItems"]>,
+): Promise<ProcessedReplyMediaItems[]> {
+  return Promise.all(
+    replies.map(async (reply) => ({
+      tweetId: reply.tweetId,
+      items: await processPostMediaItems(reply.items),
+    })),
+  );
 }
 
 function processPostMediaItems(items: PostMediaItem[]): Promise<ProcessedMediaItem[]> {

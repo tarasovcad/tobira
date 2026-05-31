@@ -45,6 +45,10 @@ export type PostImages = {
   processing?: boolean;
   items: (ImageItem | VideoItem)[];
   qrtItems?: (ImageItem | VideoItem)[];
+  replyItems?: {
+    tweetId: string;
+    items: (ImageItem | VideoItem)[];
+  }[];
 };
 
 export type MediaImages = {

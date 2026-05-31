@@ -23,9 +23,11 @@ const MAX_LENGTH = 280;
 
 function formatFullDate(epoch: number): string {
   const d = new Date(epoch * 1000);
-  const time = d
-    .toLocaleTimeString("en-US", {hour: "numeric", minute: "2-digit", hour12: true})
-    .toUpperCase();
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
   const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
   return `${time} \u00b7 ${date}`;
 }
