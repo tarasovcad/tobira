@@ -3,8 +3,8 @@
 import {useMemo, useState} from "react";
 import Link from "next/link";
 
+import type {FreebirdXPostResponse} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
-import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {Tag} from "@/components/ui/app/tag";
 import MediaPreview from "@/features/media/components/MediaPreview";
@@ -13,11 +13,13 @@ import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import {
   getPostBookmarkMediaPreviewItems,
+  getPostBookmarkReplyMediaPreviewItems,
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
 import PostBookmarkMediaGrid from "./PostBookmarkMediaGrid";
+import Image from "next/image";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const MAX_LENGTH = 280;
 
 function formatFullDate(epoch: number): string {
   const d = new Date(epoch * 1000);
@@ -30,7 +32,7 @@ function formatFullDate(epoch: number): string {
   return `${time} · ${date}`;
 }
 
-function formatQuotedPostDate(epoch: number): string {
+function formatShortDate(epoch: number): string {
   const d = new Date(epoch * 1000);
   return d.toLocaleDateString("en-US", {month: "short", day: "numeric"});
 }
@@ -57,72 +59,92 @@ function renderText(text: string) {
   });
 }
 
-// ── Media grid ────────────────────────────────────────────────────────────────
+function getDisplayedText(text: string, expanded: boolean) {
+  if (expanded || text.length <= MAX_LENGTH) return text;
 
-// ── Quoted post ───────────────────────────────────────────────────────────────
+  const truncated = text.slice(0, MAX_LENGTH);
+  const lastSpace = truncated.lastIndexOf(" ");
+  return lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated;
+}
 
-function QuotedPost({
-  qrt,
-  media,
-}: {
-  qrt: NonNullable<PostBookmarkMetadata["qrt"]>;
-  media: PostBookmarkPreviewItem[];
-}) {
-  const firstMedia = qrt.hasMedia && media.length ? media[0] : null;
-  const isVideo = firstMedia?.type === "video";
+function CompactMediaGrid({media}: {media: PostBookmarkPreviewItem[]}) {
+  if (!media.length) return null;
+
+  const items = media.slice(0, 4);
 
   return (
-    <div className="border-border hover:bg-muted/40 mt-3 overflow-hidden rounded-2xl border transition-colors">
-      <div className="p-3">
-        <div className="flex items-center gap-1 text-[15px]">
-          <div className="bg-muted ring-border ring-0.5 mr-1 h-6 w-6 shrink-0 overflow-hidden rounded-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qrt.user_profile_image_url}
-              alt={qrt.user_name}
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <span className="text-foreground truncate font-semibold">{qrt.user_name}</span>
-          <span className="text-muted-foreground shrink-0">@{qrt.user_screen_name}</span>
-          {qrt.date_epoch != null && (
-            <>
-              <span className="text-muted-foreground shrink-0">·</span>
-              <span className="text-muted-foreground shrink-0">
-                {formatQuotedPostDate(qrt.date_epoch)}
-              </span>
-            </>
-          )}
-        </div>
-
-        <p className="text-foreground mt-1.5 line-clamp-4 text-[14px] leading-normal whitespace-pre-wrap">
-          {renderText(qrt.text)}
-        </p>
+    <div className="bg-muted mt-2 grid max-h-72 overflow-hidden rounded-xl border">
+      <div className={cn("grid gap-[2px]", items.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+        {items.map((item) => {
+          const isVideo = item.type === "video";
+          return (
+            <div key={item.key} className="bg-muted aspect-video overflow-hidden">
+              <MediaPreview
+                src={item.src}
+                fullSizeSrc={isVideo ? undefined : item.fullSizeSrc}
+                alt={item.alt}
+                width={item.width}
+                height={item.height}
+                poster={item.poster}
+                type={isVideo ? "video" : "image"}
+                className="h-full w-full object-cover"
+                buttonClassName="h-full w-full"
+                loading="lazy"
+              />
+            </div>
+          );
+        })}
       </div>
-
-      {firstMedia && (
-        <div className="bg-muted aspect-video w-full overflow-hidden">
-          <MediaPreview
-            src={firstMedia.src}
-            fullSizeSrc={isVideo ? undefined : firstMedia.fullSizeSrc}
-            alt={firstMedia.alt}
-            width={firstMedia.width}
-            height={firstMedia.height}
-            poster={firstMedia.poster}
-            type={isVideo ? "video" : "image"}
-            className="h-full w-full object-cover"
-            buttonClassName="h-full w-full"
-            loading="lazy"
-          />
-        </div>
-      )}
     </div>
   );
 }
 
-// ── Main card ─────────────────────────────────────────────────────────────────
+function SmallPost({post, media}: {post: FreebirdXPostResponse; media: PostBookmarkPreviewItem[]}) {
+  return (
+    <div className="border-border mt-3 rounded-2xl border p-3">
+      <div className="flex items-center gap-2 text-[14px]">
+        <div className="bg-muted ring-border h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={post.user.user_profile_image_url}
+            alt={post.user.user_name}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <span className="text-foreground truncate font-semibold">{post.user.user_name}</span>
+        <span className="text-muted-foreground shrink-0">@{post.user.user_screen_name}</span>
+        <span className="text-muted-foreground shrink-0">·</span>
+        <span className="text-muted-foreground shrink-0">
+          {formatShortDate(post.post.date_epoch)}
+        </span>
+      </div>
 
-const MAX_LENGTH = 280;
+      {post.post.text ? (
+        <p className="text-foreground mt-2 line-clamp-4 text-[14px] whitespace-pre-wrap">
+          {renderText(post.post.text)}
+        </p>
+      ) : null}
+
+      <CompactMediaGrid media={media} />
+    </div>
+  );
+}
+
+function ReplyChain({item, replies}: {item: PostBookmark; replies: FreebirdXPostResponse[]}) {
+  if (!replies.length) return null;
+
+  return (
+    <div className="border-border mt-3 space-y-3 border-l-2 pl-3">
+      {replies.map((reply) => (
+        <SmallPost
+          key={reply.post.tweetID}
+          post={reply}
+          media={getPostBookmarkReplyMediaPreviewItems(item, reply.post.tweetID, "list")}
+        />
+      ))}
+    </div>
+  );
+}
 
 interface PostBookmarkListProps {
   item: PostBookmark;
@@ -148,13 +170,13 @@ export default function PostBookmarkList({
   const [isExpanded, setIsExpanded] = useState(false);
   const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
 
-  const meta = item.metadata as PostBookmarkMetadata | undefined;
+  const meta = item.metadata;
   const qrtMediaItems = useMemo(
     () => getPostBookmarkMediaPreviewItems(item, "qrt", "list"),
     [item],
   );
 
-  if (!meta || meta.platform !== "x") {
+  if (!meta) {
     return (
       <div className={cn("text-muted-foreground border-b px-4 py-3 text-sm", className)}>
         Post data unavailable
@@ -162,15 +184,11 @@ export default function PostBookmarkList({
     );
   }
 
-  const replyingTo = null;
-  const cleanText = meta.text ?? "";
+  const post = meta.tweet.post;
+  const user = meta.tweet.user;
+  const cleanText = post.text ?? "";
+  const displayedText = getDisplayedText(cleanText, isExpanded);
   const isLongText = cleanText.length > MAX_LENGTH;
-  const displayedText = (() => {
-    if (isExpanded || !isLongText) return cleanText;
-    const truncated = cleanText.slice(0, MAX_LENGTH);
-    const lastSpace = truncated.lastIndexOf(" ");
-    return lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated;
-  })();
 
   const showAuthor = postContentToggles.author;
   const showMedia = postContentToggles.media;
@@ -178,11 +196,42 @@ export default function PostBookmarkList({
   const showTags = postContentToggles.tags;
   const showTimestamp = postContentToggles.timestamp;
 
+  const verificationStatus = (user: FreebirdXPostResponse["user"]) => {
+    if (user.verification?.verified_type != null)
+      return (
+        <Image
+          src="/x/yellow_verified.svg"
+          alt="Yellow verification badge"
+          width={32}
+          height={32}
+        />
+      );
+    if (user.is_blue_verified)
+      return (
+        <Image src="/x/blue_verified.svg" alt="Blue verification badge" width={32} height={32} />
+      );
+    return null;
+  };
+
+  const affiliatesLabel = (user: FreebirdXPostResponse["user"]) => {
+    if (user.affiliates_highlighted_label != null) {
+      return (
+        <div className="h-4 w-4 rounded-[2px] border border-[#CFD9DE]">
+          <Image
+            src={user.affiliates_highlighted_label.badge_url}
+            width={16}
+            height={16}
+            alt={user.affiliates_highlighted_label.description}
+          />
+        </div>
+      );
+    }
+  };
+
   return (
     <article
       className={cn(
         "border-border group relative isolate flex flex-col gap-[14px] border-b px-4 py-3",
-        // "hover:bg-muted/80",
         "cursor-pointer transition-none!",
         "pt-4",
         isSelected && "bg-muted",
@@ -190,17 +239,15 @@ export default function PostBookmarkList({
       )}>
       <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-200 group-data-[selection-mode=true]/bookmark-row:opacity-100" />
 
-      {/* Full-card link overlay */}
       <Link
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
         className="absolute inset-0 z-0"
-        aria-label={`Open post by ${meta.user_name}`}
+        aria-label={`Open post by ${user.user_name}`}
         tabIndex={-1}
       />
 
-      {/* Hover actions */}
       <BookmarkHoverActions
         className="top-3 right-3 z-[3]"
         onSave={
@@ -229,11 +276,10 @@ export default function PostBookmarkList({
         }
       />
 
-      {/* When author is hidden, selection control sits in the corner (no layout impact) */}
       {!showAuthor && (
         <BookmarkSelectionCheckbox
           itemId={item.id}
-          title={meta.user_name}
+          title={user.user_name}
           checked={isSelected}
           selectionIndex={selectionIndex}
           onCheckedChange={setSelected}
@@ -241,19 +287,18 @@ export default function PostBookmarkList({
         />
       )}
 
-      {/* Author row */}
       {showAuthor && (
         <div className="relative z-[1] flex items-center">
           <BookmarkSelectionCheckbox
             itemId={item.id}
-            title={meta.user_name}
+            title={user.user_name}
             checked={isSelected}
             selectionIndex={selectionIndex}
             onCheckedChange={setSelected}
             paddingClassName="pr-2"
           />
           <Link
-            href={`https://x.com/${meta.user_screen_name}`}
+            href={`https://x.com/${user.user_screen_name}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -261,42 +306,41 @@ export default function PostBookmarkList({
             <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={meta.user_profile_image_url}
-                alt={meta.user_name}
+                src={user.user_profile_image_url}
+                alt={user.user_name}
                 width={40}
                 height={40}
                 className="h-full w-full object-cover transition-all duration-100 group-hover/author:brightness-95"
               />
             </div>
-            <div className="flex items-center gap-[6px]">
-              <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[20px]">
+            <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[18px]">
+              <div className="flex items-center gap-[3px]">
                 <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
-                  {meta.user_name}
+                  {user.user_name}
                 </span>
-                <span className="text-muted-foreground shrink-0">@{meta.user_screen_name}</span>
+                <div className="h-4.5 w-4.5 shrink-0">{verificationStatus(user)} </div>
+                {affiliatesLabel(user)}
               </div>
+              <span className="shrink-0 text-sm text-[#536471]!">@{user.user_screen_name}</span>
             </div>
           </Link>
         </div>
       )}
 
-      {/* Content */}
       <div className="relative z-[1] min-w-0 flex-1 space-y-[14px]">
-        {/* Replying-to label */}
-        {replyingTo && (
+        {post.replyingTo ? (
           <p className="text-muted-foreground text-[14px]">
             Replying to{" "}
             <Link
-              href={`https://x.com/${replyingTo}`}
+              href={`https://x.com/${post.replyingTo}`}
               target="_blank"
               onClick={(e) => e.stopPropagation()}
               className="text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline">
-              @{replyingTo}
+              @{post.replyingTo}
             </Link>
           </p>
-        )}
+        ) : null}
 
-        {/* Tweet text */}
         <div>
           <p className="text-foreground text-[15px] whitespace-pre-wrap">
             {renderText(displayedText)}
@@ -311,13 +355,12 @@ export default function PostBookmarkList({
           )}
         </div>
 
-        {/* Media */}
         {showMedia && <PostBookmarkMediaGrid item={item} />}
 
-        {/* Quoted post */}
-        {showQuotedPost && meta.qrt && <QuotedPost qrt={meta.qrt} media={qrtMediaItems} />}
+        {showQuotedPost && post.qrt ? <SmallPost post={post.qrt} media={qrtMediaItems} /> : null}
 
-        {/* Tags */}
+        <ReplyChain item={item} replies={meta.reply_chain ?? []} />
+
         {showTags && item.tags && item.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {item.tags.map((tag) => (
@@ -328,10 +371,9 @@ export default function PostBookmarkList({
           </div>
         )}
 
-        {/* Timestamp */}
         {showTimestamp && (
           <div className="flex items-center gap-3 text-[14px] text-[#536471]">
-            {formatFullDate(meta.date_epoch)}
+            {formatFullDate(post.date_epoch)}
           </div>
         )}
       </div>

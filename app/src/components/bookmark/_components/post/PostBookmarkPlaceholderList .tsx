@@ -34,7 +34,7 @@ function formatFullDate(epoch: number): string {
 
 function getPostMetadata(bookmark: Bookmark | null): PostBookmarkMetadata | null {
   const metadata = bookmark?.metadata as PostBookmarkMetadata | undefined;
-  return metadata?.platform === "x" ? metadata : null;
+  return metadata ?? null;
 }
 
 function getDisplayedText(text: string) {
@@ -162,8 +162,10 @@ export default function PostBookmarkPlaceholderList({
   const itemTags = bookmark?.tags ?? [];
   const visibleTags = itemTags.length > 0 ? itemTags : (tags ?? []);
   const hasTags = visibleTags.length > 0;
-  const displayedText = getDisplayedText(meta?.text ?? "");
-  const isLongText = (meta?.text.length ?? 0) > MAX_LENGTH;
+  const post = meta?.tweet.post;
+  const user = meta?.tweet.user;
+  const displayedText = getDisplayedText(post?.text ?? "");
+  const isLongText = (post?.text.length ?? 0) > MAX_LENGTH;
 
   const showAuthor = postContentToggles.author;
   const showMedia = postContentToggles.media;
@@ -185,11 +187,11 @@ export default function PostBookmarkPlaceholderList({
               className="h-10 w-10 shrink-0"
               skeleton={<Skeleton className="h-10 w-10 rounded-full" />}>
               <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
-                {meta?.user_profile_image_url ? (
+                {user?.user_profile_image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={meta.user_profile_image_url}
-                    alt={meta.user_name}
+                    src={user.user_profile_image_url}
+                    alt={user.user_name}
                     width={40}
                     height={40}
                     className="h-full w-full object-cover"
@@ -210,10 +212,10 @@ export default function PostBookmarkPlaceholderList({
                 }>
                 <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[20px]">
                   <span className="text-foreground truncate font-semibold">
-                    {meta?.user_name ?? ""}
+                    {user?.user_name ?? ""}
                   </span>
                   <span className="text-muted-foreground shrink-0">
-                    {meta?.user_screen_name ? `@${meta.user_screen_name}` : ""}
+                    {user?.user_screen_name ? `@${user.user_screen_name}` : ""}
                   </span>
                 </div>
               </CrossFade>
@@ -270,11 +272,11 @@ export default function PostBookmarkPlaceholderList({
 
         {showTimestamp && (
           <CrossFade
-            loaded={!!meta?.date_epoch}
+            loaded={!!post?.date_epoch}
             delay={getFastDelay(480)}
             skeleton={<Skeleton className="h-[21px] w-36 rounded" />}>
             <div className="flex items-center gap-3 text-[14px] text-[#536471]">
-              {meta?.date_epoch ? formatFullDate(meta.date_epoch) : ""}
+              {post?.date_epoch ? formatFullDate(post.date_epoch) : ""}
             </div>
           </CrossFade>
         )}

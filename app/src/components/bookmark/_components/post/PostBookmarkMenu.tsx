@@ -43,14 +43,17 @@ import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-previe
 // ── 0 images ──────────────────────────────────────────────────────────────────
 
 function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
+  const post = meta.tweet.post;
+  const user = meta.tweet.user;
+
   return (
     <div className="bg-muted relative flex aspect-video w-full items-center justify-center overflow-hidden border-b px-8">
       <div className="flex w-full max-w-[400px] flex-col gap-3">
         <div className="flex items-center gap-2.5">
           <div className="bg-background ring-border h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1">
             <Image
-              src={meta.user_profile_image_url}
-              alt={meta.user_name}
+              src={user.user_profile_image_url}
+              alt={user.user_name}
               width={32}
               height={32}
               className="h-full w-full object-cover"
@@ -59,14 +62,14 @@ function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
           </div>
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="text-foreground truncate text-[13px] font-semibold">
-              {meta.user_name}
+              {user.user_name}
             </span>
-            <span className="text-muted-foreground text-[12px]">@{meta.user_screen_name}</span>
+            <span className="text-muted-foreground text-[12px]">@{user.user_screen_name}</span>
           </div>
         </div>
 
         <p className="text-foreground line-clamp-5 text-[14px] leading-snug whitespace-pre-wrap">
-          {meta.text}
+          {post.text}
         </p>
       </div>
     </div>

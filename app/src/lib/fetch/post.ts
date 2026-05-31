@@ -88,6 +88,14 @@ export type FreebirdXPostMetrics = {
   retweets: number;
 };
 
+export type FreebirdXPostAffiliatesHighlightedLabel = {
+  badge_url: string;
+  description: string;
+  url: string;
+  userLabelDisplayType: string;
+  userLabelType: string;
+};
+
 export type FreebirdXPostUser = {
   user_name: string;
   user_profile_image_url: string;
@@ -96,7 +104,7 @@ export type FreebirdXPostUser = {
   verification?: {
     verified_type: string | null;
   };
-  affiliates_highlighted_label?: unknown | null;
+  affiliates_highlighted_label?: FreebirdXPostAffiliatesHighlightedLabel | null;
 };
 
 export type FreebirdXPostResponse = {

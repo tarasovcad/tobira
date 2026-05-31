@@ -2,7 +2,11 @@
 
 import {cn} from "@/lib/utils";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
-import type {BookmarkMetadata, PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
+import type {
+  BookmarkMetadata,
+  PostBookmarkMetadata,
+  WebsiteOrMediaMetadata,
+} from "@/components/bookmark/types/metadata";
 import Link from "next/link";
 import {Button} from "@/components/ui/coss/button";
 import {AnimatePresence, motion} from "motion/react";
@@ -137,15 +141,18 @@ export default function BookmarkDetails({
 }: BookmarkDetailsProps) {
   const {copiedKey, copyText} = useClipboardCopy(2000);
 
-  const publisherName = metadata?.user_name?.trim() || "";
-  const publisherHandle = (metadata?.user_screen_name ?? "").trim().replace(/^@+/, "");
+  const mediaMeta = kind === "media" ? (metadata as WebsiteOrMediaMetadata | undefined) : undefined;
+  const publisherName = mediaMeta?.user_name?.trim() || "";
+  const publisherHandle = (mediaMeta?.user_screen_name ?? "").trim().replace(/^@+/, "");
   const publisherUrl = publisherHandle ? `https://x.com/${publisherHandle}` : undefined;
   const shouldShowPublisher =
     kind === "media" && (publisherName.length > 0 || publisherHandle.length > 0) && !!publisherUrl;
 
   const postMeta = kind === "post" ? (metadata as PostBookmarkMetadata | undefined) : undefined;
+  const post = postMeta?.tweet.post;
+  const postUser = postMeta?.tweet.user;
 
-  const postedDate = postMeta?.date_epoch ? formatPostedDate(postMeta.date_epoch) : null;
+  const postedDate = post?.date_epoch ? formatPostedDate(post.date_epoch) : null;
 
   const handleCopyLink = async (href: string, key: string) => {
     await copyText(href, key);
@@ -189,17 +196,17 @@ export default function BookmarkDetails({
           </>
         )}
 
-        {postMeta && (
+        {post && postUser && (
           <>
             <div className="text-muted-foreground">Author</div>
             <CopyableExternalLink
-              href={`https://x.com/${postMeta.user_screen_name}`}
+              href={`https://x.com/${postUser.user_screen_name}`}
               copyKey="author"
               copied={copiedKey === "author"}
               onCopy={handleCopyLink}>
               <span>
-                {postMeta.user_name}
-                <span className="text-muted-foreground"> @{postMeta.user_screen_name}</span>
+                {postUser.user_name}
+                <span className="text-muted-foreground"> @{postUser.user_screen_name}</span>
               </span>
             </CopyableExternalLink>
 
@@ -210,11 +217,11 @@ export default function BookmarkDetails({
               </>
             )}
 
-            {postMeta.hashtags.length > 0 && (
+            {post.hashtags.length > 0 && (
               <>
                 <div className="text-muted-foreground">Hashtags</div>
                 <div className="flex flex-wrap gap-1">
-                  {postMeta.hashtags.map((tag) => (
+                  {post.hashtags.map((tag) => (
                     <CopyableExternalLink
                       key={tag}
                       href={`https://x.com/hashtag/${tag}`}

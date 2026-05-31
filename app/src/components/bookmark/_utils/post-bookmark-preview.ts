@@ -163,6 +163,22 @@ export function getPostBookmarkMediaPreviewItems(
   return storedItems.map((mediaItem) => buildStoredPreviewItem(mediaItem, processing, variant));
 }
 
+export function getPostBookmarkReplyMediaPreviewItems(
+  item: PostBookmark,
+  tweetId: string,
+  variant: PostPreviewVariant,
+): PostBookmarkPreviewItem[] {
+  if (!isPostImages(item.images)) {
+    return [];
+  }
+
+  const reply = item.images.replyItems?.find((replyItem) => replyItem.tweetId === tweetId);
+  const processing = isPostMediaProcessing(item.images);
+  return (reply?.items ?? []).map((mediaItem) =>
+    buildStoredPreviewItem(mediaItem, processing, variant),
+  );
+}
+
 export function buildPostBookmarkMediaGalleryEntries(
   item: PostBookmark,
   group: PostMediaGroup = "main",
