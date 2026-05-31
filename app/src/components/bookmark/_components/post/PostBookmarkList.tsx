@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 import Link from "next/link";
 
-import type {FreebirdXPostResponse} from "@/lib/fetch/post";
+import type {FreebirdXPostCard, FreebirdXPostResponse} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {Tag} from "@/components/ui/app/tag";
@@ -65,6 +65,67 @@ function getDisplayedText(text: string, expanded: boolean) {
   const truncated = text.slice(0, MAX_LENGTH);
   const lastSpace = truncated.lastIndexOf(" ");
   return lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated;
+}
+
+function LinkCard({card}: {card: FreebirdXPostCard}) {
+  const isLarge = card.name === "summary_large_image" || card.name === "summary_large_image:player";
+
+  return (
+    <div className="mt-3">
+      <Link
+        href={card.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="group/card border-border block overflow-hidden rounded-2xl border group-data-[selection-mode=true]/bookmark-row:pointer-events-none">
+        {isLarge ? (
+          <div className="bg-muted relative aspect-[1.91/1] w-full overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={card.image.url}
+              alt={card.image.altText ?? card.title}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+            <div
+              className="absolute right-0 bottom-0 left-0 mx-3 mb-3 h-5.25 rounded-[5px] px-2"
+              style={{backgroundColor: "rgba(0, 0, 0, 0.77)"}}>
+              <p className="truncate text-[13px] leading-5.25 font-[450] text-white">
+                {card.title}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-stretch">
+            <div className="border-border bg-muted h-29 w-29 shrink-0 overflow-hidden border-r">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={card.image.url}
+                alt={card.image.altText ?? card.title}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+            <div className="flex min-w-0 flex-col justify-center gap-0.5 px-3 py-2">
+              <p className="truncate text-[13px] text-[#536471]">{card.domain}</p>
+              <p className="text-foreground line-clamp-2 text-[15px] font-semibold">{card.title}</p>
+              {card.description ? (
+                <p className="line-clamp-2 text-[13px] text-[#536471]">{card.description}</p>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </Link>
+      <Link
+        href={card.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="mt-1.5 block text-[13px] text-[#536471] hover:underline">
+        From {card.domain}
+      </Link>
+    </div>
+  );
 }
 
 function CompactMediaGrid({media}: {media: PostBookmarkPreviewItem[]}) {
@@ -186,7 +247,10 @@ export default function PostBookmarkList({
 
   const post = meta.tweet.post;
   const user = meta.tweet.user;
-  const cleanText = post.text ?? "";
+  // When a card is present, X hides the card URL from the tweet text (it's
+  // represented by the card itself). Strip it here to match X's display.
+  const rawText = post.text ?? "";
+  const cleanText = post.card ? rawText.replace(post.card.url, "").trimEnd() : rawText;
   const displayedText = getDisplayedText(cleanText, isExpanded);
   const isLongText = cleanText.length > MAX_LENGTH;
 
@@ -354,6 +418,8 @@ export default function PostBookmarkList({
             </button>
           )}
         </div>
+
+        {showMedia && post.card ? <LinkCard card={post.card} /> : null}
 
         {showMedia && <PostBookmarkMediaGrid item={item} />}
 

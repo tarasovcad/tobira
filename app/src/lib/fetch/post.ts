@@ -9,6 +9,20 @@ export type FreebirdXPostMediaItem = {
   url: string;
 };
 
+export type FreebirdXPostCard = {
+  url: string;
+  name: string;
+  image: {
+    url: string;
+    width: number;
+    height: number;
+    altText: string | null;
+  };
+  title: string;
+  domain: string;
+  description: string;
+};
+
 export type FreebirdXPostUrlEntity = {
   display_url: string;
   expanded_url: string;
@@ -55,6 +69,7 @@ export type FreebirdXArticle = {
 export type FreebirdXPost = {
   allSameType: boolean;
   article: FreebirdXArticle | null;
+  card?: FreebirdXPostCard | null;
   combinedMediaUrl: string | null;
   communityNote: unknown | null;
   conversationID: string;
