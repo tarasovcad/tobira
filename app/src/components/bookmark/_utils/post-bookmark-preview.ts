@@ -1,10 +1,12 @@
 import type {PostBookmark} from "@/components/bookmark/types";
 import type {PostImages} from "@/db/schema";
+import type {FreebirdXPostMediaItem} from "@/lib/fetch/post";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {isPostImages} from "./bookmark-image-guards";
 import type {MediaGalleryEntry} from "./media-grid-render";
 
 type StoredPostMediaItem = PostImages["items"][number];
+type StoredPostArticleItem = NonNullable<PostImages["articleItems"]>[number];
 type PostMediaGroup = "main" | "qrt";
 type PostPreviewVariant = "list" | "menu";
 
@@ -16,6 +18,8 @@ export type PostBookmarkPreviewItem = {
   poster?: string;
   width: number;
   height: number;
+  aspectRatio?: number;
+  durationMillis?: number | null;
   alt: string;
 };
 
@@ -86,15 +90,45 @@ function getPreviewSize(variant: PostPreviewVariant) {
   return variant === "menu" ? "small" : "medium";
 }
 
+function getMetadataPostMediaItems(
+  item: PostBookmark,
+  group: PostMediaGroup,
+): FreebirdXPostMediaItem[] {
+  const post = item.metadata?.tweet.post;
+  if (!post) return [];
+
+  return group === "qrt" ? (post.qrt?.post.media_extended ?? []) : post.media_extended;
+}
+
+function getMetadataReplyMediaItems(item: PostBookmark, tweetId: string): FreebirdXPostMediaItem[] {
+  return (
+    item.metadata?.reply_chain?.find((reply) => reply.post.tweetID === tweetId)?.post
+      .media_extended ?? []
+  );
+}
+
+function getMetadataMediaAspectRatio(item?: FreebirdXPostMediaItem) {
+  const [width, height] = item?.aspect_ratio ?? [];
+  if (!width || !height || width <= 0 || height <= 0) {
+    return undefined;
+  }
+
+  return width / height;
+}
+
 function buildStoredPreviewItem(
   item: StoredPostMediaItem,
   processing: boolean,
   variant: PostPreviewVariant,
+  aspectRatio?: number,
+  durationMillis?: number | null,
 ): PostBookmarkPreviewItem {
   const previewSize = getPreviewSize(variant);
   const baseItem = {
     width: item.width ?? 1200,
     height: item.height ?? 1200,
+    ...(aspectRatio ? {aspectRatio} : {}),
+    ...(durationMillis != null ? {durationMillis} : {}),
     alt: item.alt ?? "",
   };
 
@@ -160,7 +194,17 @@ export function getPostBookmarkMediaPreviewItems(
 ): PostBookmarkPreviewItem[] {
   const storedItems = getStoredPostMediaItems(item.images, group);
   const processing = isPostMediaProcessing(item.images);
-  return storedItems.map((mediaItem) => buildStoredPreviewItem(mediaItem, processing, variant));
+  const metadataItems = getMetadataPostMediaItems(item, group);
+
+  return storedItems.map((mediaItem, mediaIndex) =>
+    buildStoredPreviewItem(
+      mediaItem,
+      processing,
+      variant,
+      getMetadataMediaAspectRatio(metadataItems.at(mediaIndex)),
+      metadataItems.at(mediaIndex)?.duration_millis ?? null,
+    ),
+  );
 }
 
 export function getPostBookmarkReplyMediaPreviewItems(
@@ -174,8 +218,52 @@ export function getPostBookmarkReplyMediaPreviewItems(
 
   const reply = item.images.replyItems?.find((replyItem) => replyItem.tweetId === tweetId);
   const processing = isPostMediaProcessing(item.images);
-  return (reply?.items ?? []).map((mediaItem) =>
-    buildStoredPreviewItem(mediaItem, processing, variant),
+  const metadataItems = getMetadataReplyMediaItems(item, tweetId);
+
+  return (reply?.items ?? []).map((mediaItem, mediaIndex) =>
+    buildStoredPreviewItem(
+      mediaItem,
+      processing,
+      variant,
+      getMetadataMediaAspectRatio(metadataItems.at(mediaIndex)),
+      metadataItems.at(mediaIndex)?.duration_millis ?? null,
+    ),
+  );
+}
+
+export function getPostBookmarkArticleCoverPreviewItem(
+  item: PostBookmark,
+  variant: PostPreviewVariant,
+  articleIndex = 0,
+): PostBookmarkPreviewItem | null {
+  if (!isPostImages(item.images)) {
+    return null;
+  }
+
+  const articleItems = item.images.articleItems ?? [];
+  let currentCoverIndex = 0;
+  const articleItem =
+    articleItems.find((mediaItem) => {
+      if (mediaItem.articleMediaType !== "cover") {
+        return false;
+      }
+
+      if (currentCoverIndex === articleIndex) {
+        return true;
+      }
+
+      currentCoverIndex += 1;
+      return false;
+    }) ?? (articleIndex === 0 ? (articleItems.find(() => true) ?? null) : null);
+
+  if (!articleItem) {
+    return null;
+  }
+
+  return buildStoredPreviewItem(
+    articleItem satisfies StoredPostArticleItem,
+    isPostMediaProcessing(item.images),
+    variant,
   );
 }
 

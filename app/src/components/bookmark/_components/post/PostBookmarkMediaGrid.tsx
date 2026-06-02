@@ -24,6 +24,14 @@ type PostMediaGalleryContext = {
   controller: MediaGalleryController;
 };
 
+function getPreviewItemAspectRatio(item: PostBookmarkPreviewItem) {
+  if (item.aspectRatio && item.aspectRatio > 0) {
+    return item.aspectRatio;
+  }
+
+  return item.width > 0 && item.height > 0 ? item.width / item.height : 1.777;
+}
+
 function MediaGridContent({
   media,
   gallery,
@@ -38,10 +46,7 @@ function MediaGridContent({
 
   let containerAspect = 1.777;
   if (count === 1) {
-    const img = items[0];
-    const w = img.width;
-    const h = img.height;
-    containerAspect = Math.max(0.8, Math.min(2.0, w / h));
+    containerAspect = getPreviewItemAspectRatio(items[0]);
   }
 
   return (
