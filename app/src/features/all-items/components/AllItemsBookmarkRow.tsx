@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import {memo, useCallback, type MouseEvent} from "react";
 import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {
@@ -13,6 +13,7 @@ import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-s
 
 interface AllItemsBookmarkRowProps {
   item: Bookmark;
+  onOpenDetail?: (item: Bookmark) => void;
   renderId?: string;
   mediaIndex?: number;
   galleryItem?: AllItemsBookmarkComponentProps["galleryItem"];
@@ -34,6 +35,7 @@ interface AllItemsBookmarkRowProps {
 
 function AllItemsBookmarkRowImpl({
   item,
+  onOpenDetail,
   renderId,
   mediaIndex,
   galleryItem,
@@ -54,8 +56,8 @@ function AllItemsBookmarkRowImpl({
 }: AllItemsBookmarkRowProps) {
   const openMenu = useBookmarkMenuStore((state) => state.openMenu);
   const openDeleteDialog = useDeleteBookmarkDialogStore((state) => state.openDialog);
-  const handleRowClickCapture = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleRowClickCapture = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
       if (!selectionMode) return;
       e.preventDefault();
       e.stopPropagation();
@@ -63,7 +65,7 @@ function AllItemsBookmarkRowImpl({
     },
     [item.id, selectionMode, toggleSelected],
   );
-  const handleOpenMenu = React.useCallback(
+  const handleOpenMenu = useCallback(
     (bookmark: Bookmark) =>
       openMenu(bookmark, {
         onArchive: onMenuArchive,
@@ -71,7 +73,7 @@ function AllItemsBookmarkRowImpl({
       }),
     [onMenuArchive, onMenuDelete, openMenu],
   );
-  const handleDelete = React.useCallback(
+  const handleDelete = useCallback(
     (bookmark: Bookmark) => openDeleteDialog([bookmark]),
     [openDeleteDialog],
   );
@@ -95,6 +97,7 @@ function AllItemsBookmarkRowImpl({
         onClickCapture={handleRowClickCapture}>
         <BookmarkItem
           item={item}
+          onOpenDetail={onOpenDetail}
           onOpenMenu={handleOpenMenu}
           onDelete={handleDelete}
           renderId={renderId}
@@ -110,10 +113,11 @@ function AllItemsBookmarkRowImpl({
   );
 }
 
-export const AllItemsBookmarkRow = React.memo(
+export const AllItemsBookmarkRow = memo(
   AllItemsBookmarkRowImpl,
   (prev, next) =>
     prev.item === next.item &&
+    prev.onOpenDetail === next.onOpenDetail &&
     prev.renderId === next.renderId &&
     prev.mediaIndex === next.mediaIndex &&
     prev.galleryItem?.index === next.galleryItem?.index &&

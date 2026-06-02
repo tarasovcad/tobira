@@ -34,6 +34,7 @@ export type AllItemsAnimatedVariant = "list" | "grid";
 
 export interface AllItemsBookmarkComponentProps {
   item: Bookmark;
+  onOpenDetail?: (item: Bookmark) => void;
   onOpenMenu?: (item: Bookmark) => void;
   onDelete?: (item: Bookmark) => void;
   onSave?: (item: Bookmark) => void;

@@ -39,6 +39,7 @@ interface AllItemsListProps {
   view: ViewMode;
   typeFilter: TypeFilter;
   visibleItems: Bookmark[];
+  onOpenDetail?: (item: Bookmark) => void;
   animatingUrl: string | null;
   animatingItemCount: number;
   animatingTags?: string[];
@@ -65,6 +66,7 @@ export function AllItemsList({
   view,
   typeFilter,
   visibleItems,
+  onOpenDetail,
   animatingUrl,
   animatingItemCount,
   animatingTags,
@@ -225,6 +227,7 @@ export function AllItemsList({
       <AllItemsBookmarkRow
         key={entry.renderId}
         item={entry.item}
+        onOpenDetail={onOpenDetail}
         renderId={entry.renderId}
         mediaIndex={entry.mediaIndex}
         galleryItem={
@@ -264,6 +267,7 @@ export function AllItemsList({
     getItemSelectionIndex,
     mediaGalleryEntries,
     mediaGalleryController,
+    onOpenDetail,
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,

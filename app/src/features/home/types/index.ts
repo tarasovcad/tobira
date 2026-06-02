@@ -7,6 +7,7 @@ export type {BookmarkMetadata} from "@/components/bookmark/types/metadata";
 export type SearchParams = {
   tag?: string;
   collection?: string;
+  id?: string;
   type?: TypeFilter;
   sort?: SortMode;
 };

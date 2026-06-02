@@ -1,6 +1,8 @@
 import {defineConfig, globalIgnores} from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 import unusedImports from "eslint-plugin-unused-imports";
 import security from "eslint-plugin-security";
 
@@ -17,6 +19,8 @@ const eslintConfig = defineConfig([
   ]),
   {
     plugins: {
+      react: react,
+      "react-hooks": reactHooks,
       "unused-imports": unusedImports,
       security: security,
     },
