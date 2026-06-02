@@ -11,11 +11,24 @@ const ALLOWED_ORIGINS = [
 
 const PROXY_CACHE_CONTROL =
   "public, max-age=86400, stale-while-revalidate=3600";
+const PROXY_VARY = "Accept-Encoding, Origin";
 const R2_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const FAVICON_URL = "https://tobira.app/logo/favicon.svg";
+const FAVICON_PATHS = new Set(["/favicon.ico", "/favicon.svg"]);
 const VIDEO_PREFIX = "videos/";
 const TWITTER_VIDEO_HOST = "video.twimg.com";
 
 type ParsedRange = { start: number; end: number } | { invalid: true };
+
+function faviconResponse(): Response {
+  return new Response(null, {
+    status: 308,
+    headers: {
+      Location: FAVICON_URL,
+      "Cache-Control": R2_CACHE_CONTROL,
+    },
+  });
+}
 
 function corsHeaders(origin: string | null): HeadersInit {
   const allowed =
@@ -34,7 +47,7 @@ function corsHeaders(origin: string | null): HeadersInit {
 function jsonError(
   message: string,
   status: number,
-  origin: string | null,
+  origin: string | null
 ): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
@@ -47,7 +60,7 @@ function jsonError(
 
 function parseRangeHeader(
   rangeHeader: string | null,
-  size: number,
+  size: number
 ): ParsedRange | null {
   if (!rangeHeader) {
     return null;
@@ -93,7 +106,7 @@ function parseRangeHeader(
 async function handleR2Video(
   request: Request,
   env: Env,
-  origin: string | null,
+  origin: string | null
 ): Promise<Response> {
   const url = new URL(request.url);
   const key = url.pathname.startsWith("/")
@@ -144,7 +157,7 @@ async function handleR2Video(
   headers.set("etag", object.httpEtag);
   headers.set(
     "content-length",
-    String(validRange ? validRange.end - validRange.start + 1 : head.size),
+    String(validRange ? validRange.end - validRange.start + 1 : head.size)
   );
   if (!headers.has("content-type")) {
     headers.set("content-type", "video/mp4");
@@ -154,7 +167,7 @@ async function handleR2Video(
   if (validRange) {
     headers.set(
       "content-range",
-      `bytes ${validRange.start}-${validRange.end}/${head.size}`,
+      `bytes ${validRange.start}-${validRange.end}/${head.size}`
     );
   }
 
@@ -167,7 +180,7 @@ async function handleR2Video(
 async function handleTwitterProxy(
   request: Request,
   origin: string | null,
-  targetUrl: string,
+  targetUrl: string
 ): Promise<Response> {
   let parsed: URL;
   try {
@@ -186,13 +199,16 @@ async function handleTwitterProxy(
 
   const cache = caches.default;
   const cacheKey = new Request(targetUrl, { method: "GET" });
-  const cached = request.method === "GET" ? await cache.match(cacheKey) : null;
+  const hasRange = request.headers.has("range");
+  const cached =
+    request.method === "GET" && !hasRange ? await cache.match(cacheKey) : null;
   if (cached) {
     const response = new Response(cached.body, cached);
     response.headers.set("cf-cache-status", "HIT");
     for (const [key, value] of Object.entries(corsHeaders(origin))) {
       response.headers.set(key, value);
     }
+    response.headers.set("vary", PROXY_VARY);
     return response;
   }
 
@@ -214,17 +230,17 @@ async function handleTwitterProxy(
     return jsonError(
       isTimeout ? "Upstream timed out" : "Upstream fetch failed",
       isTimeout ? 504 : 502,
-      origin,
+      origin
     );
   }
 
   const headers = new Headers(corsHeaders(origin));
   headers.set(
     "content-type",
-    upstream.headers.get("content-type") ?? "video/mp4",
+    upstream.headers.get("content-type") ?? "video/mp4"
   );
   headers.set("cache-control", PROXY_CACHE_CONTROL);
-  headers.set("vary", "Accept-Encoding, Origin");
+  headers.set("vary", PROXY_VARY);
 
   const passthroughHeaders = [
     "accept-ranges",
@@ -245,10 +261,10 @@ async function handleTwitterProxy(
     {
       status: upstream.status,
       headers,
-    },
+    }
   );
 
-  if (request.method === "GET" && upstream.status === 200) {
+  if (request.method === "GET" && !hasRange && upstream.status === 200) {
     await cache.put(cacheKey, response.clone());
   }
 
@@ -279,6 +295,10 @@ export default {
     }
 
     const url = new URL(request.url);
+    if (FAVICON_PATHS.has(url.pathname)) {
+      return faviconResponse();
+    }
+
     if (url.pathname.startsWith(`/${VIDEO_PREFIX}`)) {
       return handleR2Video(request, env, origin);
     }

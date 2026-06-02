@@ -108,7 +108,7 @@ export default function WebsiteBookmarkGridImage({
         {baseSrc ? (
           <MediaPreview
             src={`${baseSrc}?size=${previewSize}&format=webp&v=${attempt}`}
-            fullSizeSrc={`${baseSrc}?size=large&&v=${attempt}`}
+            fullSizeSrc={`${baseSrc}?size=large&v=${attempt}`}
             alt={`${item.title || item.url} preview`}
             width={preferredImage?.width ?? 1200}
             height={preferredImage?.height ?? 750}
@@ -117,6 +117,7 @@ export default function WebsiteBookmarkGridImage({
             loading="lazy"
             openSignal={previewOpenSignal}
             disableClickToOpen={true}
+            isGallery={false}
             showFallback={!hasValidImage}
             className={cn(
               status === "loaded" ? "opacity-100" : "opacity-0",

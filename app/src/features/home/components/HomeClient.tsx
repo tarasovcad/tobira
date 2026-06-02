@@ -1,13 +1,15 @@
 "use client";
 
-import {useMemo, useRef} from "react";
+import {useCallback, useMemo, useRef} from "react";
 import NumberFlow from "@number-flow/react";
+import {useQuery} from "@tanstack/react-query";
 
 // Components
 import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {CollectionHeader} from "@/features/home/components/CollectionHeader";
 import {TagHeader} from "@/features/home/components/TagHeader";
 import {HomeToolbar} from "@/features/home/components/HomeToolbar";
+import {PostBookmarkDetailView} from "@/features/home/components/PostBookmarkDetailView";
 
 // Hooks
 import {useBookmarksSelection} from "@/features/home/hooks/use-bookmarks-selection";
@@ -17,18 +19,20 @@ import {useHomeDialogs} from "@/features/home/hooks/use-home-dialogs";
 import {useHomeFilters} from "@/features/home/hooks/use-home-filters";
 import {useHomeInfiniteScroll} from "@/features/home/hooks/use-home-infinite-scroll";
 import {useHomeShortcuts} from "@/features/home/hooks/use-home-shortcuts";
+import {usePostDetailUrl} from "@/features/home/hooks/use-post-detail-url";
 
 import {useBookmarksQuery} from "@/features/home/hooks/use-bookmarks-query";
 import {HomeEmptyState} from "@/features/home/components/HomeEmptyState";
 import {CollectionNotFoundState} from "@/features/home/components/CollectionNotFoundState";
 import {TagNotFoundState} from "@/features/home/components/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import type {Bookmark} from "@/components/bookmark/types";
+import type {Bookmark, PostBookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
 import type {TypeFilter, SortMode, TagWithCount} from "@/features/home/types";
 import {AllItemsList} from "@/features/all-items/components/AllItemsList";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {getCurrentAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
+import {getPostBookmarkById} from "@/app/actions/bookmarks/getPostBookmarkById";
 
 /**
  * Main client component for the All Items / Home page.
@@ -54,6 +58,17 @@ export function HomeClient({
 }) {
   const {tagFilter, collectionFilter, typeFilter, sort, handleTypeChange, handleSortChange} =
     useHomeFilters();
+  const {detailBookmarkId, openPostDetail, closePostDetail} = usePostDetailUrl();
+  const handleOpenPostDetail = useCallback(
+    (item: Bookmark) => {
+      if (item.kind !== "post") {
+        return;
+      }
+
+      openPostDetail(item.id);
+    },
+    [openPostDetail],
+  );
 
   const isServerDataMatching = serverFilters
     ? serverFilters.tagFilter === tagFilter &&
@@ -79,6 +94,30 @@ export function HomeClient({
       typeFilter,
       isServerDataMatching,
     });
+  const loadedDetailBookmark = useMemo(() => {
+    if (!detailBookmarkId) {
+      return null;
+    }
+
+    return (
+      allBookmarks.find(
+        (item): item is PostBookmark => item.kind === "post" && item.id === detailBookmarkId,
+      ) ?? null
+    );
+  }, [allBookmarks, detailBookmarkId]);
+  const detailBookmarkQuery = useQuery({
+    queryKey: ["bookmarks", "post-detail", userId, detailBookmarkId],
+    enabled: Boolean(userId && detailBookmarkId && !loadedDetailBookmark),
+    queryFn: async () => {
+      if (!detailBookmarkId) {
+        return null;
+      }
+
+      return await getPostBookmarkById(detailBookmarkId);
+    },
+  });
+  const detailBookmark = loadedDetailBookmark ?? detailBookmarkQuery.data ?? null;
+  const isPostDetailOpen = typeFilter === "post" && Boolean(detailBookmarkId);
 
   // Mutation Hook
   const {
@@ -93,6 +132,7 @@ export function HomeClient({
     handleTransitionDone,
     archiveMutation,
   } = useBookmarksMutations({
+    typeFilter,
     tagFilter,
     activeTagName: activeTag?.name ?? null,
     allBookmarks,
@@ -142,6 +182,7 @@ export function HomeClient({
     selectedIds,
     onDeleted: handleClearSelection,
   });
+  const openMenu = useBookmarkMenuStore((state) => state.openMenu);
   const closeMenu = useBookmarkMenuStore((state) => state.closeMenu);
 
   // Refs for infinite scroll
@@ -173,6 +214,14 @@ export function HomeClient({
     onArchiveSingleDone: closeMenu,
     onArchiveSelectedDone: handleClearSelection,
   });
+  const handleOpenDetailMenu = useCallback(
+    (item: Bookmark) =>
+      openMenu(item, {
+        onArchive: handleArchive,
+        onDelete: openDeleteDialog,
+      }),
+    [handleArchive, openDeleteDialog, openMenu],
+  );
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -192,7 +241,7 @@ export function HomeClient({
         onSelectionEnabledChange={setSelectionEnabled}
       />
       {/* Item count */}
-      {!activeCollection && !tagFilter && userId && (
+      {!isPostDetailOpen && !activeCollection && !tagFilter && userId && (
         <div
           className={cn(
             "text-muted-foreground border-border flex items-center gap-1 px-6 py-3 text-sm",
@@ -203,7 +252,18 @@ export function HomeClient({
         </div>
       )}
       {/* Scrollable content area */}
-      {isCollectionNotFound ? (
+      {isPostDetailOpen && detailBookmarkId ? (
+        <div className="min-h-0 flex-1">
+          <PostBookmarkDetailView
+            detailBookmarkId={detailBookmarkId}
+            item={detailBookmark}
+            isError={detailBookmarkQuery.isError}
+            isLoading={!detailBookmark && detailBookmarkQuery.isLoading}
+            onBack={closePostDetail}
+            onOpenMenu={handleOpenDetailMenu}
+          />
+        </div>
+      ) : isCollectionNotFound ? (
         <CollectionNotFoundState collectionName={collectionFilter} />
       ) : isTagNotFound ? (
         <TagNotFoundState />
@@ -214,6 +274,7 @@ export function HomeClient({
           view={view}
           typeFilter={typeFilter}
           visibleItems={visibleItems}
+          onOpenDetail={handleOpenPostDetail}
           animatingUrl={animatingUrl}
           animatingItemCount={animatingItemCount}
           animatingTags={animatingTags}

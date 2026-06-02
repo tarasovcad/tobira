@@ -16,7 +16,7 @@ import {AllItemsAnimatingPlaceholders} from "@/features/all-items/components/All
 import {AllItemsBookmarkRow} from "@/features/all-items/components/AllItemsBookmarkRow";
 import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
 import {buildMediaGalleryEntries} from "@/components/bookmark/_utils/media-grid-render";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {getBookmarkMediaPreviewSizeForColumnSize} from "@/components/bookmark/_utils/media-grid-image-config";
 import {useMediaGalleryPreview} from "@/features/media/hooks/useMediaGalleryPreview";
 import {MediaGalleryOverlay} from "@/features/media/components/MediaGalleryOverlay";
@@ -39,10 +39,11 @@ interface AllItemsListProps {
   view: ViewMode;
   typeFilter: TypeFilter;
   visibleItems: Bookmark[];
+  onOpenDetail?: (item: Bookmark) => void;
   animatingUrl: string | null;
   animatingItemCount: number;
   animatingTags?: string[];
-  pendingMediaItems?: MediaMediaItem[];
+  pendingMediaItems?: BookmarkMediaItem[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
   hasNextPage: boolean;
@@ -65,6 +66,7 @@ export function AllItemsList({
   view,
   typeFilter,
   visibleItems,
+  onOpenDetail,
   animatingUrl,
   animatingItemCount,
   animatingTags,
@@ -225,6 +227,7 @@ export function AllItemsList({
       <AllItemsBookmarkRow
         key={entry.renderId}
         item={entry.item}
+        onOpenDetail={onOpenDetail}
         renderId={entry.renderId}
         mediaIndex={entry.mediaIndex}
         galleryItem={
@@ -244,7 +247,9 @@ export function AllItemsList({
         animatedVariant={animatedVariant}
         isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
-        className={typeFilter === "post" && entry.bookmarkIndex === 0 ? "pt-6" : undefined}
+        className={
+          typeFilter === "post" && entry.bookmarkIndex === 0 && !animatingUrl ? "pt-6" : undefined
+        }
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
@@ -254,6 +259,7 @@ export function AllItemsList({
     ));
   }, [
     isInitialLoad,
+    animatingUrl,
     isMediaGrid,
     layoutConfig,
     bookmarkItemComponent,
@@ -261,6 +267,7 @@ export function AllItemsList({
     getItemSelectionIndex,
     mediaGalleryEntries,
     mediaGalleryController,
+    onOpenDetail,
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,
@@ -275,6 +282,7 @@ export function AllItemsList({
 
   const body = (
     <>
+      {/* <PostBookmarkPlaceholderList /> */}
       <AllItemsAnimatingPlaceholders
         animatingUrl={animatingUrl}
         animatingItemCount={animatingItemCount}

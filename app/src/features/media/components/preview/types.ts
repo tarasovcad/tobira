@@ -29,6 +29,7 @@ export type MediaPreviewProps = {
   loading?: "eager" | "lazy";
   openSignal?: number;
   disableClickToOpen?: boolean;
+  isGallery?: boolean;
   className?: string;
   buttonClassName?: string;
   previewClassName?: string;

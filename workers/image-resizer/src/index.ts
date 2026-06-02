@@ -1,4 +1,9 @@
-import { PhotonImage, SamplingFilter, resize, crop } from "@cf-wasm/photon/workerd";
+import {
+  PhotonImage,
+  SamplingFilter,
+  resize,
+  crop,
+} from "@cf-wasm/photon/workerd";
 
 export interface Env {
   BOOKMARKS: R2Bucket;
@@ -7,33 +12,98 @@ export interface Env {
 const SIZES = {
   thumb: 50,
   small: 680,
-  medium: 1200,
-  large: 2048,
-};
+  medium: 2048,
+} as const;
 
-type SizeType = keyof typeof SIZES | "original";
-type FormatType = "webp" | "jpg" | "jpeg" | "png" | "original";
+type ResizeSizeType = keyof typeof SIZES;
+type SizeType = ResizeSizeType | "large";
+type FormatType = "webp" | "jpg" | "jpeg" | "png";
 
 const CACHE_CONTROL = "public, max-age=31536000, immutable";
+const FAVICON_URL = "https://tobira.app/logo/favicon.svg";
+const FAVICON_PATHS = new Set(["/favicon.ico", "/favicon.svg"]);
+
+function normalizeSizeParam(size: string | null): SizeType {
+  if (size === "thumb" || size === "small" || size === "medium") {
+    return size;
+  }
+
+  // "large" is now the public original/passthrough size. Legacy "original"
+  // and missing/unknown values use the same behavior.
+  return "large";
+}
+
+function normalizeFormatParam(format: string | null): FormatType {
+  const normalized = format?.toLowerCase();
+
+  if (
+    normalized === "webp" ||
+    normalized === "jpg" ||
+    normalized === "jpeg" ||
+    normalized === "png"
+  ) {
+    return normalized;
+  }
+
+  return "webp";
+}
+
+function buildCacheKeyUrl(
+  url: URL,
+  size: SizeType,
+  format: FormatType,
+  sourceEtag: string
+) {
+  const cacheUrl = new URL(url.origin);
+  cacheUrl.pathname = url.pathname;
+  cacheUrl.searchParams.set("size", size);
+  cacheUrl.searchParams.set("source_etag", sourceEtag);
+
+  if (size !== "large") {
+    cacheUrl.searchParams.set("format", format);
+  }
+
+  return cacheUrl;
+}
+
+function buildDerivativeKey(
+  originalPath: string,
+  sourceEtag: string,
+  size: ResizeSizeType,
+  format: FormatType
+) {
+  return `_cache/${originalPath}__${sourceEtag}__${size}__${format}`;
+}
+
+function faviconResponse(): Response {
+  return new Response(null, {
+    status: 308,
+    headers: {
+      Location: FAVICON_URL,
+      "Cache-Control": CACHE_CONTROL,
+    },
+  });
+}
 
 export default {
   async fetch(
     request: Request,
     env: Env,
-    ctx: ExecutionContext,
+    ctx: ExecutionContext
   ): Promise<Response> {
     const url = new URL(request.url);
+
+    if (FAVICON_PATHS.has(url.pathname)) {
+      return faviconResponse();
+    }
 
     if (request.method !== "GET") {
       return Response.json({ error: "Method not allowed" }, { status: 405 });
     }
 
     // 2. Parse params
-    const sizeParam = (url.searchParams.get("size") || "original") as SizeType;
-    // Default to original if no format is provided
-    const formatParam = (
-      url.searchParams.get("format") || "original"
-    ).toLowerCase() as FormatType;
+    const sizeParam = normalizeSizeParam(url.searchParams.get("size"));
+    const formatParam = normalizeFormatParam(url.searchParams.get("format"));
 
     const originalPath = url.pathname.startsWith("/")
       ? url.pathname.slice(1)
@@ -42,11 +112,21 @@ export default {
       return Response.json({ error: "Missing image path" }, { status: 400 });
     }
 
+    const originalHead = await env.BOOKMARKS.head(originalPath);
+    if (!originalHead) {
+      return Response.json({ error: "Not found" }, { status: 404 });
+    }
+
     // Edge cache lookup
     const cache = caches.default;
-    // Remove search params for edge cache key if we want to normalize it,
-    // but url with search params is fine because they are part of the cache key.
-    const cacheKey = new Request(url.toString(), request);
+    // Include the source ETag so reused paths do not share stale cache entries.
+    const cacheKeyUrl = buildCacheKeyUrl(
+      url,
+      sizeParam,
+      formatParam,
+      originalHead.etag
+    );
+    const cacheKey = new Request(cacheKeyUrl.toString(), request);
     const cachedResponse = await cache.match(cacheKey);
     if (cachedResponse) {
       // Tag so you can tell it was a cache hit in DevTools.
@@ -55,17 +135,25 @@ export default {
       return r;
     }
 
-    const r2DerivativeKey = `_cache/${originalPath}__${sizeParam}__${formatParam}`;
-
     // 3. R2 derivative lookup
-    const derivativeObj = await env.BOOKMARKS.get(r2DerivativeKey);
+    const derivativeObj =
+      sizeParam === "large"
+        ? null
+        : await env.BOOKMARKS.get(
+            buildDerivativeKey(
+              originalPath,
+              originalHead.etag,
+              sizeParam,
+              formatParam
+            )
+          );
     if (derivativeObj) {
       const headers = new Headers();
       derivativeObj.writeHttpMetadata(headers);
       headers.set("Cache-Control", CACHE_CONTROL);
       headers.set(
         "ETag",
-        `W/"${sizeParam}-${formatParam}-${derivativeObj.etag}"`,
+        `W/"${sizeParam}-${formatParam}-${originalHead.etag}"`
       );
       headers.set("cf-cache-status", "MISS-R2-HIT"); // Custom header for debugging
 
@@ -80,9 +168,8 @@ export default {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 
-    // OPTIMIZATION: If they want original size AND original format,
-    // we skip processing entirely and just serve the R2 file!
-    if (sizeParam === "original" && formatParam === "original") {
+    // "large" is the original R2 object and does not go through Photon.
+    if (sizeParam === "large") {
       const headers = new Headers();
       originalObj.writeHttpMetadata(headers);
       headers.set("Cache-Control", CACHE_CONTROL);
@@ -104,7 +191,7 @@ export default {
       let resized = false;
 
       // Resize if needed
-      if (sizeParam !== "original" && SIZES[sizeParam]) {
+      if (sizeParam in SIZES) {
         const targetWidth = SIZES[sizeParam];
         const originalWidth = inputImage.get_width();
         const originalHeight = inputImage.get_height();
@@ -112,23 +199,46 @@ export default {
         if (sizeParam === "thumb") {
           // Exact square with center crop
           const targetSize = targetWidth;
-          const scale = Math.max(targetSize / originalWidth, targetSize / originalHeight);
-          const scaledWidth = Math.max(targetSize, Math.round(originalWidth * scale));
-          const scaledHeight = Math.max(targetSize, Math.round(originalHeight * scale));
+          const scale = Math.max(
+            targetSize / originalWidth,
+            targetSize / originalHeight
+          );
+          const scaledWidth = Math.max(
+            targetSize,
+            Math.round(originalWidth * scale)
+          );
+          const scaledHeight = Math.max(
+            targetSize,
+            Math.round(originalHeight * scale)
+          );
 
           let scaledImage = inputImage;
           let needsFree = false;
 
-          if (scaledWidth !== originalWidth || scaledHeight !== originalHeight) {
-            scaledImage = resize(inputImage, scaledWidth, scaledHeight, SamplingFilter.Lanczos3);
+          if (
+            scaledWidth !== originalWidth ||
+            scaledHeight !== originalHeight
+          ) {
+            scaledImage = resize(
+              inputImage,
+              scaledWidth,
+              scaledHeight,
+              SamplingFilter.Lanczos3
+            );
             needsFree = true;
           }
 
           const x1 = Math.floor((scaledWidth - targetSize) / 2);
           const y1 = Math.floor((scaledHeight - targetSize) / 2);
 
-          processedImage = crop(scaledImage, x1, y1, x1 + targetSize, y1 + targetSize);
-          
+          processedImage = crop(
+            scaledImage,
+            x1,
+            y1,
+            x1 + targetSize,
+            y1 + targetSize
+          );
+
           if (needsFree) {
             scaledImage.free();
           }
@@ -136,33 +246,23 @@ export default {
         } else if (originalWidth > targetWidth) {
           // Using Lanczos3 for better quality downscaling
           const targetHeight = Math.round(
-            (originalHeight / originalWidth) * targetWidth,
+            (originalHeight / originalWidth) * targetWidth
           );
           processedImage = resize(
             inputImage,
             targetWidth,
             targetHeight,
-            SamplingFilter.Lanczos3,
+            SamplingFilter.Lanczos3
           );
           resized = true;
         }
       }
 
-      // Determine final output format
-      let targetFormat = formatParam;
-      if (targetFormat === "original") {
-        // Try to guess from original path extension
-        const ext = originalPath.split(".").pop()?.toLowerCase();
-        if (ext === "jpg" || ext === "jpeg") targetFormat = "jpeg";
-        else if (ext === "png") targetFormat = "png";
-        else targetFormat = "webp"; // Fallback
-      }
-
       // Format output
-      if (targetFormat === "webp") {
+      if (formatParam === "webp") {
         outputBytes = processedImage.get_bytes_webp();
         contentType = "image/webp";
-      } else if (targetFormat === "jpg" || targetFormat === "jpeg") {
+      } else if (formatParam === "jpg" || formatParam === "jpeg") {
         // Quality 85 is a good balance for jpeg
         outputBytes = processedImage.get_bytes_jpeg(85);
         contentType = "image/jpeg";
@@ -178,18 +278,32 @@ export default {
       inputImage.free();
     } catch (e) {
       console.error("Photon processing error:", e);
-      return Response.json(
-        { error: "Image processing failed" },
-        { status: 500 },
-      );
+      const headers = new Headers();
+      originalObj.writeHttpMetadata(headers);
+      headers.set("Cache-Control", "no-store");
+      headers.set("cf-cache-status", "MISS-R2-PASSTHROUGH-ERROR");
+      headers.set("ETag", `W/"original-${originalObj.etag}"`);
+      headers.set("x-image-derivative-error", "1");
+
+      const response = new Response(inputBytes, { headers });
+      return response;
     }
 
     // 5. Store derivative back to R2
-    await env.BOOKMARKS.put(r2DerivativeKey, outputBytes, {
-      httpMetadata: {
-        contentType,
-      },
-    });
+    await env.BOOKMARKS.put(
+      buildDerivativeKey(
+        originalPath,
+        originalHead.etag,
+        sizeParam,
+        formatParam
+      ),
+      outputBytes,
+      {
+        httpMetadata: {
+          contentType,
+        },
+      }
+    );
 
     // 6. Respond
     const responseHeaders = new Headers();
@@ -197,7 +311,7 @@ export default {
     responseHeaders.set("Cache-Control", CACHE_CONTROL);
     responseHeaders.set(
       "ETag",
-      `W/"${sizeParam}-${formatParam}-${originalObj.etag}"`,
+      `W/"${sizeParam}-${formatParam}-${originalObj.etag}"`
     );
     responseHeaders.set("cf-cache-status", "MISS");
 

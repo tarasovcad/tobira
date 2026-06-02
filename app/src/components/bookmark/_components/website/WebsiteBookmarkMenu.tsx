@@ -2,6 +2,7 @@
 
 import {useState, useMemo, useEffect, useCallback} from "react";
 import {Controller} from "react-hook-form";
+import {cn} from "@/lib/utils";
 import {formatDateWithTime} from "@/lib/utils/dates";
 import {Sheet, SheetContent, SheetHeader, SheetPanel, SheetTitle} from "@/components/ui/coss/sheet";
 import {Button} from "@/components/ui/coss/button";
@@ -28,6 +29,7 @@ import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import WebsiteBookmarkPreviewDialog from "./WebsiteBookmarkPreviewDialog";
 import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
+import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
 import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark-schema";
 import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
@@ -100,6 +102,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
   const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
   const websiteItem = item?.kind === "website" ? item : undefined;
   const isOpen = open && !!websiteItem;
+  const canClickMediaPreview = useBookmarkMenuPreviewClick(isOpen, websiteItem?.id);
 
   const data = useMemo(() => {
     return {
@@ -294,12 +297,17 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
             <div className="min-h-0 flex-1">
               <SheetPanel className="p-0 pt-0!">
                 {websiteItem?.id ? (
-                  <div className="bg-muted relative aspect-video w-full overflow-hidden border-b">
+                  <div
+                    className={cn(
+                      "bg-muted relative aspect-video w-full overflow-hidden border-b",
+                      !canClickMediaPreview && "pointer-events-none",
+                    )}>
                     <WebsiteBookmarkMenuImage
                       item={websiteItem}
                       type={currentValues.selected_image ?? "preview"}
                       fill
                       imageClassName="object-cover"
+                      disablePreviewOnClick={!canClickMediaPreview}
                     />
                   </div>
                 ) : (

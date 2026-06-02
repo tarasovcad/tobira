@@ -1,3 +1,31 @@
+export function formatShortPostDate(epoch: number): string {
+  const postedAt = epoch * 1000;
+  const diffMs = Date.now() - postedAt;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+  if (diffHours <= 23) {
+    const diffSecs = Math.floor(diffMs / 1000);
+    if (diffSecs < 60) return "now";
+    const diffMins = Math.floor(diffSecs / 60);
+    if (diffMins < 60) return `${diffMins}m`;
+    return `${diffHours}h`;
+  }
+
+  const d = new Date(postedAt);
+  return d.toLocaleDateString("en-US", {month: "short", day: "numeric"});
+}
+
+export function formatPostFullDate(epoch: number): string {
+  const d = new Date(epoch * 1000);
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
+  return `${time} · ${date}`;
+}
+
 export function formatDateAbsolute(date: string) {
   const dateObject = new Date(date);
   const options: Intl.DateTimeFormatOptions = {

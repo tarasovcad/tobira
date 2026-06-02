@@ -81,12 +81,12 @@ export function WebsiteSkeletonGrid({
 
 export function PostSkeletonList() {
   return (
-    <div className="border-border flex flex-col gap-4 border-b px-4 py-3">
+    <div className="border-border flex flex-col gap-[14px] border-b px-4 py-3 pt-6">
       <div className="flex items-center gap-2">
         <div className="bg-muted size-10 animate-pulse rounded-full" />
         <div className="flex flex-col gap-1.5">
-          <div className="bg-muted h-[15px] w-28 animate-pulse rounded" />
-          <div className="bg-muted h-[13px] w-20 animate-pulse rounded" />
+          <div className="bg-muted h-[18px] w-28 animate-pulse rounded" />
+          <div className="bg-muted h-[16px] w-20 animate-pulse rounded" />
         </div>
       </div>
       <div className="space-y-2">
@@ -94,7 +94,7 @@ export function PostSkeletonList() {
         <div className="bg-muted h-[15px] w-4/5 animate-pulse rounded" />
         <div className="bg-muted h-[15px] w-3/5 animate-pulse rounded" />
       </div>
-      <div className="bg-muted h-44 w-full animate-pulse rounded-[16px]" />
+      <div className="bg-muted h-[300px] w-full animate-pulse rounded-[16px]" />
     </div>
   );
 }

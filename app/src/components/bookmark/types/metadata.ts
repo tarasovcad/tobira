@@ -1,10 +1,15 @@
-export type MediaMediaItem = {
+import type {FreebirdXPostData} from "@/lib/fetch/post";
+
+export type BookmarkMediaItem = {
   type: "photo" | "video" | "gif";
   url: string;
-  url_small?: string;
-  url_large?: string;
   thumbnail_url?: string | null;
-  duration_millis?: number;
+  source_url?: string;
+  source_thumbnail_url?: string | null;
+  media_key?: string;
+  key?: string;
+  key_thumbnail?: string;
+  duration_millis?: number | null;
   size?: {width: number; height: number} | null;
   altText?: string | null;
 };
@@ -21,31 +26,6 @@ export type WebsiteOrMediaMetadata = {
   user_screen_name?: string;
 };
 
-export type PostBookmarkMetadata = {
-  platform: "x";
-  tweetId: string;
-  text: string;
-  date: string;
-  date_epoch: number;
-  user_name: string;
-  user_screen_name: string;
-  user_profile_image_url: string;
-  likes: number;
-  retweets: number;
-  replies: number;
-  lang: string;
-  hashtags: string[];
-  hasMedia: boolean;
-  media_extended: MediaMediaItem[];
-  qrt: {
-    tweetId: string;
-    text: string;
-    user_name: string;
-    user_screen_name: string;
-    user_profile_image_url: string;
-    hasMedia: boolean;
-    media_extended: MediaMediaItem[];
-  } | null;
-};
+export type PostBookmarkMetadata = FreebirdXPostData;
 
 export type BookmarkMetadata = WebsiteOrMediaMetadata | PostBookmarkMetadata;

@@ -1,4 +1,4 @@
-import type {MediaImages, WebsiteImages} from "@/db/schema";
+import type {MediaImages, PostImages, WebsiteImages} from "@/db/schema";
 import type {Bookmark} from "@/components/bookmark/types";
 
 export function isWebsiteImages(images: Bookmark["images"] | undefined): images is WebsiteImages {
@@ -10,5 +10,9 @@ export function isWebsiteImages(images: Bookmark["images"] | undefined): images 
 }
 
 export function isMediaImages(images: Bookmark["images"] | undefined): images is MediaImages {
+  return !!images && typeof images === "object" && "items" in images && Array.isArray(images.items);
+}
+
+export function isPostImages(images: Bookmark["images"] | undefined): images is PostImages {
   return !!images && typeof images === "object" && "items" in images && Array.isArray(images.items);
 }

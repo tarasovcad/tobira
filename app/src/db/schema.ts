@@ -34,6 +34,11 @@ export type VideoItem = {
   key_thumbnail?: string;
 };
 
+export type ArticleImageItem = ImageItem & {
+  articleMediaType: "cover" | "media_entity";
+  articleMediaIndex: number;
+};
+
 export type WebsiteImages = {
   favicon?: {key: string};
   og?: {key: string; width?: number; height?: number};
@@ -42,7 +47,14 @@ export type WebsiteImages = {
 };
 
 export type PostImages = {
+  processing?: boolean;
   items: (ImageItem | VideoItem)[];
+  qrtItems?: (ImageItem | VideoItem)[];
+  replyItems?: {
+    tweetId: string;
+    items: (ImageItem | VideoItem)[];
+  }[];
+  articleItems?: ArticleImageItem[];
 };
 
 export type MediaImages = {

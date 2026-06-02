@@ -4,16 +4,19 @@ import {archiveBookmarks} from "@/app/actions/bookmarks";
 import type {Bookmark} from "@/components/bookmark/types";
 import {toastManager} from "@/components/ui/coss/toast";
 import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
+import type {TypeFilter} from "@/features/home/types";
 
 /**
  * Manages mutation tracking (add/delete/archive)
  */
 export function useBookmarksMutations({
+  typeFilter,
   tagFilter,
   activeTagName,
   allBookmarks,
 }: {
+  typeFilter: TypeFilter;
   tagFilter: string | null;
   activeTagName: string | null;
   allBookmarks: Bookmark[];
@@ -34,12 +37,14 @@ export function useBookmarksMutations({
         if (d?.id) return [d.id];
         return [] as string[];
       })(),
-      kind: (m.state.variables as {kind: "website" | "media"} | undefined)?.kind,
+      kind: (m.state.variables as {kind: TypeFilter} | undefined)?.kind,
       selectedMediaUrls: (m.state.variables as {selectedMediaUrls?: string[]} | undefined)
         ?.selectedMediaUrls,
-      selectedMediaItems: (m.state.variables as {selectedMediaItems?: MediaMediaItem[]} | undefined)
-        ?.selectedMediaItems,
-      resultMediaItems: (m.state.data as {mediaItems?: MediaMediaItem[]} | undefined)?.mediaItems,
+      selectedMediaItems: (
+        m.state.variables as {selectedMediaItems?: BookmarkMediaItem[]} | undefined
+      )?.selectedMediaItems,
+      resultMediaItems: (m.state.data as {mediaItems?: BookmarkMediaItem[]} | undefined)
+        ?.mediaItems,
       hasMultipleMediaOptions:
         Array.isArray((m.state.data as {media?: string[]} | undefined)?.media) &&
         ((m.state.data as {media?: string[]} | undefined)?.media?.length ?? 0) > 1,
@@ -51,11 +56,12 @@ export function useBookmarksMutations({
   const isError = latestAdd?.status === "error";
   const inputUrl = latestAdd?.inputUrl;
   const latestAddAppliesToCurrentFilter =
-    tagFilter === null ||
-    (!!activeTagName &&
-      (latestAdd?.inputTags ?? []).some(
-        (t) => normalizeTagName(t) === normalizeTagName(activeTagName),
-      ));
+    latestAdd?.kind === typeFilter &&
+    (tagFilter === null ||
+      (!!activeTagName &&
+        (latestAdd?.inputTags ?? []).some(
+          (t) => normalizeTagName(t) === normalizeTagName(activeTagName),
+        )));
 
   // ── Delete/Archive mutation tracking ──
   const deletingIds = useMutationState({

@@ -4,13 +4,13 @@ import * as React from "react";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {AllItemsNewBookmarkPlaceholderProps} from "./all-items-list-layout";
 import {flattenMediaGridBookmarks} from "@/components/bookmark/_utils/media-grid-render";
-import type {MediaMediaItem} from "@/components/bookmark/types/metadata";
+import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 
 interface AllItemsAnimatingPlaceholdersProps {
   animatingUrl: string | null;
   animatingItemCount: number;
   animatingTags?: string[];
-  pendingMediaItems?: MediaMediaItem[];
+  pendingMediaItems?: BookmarkMediaItem[];
   resolvedBookmarks: Bookmark[];
   flattenMediaBookmarks?: boolean;
   onTransitionDone: () => void;

@@ -145,7 +145,7 @@ export function MediaPreviewTrigger({
                     sizes={sizes}
                     quality={quality}
                     loading={loading}
-                    className={cn(className, "h-full w-full object-contain")}
+                    className={cn("h-full w-full", className)}
                     unoptimized={unoptimized}
                     onLoad={onCanPlay}
                     onError={onError}

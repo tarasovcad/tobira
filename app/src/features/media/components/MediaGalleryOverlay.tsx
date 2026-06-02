@@ -216,6 +216,7 @@ export function MediaGalleryOverlay({
         fullSizeSrc={activePreviewItem.type === "image" ? activePreviewItem.fullSizeSrc : undefined}
         alt={activePreviewItem.alt}
         type={activePreviewItem.type}
+        isGallery
         addZoom={activePreviewItem.type === "image"}
         showFallback={false}
         videoSession={isCenterVideo ? centerVideoSession : undefined}
