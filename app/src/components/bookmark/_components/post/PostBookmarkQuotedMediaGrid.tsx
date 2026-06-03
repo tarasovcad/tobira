@@ -9,11 +9,22 @@ export function PostBookmarkQuotedCompactMediaGrid({media}: {media: PostBookmark
   if (!media.length) return null;
 
   const items = media.slice(0, 4);
+  const count = items.length;
 
   return (
-    <div className="mt-2 max-h-[100px] max-w-[100px] shrink-0 overflow-hidden rounded-xl border">
-      <div className={cn("grid gap-[2px]", items.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
-        {items.map((item) => {
+    <div
+      className={cn(
+        "mt-2 w-[100px] shrink-0 overflow-hidden rounded-xl border",
+        count === 2 ? "h-[50px]" : "h-[100px]",
+      )}>
+      <div
+        className={cn(
+          "grid h-full w-full gap-[2px]",
+          count === 1 ? "grid-cols-1" : "grid-cols-2",
+          count > 2 && "grid-rows-2",
+        )}>
+        {items.map((item, i) => {
+          const isFirstOfThree = count === 3 && i === 0;
           const isVideo = item.type === "video";
 
           return (
@@ -22,8 +33,8 @@ export function PostBookmarkQuotedCompactMediaGrid({media}: {media: PostBookmark
               role="img"
               aria-label={item.alt}
               className={cn(
-                "bg-muted relative overflow-hidden",
-                items.length === 1 ? "h-[100px] w-[100px]" : "aspect-square",
+                "bg-muted relative h-full w-full overflow-hidden",
+                isFirstOfThree && "row-span-2",
               )}>
               {isVideo ? (
                 <QuotedVideoPlaceholder item={item} />

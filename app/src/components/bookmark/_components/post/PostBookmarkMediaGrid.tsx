@@ -172,6 +172,10 @@ function PostMediaGalleryGrid({
   );
 }
 
+export function PostBookmarkMediaPreviewGrid({media}: {media: PostBookmarkPreviewItem[]}) {
+  return <MediaGridContent media={media} />;
+}
+
 export default function PostBookmarkMediaGrid({item}: {item: PostBookmark}) {
   const galleryEntries = useMemo(
     () => buildPostBookmarkMediaGalleryEntries(item, "main", "list"),
