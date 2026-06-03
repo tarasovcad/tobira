@@ -1,6 +1,10 @@
 import type {PostBookmark} from "@/components/bookmark/types";
-import type {PostImages} from "@/db/schema";
-import type {FreebirdXPostMediaItem} from "@/lib/fetch/post";
+import type {ArticleImageItem, PostImages} from "@/db/schema";
+import type {
+  FreebirdXArticle,
+  FreebirdXArticleMedia,
+  FreebirdXPostMediaItem,
+} from "@/lib/fetch/post";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {isPostImages} from "./bookmark-image-guards";
 import type {MediaGalleryEntry} from "./media-grid-render";
@@ -21,6 +25,13 @@ export type PostBookmarkPreviewItem = {
   aspectRatio?: number;
   durationMillis?: number | null;
   alt: string;
+};
+
+export type PostBookmarkArticlePreviewItem = PostBookmarkPreviewItem & {
+  articleMediaIndex: number;
+  articleMediaType: ArticleImageItem["articleMediaType"];
+  mediaId: string;
+  sourceUrl: string;
 };
 
 export type PostBookmarkMediaGalleryEntry = MediaGalleryEntry<
@@ -187,6 +198,20 @@ function buildStoredPreviewItem(
   };
 }
 
+function buildArticleMetadataPreviewItem(input: ArticleMediaInput): PostBookmarkPreviewItem {
+  const mediaInfo = input.item.media_info;
+
+  return {
+    alt: "",
+    fullSizeSrc: mediaInfo.original_img_url,
+    height: mediaInfo.original_img_height,
+    key: input.item.media_key || input.item.media_id || mediaInfo.original_img_url,
+    src: mediaInfo.original_img_url,
+    type: "image",
+    width: mediaInfo.original_img_width,
+  };
+}
+
 export function getPostBookmarkMediaPreviewItems(
   item: PostBookmark,
   group: PostMediaGroup,
@@ -229,6 +254,56 @@ export function getPostBookmarkReplyMediaPreviewItems(
       metadataItems.at(mediaIndex)?.duration_millis ?? null,
     ),
   );
+}
+
+type ArticleMediaInput = {
+  index: number;
+  item: FreebirdXArticleMedia;
+  mediaType: ArticleImageItem["articleMediaType"];
+};
+
+function getArticleMediaInputs(article: FreebirdXArticle): ArticleMediaInput[] {
+  return [
+    ...(article.cover_media ? [{item: article.cover_media, mediaType: "cover" as const}] : []),
+    ...(article.media_entities ?? []).map((item, index) => ({
+      index,
+      item,
+      mediaType: "media_entity" as const,
+    })),
+  ].map((input) => ({
+    ...input,
+    index: "index" in input ? input.index : 0,
+  }));
+}
+
+export function getPostBookmarkArticleMediaPreviewItems(
+  item: PostBookmark,
+  article: FreebirdXArticle,
+  variant: PostPreviewVariant,
+): PostBookmarkArticlePreviewItem[] {
+  const storedItems = isPostImages(item.images) ? (item.images.articleItems ?? []) : [];
+  const processing = isPostMediaProcessing(item.images);
+
+  return getArticleMediaInputs(article).map((articleMediaItem) => {
+    const sourceUrl = articleMediaItem.item.media_info.original_img_url;
+    const storedItem = storedItems.find(
+      (stored) =>
+        stored.articleMediaType === articleMediaItem.mediaType &&
+        stored.articleMediaIndex === articleMediaItem.index &&
+        stored.source_url === sourceUrl,
+    );
+    const previewItem = storedItem
+      ? buildStoredPreviewItem(storedItem, processing, variant)
+      : buildArticleMetadataPreviewItem(articleMediaItem);
+
+    return {
+      ...previewItem,
+      articleMediaIndex: articleMediaItem.index,
+      articleMediaType: articleMediaItem.mediaType,
+      mediaId: articleMediaItem.item.media_id,
+      sourceUrl,
+    };
+  });
 }
 
 export function getPostBookmarkArticleCoverPreviewItem(

@@ -16,6 +16,7 @@ import {
   getPostBookmarkMediaPreviewItems,
   getPostBookmarkReplyMediaPreviewItems,
 } from "../../_utils/post-bookmark-preview";
+import PostBookmarkArticleDetail from "./PostBookmarkArticleDetail";
 import PostBookmarkArticlePreview from "./PostBookmarkArticlePreview";
 import {
   PostBookmarkAuthorAvatar,
@@ -152,10 +153,15 @@ export default function PostBookmarkList({
 
       {showMedia && post.card ? <PostBookmarkExternalCard card={post.card} /> : null}
 
-      {showMedia && post.article ? (
+      {showMedia && post.article && isPostDetailOpen ? (
+        <PostBookmarkArticleDetail item={item} post={post} fallbackHref={post.tweetURL} />
+      ) : null}
+
+      {showMedia && post.article && !isPostDetailOpen ? (
         <PostBookmarkArticlePreview
           post={post}
           fallbackHref={post.tweetURL}
+          openExternally={!onOpenDetail}
           previewItem={articlePreviewItem}
         />
       ) : null}
