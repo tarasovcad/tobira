@@ -9,6 +9,8 @@ import {cn} from "@/lib/utils";
 import {formatPostFullDate, formatShortPostDate} from "@/lib/utils/dates";
 import {Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger} from "@/components/ui/coss/tooltip";
 
+import {BlueVerifiedBadgeIcon, YellowVerifiedBadgeIcon} from "./PostVerificationBadgeIcons";
+
 type PostBookmarkUser = FreebirdXPostResponse["user"];
 
 type PostBookmarkAuthorAvatarProps = {
@@ -170,21 +172,16 @@ export function PostBookmarkAuthorStack({
 function PostBookmarkVerificationBadge({user}: {user: PostBookmarkUser}) {
   if (user.verification?.verified_type != null) {
     return (
-      <div className="h-4.5 w-4.5 shrink-0">
-        <Image
-          src="/x/yellow_verified.svg"
-          alt="Yellow verification badge"
-          width={32}
-          height={32}
-        />
+      <div className="h-4.5 w-4.5 shrink-0" aria-label="Verified account">
+        <YellowVerifiedBadgeIcon />
       </div>
     );
   }
 
   if (user.is_blue_verified) {
     return (
-      <div className="h-4.5 w-4.5 shrink-0">
-        <Image src="/x/blue_verified.svg" alt="Blue verification badge" width={32} height={32} />
+      <div className="h-4.5 w-4.5 shrink-0" aria-label="Verified account">
+        <BlueVerifiedBadgeIcon />
       </div>
     );
   }
