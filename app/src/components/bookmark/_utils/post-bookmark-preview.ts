@@ -1,9 +1,12 @@
 import type {PostBookmark} from "@/components/bookmark/types";
 import type {ArticleImageItem, PostImages} from "@/db/schema";
-import type {
-  FreebirdXArticle,
-  FreebirdXArticleMedia,
-  FreebirdXPostMediaItem,
+import {
+  getFreebirdXArticleImageInfo,
+  getFreebirdXArticleMediaSourceUrl,
+  isFreebirdXArticleVideoMedia,
+  type FreebirdXArticle,
+  type FreebirdXArticleMedia,
+  type FreebirdXPostMediaItem,
 } from "@/lib/fetch/post";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {isPostImages} from "./bookmark-image-guards";
@@ -199,16 +202,35 @@ function buildStoredPreviewItem(
 }
 
 function buildArticleMetadataPreviewItem(input: ArticleMediaInput): PostBookmarkPreviewItem {
-  const mediaInfo = input.item.media_info;
+  if (isFreebirdXArticleVideoMedia(input.item)) {
+    const mediaInfo = input.item.media_info;
+    const sourceUrl = getFreebirdXArticleMediaSourceUrl(input.item);
+    const previewImage = mediaInfo.preview_image;
+
+    return {
+      alt: "",
+      fullSizeSrc: sourceUrl ?? previewImage.original_img_url,
+      height: previewImage.original_img_height,
+      key:
+        input.item.media_key || input.item.media_id || sourceUrl || previewImage.original_img_url,
+      poster: previewImage.original_img_url,
+      src: sourceUrl ?? previewImage.original_img_url,
+      type: "video",
+      width: previewImage.original_img_width,
+      ...(mediaInfo.duration_millis != null ? {durationMillis: mediaInfo.duration_millis} : {}),
+    };
+  }
+
+  const imageInfo = getFreebirdXArticleImageInfo(input.item.media_info);
 
   return {
     alt: "",
-    fullSizeSrc: mediaInfo.original_img_url,
-    height: mediaInfo.original_img_height,
-    key: input.item.media_key || input.item.media_id || mediaInfo.original_img_url,
-    src: mediaInfo.original_img_url,
+    fullSizeSrc: imageInfo.original_img_url,
+    height: imageInfo.original_img_height,
+    key: input.item.media_key || input.item.media_id || imageInfo.original_img_url,
+    src: imageInfo.original_img_url,
     type: "image",
-    width: mediaInfo.original_img_width,
+    width: imageInfo.original_img_width,
   };
 }
 
@@ -285,12 +307,12 @@ export function getPostBookmarkArticleMediaPreviewItems(
   const processing = isPostMediaProcessing(item.images);
 
   return getArticleMediaInputs(article).map((articleMediaItem) => {
-    const sourceUrl = articleMediaItem.item.media_info.original_img_url;
+    const sourceUrl = getFreebirdXArticleMediaSourceUrl(articleMediaItem.item);
     const storedItem = storedItems.find(
       (stored) =>
         stored.articleMediaType === articleMediaItem.mediaType &&
         stored.articleMediaIndex === articleMediaItem.index &&
-        stored.source_url === sourceUrl,
+        (sourceUrl ? stored.source_url === sourceUrl : true),
     );
     const previewItem = storedItem
       ? buildStoredPreviewItem(storedItem, processing, variant)
@@ -301,7 +323,7 @@ export function getPostBookmarkArticleMediaPreviewItems(
       articleMediaIndex: articleMediaItem.index,
       articleMediaType: articleMediaItem.mediaType,
       mediaId: articleMediaItem.item.media_id,
-      sourceUrl,
+      sourceUrl: sourceUrl ?? previewItem.src,
     };
   });
 }

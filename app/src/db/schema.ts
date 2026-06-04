@@ -34,10 +34,12 @@ export type VideoItem = {
   key_thumbnail?: string;
 };
 
-export type ArticleImageItem = ImageItem & {
+export type ArticleMediaItem = (ImageItem | VideoItem) & {
   articleMediaType: "cover" | "media_entity";
   articleMediaIndex: number;
 };
+
+export type ArticleImageItem = ArticleMediaItem;
 
 export type WebsiteImages = {
   favicon?: {key: string};

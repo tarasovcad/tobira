@@ -3,7 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import type {FreebirdXArticle, FreebirdXPost} from "@/lib/fetch/post";
+import {
+  getFreebirdXArticleImageInfo,
+  type FreebirdXArticle,
+  type FreebirdXPost,
+} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
 import type {PostBookmarkPreviewItem} from "../../_utils/post-bookmark-preview";
 
@@ -149,13 +153,15 @@ function getArticlePreviewImage(
   article: FreebirdXArticle,
   previewItem: PostBookmarkPreviewItem | null,
 ): ArticlePreviewImage | null {
-  const coverMedia = article.cover_media?.media_info;
+  const coverImage = article.cover_media?.media_info
+    ? getFreebirdXArticleImageInfo(article.cover_media.media_info)
+    : null;
 
   if (previewItem) {
     return {
       alt: previewItem.alt || article.title || "Article image",
       aspectRatio:
-        getImageAspectRatio(coverMedia?.original_img_width, coverMedia?.original_img_height) ??
+        getImageAspectRatio(coverImage?.original_img_width, coverImage?.original_img_height) ??
         getImageAspectRatio(previewItem.width, previewItem.height) ??
         1.777,
       height: previewItem.height,
@@ -164,17 +170,17 @@ function getArticlePreviewImage(
     };
   }
 
-  if (!coverMedia?.original_img_url) {
+  if (!coverImage?.original_img_url) {
     return null;
   }
 
   return {
     alt: article.title || "Article image",
     aspectRatio:
-      getImageAspectRatio(coverMedia.original_img_width, coverMedia.original_img_height) ?? 1.777,
-    height: coverMedia.original_img_height,
-    src: coverMedia.original_img_url,
-    width: coverMedia.original_img_width,
+      getImageAspectRatio(coverImage.original_img_width, coverImage.original_img_height) ?? 1.777,
+    height: coverImage.original_img_height,
+    src: coverImage.original_img_url,
+    width: coverImage.original_img_width,
   };
 }
 

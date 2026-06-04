@@ -295,9 +295,11 @@ function ArticleImage({
       }
       style={{aspectRatio}}>
       <MediaPreview
+        type={item.type}
         src={item.src}
         fullSizeSrc={item.fullSizeSrc ?? item.src}
-        alt={item.alt || "Article image"}
+        poster={item.poster}
+        alt={item.alt || (item.type === "video" ? "Article video" : "Article image")}
         width={item.width}
         height={item.height}
         className="h-full w-full object-contain"
