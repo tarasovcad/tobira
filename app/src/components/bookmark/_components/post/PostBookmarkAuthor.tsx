@@ -33,11 +33,7 @@ export function PostShortTimestamp({epoch, className}: {epoch: number; className
     <TooltipProvider delay={200}>
       <Tooltip>
         <TooltipTrigger
-          render={
-            <span
-              className={cn("cursor-point shrink-0 cursor-pointer hover:underline", className)}
-            />
-          }
+          render={<span className={cn("shrink-0 cursor-pointer hover:underline", className)} />}
           onClick={(e) => e.stopPropagation()}>
           {formatShortPostDate(epoch)}
         </TooltipTrigger>

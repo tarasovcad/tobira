@@ -25,9 +25,9 @@ import WebsiteBookmarkPlaceholderTable from "@/components/bookmark/_components/w
 import WebsiteBookmarkCompact from "@/components/bookmark/_components/website/WebsiteBookmarkCompact";
 import WebsiteBookmarkPlaceholderCompact from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderCompact";
 import WebsiteBookmarkList from "@/components/bookmark/_components/website/WebsiteBookmarkList";
-import WebsiteBookmarkPlaceholderList from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderList ";
+import WebsiteBookmarkPlaceholderList from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderList";
 import PostBookmarkList from "@/components/bookmark/_components/post/PostBookmarkList";
-import PostBookmarkPlaceholderList from "@/components/bookmark/_components/post/PostBookmarkPlaceholderList ";
+import PostBookmarkPlaceholderList from "@/components/bookmark/_components/post/PostBookmarkPlaceholderList";
 import type {MediaGalleryController} from "@/features/media/hooks/useMediaGalleryController";
 
 export type AllItemsAnimatedVariant = "list" | "grid";

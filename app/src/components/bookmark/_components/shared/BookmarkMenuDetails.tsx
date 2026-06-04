@@ -29,7 +29,7 @@ function formatPostedDate(epoch: number): string {
     hour12: false,
   });
   const date = d.toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
-  return `${date} -  ${time}`;
+  return `${date} - ${time}`;
 }
 
 function CopyableExternalLink({
