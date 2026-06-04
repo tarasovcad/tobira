@@ -1,17 +1,23 @@
 "use client";
 
-import {Fragment, useMemo, type ReactNode} from "react";
+import {Fragment, useMemo, useState, type ReactNode} from "react";
 import Link from "next/link";
 
 import MediaPreview from "@/features/media/components/MediaPreview";
-import type {FreebirdXPost} from "@/lib/fetch/post";
+import type {FreebirdXPost, FreebirdXPostMediaItem, FreebirdXPostResponse} from "@/lib/fetch/post";
 import type {PostBookmark} from "../../types";
 import {
   getPostBookmarkArticleCoverPreviewItem,
   getPostBookmarkArticleMediaPreviewItems,
+  type PostBookmarkPreviewItem,
   type PostBookmarkArticlePreviewItem,
 } from "../../_utils/post-bookmark-preview";
+import PostBookmarkArticleMarkdown from "./PostBookmarkArticleMarkdown";
 import PostBookmarkArticlePreview from "./PostBookmarkArticlePreview";
+import {PostBookmarkAuthorAvatar, PostBookmarkAuthorLine} from "./PostBookmarkAuthor";
+import PostBookmarkExternalCard from "./PostBookmarkExternalCard";
+import {PostBookmarkMediaPreviewGrid} from "./PostBookmarkMediaGrid";
+import {PostBookmarkText, preparePostBookmarkText} from "./PostBookmarkText";
 
 type PostBookmarkArticleDetailProps = {
   fallbackHref: string;
@@ -51,6 +57,7 @@ type ArticleEntity = {
 
 const ARTICLE_LINK_CLASS_NAME =
   "hover:text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline text-foreground/90 underline";
+const ARTICLE_TWEET_TEXT_MAX_LENGTH = 280;
 
 export default function PostBookmarkArticleDetail({
   fallbackHref,
@@ -93,9 +100,7 @@ export default function PostBookmarkArticleDetail({
   const articleHref = getArticleHref(post, fallbackHref);
 
   return (
-    <section
-      data-no-post-detail
-      className="mt-3 cursor-default space-y-8 text-[#0F1419] dark:text-[#E7E9EA]">
+    <section data-no-post-detail className="mt-3 space-y-8 text-[#0F1419] dark:text-[#E7E9EA]">
       {coverImage ? <ArticleImage item={coverImage} variant="cover" /> : null}
 
       {title ? (
@@ -105,7 +110,7 @@ export default function PostBookmarkArticleDetail({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="text-foreground block text-[28px] leading-[32px] font-bold hover:underline">
+            className="text-foreground inline-block text-[28px] leading-[32px] font-bold hover:underline">
             {title}
           </Link>
           <hr className="border-border" />
@@ -166,7 +171,9 @@ function renderArticleBlock(
   switch (block.type) {
     case "header-two":
       return (
-        <h2 key={block.key} className="text-foreground pt-4 text-[22px] leading-7 font-bold">
+        <h2
+          key={block.key}
+          className="text-foreground cursor-text pt-4 text-[22px] leading-7 font-bold">
           {renderInlineText(block, entityMap)}
         </h2>
       );
@@ -174,7 +181,7 @@ function renderArticleBlock(
       return (
         <blockquote
           key={block.key}
-          className="text-foreground border-l-[3px] border-[#37434D] py-1 pl-4 text-[17px] leading-7 whitespace-pre-wrap">
+          className="text-foreground cursor-text border-l-[3px] border-[#37434D] py-1 pl-4 text-[17px] leading-7 whitespace-pre-wrap">
           {renderInlineText(block, entityMap)}
         </blockquote>
       );
@@ -186,7 +193,7 @@ function renderArticleBlock(
       }
 
       return (
-        <p key={block.key} className="text-[17px] leading-7 whitespace-pre-wrap">
+        <p key={block.key} className="cursor-text text-[17px] leading-7 whitespace-pre-wrap">
           {renderInlineText(block, entityMap)}
         </p>
       );
@@ -208,7 +215,7 @@ function renderListBlocks(
   return (
     <ListTag key={`${listKey}-list`} className={`${listClassName} space-y-2 pl-6`}>
       {blocks.map((block) => (
-        <li key={block.key} className="pl-1 text-[17px] leading-7 whitespace-pre-wrap">
+        <li key={block.key} className="cursor-text pl-1 text-[17px] leading-7 whitespace-pre-wrap">
           {renderInlineText(block, entityMap)}
         </li>
       ))}
@@ -228,6 +235,24 @@ function renderAtomicBlock(
 
   if (entity.type === "DIVIDER") {
     return <hr key={block.key} className="border-border my-7" />;
+  }
+
+  if (entity.type === "TWEET") {
+    const resolvedTweet = getResolvedTweetEntityPost(entity);
+
+    if (!resolvedTweet) {
+      return null;
+    }
+
+    return (
+      <div key={block.key} className="my-6">
+        <ArticleTweetEmbed post={resolvedTweet} />
+      </div>
+    );
+  }
+
+  if (entity.type === "MARKDOWN") {
+    return <PostBookmarkArticleMarkdown key={block.key} data={entity.data} />;
   }
 
   if (entity.type !== "MEDIA") {
@@ -266,7 +291,7 @@ function ArticleImage({
       className={
         variant === "cover"
           ? "bg-muted/30 dark:border-border overflow-hidden"
-          : "bg-muted/30 dark:border-border my-6 overflow-hidden"
+          : "bg-muted/30 dark:border-border my-6 overflow-hidden rounded-xl"
       }
       style={{aspectRatio}}>
       <MediaPreview
@@ -280,6 +305,56 @@ function ArticleImage({
         loading="lazy"
       />
     </figure>
+  );
+}
+
+function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const preparedText = preparePostBookmarkText(post.post, {
+    expanded: isExpanded,
+    maxLength: ARTICLE_TWEET_TEXT_MAX_LENGTH,
+  });
+  const mediaItems = getResolvedTweetMediaPreviewItems(post);
+  const profileUrl = `https://x.com/${post.user.user_screen_name}`;
+
+  return (
+    <Link
+      href={post.post.tweetURL}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}>
+      <article className="hover:bg-muted/80 grid grid-cols-[40px_minmax(0,1fr)] gap-x-3 rounded-2xl border border-[#CFD9DE] p-4 shadow-[0_0_6px_rgba(0,0,0,0.1)]">
+        <PostBookmarkAuthorAvatar user={post.user} profileUrl={profileUrl} />
+
+        <div className="min-w-0 space-y-2">
+          <PostBookmarkAuthorLine
+            user={post.user}
+            profileUrl={profileUrl}
+            timestampEpoch={post.post.date_epoch}
+            showTimestamp
+            className="text-[15px] leading-5"
+          />
+
+          {preparedText.hasText ? (
+            <p className="text-foreground text-[15px] leading-5 whitespace-pre-wrap">
+              <PostBookmarkText preparedText={preparedText} />
+            </p>
+          ) : null}
+
+          {!isExpanded && preparedText.isLongText ? (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(true)}
+              className="-mt-1 block cursor-pointer text-[15px] leading-5 text-[#1D9BF0] hover:underline focus:outline-none">
+              Show more
+            </button>
+          ) : null}
+
+          {post.post.card ? <PostBookmarkExternalCard card={post.post.card} /> : null}
+          <PostBookmarkMediaPreviewGrid media={mediaItems} />
+        </div>
+      </article>
+    </Link>
   );
 }
 
@@ -484,7 +559,12 @@ function isRenderableArticleBlock(
   }
 
   const entity = getFirstBlockEntity(block, entityMap);
-  return entity?.type === "DIVIDER" || entity?.type === "MEDIA";
+  return (
+    entity?.type === "DIVIDER" ||
+    entity?.type === "MEDIA" ||
+    entity?.type === "TWEET" ||
+    entity?.type === "MARKDOWN"
+  );
 }
 
 function isListBlock(block: ArticleContentBlock) {
@@ -507,6 +587,59 @@ function getEntityMediaIds(entity: ArticleEntity): string[] {
   return entity.data.mediaItems
     .map((mediaItem) => (isRecord(mediaItem) ? mediaItem.mediaId : null))
     .filter((mediaId): mediaId is string => typeof mediaId === "string" && mediaId.length > 0);
+}
+
+function getResolvedTweetEntityPost(entity: ArticleEntity): FreebirdXPostResponse | null {
+  if (!isRecord(entity.data) || !isRecord(entity.data.resolvedTweet)) {
+    return null;
+  }
+
+  const resolvedTweet = entity.data.resolvedTweet;
+  if (
+    !isRecord(resolvedTweet.post) ||
+    !isRecord(resolvedTweet.user) ||
+    !isRecord(resolvedTweet.metrics)
+  ) {
+    return null;
+  }
+
+  return resolvedTweet as FreebirdXPostResponse;
+}
+
+function getResolvedTweetMediaPreviewItems(
+  resolvedTweet: FreebirdXPostResponse,
+): PostBookmarkPreviewItem[] {
+  return resolvedTweet.post.media_extended
+    .map((mediaItem, index) => getResolvedTweetMediaPreviewItem(mediaItem, index))
+    .filter((mediaItem): mediaItem is PostBookmarkPreviewItem => Boolean(mediaItem));
+}
+
+function getResolvedTweetMediaPreviewItem(
+  mediaItem: FreebirdXPostMediaItem,
+  index: number,
+): PostBookmarkPreviewItem | null {
+  const sourceUrl = mediaItem.url || mediaItem.thumbnail_url;
+  if (!sourceUrl) {
+    return null;
+  }
+
+  const [aspectWidth, aspectHeight] = mediaItem.aspect_ratio ?? [];
+  const width = mediaItem.size?.width ?? aspectWidth ?? 1200;
+  const height = mediaItem.size?.height ?? aspectHeight ?? 1200;
+  const type = mediaItem.type === "photo" ? "image" : "video";
+
+  return {
+    alt: mediaItem.altText ?? "",
+    aspectRatio: width > 0 && height > 0 ? width / height : undefined,
+    durationMillis: mediaItem.duration_millis,
+    fullSizeSrc: type === "image" ? sourceUrl : undefined,
+    height,
+    key: mediaItem.id_str || sourceUrl || `resolved-tweet-media-${index}`,
+    poster: mediaItem.thumbnail_url ?? undefined,
+    src: sourceUrl,
+    type,
+    width,
+  };
 }
 
 function addRangeBreakpoints(

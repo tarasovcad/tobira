@@ -81,17 +81,6 @@ export default function PostBookmarkList({
     },
     [item, onOpenDetail],
   );
-  const handleOpenExternalPost = useCallback(
-    (event: MouseEvent<HTMLElement>) => {
-      if (isInteractiveTarget(event.target)) {
-        return;
-      }
-
-      window.location.assign(item.url);
-    },
-    [item.url],
-  );
-
   if (!meta) {
     return (
       <div className={cn("text-muted-foreground border-b px-4 py-3 text-sm", className)}>
@@ -197,12 +186,11 @@ export default function PostBookmarkList({
 
   return (
     <article
-      onClick={
-        onOpenDetail ? handleOpenDetail : isPostDetailOpen ? handleOpenExternalPost : undefined
-      }
+      onClick={onOpenDetail ? handleOpenDetail : undefined}
       className={cn(
         "border-border group relative isolate flex flex-col gap-[14px] px-4",
-        "cursor-pointer transition-colors duration-50",
+        "transition-colors duration-50",
+        !isPostDetailOpen && "cursor-pointer",
         isSelected && "bg-muted",
         className,
         isPostDetailOpen ? "pt-0 pb-10" : "hover:bg-muted/75 border-b py-3 pt-4",
