@@ -15,6 +15,7 @@ import {
   PostBookmarkQuotedCompactMediaGrid,
   PostBookmarkQuotedFullMediaGrid,
 } from "./PostBookmarkQuotedMediaGrid";
+import {cn} from "@/lib/utils";
 
 type PostBookmarkQuotedPostProps = {
   articlePreviewItem: PostBookmarkPreviewItem | null;
@@ -76,7 +77,7 @@ export default function PostBookmarkQuotedPost({
       ) : (
         <div className="mt-1.5">
           {hasTextContent ? (
-            <div className="max-w-full min-w-0 px-3">
+            <div className={cn("max-w-full min-w-0 px-3", mediaItems.length === 0 && "pb-4")}>
               <PostBookmarkQuotedReplyingTo mentions={replyingToMentions} />
               {preparedText.hasText ? (
                 <p className="text-foreground line-clamp-5 text-[15px] leading-[19px] wrap-break-word whitespace-pre-wrap">

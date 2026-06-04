@@ -51,7 +51,7 @@ export function PostBookmarkDetailView({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-2xl">
           {item ? (
-            <PostBookmarkList item={item} onOpenMenu={onOpenMenu} />
+            <PostBookmarkList item={item} onOpenMenu={onOpenMenu} isPostDetailOpen={true} />
           ) : (
             <PostDetailState
               detailBookmarkId={detailBookmarkId}

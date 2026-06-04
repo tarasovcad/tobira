@@ -1,6 +1,9 @@
 import {randomUUID} from "crypto";
 import {
   fetchXPostData,
+  getFreebirdXArticleImageInfo,
+  getFreebirdXArticleMediaSourceUrl,
+  isFreebirdXArticleVideoMedia,
   type FreebirdXArticle,
   type FreebirdXArticleMedia,
   type FreebirdXPost,
@@ -8,7 +11,7 @@ import {
   type FreebirdXPostMediaItem,
 } from "@/lib/fetch/post";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
-import type {ArticleImageItem, ImageItem, PostImages, VideoItem} from "@/db/schema";
+import type {ArticleMediaItem, ImageItem, PostImages, VideoItem} from "@/db/schema";
 import {buildMediaAssetKey, buildVideoAssetKey} from "@/features/media/utils";
 
 type PostMediaItem = ImageItem | VideoItem;
@@ -114,7 +117,7 @@ async function buildArticleItems(post: FreebirdXPost, replies: FreebirdXPostData
     ...(replies ?? []).flatMap((reply) => buildArticleItemInputs(reply.post)),
   ];
 
-  return Promise.all(articleInputs.map(buildArticleImageItem));
+  return Promise.all(articleInputs.map(buildArticleMediaItem));
 }
 
 function buildArticleItemInputs(post: FreebirdXPost | null | undefined) {
@@ -135,7 +138,7 @@ function buildArticleItemInputs(post: FreebirdXPost | null | undefined) {
 
   return media
     .filter(({item}) => {
-      const url = item.media_info?.original_img_url;
+      const url = getFreebirdXArticleMediaSourceUrl(item);
       if (!url || seenUrls.has(url)) {
         return false;
       }
@@ -151,23 +154,55 @@ function buildArticleItemInputs(post: FreebirdXPost | null | undefined) {
     }));
 }
 
-async function buildArticleImageItem(input: {
+async function buildArticleMediaItem(input: {
   article: FreebirdXArticle;
   item: FreebirdXArticleMedia;
-  mediaType: ArticleImageItem["articleMediaType"];
+  mediaType: ArticleMediaItem["articleMediaType"];
   index: number;
-}): Promise<ArticleImageItem> {
-  const sourceUrl = input.item.media_info.original_img_url;
+}): Promise<ArticleMediaItem> {
+  const articleFields = {
+    articleMediaType: input.mediaType,
+    articleMediaIndex: input.index,
+  };
+
+  if (isFreebirdXArticleVideoMedia(input.item)) {
+    const {media_info: mediaInfo} = input.item;
+    const sourceUrl = getFreebirdXArticleMediaSourceUrl(input.item);
+    const thumbnailUrl = mediaInfo.preview_image.original_img_url;
+
+    if (!sourceUrl) {
+      throw new Error("Article video is missing a playable source URL");
+    }
+
+    const [key, key_thumbnail] = await Promise.all([
+      buildVideoAssetKey(sourceUrl),
+      buildMediaAssetKey(thumbnailUrl),
+    ]);
+
+    return {
+      type: "video",
+      width: mediaInfo.preview_image.original_img_width,
+      height: mediaInfo.preview_image.original_img_height,
+      alt: null,
+      source_url: sourceUrl,
+      source_thumbnail_url: thumbnailUrl,
+      key,
+      key_thumbnail,
+      ...articleFields,
+    };
+  }
+
+  const imageInfo = getFreebirdXArticleImageInfo(input.item.media_info);
+  const sourceUrl = imageInfo.original_img_url;
 
   return {
     type: "image",
-    width: input.item.media_info.original_img_width,
-    height: input.item.media_info.original_img_height,
+    width: imageInfo.original_img_width,
+    height: imageInfo.original_img_height,
     alt: null,
     source_url: sourceUrl,
     media_key: await buildMediaAssetKey(sourceUrl),
-    articleMediaType: input.mediaType,
-    articleMediaIndex: input.index,
+    ...articleFields,
   };
 }
 

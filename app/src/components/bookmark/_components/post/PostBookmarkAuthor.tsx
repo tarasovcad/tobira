@@ -119,6 +119,54 @@ export function PostBookmarkAuthorLine({
   );
 }
 
+type PostBookmarkAuthorStackProps = {
+  className?: string;
+  profileUrl: string;
+  selectionSlot?: ReactNode;
+  user: PostBookmarkUser;
+};
+
+export function PostBookmarkAuthorStack({
+  className,
+  profileUrl,
+  selectionSlot,
+  user,
+}: PostBookmarkAuthorStackProps) {
+  return (
+    <div className={cn("flex min-w-0 items-center", className)}>
+      {selectionSlot}
+
+      <Link
+        href={profileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="group/author flex w-fit min-w-0 cursor-pointer items-center gap-2">
+        <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={user.user_profile_image_url}
+            alt={user.user_name}
+            width={40}
+            height={40}
+            className="h-full w-full object-cover transition-all duration-100 group-hover/author:brightness-95"
+          />
+        </div>
+        <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[18px]">
+          <div className="flex min-w-0 items-center gap-[3px]">
+            <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
+              {user.user_name}
+            </span>
+            <PostBookmarkVerificationBadge user={user} />
+            <PostBookmarkAffiliateBadge user={user} />
+          </div>
+          <span className="truncate text-sm text-[#536471]!">@{user.user_screen_name}</span>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
 function PostBookmarkVerificationBadge({user}: {user: PostBookmarkUser}) {
   if (user.verification?.verified_type != null) {
     return (

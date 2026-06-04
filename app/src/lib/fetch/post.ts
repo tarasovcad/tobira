@@ -42,17 +42,73 @@ export type FreebirdXPostEntities = {
   user_mentions: FreebirdXPostUserMentionEntity[];
 };
 
+export type FreebirdXArticleImageInfo = {
+  __typename?: "ApiImage" | string;
+  original_img_height: number;
+  original_img_url: string;
+  original_img_width: number;
+};
+
+export type FreebirdXArticleVideoInfo = {
+  __typename: "ApiVideo";
+  duration_millis?: number;
+  preview_image: FreebirdXArticleImageInfo;
+  variants: {
+    bit_rate?: number;
+    content_type: string;
+    url: string;
+  }[];
+};
+
+export type FreebirdXArticleMediaInfo = FreebirdXArticleImageInfo | FreebirdXArticleVideoInfo;
+
 export type FreebirdXArticleMedia = {
   id: string;
   media_id: string;
-  media_info: {
-    __typename: "ApiImage" | string;
-    original_img_height: number;
-    original_img_url: string;
-    original_img_width: number;
-  };
+  media_info: FreebirdXArticleMediaInfo;
   media_key: string;
 };
+
+export function isFreebirdXArticleVideoMedia(
+  item: FreebirdXArticleMedia,
+): item is FreebirdXArticleMedia & {media_info: FreebirdXArticleVideoInfo} {
+  return item.media_info.__typename === "ApiVideo";
+}
+
+export function getFreebirdXArticleImageInfo(
+  mediaInfo: FreebirdXArticleMediaInfo,
+): FreebirdXArticleImageInfo {
+  return isFreebirdXArticleVideoInfo(mediaInfo) ? mediaInfo.preview_image : mediaInfo;
+}
+
+export function isFreebirdXArticleVideoInfo(
+  mediaInfo: FreebirdXArticleMediaInfo,
+): mediaInfo is FreebirdXArticleVideoInfo {
+  return mediaInfo.__typename === "ApiVideo";
+}
+
+export function getFreebirdXArticleMediaSourceUrl(item: FreebirdXArticleMedia): string | null {
+  if (isFreebirdXArticleVideoMedia(item)) {
+    return pickFreebirdXArticleVideoUrl(item.media_info);
+  }
+
+  return getFreebirdXArticleImageInfo(item.media_info).original_img_url ?? null;
+}
+
+function pickFreebirdXArticleVideoUrl(mediaInfo: FreebirdXArticleVideoInfo): string | null {
+  const mp4Variants = mediaInfo.variants
+    .filter(
+      (variant): variant is {bit_rate: number; content_type: string; url: string} =>
+        variant.content_type === "video/mp4" && typeof variant.bit_rate === "number",
+    )
+    .sort((left, right) => right.bit_rate - left.bit_rate);
+
+  return (
+    mp4Variants[0]?.url ??
+    mediaInfo.variants.find((variant) => variant.content_type === "video/mp4")?.url ??
+    null
+  );
+}
 
 export type FreebirdXArticle = {
   content_state?: unknown;

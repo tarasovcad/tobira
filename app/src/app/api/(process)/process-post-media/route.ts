@@ -144,7 +144,9 @@ function processReplyMediaItems(
 type ProcessedArticleMediaItem = ProcessedMediaItem<ArticleImageItem>;
 
 function processArticleMediaItems(items: ArticleImageItem[]): Promise<ProcessedArticleMediaItem[]> {
-  return Promise.all(items.map(processImageItem));
+  return Promise.all(
+    items.map((item) => (item.type === "image" ? processImageItem(item) : processVideoItem(item))),
+  );
 }
 
 function processPostMediaItems(items: PostMediaItem[]): Promise<ProcessedMediaItem[]> {
@@ -171,7 +173,7 @@ async function processImageItem<T extends ImageItem>(item: T): Promise<Processed
   };
 }
 
-async function processVideoItem(item: VideoItem): Promise<ProcessedMediaItem<VideoItem>> {
+async function processVideoItem<T extends VideoItem>(item: T): Promise<ProcessedMediaItem<T>> {
   const [keyUpload, thumbnailUpload] = await Promise.all([
     ensureUploaded(item.source_url, item.key),
     ensureUploaded(item.source_thumbnail_url, item.key_thumbnail),
