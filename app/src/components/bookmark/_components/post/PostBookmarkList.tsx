@@ -302,7 +302,7 @@ export default function PostBookmarkList({
       ) : null}
 
       {!showAuthor ? (
-        <div className="bg relative z-[1] min-w-0 flex-1 space-y-5">
+        <div className="relative z-[1] min-w-0 flex-1 space-y-5">
           {isPostDetailOpen ? (
             <PostBookmarkReplyChain item={item} replies={replyChain} showMedia={showMedia} />
           ) : null}

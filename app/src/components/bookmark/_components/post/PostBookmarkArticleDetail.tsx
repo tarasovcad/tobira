@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import MediaPreview from "@/features/media/components/MediaPreview";
 import type {FreebirdXPost, FreebirdXPostMediaItem, FreebirdXPostResponse} from "@/lib/fetch/post";
+import {toSafeHttpUrl} from "@/lib/utils/safe-url";
 import type {PostBookmark} from "../../types";
 import {
   getPostBookmarkArticleCoverPreviewItem,
@@ -346,7 +347,11 @@ function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
           {!isExpanded && preparedText.isLongText ? (
             <button
               type="button"
-              onClick={() => setIsExpanded(true)}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setIsExpanded(true);
+              }}
               className="-mt-1 block cursor-pointer text-[15px] leading-5 text-[#1D9BF0] hover:underline focus:outline-none">
               Show more
             </button>
@@ -690,7 +695,7 @@ function getActiveLinkHref(
     return null;
   }
 
-  return entity.data.url;
+  return toSafeHttpUrl(entity.data.url);
 }
 
 function getArticleHref(post: FreebirdXPost, fallbackHref: string) {

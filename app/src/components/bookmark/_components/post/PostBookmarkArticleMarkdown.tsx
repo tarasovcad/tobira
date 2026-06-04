@@ -8,6 +8,7 @@ import {Prism as SyntaxHighlighter} from "react-syntax-highlighter";
 import {oneDark, oneLight} from "react-syntax-highlighter/dist/esm/styles/prism";
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
+import {toSafeHttpUrl} from "@/lib/utils/safe-url";
 import {AnimatePresence, motion} from "motion/react";
 
 type PostBookmarkArticleMarkdownProps = {
@@ -141,9 +142,14 @@ function FencedCodeBlock({
 
 const ARTICLE_MARKDOWN_COMPONENTS: Components = {
   a({children, href}) {
+    const safeHref = toSafeHttpUrl(href);
+    if (!safeHref) {
+      return <span className="text-[#1D9BF0]">{children}</span>;
+    }
+
     return (
       <Link
-        href={href ?? "#"}
+        href={safeHref}
         target="_blank"
         rel="noopener noreferrer"
         onClick={(event) => event.stopPropagation()}
@@ -168,9 +174,7 @@ const ARTICLE_MARKDOWN_COMPONENTS: Components = {
     }
 
     return (
-      <code className="rounded bg-white/10 px-1 py-0.5 text-[0.92em] text-[#F7F9F9]">
-        {children}
-      </code>
+      <code className="bg-muted text-foreground rounded px-1 py-0.5 text-[0.92em]">{children}</code>
     );
   },
   p({children}) {
