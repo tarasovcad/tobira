@@ -6,6 +6,7 @@ import ReactMarkdown, {type Components} from "react-markdown";
 import {useTheme} from "next-themes";
 import {Prism as SyntaxHighlighter} from "react-syntax-highlighter";
 import {oneDark, oneLight} from "react-syntax-highlighter/dist/esm/styles/prism";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {AnimatePresence, motion} from "motion/react";
 
@@ -87,39 +88,53 @@ function CodeBlockCopyButton({code}: {code: string}) {
   );
 }
 
-function FencedCodeBlock({code, language}: {code: string; language: string}) {
+function FencedCodeBlock({
+  code,
+  displayLanguage,
+  syntaxLanguage,
+}: {
+  code: string;
+  displayLanguage: string;
+  syntaxLanguage: string;
+}) {
   const {resolvedTheme} = useTheme();
   const isDark = resolvedTheme === "dark";
 
   return (
     <div className="overflow-hidden">
       <div className="flex items-center justify-between rounded-t-xl bg-[#eef0f2] py-2 pr-3 pl-4 text-[13px] text-zinc-600 dark:bg-[#21252b] dark:text-zinc-400">
-        <span>{language}</span>
+        <span className="min-h-5 min-w-[1ch]">{displayLanguage}</span>
         <CodeBlockCopyButton code={code} />
       </div>
 
-      <SyntaxHighlighter
-        language={language}
-        style={isDark ? oneDark : oneLight}
-        className={firaCode.className}
-        customStyle={{
-          background: isDark ? "hsl(220, 13%, 18%)" : "#F7F9F9",
-          color: isDark ? "hsl(220, 14%, 71%)" : "#0F1419",
-          margin: 0,
-          padding: "16px",
-          fontSize: "13px",
-          lineHeight: "20px",
-          cursor: "text",
-          fontFamily: SYNTAX_HIGHLIGHTER_FONT_FAMILY,
-          borderRadius: "0px",
-        }}
-        codeTagProps={{
-          className: "cursor-text text-[13px] leading-5",
-          style: {fontFamily: SYNTAX_HIGHLIGHTER_FONT_FAMILY},
-        }}
-        wrapLongLines>
-        {code}
-      </SyntaxHighlighter>
+      <ScrollArea
+        className="max-h-96"
+        hideFocusRing
+        scrollbarGutter
+        viewportProps={{className: "cursor-text"}}>
+        <SyntaxHighlighter
+          language={syntaxLanguage}
+          style={isDark ? oneDark : oneLight}
+          className={firaCode.className}
+          customStyle={{
+            background: isDark ? "hsl(220, 13%, 18%)" : "#F7F9F9",
+            color: isDark ? "hsl(220, 14%, 71%)" : "rgb(56, 58, 66)",
+            margin: 0,
+            padding: "16px",
+            fontSize: "13px",
+            lineHeight: "20px",
+            cursor: "text",
+            fontFamily: SYNTAX_HIGHLIGHTER_FONT_FAMILY,
+            borderRadius: "0px",
+            overflow: "visible",
+          }}
+          codeTagProps={{
+            className: "cursor-text text-[13px] leading-5",
+            style: {fontFamily: SYNTAX_HIGHLIGHTER_FONT_FAMILY},
+          }}>
+          {code}
+        </SyntaxHighlighter>
+      </ScrollArea>
     </div>
   );
 }
@@ -139,10 +154,17 @@ const ARTICLE_MARKDOWN_COMPONENTS: Components = {
   },
   code({children, className}) {
     const code = String(children).replace(/\n$/, "");
-    const language = MARKDOWN_CODE_LANGUAGE_CLASS_NAME.exec(className ?? "")?.[1];
+    const displayLanguage = MARKDOWN_CODE_LANGUAGE_CLASS_NAME.exec(className ?? "")?.[1] ?? "";
+    const isFencedBlock = className?.startsWith("language-") === true || code.includes("\n");
 
-    if (language) {
-      return <FencedCodeBlock code={code} language={language} />;
+    if (isFencedBlock) {
+      return (
+        <FencedCodeBlock
+          code={code}
+          displayLanguage={displayLanguage}
+          syntaxLanguage={displayLanguage || "text"}
+        />
+      );
     }
 
     return (
