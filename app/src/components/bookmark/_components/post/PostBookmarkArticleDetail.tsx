@@ -209,8 +209,8 @@ function renderListBlocks(
   const ListTag = listType === "ordered-list-item" ? "ol" : "ul";
   const listClassName =
     listType === "ordered-list-item"
-      ? "list-decimal marker:text-[#536471]"
-      : "list-disc marker:text-[#536471]";
+      ? "list-decimal marker:text-x-secondary"
+      : "list-disc marker:text-x-secondary";
   const listKey = blocks.at(0)?.key ?? listType;
 
   return (

@@ -152,6 +152,17 @@ export function HomeClient({
       return !isBeingRemoved && !isAnimatedOut && !isDuplicateOfResolved;
     });
   }, [allBookmarks, animatedOutIds, removingIds, resolvedBookmarks]);
+  const selectionItems = useMemo(
+    () => (isPostDetailOpen && detailBookmark ? [detailBookmark] : visibleItems),
+    [detailBookmark, isPostDetailOpen, visibleItems],
+  );
+  const selectionBookmarks = useMemo(() => {
+    if (!detailBookmark || allBookmarks.some((item) => item.id === detailBookmark.id)) {
+      return allBookmarks;
+    }
+
+    return [detailBookmark, ...allBookmarks];
+  }, [allBookmarks, detailBookmark]);
 
   // Selection Hook
   const {
@@ -165,7 +176,7 @@ export function HomeClient({
     handleClearSelection,
     handleSelectAll,
     handleCopySelected,
-  } = useBookmarksSelection(visibleItems, allBookmarks);
+  } = useBookmarksSelection(selectionItems, selectionBookmarks);
 
   // Keyboard shortcuts
   useHomeShortcuts({
@@ -178,7 +189,7 @@ export function HomeClient({
 
   // Dialogs
   const {openDeleteDialog, handleDeleteSelected} = useHomeDialogs({
-    allBookmarks,
+    allBookmarks: selectionBookmarks,
     selectedIds,
     onDeleted: handleClearSelection,
   });
@@ -259,8 +270,12 @@ export function HomeClient({
             item={detailBookmark}
             isError={detailBookmarkQuery.isError}
             isLoading={!detailBookmark && detailBookmarkQuery.isLoading}
+            selectionMode={selectionMode}
+            isSelected={detailBookmark ? selectedIds.has(detailBookmark.id) : false}
             onBack={closePostDetail}
             onOpenMenu={handleOpenDetailMenu}
+            setSelected={setSelected}
+            toggleSelected={toggleSelected}
           />
         </div>
       ) : isCollectionNotFound ? (

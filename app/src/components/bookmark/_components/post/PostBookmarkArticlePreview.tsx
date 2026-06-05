@@ -76,7 +76,7 @@ function ArticlePreviewCard({
     <>
       {image ? (
         <div
-          className="bg-muted relative w-full overflow-hidden border-b border-[#EFF3F4]"
+          className="bg-muted border-x-border relative w-full overflow-hidden border-b"
           style={{aspectRatio: image.aspectRatio}}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

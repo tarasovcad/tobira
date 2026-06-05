@@ -44,10 +44,10 @@ export default function PostBookmarkExternalCard({card}: {card: FreebirdXPostCar
               />
             </div>
             <div className="flex min-w-0 flex-col justify-center gap-0.5 px-3 py-2">
-              <p className="truncate text-[13px] text-[#536471]">{card.domain}</p>
+              <p className="text-x-secondary truncate text-[13px]">{card.domain}</p>
               <p className="text-foreground line-clamp-2 text-[15px] font-semibold">{card.title}</p>
               {card.description ? (
-                <p className="line-clamp-2 text-[13px] text-[#536471]">{card.description}</p>
+                <p className="text-x-secondary line-clamp-2 text-[13px]">{card.description}</p>
               ) : null}
             </div>
           </div>
@@ -58,7 +58,7 @@ export default function PostBookmarkExternalCard({card}: {card: FreebirdXPostCar
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="mt-1.5 block text-[13px] text-[#536471] hover:underline">
+        className="text-x-secondary mt-1.5 block text-[13px] hover:underline">
         From {card.domain}
       </Link>
     </div>

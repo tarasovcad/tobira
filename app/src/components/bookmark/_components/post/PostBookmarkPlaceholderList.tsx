@@ -282,7 +282,7 @@ export default function PostBookmarkPlaceholderList({
             loaded={!!post?.date_epoch}
             delay={getFastDelay(480)}
             skeleton={<Skeleton className="h-[21px] w-36 rounded" />}>
-            <div className="flex items-center gap-3 text-[14px] text-[#536471]">
+            <div className="text-x-secondary flex items-center gap-3 text-[14px]">
               {post?.date_epoch ? formatFullDate(post.date_epoch) : ""}
             </div>
           </CrossFade>

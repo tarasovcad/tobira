@@ -37,7 +37,7 @@ export default function PostBookmarkQuotedPost({
   const hasArticle = Boolean(post.post.article);
 
   return (
-    <div className="hover:bg-muted mt-2 rounded-2xl border border-[#CFD9DE]">
+    <div className="hover:bg-muted border-x-border mt-2 rounded-2xl border">
       <div className="flex min-w-0 items-center gap-2 px-3 pt-3 text-[14px] leading-5">
         <PostBookmarkAuthorAvatar user={post.user} profileUrl={authorProfileUrl} size="sm" />
         <PostBookmarkAuthorLine
@@ -106,7 +106,7 @@ function PostBookmarkQuotedReplyingTo({mentions}: {mentions: PostReplyingToMenti
   if (!mentions.length) return null;
 
   return (
-    <p className="text-[14px] leading-[18px] text-[#536471]">
+    <p className="text-x-secondary text-[14px] leading-[18px]">
       Replying to{" "}
       {mentions.map((mention, index) => (
         <Fragment key={mention.key}>

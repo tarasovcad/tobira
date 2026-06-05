@@ -127,7 +127,7 @@ export default function PostBookmarkList({
   const postBodyContent = (
     <>
       {post.replyingTo && !isPostDetailOpen ? (
-        <p className="text-[14px] text-[#536471]">
+        <p className="text-x-secondary text-[14px]">
           Replying to{" "}
           <Link
             href={`https://x.com/${post.replyingTo}`}
@@ -182,7 +182,7 @@ export default function PostBookmarkList({
       ) : null}
 
       {showTags && item.tags && item.tags.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
+        <div className="mt-3 flex flex-wrap gap-1">
           {item.tags.map((tag) => (
             <Tag key={tag} displayHash={false} size="md" variant="outline">
               # {tag}
@@ -192,7 +192,7 @@ export default function PostBookmarkList({
       ) : null}
 
       {showTimestamp && !showAuthor ? (
-        <div className="flex items-center gap-3 text-[14px] text-[#536471]">
+        <div className="text-x-secondary flex items-center gap-3 text-[14px]">
           {formatPostFullDate(post.date_epoch)}
         </div>
       ) : null}

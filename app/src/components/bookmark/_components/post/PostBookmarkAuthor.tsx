@@ -102,7 +102,7 @@ export function PostBookmarkAuthorLine({
           </span>
           <PostBookmarkVerificationBadge user={user} />
           <PostBookmarkAffiliateBadge user={user} />
-          <span className="min-w-0 shrink truncate pl-0.5 text-[#536471]!">
+          <span className="text-x-secondary! min-w-0 shrink truncate pl-0.5">
             @{user.user_screen_name}
           </span>
         </Link>
@@ -110,8 +110,8 @@ export function PostBookmarkAuthorLine({
 
       {showTimestamp && timestampEpoch != null ? (
         <>
-          <span className="text-[#536471]">{"\u00b7"}</span>
-          <PostShortTimestamp epoch={timestampEpoch} className="text-[#536471]" />
+          <span className="text-x-secondary">{"\u00b7"}</span>
+          <PostShortTimestamp epoch={timestampEpoch} className="text-x-secondary" />
         </>
       ) : null}
     </div>
@@ -149,7 +149,7 @@ export function PostBookmarkAuthorStack({
             <PostBookmarkVerificationBadge user={user} />
             <PostBookmarkAffiliateBadge user={user} />
           </div>
-          <span className="truncate text-sm text-[#536471]!">@{user.user_screen_name}</span>
+          <span className="text-x-secondary! truncate text-sm">@{user.user_screen_name}</span>
         </div>
       </Link>
     </div>

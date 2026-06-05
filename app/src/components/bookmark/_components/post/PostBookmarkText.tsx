@@ -64,10 +64,11 @@ type PostBookmarkTextProps = {
 };
 
 type HiddenUrlContext = {
+  cardDomain?: string;
+  cardUrl?: string;
   hiddenAttachmentUrls: string[];
   hasMedia: boolean;
   postText: string;
-  cardUrl?: string;
 };
 
 export function preparePostBookmarkText(
@@ -274,6 +275,7 @@ function shouldRemoveUrlEntity(
 
 function getHiddenUrlContext(post: FreebirdXPost): HiddenUrlContext {
   return {
+    cardDomain: post.card?.domain,
     cardUrl: post.card?.url,
     hasMedia: post.hasMedia,
     hiddenAttachmentUrls: getHiddenAttachmentUrls(post),
@@ -335,8 +337,13 @@ function getUrlEntityCandidates(entity: FreebirdXPostUrlEntity) {
   return [entity.url, entity.expanded_url, entity.display_url];
 }
 
-function getCardUrlCandidates({cardUrl}: HiddenUrlContext) {
-  return cardUrl ? [cardUrl] : [];
+function getCardUrlCandidates({cardDomain, cardUrl}: HiddenUrlContext) {
+  return compactUrls([
+    cardUrl,
+    cardDomain,
+    cardDomain ? `https://${cardDomain}` : null,
+    cardDomain ? `http://${cardDomain}` : null,
+  ]);
 }
 
 function linkPlainUrls(
@@ -394,7 +401,7 @@ function shouldRemovePlainUrl(
 }
 
 function isTrailingUrl(text: string, end: number) {
-  return text.slice(end).trim().length === 0;
+  return sliceCodePoints(text, end, getCodePointLength(text)).trim().length === 0;
 }
 
 function isShortXUrl(url: string) {
