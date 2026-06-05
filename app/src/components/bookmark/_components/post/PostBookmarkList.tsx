@@ -30,6 +30,10 @@ import {PostBookmarkText, preparePostBookmarkText} from "./PostBookmarkText";
 
 const MAX_LENGTH = 280;
 
+/** Room for the avatar selection checkbox without shifting post body content. */
+const postListSelectionInsetClass =
+  "transition-[margin,padding,width] duration-200 ease-out group-data-[selection-mode=true]/bookmark-row:-ml-7 group-data-[selection-mode=true]/bookmark-row:w-[calc(100%+1.75rem)] group-data-[selection-mode=true]/bookmark-row:pl-11 group-data-[selection-mode=true]/bookmark-row:pr-4";
+
 interface PostBookmarkListProps {
   item: PostBookmark;
   onOpenDetail?: (item: PostBookmark) => void;
@@ -102,6 +106,17 @@ export default function PostBookmarkList({
     maxLength: MAX_LENGTH,
   });
   const authorProfileUrl = `https://x.com/${user.user_screen_name}`;
+  const authorSelectionCheckbox = (
+    <BookmarkSelectionCheckbox
+      itemId={item.id}
+      title={user.user_name}
+      checked={isSelected}
+      selectionIndex={selectionIndex}
+      onCheckedChange={setSelected}
+      variant="overlay"
+      className="top-1/2 -left-7 -translate-y-1/2"
+    />
+  );
 
   const showAuthor = postContentToggles.author;
   const showMedia = postContentToggles.media;
@@ -189,6 +204,7 @@ export default function PostBookmarkList({
       onClick={onOpenDetail ? handleOpenDetail : undefined}
       className={cn(
         "border-border group relative isolate flex flex-col gap-[14px] px-4",
+        postListSelectionInsetClass,
         "transition-colors duration-50",
         !isPostDetailOpen && "cursor-pointer",
         isSelected && "bg-muted",
@@ -256,16 +272,7 @@ export default function PostBookmarkList({
               user={user}
               profileUrl={authorProfileUrl}
               className="pr-10"
-              selectionSlot={
-                <BookmarkSelectionCheckbox
-                  itemId={item.id}
-                  title={user.user_name}
-                  checked={isSelected}
-                  selectionIndex={selectionIndex}
-                  onCheckedChange={setSelected}
-                  paddingClassName="pr-2"
-                />
-              }
+              selectionSlot={authorSelectionCheckbox}
             />
 
             <div className="min-w-0 flex-1 space-y-[14px]">{postBodyContent}</div>
@@ -275,7 +282,11 @@ export default function PostBookmarkList({
 
       {showAuthor && !isPostDetailOpen ? (
         <div className="relative z-[1] grid grid-cols-[40px_minmax(0,1fr)] gap-x-3">
-          <PostBookmarkAuthorAvatar user={user} profileUrl={authorProfileUrl} />
+          <PostBookmarkAuthorAvatar
+            user={user}
+            profileUrl={authorProfileUrl}
+            selectionSlot={authorSelectionCheckbox}
+          />
 
           <div className="min-w-0 space-y-0.5">
             <PostBookmarkAuthorLine
@@ -284,16 +295,6 @@ export default function PostBookmarkList({
               timestampEpoch={post.date_epoch}
               showTimestamp={showTimestamp}
               className="pr-10 text-[15px] leading-5"
-              selectionSlot={
-                <BookmarkSelectionCheckbox
-                  itemId={item.id}
-                  title={user.user_name}
-                  checked={isSelected}
-                  selectionIndex={selectionIndex}
-                  onCheckedChange={setSelected}
-                  paddingClassName="pr-1"
-                />
-              }
             />
 
             {postBodyContent}

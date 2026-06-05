@@ -21,6 +21,9 @@ import CrossFade from "../shared/NewBookmarkCrossFade";
 
 const MAX_LENGTH = 280;
 
+const postListSelectionInsetClass =
+  "transition-[margin,padding,width] duration-200 ease-out group-data-[selection-mode=true]/bookmark-row:-ml-7 group-data-[selection-mode=true]/bookmark-row:w-[calc(100%+1.75rem)] group-data-[selection-mode=true]/bookmark-row:pl-11 group-data-[selection-mode=true]/bookmark-row:pr-4";
+
 function formatFullDate(epoch: number): string {
   const d = new Date(epoch * 1000);
   const time = d.toLocaleTimeString("en-US", {
@@ -175,7 +178,11 @@ export default function PostBookmarkPlaceholderList({
   usePlaceholderDone(loaded, onDone);
 
   return (
-    <article className="border-border group relative isolate flex cursor-pointer flex-col gap-[14px] border-b px-4 py-3 pt-6 transition-none!">
+    <article
+      className={cn(
+        "border-border group relative isolate flex cursor-pointer flex-col gap-[14px] border-b px-4 py-3 pt-6 transition-none!",
+        postListSelectionInsetClass,
+      )}>
       <div className="pointer-events-none absolute inset-0 z-2 opacity-0 transition-opacity duration-200 group-data-[selection-mode=true]/bookmark-row:opacity-100" />
 
       {showAuthor && (

@@ -56,7 +56,7 @@ export default function BookmarkSelectionCheckbox({
     return (
       <div
         className={cn(
-          "pointer-events-none absolute top-2 left-2 z-20 scale-90 opacity-0",
+          "pointer-events-none absolute top-2 left-2 z-20 scale-90 opacity-0 transition-[transform,opacity] duration-200 ease-out",
           selectionModeOverlayClass,
           className,
         )}
