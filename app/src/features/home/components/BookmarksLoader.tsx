@@ -12,6 +12,8 @@ import {
   getAllItemsListViewOptions,
 } from "@/features/all-items/components/all-items-list-view-options";
 import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
+import {PostBookmarkDetailViewSkeleton} from "@/features/home/components/PostBookmarkDetailViewSkeleton";
+import {useIsPostDetailOpen} from "@/lib/hooks/use-is-post-detail-open";
 import {cn} from "@/lib/utils";
 
 const SKELETON_ROWS = 8;
@@ -33,6 +35,7 @@ export function BookmarksLoader({
     getBookmarkWidthForType(state.bookmarkWidthByType, typeFilter),
   );
 
+  const isPostDetailOpen = useIsPostDetailOpen();
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
   const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
@@ -73,24 +76,30 @@ export function BookmarksLoader({
         onSelectionEnabledChange={() => {}}
       />
 
-      {showCount && (
-        <div
-          className={cn(
-            "text-muted-foreground border-border flex items-center gap-2 px-6 py-3 text-sm",
-            currentView === "compact" && "border-b",
-            currentView === "list" && "border-b",
-          )}>
-          <Skeleton className="h-[21px] w-9 rounded-[2px]" />
-        </div>
-      )}
+      {isPostDetailOpen ? (
+        <PostBookmarkDetailViewSkeleton className="min-h-0 flex-1" />
+      ) : (
+        <>
+          {showCount && (
+            <div
+              className={cn(
+                "text-muted-foreground border-border flex items-center gap-2 px-6 py-3 text-sm",
+                currentView === "compact" && "border-b",
+                currentView === "list" && "border-b",
+              )}>
+              <Skeleton className="h-[21px] w-9 rounded-[2px]" />
+            </div>
+          )}
 
-      <div className="h-auto min-h-0 flex-1">
-        <ScrollArea className="h-full" scrollbarGutter>
-          <div className={layoutConfig.wrapperClassName}>
-            <div className={layoutConfig.containerClassName}>{content}</div>
+          <div className="h-auto min-h-0 flex-1">
+            <ScrollArea className="h-full" scrollbarGutter>
+              <div className={layoutConfig.wrapperClassName}>
+                <div className={layoutConfig.containerClassName}>{content}</div>
+              </div>
+            </ScrollArea>
           </div>
-        </ScrollArea>
-      </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import {Skeleton} from "@/components/ui/coss/skeleton";
 import {cn} from "@/lib/utils";
+import {useIsPostDetailOpen} from "@/lib/hooks/use-is-post-detail-open";
 import {useViewOptionsStore} from "@/store/use-view-options";
 
 export function WebsiteSkeletonList() {
@@ -79,23 +80,35 @@ export function WebsiteSkeletonGrid({
   );
 }
 
-export function PostSkeletonList() {
+export function PostSkeletonList({className}: {className?: string}) {
+  const isPostDetailOpen = useIsPostDetailOpen();
+
   return (
-    <div className="border-border flex flex-col gap-[14px] border-b px-4 py-3 pt-6">
-      <div className="flex items-center gap-2">
-        <div className="bg-muted size-10 animate-pulse rounded-full" />
-        <div className="flex flex-col gap-1.5">
-          <div className="bg-muted h-[18px] w-28 animate-pulse rounded" />
-          <div className="bg-muted h-[16px] w-20 animate-pulse rounded" />
+    <article
+      aria-hidden="true"
+      className={cn(
+        "border-border grid grid-cols-[40px_minmax(0,1fr)] gap-x-3 px-4",
+        isPostDetailOpen ? "pt-0 pb-10" : "border-b py-4 pt-5",
+        className,
+      )}>
+      <Skeleton className="size-10 rounded-full" />
+
+      <div className="min-w-0 space-y-[14px]">
+        <div className="flex min-w-0 items-center gap-2 pr-10">
+          <Skeleton className="h-5 w-28 rounded" />
+          <Skeleton className="h-4 w-20 rounded" />
+          <Skeleton className="h-4 w-16 rounded" />
         </div>
+
+        <div className="space-y-1.5">
+          <Skeleton className="h-[18px] w-full rounded" />
+          <Skeleton className="h-[18px] w-11/12 rounded" />
+          <Skeleton className="h-[18px] w-3/5 rounded" />
+        </div>
+
+        <Skeleton className="aspect-video w-full rounded-lg" />
       </div>
-      <div className="space-y-2">
-        <div className="bg-muted h-[15px] w-full animate-pulse rounded" />
-        <div className="bg-muted h-[15px] w-4/5 animate-pulse rounded" />
-        <div className="bg-muted h-[15px] w-3/5 animate-pulse rounded" />
-      </div>
-      <div className="bg-muted h-[300px] w-full animate-pulse rounded-[16px]" />
-    </div>
+    </article>
   );
 }
 

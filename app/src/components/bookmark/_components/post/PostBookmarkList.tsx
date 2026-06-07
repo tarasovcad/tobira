@@ -88,7 +88,7 @@ export default function PostBookmarkList({
   if (!meta) {
     return (
       <div className={cn("text-muted-foreground border-b px-4 py-3 text-sm", className)}>
-        Post data unavailable
+        Post data unavailable or not supported.
       </div>
     );
   }
@@ -209,7 +209,7 @@ export default function PostBookmarkList({
         !isPostDetailOpen && "cursor-pointer",
         isSelected && "bg-muted",
         className,
-        isPostDetailOpen ? "pt-0 pb-10" : "hover:bg-muted/75 border-b py-3 pt-4",
+        isPostDetailOpen ? "pt-0 pb-10" : "hover:bg-muted/75 border-b py-4 pt-5",
       )}>
       <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-200 group-data-[selection-mode=true]/bookmark-row:opacity-100" />
 
@@ -225,7 +225,7 @@ export default function PostBookmarkList({
       ) : null}
 
       <BookmarkHoverActions
-        className="top-3 right-3 z-[3]"
+        className="top-2.5 right-3 z-[3]"
         onSave={
           onSave
             ? (e) => {

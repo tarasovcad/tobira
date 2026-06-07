@@ -282,7 +282,6 @@ export function AllItemsList({
 
   const body = (
     <>
-      {/* <PostBookmarkPlaceholderList /> */}
       <AllItemsAnimatingPlaceholders
         animatingUrl={animatingUrl}
         animatingItemCount={animatingItemCount}

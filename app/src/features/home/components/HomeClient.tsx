@@ -58,7 +58,7 @@ export function HomeClient({
 }) {
   const {tagFilter, collectionFilter, typeFilter, sort, handleTypeChange, handleSortChange} =
     useHomeFilters();
-  const {detailBookmarkId, openPostDetail, closePostDetail} = usePostDetailUrl();
+  const {detailBookmarkId, isPostDetailOpen, openPostDetail, closePostDetail} = usePostDetailUrl();
   const handleOpenPostDetail = useCallback(
     (item: Bookmark) => {
       if (item.kind !== "post") {
@@ -105,6 +105,7 @@ export function HomeClient({
       ) ?? null
     );
   }, [allBookmarks, detailBookmarkId]);
+
   const detailBookmarkQuery = useQuery({
     queryKey: ["bookmarks", "post-detail", userId, detailBookmarkId],
     enabled: Boolean(userId && detailBookmarkId && !loadedDetailBookmark),
@@ -117,8 +118,6 @@ export function HomeClient({
     },
   });
   const detailBookmark = loadedDetailBookmark ?? detailBookmarkQuery.data ?? null;
-  const isPostDetailOpen = typeFilter === "post" && Boolean(detailBookmarkId);
-
   // Mutation Hook
   const {
     removingIds,
