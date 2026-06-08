@@ -2,9 +2,14 @@
 
 import {useState} from "react";
 import {useSearchParams, useRouter, usePathname} from "next/navigation";
+import {parseAsStringLiteral, useQueryState} from "nuqs";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {TypeFilter, SortMode} from "@/features/home/types";
 import {getDefaultAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
+
+const typeFilterParser = parseAsStringLiteral(["website", "media", "post"] as const).withDefault(
+  "website",
+);
 
 const resolveSortFilter = (sortParam: string | null): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;
@@ -19,13 +24,12 @@ export function useHomeFilters() {
 
   const tagFilter = searchParams.get("tag")?.trim() || null;
   const collectionFilter = searchParams.get("collection");
-  const initialTypeFilter = (searchParams.get("type") ?? "website") as TypeFilter;
   const initialSort = resolveSortFilter(searchParams.get("sort"));
 
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>(initialTypeFilter);
+  const [typeFilter, setTypeFilter] = useQueryState("type", typeFilterParser);
   const [sort, setSort] = useState<SortMode>(initialSort);
 
-  const updateUrlParam = (key: "type" | "sort", value: TypeFilter | SortMode) => {
+  const updateUrlParam = (key: "sort", value: SortMode) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set(key, value);
     const query = params.toString();
@@ -33,9 +37,8 @@ export function useHomeFilters() {
   };
 
   const handleTypeChange = (nextType: TypeFilter) => {
-    setTypeFilter(nextType);
+    void setTypeFilter(nextType);
     resetViewOptions(getDefaultAllItemsView(nextType));
-    updateUrlParam("type", nextType);
   };
 
   const handleSortChange = (nextSort: SortMode) => {

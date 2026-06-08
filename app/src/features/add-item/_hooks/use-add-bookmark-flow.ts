@@ -201,6 +201,10 @@ export function useAddBookmarkFlow({
       return;
     }
 
+    if (nextOpen) {
+      resetLocalState();
+    }
+
     setDialogOpen(nextOpen);
     if (!nextOpen) {
       setTimeout(() => {
@@ -214,6 +218,7 @@ export function useAddBookmarkFlow({
       router.push("/login");
       return;
     }
+    resetLocalState();
     setDialogOpen(true);
   };
 

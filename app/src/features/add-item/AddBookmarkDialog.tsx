@@ -2,7 +2,7 @@
 import Spinner from "@/components/ui/app/spinner";
 import {Button} from "@/components/ui/coss/button";
 import {Button as ShadcnButton} from "@/components/ui/legacy-shadcn/button";
-import {useSearchParams} from "next/navigation";
+import {parseAsStringLiteral, useQueryState} from "nuqs";
 import {
   Dialog,
   DialogClose,
@@ -17,6 +17,8 @@ import {AddBookmarkStep2MediaGrid} from "./_components/AddBookmarkStep2MediaGrid
 import {useAddBookmarkFlow} from "./_hooks/use-add-bookmark-flow";
 import {AddBookmarkStep1Form} from "./_components/AddBookmarkStep1Form";
 
+const typeParamParser = parseAsStringLiteral(["website", "media", "post"] as const);
+
 export type AddBookmarkDialogUser = AuthUser & {
   aiContext?: string | null;
   enableAiOptimization?: boolean;
@@ -29,11 +31,10 @@ export function AddBookmarkDialog({
   isAuthenticated?: boolean;
   user?: AddBookmarkDialogUser | null;
 }) {
-  const searchParams = useSearchParams();
+  const [typeParam] = useQueryState("type", typeParamParser);
   const userId = user?.id;
   const userAiContext = user?.enableAiOptimization ? user?.aiContext : null;
-  const typeParam = searchParams.get("type");
-  const defaultType = typeParam === "media" ? "media" : typeParam === "post" ? "post" : "website";
+  const defaultType = typeParam ?? "website";
 
   const {
     open,

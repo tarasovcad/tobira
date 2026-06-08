@@ -281,7 +281,7 @@ export default function PostBookmarkList({
       ) : null}
 
       {showAuthor && !isPostDetailOpen ? (
-        <div className="relative z-[1] grid grid-cols-[40px_minmax(0,1fr)] gap-x-3">
+        <div className="relative z-[1] grid grid-cols-[40px_minmax(0,1fr)] gap-x-2">
           <PostBookmarkAuthorAvatar
             user={user}
             profileUrl={authorProfileUrl}
