@@ -154,6 +154,18 @@ export default function BookmarkDetails({
 
   const postedDate = post?.date_epoch ? formatPostedDate(post.date_epoch) : null;
 
+  const postKind = post
+    ? [
+        ...(post.replyingTo ? ["Reply"] : []),
+        ...(post.qrt ? ["Quote"] : []),
+        ...(post.article ? ["Article"] : []),
+        ...(post.card ? ["Card"] : []),
+        ...(post.hasMedia ? ["Media"] : []),
+      ].join(" + ") || "Text post"
+    : undefined;
+
+  const replyProfileUrl = post?.replyingTo ? `https://x.com/${post.replyingTo}` : undefined;
+
   const handleCopyLink = async (href: string, key: string) => {
     await copyText(href, key);
   };
@@ -210,6 +222,26 @@ export default function BookmarkDetails({
               </span>
             </CopyableExternalLink>
 
+            {postKind && (
+              <>
+                <div className="text-muted-foreground">Post kind</div>
+                <div>{postKind}</div>
+              </>
+            )}
+
+            {replyProfileUrl && (
+              <>
+                <div className="text-muted-foreground">Replying to</div>
+                <CopyableExternalLink
+                  href={replyProfileUrl}
+                  copyKey="replying-to"
+                  copied={copiedKey === "replying-to"}
+                  onCopy={handleCopyLink}
+                  className="text-[#1D9BF0]">
+                  @{post.replyingTo}
+                </CopyableExternalLink>
+              </>
+            )}
             {postedDate && (
               <>
                 <div className="text-muted-foreground">Posted</div>

@@ -3,15 +3,17 @@
 import {useCallback, type MouseEvent} from "react";
 import PostBookmarkList from "@/components/bookmark/_components/post/PostBookmarkList";
 import type {Bookmark, PostBookmark} from "@/components/bookmark/types";
-import {PostSkeletonList} from "@/components/bookmark/_components/shared/BookmarkSkeletons";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {getAllItemsBookmarkWidthClass} from "@/features/all-items/components/all-items-list-layout";
 import {PostBookmarkDetailHeader} from "@/features/home/components/PostBookmarkDetailHeader";
+import {PostBookmarkDetailPostSkeleton} from "@/features/home/components/PostBookmarkDetailViewSkeleton";
+
+export type PostDetailErrorCode = "INVALID_ID" | "NOT_FOUND" | "UNAUTHORIZED" | "UNKNOWN_ERROR";
 
 type PostBookmarkDetailViewProps = {
   detailBookmarkId: string;
   item: PostBookmark | null;
-  isError: boolean;
+  errorCode: PostDetailErrorCode | null;
   isLoading: boolean;
   selectionMode: boolean;
   isSelected: boolean;
@@ -24,7 +26,7 @@ type PostBookmarkDetailViewProps = {
 export function PostBookmarkDetailView({
   detailBookmarkId,
   item,
-  isError,
+  errorCode,
   isLoading,
   selectionMode,
   isSelected,
@@ -71,7 +73,7 @@ export function PostBookmarkDetailView({
           ) : (
             <PostDetailState
               detailBookmarkId={detailBookmarkId}
-              isError={isError}
+              errorCode={errorCode}
               isLoading={isLoading}
             />
           )}
@@ -83,27 +85,49 @@ export function PostBookmarkDetailView({
 
 function PostDetailState({
   detailBookmarkId,
-  isError,
+  errorCode,
   isLoading,
 }: {
   detailBookmarkId: string;
-  isError: boolean;
+  errorCode: PostDetailErrorCode | null;
   isLoading: boolean;
 }) {
   if (isLoading) {
-    return <PostSkeletonList />;
+    return <PostBookmarkDetailPostSkeleton />;
   }
+
+  const {title, description} = getPostDetailErrorCopy(errorCode, detailBookmarkId);
 
   return (
     <div className="px-6 py-12 text-center">
-      <h2 className="text-foreground text-base font-semibold">
-        {isError ? "Post unavailable" : "Post not found"}
-      </h2>
-      <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm">
-        {isError
-          ? "Something went wrong while loading this post."
-          : `No saved post was found for ${detailBookmarkId}.`}
-      </p>
+      <h2 className="text-foreground text-base font-semibold">{title}</h2>
+      <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm">{description}</p>
     </div>
   );
+}
+
+function getPostDetailErrorCopy(errorCode: PostDetailErrorCode | null, detailBookmarkId: string) {
+  switch (errorCode) {
+    case "INVALID_ID":
+      return {
+        title: "Invalid post link",
+        description: "This post link contains an invalid bookmark id.",
+      };
+    case "UNAUTHORIZED":
+      return {
+        title: "Sign in required",
+        description: "You need to be signed in to view saved posts.",
+      };
+    case "UNKNOWN_ERROR":
+      return {
+        title: "Post unavailable",
+        description: "Something went wrong while loading this post.",
+      };
+    case "NOT_FOUND":
+    default:
+      return {
+        title: "Post not found",
+        description: `No saved post was found for ${detailBookmarkId}.`,
+      };
+  }
 }

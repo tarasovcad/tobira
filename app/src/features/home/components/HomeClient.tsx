@@ -9,7 +9,10 @@ import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {CollectionHeader} from "@/features/home/components/CollectionHeader";
 import {TagHeader} from "@/features/home/components/TagHeader";
 import {HomeToolbar} from "@/features/home/components/HomeToolbar";
-import {PostBookmarkDetailView} from "@/features/home/components/PostBookmarkDetailView";
+import {
+  PostBookmarkDetailView,
+  type PostDetailErrorCode,
+} from "@/features/home/components/PostBookmarkDetailView";
 
 // Hooks
 import {useBookmarksSelection} from "@/features/home/hooks/use-bookmarks-selection";
@@ -111,13 +114,26 @@ export function HomeClient({
     enabled: Boolean(userId && detailBookmarkId && !loadedDetailBookmark),
     queryFn: async () => {
       if (!detailBookmarkId) {
-        return null;
+        return {ok: false as const, code: "NOT_FOUND" as const};
       }
 
       return await getPostBookmarkById(detailBookmarkId);
     },
+    retry: false,
   });
-  const detailBookmark = loadedDetailBookmark ?? detailBookmarkQuery.data ?? null;
+  const fetchedDetailBookmark = detailBookmarkQuery.data?.ok
+    ? detailBookmarkQuery.data.bookmark
+    : null;
+  const detailBookmark = loadedDetailBookmark ?? fetchedDetailBookmark;
+  const detailErrorCode: PostDetailErrorCode | null = loadedDetailBookmark
+    ? null
+    : detailBookmarkQuery.data && !detailBookmarkQuery.data.ok
+      ? detailBookmarkQuery.data.code
+      : detailBookmarkQuery.isError
+        ? "UNKNOWN_ERROR"
+        : !userId
+          ? "UNAUTHORIZED"
+          : null;
   // Mutation Hook
   const {
     removingIds,
@@ -267,7 +283,7 @@ export function HomeClient({
           <PostBookmarkDetailView
             detailBookmarkId={detailBookmarkId}
             item={detailBookmark}
-            isError={detailBookmarkQuery.isError}
+            errorCode={detailErrorCode}
             isLoading={!detailBookmark && detailBookmarkQuery.isLoading}
             selectionMode={selectionMode}
             isSelected={detailBookmark ? selectedIds.has(detailBookmark.id) : false}

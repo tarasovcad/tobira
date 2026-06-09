@@ -60,7 +60,7 @@ export function SidebarCollectionItem({
 
   const openCollection = () => {
     if (pathname === "/home") {
-      void setHomeFilters({collection: collection.id, tag: null}, {history: "push"});
+      void setHomeFilters({collection: collection.id, tag: null, id: null}, {history: "push"});
       return;
     }
 
@@ -200,7 +200,7 @@ export function SidebarTagItem({
 
   const openTag = () => {
     if (pathname === "/home") {
-      void setHomeFilters({tag: tag.id, collection: null}, {history: "push"});
+      void setHomeFilters({tag: tag.id, collection: null, id: null}, {history: "push"});
       return;
     }
 

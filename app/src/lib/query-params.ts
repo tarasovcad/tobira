@@ -13,6 +13,7 @@ export const sortParser = parseAsStringLiteral(["recent", "oldest", "az"] as con
 export const homeFilterParsers = {
   tag: parseAsString,
   collection: parseAsString,
+  id: parseAsString,
   type: typeFilterParser,
   sort: sortParser,
 };

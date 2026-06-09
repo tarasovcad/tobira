@@ -35,16 +35,24 @@ import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
 import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import type {PostBookmark} from "@/components/bookmark/types";
 import {
+  getPostBookmarkArticleCoverPreviewItem,
   getPostBookmarkMediaPreviewItems,
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
 import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
+import {PostBookmarkText, preparePostBookmarkText} from "./PostBookmarkText";
+
+const POST_TEXT_PREVIEW_MAX_LENGTH = 280;
 
 // ── 0 images ──────────────────────────────────────────────────────────────────
 
 function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
   const post = meta.tweet.post;
   const user = meta.tweet.user;
+  const preparedText = preparePostBookmarkText(post, {
+    expanded: false,
+    maxLength: POST_TEXT_PREVIEW_MAX_LENGTH,
+  });
 
   return (
     <div className="bg-muted relative flex aspect-video w-full items-center justify-center overflow-hidden border-b px-8">
@@ -68,8 +76,8 @@ function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
           </div>
         </div>
 
-        <p className="text-foreground line-clamp-5 text-[14px] leading-snug whitespace-pre-wrap">
-          {post.text}
+        <p className="text-foreground line-clamp-5 text-[15px] leading-[20px] whitespace-pre-wrap">
+          <PostBookmarkText preparedText={preparedText} />
         </p>
       </div>
     </div>
@@ -127,6 +135,62 @@ function MediaPanel({
   );
 }
 
+function getPostBookmarkCardPreviewItem(
+  meta: PostBookmarkMetadata,
+): PostBookmarkPreviewItem | null {
+  const card = meta.tweet.post.card;
+  if (!card?.image.url) {
+    return null;
+  }
+
+  return {
+    key: card.image.url,
+    type: "image",
+    src: card.image.url,
+    fullSizeSrc: card.image.url,
+    width: card.image.width,
+    height: card.image.height,
+    alt: card.image.altText ?? card.title,
+  };
+}
+
+function getPostBookmarkMenuPreviewItems(
+  item: PostBookmark,
+  meta: PostBookmarkMetadata,
+): PostBookmarkPreviewItem[] {
+  const mainMedia = getPostBookmarkMediaPreviewItems(item, "main", "menu");
+  if (mainMedia.length > 0) {
+    return mainMedia;
+  }
+
+  const cardPreviewItem = getPostBookmarkCardPreviewItem(meta);
+  if (cardPreviewItem) {
+    return [cardPreviewItem];
+  }
+
+  const post = meta.tweet.post;
+  const articleCoverPreviewItem = post.article
+    ? getPostBookmarkArticleCoverPreviewItem(item, "menu", 0)
+    : null;
+  if (articleCoverPreviewItem) {
+    return [articleCoverPreviewItem];
+  }
+
+  const quotedMedia = getPostBookmarkMediaPreviewItems(item, "qrt", "menu");
+  if (quotedMedia.length > 0) {
+    return quotedMedia;
+  }
+
+  const quotedArticleCoverPreviewItem = post.qrt?.post.article
+    ? getPostBookmarkArticleCoverPreviewItem(item, "menu", post.article ? 1 : 0)
+    : null;
+  if (quotedArticleCoverPreviewItem) {
+    return [quotedArticleCoverPreviewItem];
+  }
+
+  return [];
+}
+
 function PostBookmarkMenuPreview({
   item,
   meta,
@@ -136,7 +200,7 @@ function PostBookmarkMenuPreview({
   meta: PostBookmarkMetadata;
   disableClickToOpen: boolean;
 }) {
-  const media = getPostBookmarkMediaPreviewItems(item, "main", "menu");
+  const media = getPostBookmarkMenuPreviewItems(item, meta);
   return media.length > 0 ? (
     <MediaPanel media={media} disableClickToOpen={disableClickToOpen} />
   ) : (

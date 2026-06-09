@@ -28,7 +28,7 @@ export function PostBookmarkDetailViewSkeleton({className}: PostBookmarkDetailVi
   );
 }
 
-function PostBookmarkDetailPostSkeleton() {
+export function PostBookmarkDetailPostSkeleton() {
   return (
     <article aria-hidden="true" className="border-border flex flex-col gap-[14px] px-4 pt-0 pb-10">
       <div className="relative z-[1] flex flex-col gap-5">
