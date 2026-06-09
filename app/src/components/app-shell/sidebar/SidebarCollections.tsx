@@ -1,7 +1,8 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
-import {usePathname, useSearchParams, useRouter} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
+import {useQueryState} from "nuqs";
 import {cn} from "@/lib/utils";
 import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
@@ -13,6 +14,7 @@ import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useCollectionsQuery} from "@/features/home/hooks/use-home-metadata-query";
+import {homeFilterParsers} from "@/lib/query-params";
 
 export function SidebarCollections({
   allCollections,
@@ -47,8 +49,8 @@ function SidebarCollectionsContent({
   isAuthenticated?: boolean;
 }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const [collectionParam] = useQueryState("collection", homeFilterParsers.collection);
   const openDialog = useCollectionDialogStore((state) => state.openDialog);
   const openDeleteDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
   const {copyText} = useClipboardCopy(2000, {toast: true});
@@ -236,7 +238,7 @@ function SidebarCollectionsContent({
               ))}
             {collectionsExpanded &&
               collections.map((c, index) => {
-                const isActive = pathname === "/home" && searchParams.get("collection") === c.id;
+                const isActive = pathname === "/home" && collectionParam === c.id;
                 return (
                   <SidebarCollectionItem
                     key={c.id}

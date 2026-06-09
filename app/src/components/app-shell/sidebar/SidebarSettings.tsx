@@ -2,7 +2,7 @@
 
 import React, {useMemo} from "react";
 import Link from "next/link";
-import {useSearchParams} from "next/navigation";
+import {useQueryState} from "nuqs";
 import {cn} from "@/lib/utils";
 import {
   Tooltip,
@@ -11,10 +11,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/coss/tooltip";
+import {serializeSettingsParams, settingsTabParser, type SettingsTab} from "@/lib/query-params";
 
 interface SettingsItem {
   label: string;
-  slug: string;
+  slug: SettingsTab;
   href: string;
   icon: React.ReactNode;
   disabled?: boolean;
@@ -24,7 +25,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "General",
     slug: "general",
-    href: "/settings?tab=general",
+    href: serializeSettingsParams("/settings", {tab: "general"}),
     icon: (
       <svg
         width="20"
@@ -44,7 +45,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Personalization",
     slug: "personalization",
-    href: "/settings?tab=personalization",
+    href: serializeSettingsParams("/settings", {tab: "personalization"}),
     icon: (
       <svg
         width="20"
@@ -64,7 +65,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Account & Security",
     slug: "account",
-    href: "/settings?tab=account",
+    href: serializeSettingsParams("/settings", {tab: "account"}),
     icon: (
       <svg
         width="20"
@@ -84,7 +85,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Billing",
     slug: "billing",
-    href: "/settings?tab=billing",
+    href: serializeSettingsParams("/settings", {tab: "billing"}),
     disabled: true,
     icon: (
       <svg
@@ -109,7 +110,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Privacy",
     slug: "privacy",
-    href: "/settings?tab=privacy",
+    href: serializeSettingsParams("/settings", {tab: "privacy"}),
     disabled: true,
     icon: (
       <svg
@@ -130,7 +131,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Meta/About",
     slug: "meta",
-    href: "/settings?tab=meta",
+    href: serializeSettingsParams("/settings", {tab: "meta"}),
     disabled: true,
     icon: (
       <svg
@@ -154,7 +155,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Organization",
     slug: "organization",
-    href: "/settings?tab=organization",
+    href: serializeSettingsParams("/settings", {tab: "organization"}),
     disabled: true,
     icon: (
       <svg
@@ -183,7 +184,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Integrations",
     slug: "integrations",
-    href: "/settings?tab=integrations",
+    href: serializeSettingsParams("/settings", {tab: "integrations"}),
     disabled: true,
     icon: (
       <svg
@@ -210,7 +211,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Capture Tools",
     slug: "capture",
-    href: "/settings?tab=capture",
+    href: serializeSettingsParams("/settings", {tab: "capture"}),
     disabled: true,
     icon: (
       <svg
@@ -237,7 +238,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Data Management",
     slug: "data",
-    href: "/settings?tab=data",
+    href: serializeSettingsParams("/settings", {tab: "data"}),
     icon: (
       <svg
         width="20"
@@ -261,7 +262,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Usage",
     slug: "usage",
-    href: "/settings?tab=usage",
+    href: serializeSettingsParams("/settings", {tab: "usage"}),
     disabled: true,
     icon: (
       <svg
@@ -284,7 +285,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Knowledge Base",
     slug: "kb",
-    href: "/settings?tab=kb",
+    href: serializeSettingsParams("/settings", {tab: "kb"}),
     disabled: true,
     icon: (
       <svg
@@ -399,8 +400,7 @@ export function SidebarSettings({
   onBack: () => void;
   state: "expanded" | "collapsed";
 }) {
-  const searchParams = useSearchParams();
-  const currentTab = searchParams.get("tab") || "general";
+  const [currentTab] = useQueryState("tab", settingsTabParser);
   const isCollapsed = state === "collapsed";
   const navTooltipHandle = useMemo(() => TooltipCreateHandle<React.ComponentType>(), []);
   const BackTooltipContent = () => <span>Back to app</span>;

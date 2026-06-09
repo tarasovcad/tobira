@@ -5,11 +5,13 @@ import {ContextMenu, ContextMenuTrigger} from "@/components/ui/legacy-shadcn/con
 import {motion} from "framer-motion";
 import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
-import {useRouter} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
+import {useQueryStates} from "nuqs";
 import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/features/home/types";
 import {Skeleton} from "@/components/ui/app/skeleton";
 import {useHasMounted} from "@/lib/hooks/use-has-mounted";
+import {homeFilterParsers, serializeHomeParams} from "@/lib/query-params";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (
@@ -52,7 +54,18 @@ export function SidebarCollectionItem({
   onContextMenuDelete,
 }: SidebarCollectionItemProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const [, setHomeFilters] = useQueryStates(homeFilterParsers);
   const hasMounted = useHasMounted();
+
+  const openCollection = () => {
+    if (pathname === "/home") {
+      void setHomeFilters({collection: collection.id, tag: null}, {history: "push"});
+      return;
+    }
+
+    router.push(serializeHomeParams("/home", {collection: collection.id}));
+  };
 
   return (
     <motion.div
@@ -69,7 +82,7 @@ export function SidebarCollectionItem({
               onToggleSelection();
               return;
             }
-            router.push(`/home?collection=${collection.id}`);
+            openCollection();
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -77,7 +90,7 @@ export function SidebarCollectionItem({
               if (selectionMode) {
                 onToggleSelection();
               } else {
-                router.push(`/home?collection=${collection.id}`);
+                openCollection();
               }
             }
           }}
@@ -181,7 +194,18 @@ export function SidebarTagItem({
   onContextMenuDelete,
 }: SidebarTagItemProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const [, setHomeFilters] = useQueryStates(homeFilterParsers);
   const hasMounted = useHasMounted();
+
+  const openTag = () => {
+    if (pathname === "/home") {
+      void setHomeFilters({tag: tag.id, collection: null}, {history: "push"});
+      return;
+    }
+
+    router.push(serializeHomeParams("/home", {tag: tag.id}));
+  };
 
   return (
     <motion.div
@@ -198,7 +222,7 @@ export function SidebarTagItem({
               onToggleSelection();
               return;
             }
-            router.push(`/home?tag=${tag.id}`);
+            openTag();
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -206,7 +230,7 @@ export function SidebarTagItem({
               if (selectionMode) {
                 onToggleSelection();
               } else {
-                router.push(`/home?tag=${tag.id}`);
+                openTag();
               }
             }
           }}

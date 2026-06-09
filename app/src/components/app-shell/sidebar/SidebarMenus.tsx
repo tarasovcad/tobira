@@ -14,6 +14,7 @@ import type {SidebarTag} from "@/features/home/types";
 import {getTagById, toggleTagPin} from "@/app/actions/tags";
 import {toggleCollectionPin} from "@/app/actions/collections";
 import {toastManager} from "@/components/ui/coss/toast";
+import {serializeHomeParams} from "@/lib/query-params";
 
 async function handleToggleCollectionPin(
   collectionId: string,
@@ -87,7 +88,7 @@ export function CollectionContextMenuContent({
 
   return (
     <ContextMenuContent>
-      <Link href={`/home?collection=${collection.id}`}>
+      <Link href={serializeHomeParams("/home", {collection: collection.id})}>
         <ContextMenuItem>
           <svg
             width="16"
@@ -216,7 +217,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
 
   return (
     <ContextMenuContent>
-      <Link href={`/home?tag=${tag.id}`}>
+      <Link href={serializeHomeParams("/home", {tag: tag.id})}>
         <ContextMenuItem>
           <svg
             width="16"

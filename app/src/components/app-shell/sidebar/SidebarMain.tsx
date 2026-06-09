@@ -1,7 +1,8 @@
 "use client";
 
 import React, {useMemo} from "react";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
+import {useQueryStates} from "nuqs";
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
@@ -15,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/coss/tooltip";
+import {homeFilterParsers, serializeSettingsParams} from "@/lib/query-params";
 
 interface SidebarMainProps {
   allCollections?: Collection[];
@@ -34,10 +36,10 @@ export function SidebarMain({
   state,
 }: SidebarMainProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const [{tag, collection}] = useQueryStates(homeFilterParsers);
 
-  const activeTag = searchParams.get("tag")?.trim() || null;
+  const activeTag = tag?.trim() || null;
   const isCollapsed = state === "collapsed";
   const navTooltipHandle = useMemo(() => TooltipCreateHandle<React.ComponentType>(), []);
   const SettingsTooltipContent = () => <span>Settings</span>;
@@ -84,9 +86,7 @@ export function SidebarMain({
           <div className="flex flex-col gap-0.5">
             {NAV_ITEMS.map((item) => {
               const isAllItemsWithFilter =
-                item.href === "/home" &&
-                pathname === "/home" &&
-                (!!activeTag || !!searchParams.get("collection"));
+                item.href === "/home" && pathname === "/home" && (!!activeTag || !!collection);
 
               const isActive = item.href === pathname && !isAllItemsWithFilter;
 
@@ -139,7 +139,7 @@ export function SidebarMain({
                 type="button"
                 onClick={() => {
                   if (pathname !== "/settings") {
-                    router.push("/settings?tab=general");
+                    router.push(serializeSettingsParams("/settings", {tab: "general"}));
                   }
                   onShowSettings();
                 }}
@@ -154,7 +154,7 @@ export function SidebarMain({
             type="button"
             onClick={() => {
               if (pathname !== "/settings") {
-                router.push("/settings?tab=general");
+                router.push(serializeSettingsParams("/settings", {tab: "general"}));
               }
               onShowSettings();
             }}

@@ -16,14 +16,18 @@ import {deleteCollections} from "@/app/actions/collections";
 import Spinner from "@/components/ui/app/spinner";
 import {useEffect, useState} from "react";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {usePathname} from "next/navigation";
+import {useQueryState} from "nuqs";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
+import {homeFilterParsers} from "@/lib/query-params";
 
 export function DeleteCollectionDialog() {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [collectionParam, setCollectionParam] = useQueryState(
+    "collection",
+    homeFilterParsers.collection,
+  );
   const {isOpen: open, collections, onDeleted, closeDialog} = useDeleteCollectionDialogStore();
 
   const [displayCollections, setDisplayCollections] = useState(collections);
@@ -74,9 +78,9 @@ export function DeleteCollectionDialog() {
           type: "success",
         });
 
-        const activeCollectionId = searchParams.get("collection");
+        const activeCollectionId = collectionParam;
         if (pathname === "/home" && activeCollectionId && ids.includes(activeCollectionId)) {
-          router.push("/home");
+          void setCollectionParam(null, {history: "push"});
         }
 
         closeDialog();

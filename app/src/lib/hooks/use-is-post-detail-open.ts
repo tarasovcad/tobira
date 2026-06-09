@@ -1,14 +1,15 @@
 "use client";
 
-import {useSearchParams} from "next/navigation";
-import {parseAsStringLiteral, useQueryState} from "nuqs";
+import {parseAsString, parseAsStringLiteral, useQueryStates} from "nuqs";
 
-const postTypeParser = parseAsStringLiteral(["post"] as const);
+const postDetailParsers = {
+  type: parseAsStringLiteral(["post"] as const),
+  id: parseAsString,
+};
 
 export function useIsPostDetailOpen() {
-  const searchParams = useSearchParams();
-  const [type] = useQueryState("type", postTypeParser);
-  const detailBookmarkId = searchParams.get("id")?.trim() || null;
+  const [{type, id}] = useQueryStates(postDetailParsers);
+  const detailBookmarkId = id?.trim() || null;
 
   return type === "post" && Boolean(detailBookmarkId);
 }

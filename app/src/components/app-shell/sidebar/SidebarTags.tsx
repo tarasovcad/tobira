@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
-import {useSearchParams} from "next/navigation";
+import {useQueryState} from "nuqs";
 import {cn} from "@/lib/utils";
 import {AnimatePresence} from "framer-motion";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
@@ -11,6 +11,7 @@ import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import type {SidebarTag} from "@/features/home/types";
 import {useTagsQuery} from "@/features/home/hooks/use-home-metadata-query";
+import {homeFilterParsers} from "@/lib/query-params";
 
 export type SidebarTagsType = SidebarTag[];
 
@@ -24,7 +25,7 @@ export function SidebarTags({allTags, userId}: {allTags?: SidebarTagsType; userI
 }
 
 function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetching: boolean}) {
-  const searchParams = useSearchParams();
+  const [tagParam] = useQueryState("tag", homeFilterParsers.tag);
   const {copyText} = useClipboardCopy(2000, {toast: true});
 
   const [tagsExpanded, setTagsExpanded] = useState(true);
@@ -68,7 +69,7 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
     openDeleteDialog(selectedTags, handleClearSelection);
   }, [selectedTagIds, tags, openDeleteDialog, handleClearSelection]);
 
-  const activeTag = searchParams.get("tag")?.trim() || null;
+  const activeTag = tagParam?.trim() || null;
 
   return (
     <>
