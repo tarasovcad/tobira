@@ -42,14 +42,20 @@ export type PostBookmarkMediaGalleryEntry = MediaGalleryEntry<
   PostBookmarkPreviewItem
 >;
 
-function buildR2SizedImageUrl(key: string, size: "thumb" | "small" | "medium" | "large"): string {
+function buildR2SizedImageUrl(
+  key: string,
+  size: "thumb" | "small" | "medium" | "large" | "orig",
+): string {
   const url = new URL(buildR2PublicUrl(key));
   url.searchParams.set("size", size);
   url.searchParams.set("format", "webp");
   return url.toString();
 }
 
-function buildProcessingImageUrl(sourceUrl: string, size: "thumb" | "small" | "medium" | "large") {
+function buildProcessingImageUrl(
+  sourceUrl: string,
+  size: "thumb" | "small" | "medium" | "large" | "orig",
+) {
   try {
     const url = new URL(sourceUrl);
     url.searchParams.set("name", size);
@@ -157,8 +163,8 @@ function buildStoredPreviewItem(
           : buildR2SizedImageUrl(item.media_key, previewSize),
       fullSizeSrc:
         processing || !item.media_key
-          ? buildProcessingImageUrl(item.source_url, "large")
-          : buildR2SizedImageUrl(item.media_key, "large"),
+          ? buildProcessingImageUrl(item.source_url, "orig")
+          : buildR2SizedImageUrl(item.media_key, "orig"),
     };
   }
 
@@ -180,7 +186,7 @@ function buildStoredPreviewItem(
       fullSizeSrc:
         processing || !item.key_thumbnail
           ? previewSrc
-          : buildR2SizedImageUrl(item.key_thumbnail, "large"),
+          : buildR2SizedImageUrl(item.key_thumbnail, "orig"),
     };
   }
 

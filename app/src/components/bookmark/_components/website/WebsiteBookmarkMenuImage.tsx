@@ -128,7 +128,7 @@ export default function WebsiteBookmarkMenuImage({
         )}>
         <MediaPreview
           src={baseSrc ? `${baseSrc}?size=medium&v=${attempt}` : ""}
-          fullSizeSrc={baseSrc ? `${baseSrc}?size=large&v=${attempt}` : ""}
+          fullSizeSrc={baseSrc ? `${baseSrc}?size=orig&v=${attempt}` : ""}
           alt={`${item.id} ${type}`}
           width={imageWidth}
           height={imageHeight}
