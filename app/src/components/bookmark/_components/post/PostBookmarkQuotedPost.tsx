@@ -3,7 +3,10 @@
 import {Fragment} from "react";
 
 import type {FreebirdXPostResponse} from "@/lib/fetch/post";
-import type {PostBookmarkPreviewItem} from "../../_utils/post-bookmark-preview";
+import type {
+  PostBookmarkMediaGalleryEntry,
+  PostBookmarkPreviewItem,
+} from "../../_utils/post-bookmark-preview";
 import {
   getPostReplyingToMentions,
   PostBookmarkText,
@@ -24,6 +27,7 @@ import {cn} from "@/lib/utils";
 type PostBookmarkQuotedPostProps = {
   articlePreviewItem: PostBookmarkPreviewItem | null;
   isPostDetailOpen?: boolean;
+  mediaGalleryEntries?: PostBookmarkMediaGalleryEntry[];
   mediaItems: PostBookmarkPreviewItem[];
   mediaVariant: "compact" | "full";
   post: FreebirdXPostResponse;
@@ -35,6 +39,7 @@ type QuotedTextVariant = "compact" | "full";
 export default function PostBookmarkQuotedPost({
   articlePreviewItem,
   isPostDetailOpen = false,
+  mediaGalleryEntries,
   mediaItems,
   mediaVariant,
   post,
@@ -68,7 +73,10 @@ export default function PostBookmarkQuotedPost({
         <div className="mt-1.5 px-3 pb-3">
           {mediaItems.length > 0 || hasTextContent ? (
             <div className="mt-2 flex items-start gap-3">
-              <PostBookmarkQuotedCompactMediaGrid media={mediaItems} />
+              <PostBookmarkQuotedCompactMediaGrid
+                media={mediaItems}
+                galleryEntries={mediaGalleryEntries}
+              />
               {hasTextContent ? (
                 <div className="max-w-full min-w-0">
                   <PostBookmarkQuotedTextContent
@@ -115,7 +123,10 @@ export default function PostBookmarkQuotedPost({
               />
             </div>
           ) : null}
-          <PostBookmarkQuotedFullMediaGrid media={mediaItems} />
+          <PostBookmarkQuotedFullMediaGrid
+            media={mediaItems}
+            galleryEntries={mediaGalleryEntries}
+          />
         </div>
       )}
     </div>

@@ -12,9 +12,10 @@ import type {PostBookmark} from "../../types";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import {
+  buildPostBookmarkMediaGalleryEntries,
+  buildPostBookmarkReplyMediaGalleryEntries,
   getPostBookmarkArticleCoverPreviewItem,
   getPostBookmarkMediaPreviewItems,
-  getPostBookmarkReplyMediaPreviewItems,
 } from "../../_utils/post-bookmark-preview";
 import PostBookmarkArticleDetail from "./PostBookmarkArticleDetail";
 import PostBookmarkArticlePreview from "./PostBookmarkArticlePreview";
@@ -71,9 +72,13 @@ export default function PostBookmarkList({
   const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
 
   const meta = item.metadata;
-  const qrtMediaItems = useMemo(
-    () => getPostBookmarkMediaPreviewItems(item, "qrt", "list"),
+  const qrtMediaGalleryEntries = useMemo(
+    () => buildPostBookmarkMediaGalleryEntries(item, "qrt", "list"),
     [item],
+  );
+  const qrtMediaItems = useMemo(
+    () => qrtMediaGalleryEntries.map((entry) => entry.previewItem),
+    [qrtMediaGalleryEntries],
   );
   const mainMediaItems = useMemo(
     () => getPostBookmarkMediaPreviewItems(item, "main", "list"),
@@ -172,6 +177,7 @@ export default function PostBookmarkList({
           articlePreviewItem={quotedArticlePreviewItem}
           post={post.qrt}
           mediaItems={qrtMediaItems}
+          mediaGalleryEntries={qrtMediaGalleryEntries}
           isPostDetailOpen={isPostDetailOpen}
           mediaVariant={isPostDetailOpen || mainMediaItems.length === 0 ? "full" : "compact"}
         />
@@ -612,7 +618,14 @@ function PostBookmarkReplyChainPost({
   const preparedTranslationText = preparePostBookmarkTranslationText(reply.post, {
     expanded: translationToggle.isTranslationExpanded,
   });
-  const mediaItems = getPostBookmarkReplyMediaPreviewItems(item, reply.post.tweetID, "list");
+  const mediaGalleryEntries = useMemo(
+    () => buildPostBookmarkReplyMediaGalleryEntries(item, reply.post.tweetID, "list"),
+    [item, reply.post.tweetID],
+  );
+  const mediaItems = useMemo(
+    () => mediaGalleryEntries.map((entry) => entry.previewItem),
+    [mediaGalleryEntries],
+  );
 
   return (
     <div className="grid grid-cols-[40px_minmax(0,1fr)] gap-x-3">
@@ -639,7 +652,9 @@ function PostBookmarkReplyChainPost({
 
         {showMedia && reply.post.card ? <PostBookmarkExternalCard card={reply.post.card} /> : null}
 
-        {showMedia ? <PostBookmarkMediaPreviewGrid media={mediaItems} /> : null}
+        {showMedia ? (
+          <PostBookmarkMediaPreviewGrid media={mediaItems} galleryEntries={mediaGalleryEntries} />
+        ) : null}
       </div>
     </div>
   );

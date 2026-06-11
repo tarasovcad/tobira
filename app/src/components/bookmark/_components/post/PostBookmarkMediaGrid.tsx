@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo} from "react";
+import {useEffect, useMemo, type ReactNode} from "react";
 
 import {cn} from "@/lib/utils";
 import MediaPreview from "@/features/media/components/MediaPreview";
@@ -19,7 +19,7 @@ import {
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
 
-type PostMediaGalleryContext = {
+export type PostMediaGalleryContext = {
   entries: PostBookmarkMediaGalleryEntry[];
   controller: MediaGalleryController;
 };
@@ -127,21 +127,22 @@ function MediaGridTile({
   );
 }
 
-function PostMediaGalleryGrid({
-  media,
+export function PostBookmarkMediaGalleryFrame({
+  children,
   galleryEntries,
 }: {
-  media: PostBookmarkPreviewItem[];
+  children: (gallery: PostMediaGalleryContext) => ReactNode;
   galleryEntries: PostBookmarkMediaGalleryEntry[];
 }) {
   const {galleryController, galleryPreview} = usePostMediaGallery(galleryEntries);
+  const gallery = useMemo(
+    () => ({entries: galleryEntries, controller: galleryController}),
+    [galleryController, galleryEntries],
+  );
 
   return (
     <>
-      <MediaGridContent
-        media={media}
-        gallery={{entries: galleryEntries, controller: galleryController}}
-      />
+      {children(gallery)}
       <MediaGalleryOverlay
         entries={galleryEntries}
         controller={galleryController}
@@ -149,6 +150,20 @@ function PostMediaGalleryGrid({
         {...galleryPreview}
       />
     </>
+  );
+}
+
+function PostMediaGalleryGrid({
+  media,
+  galleryEntries,
+}: {
+  media: PostBookmarkPreviewItem[];
+  galleryEntries: PostBookmarkMediaGalleryEntry[];
+}) {
+  return (
+    <PostBookmarkMediaGalleryFrame galleryEntries={galleryEntries}>
+      {(gallery) => <MediaGridContent media={media} gallery={gallery} />}
+    </PostBookmarkMediaGalleryFrame>
   );
 }
 
@@ -199,7 +214,17 @@ function usePostMediaGallery(galleryEntries: PostBookmarkMediaGalleryEntry[]) {
   return {galleryController, galleryPreview};
 }
 
-export function PostBookmarkMediaPreviewGrid({media}: {media: PostBookmarkPreviewItem[]}) {
+export function PostBookmarkMediaPreviewGrid({
+  galleryEntries,
+  media,
+}: {
+  galleryEntries?: PostBookmarkMediaGalleryEntry[];
+  media: PostBookmarkPreviewItem[];
+}) {
+  if (galleryEntries && galleryEntries.length > 1) {
+    return <PostMediaGalleryGrid media={media} galleryEntries={galleryEntries} />;
+  }
+
   return <MediaGridContent media={media} />;
 }
 

@@ -377,3 +377,19 @@ export function buildPostBookmarkMediaGalleryEntries(
     previewItem,
   }));
 }
+
+export function buildPostBookmarkReplyMediaGalleryEntries(
+  item: PostBookmark,
+  tweetId: string,
+  variant: PostPreviewVariant = "list",
+): PostBookmarkMediaGalleryEntry[] {
+  return getPostBookmarkReplyMediaPreviewItems(item, tweetId, variant).map(
+    (previewItem, mediaIndex) => ({
+      item,
+      bookmarkIndex: 0,
+      mediaIndex,
+      renderId: `${item.id}:reply:${tweetId}:${mediaIndex}`,
+      previewItem,
+    }),
+  );
+}
