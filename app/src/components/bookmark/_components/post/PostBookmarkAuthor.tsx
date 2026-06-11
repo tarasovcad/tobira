@@ -12,11 +12,12 @@ import {Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger} from "@/componen
 import {BlueVerifiedBadgeIcon, YellowVerifiedBadgeIcon} from "./PostVerificationBadgeIcons";
 
 type PostBookmarkUser = FreebirdXPostResponse["user"];
+type AvatarSize = "md" | "sm";
 
 type PostBookmarkAuthorAvatarProps = {
   profileUrl: string;
   selectionSlot?: ReactNode;
-  size?: "md" | "sm";
+  size?: AvatarSize;
   user: PostBookmarkUser;
 };
 
@@ -27,6 +28,28 @@ type PostBookmarkAuthorLineProps = {
   timestampEpoch?: number;
   user: PostBookmarkUser;
 };
+
+const authorLinkProps = {
+  rel: "noopener noreferrer",
+  target: "_blank",
+} as const;
+
+const mediumAvatarClassNames = {
+  container: "size-10",
+  image: "h-10 w-10 shrink-0",
+  link: "size-10",
+  pixelSize: 40,
+} as const;
+const smallAvatarClassNames = {
+  container: "shrink-0",
+  image: "h-6 w-6",
+  link: "shrink-0",
+  pixelSize: undefined,
+} as const;
+
+function getAvatarSizeClassNames(size: AvatarSize) {
+  return size === "sm" ? smallAvatarClassNames : mediumAvatarClassNames;
+}
 
 export function PostShortTimestamp({epoch, className}: {epoch: number; className?: string}) {
   return (
@@ -51,28 +74,27 @@ export function PostBookmarkAuthorAvatar({
   size = "md",
   user,
 }: PostBookmarkAuthorAvatarProps) {
-  const isSmall = size === "sm";
+  const sizeClassNames = getAvatarSizeClassNames(size);
 
   return (
-    <div className={cn("relative", isSmall ? "shrink-0" : "size-10")}>
+    <div className={cn("relative", sizeClassNames.container)}>
       {selectionSlot}
       <Link
         href={profileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+        {...authorLinkProps}
         onClick={(e) => e.stopPropagation()}
-        className={cn("group/avatar block cursor-pointer", isSmall ? "shrink-0" : "size-10")}>
+        className={cn("group/avatar block cursor-pointer", sizeClassNames.link)}>
         <div
           className={cn(
             "bg-muted ring-border overflow-hidden rounded-full ring-1",
-            isSmall ? "h-6 w-6" : "h-10 w-10 shrink-0",
+            sizeClassNames.image,
           )}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={user.user_profile_image_url}
             alt={user.user_name}
-            width={isSmall ? undefined : 40}
-            height={isSmall ? undefined : 40}
+            width={sizeClassNames.pixelSize}
+            height={sizeClassNames.pixelSize}
             className="h-full w-full object-cover transition-all duration-100 group-hover/avatar:brightness-95"
           />
         </div>
@@ -93,15 +115,10 @@ export function PostBookmarkAuthorLine({
       <div className="flex min-w-0 items-center">
         <Link
           href={profileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          {...authorLinkProps}
           onClick={(e) => e.stopPropagation()}
           className="group/author flex min-w-0 cursor-pointer items-center gap-[3px]">
-          <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
-            {user.user_name}
-          </span>
-          <PostBookmarkVerificationBadge user={user} />
-          <PostBookmarkAffiliateBadge user={user} />
+          <PostBookmarkDisplayName user={user} />
           <span className="text-x-secondary! min-w-0 shrink truncate pl-0.5">
             @{user.user_screen_name}
           </span>
@@ -137,22 +154,29 @@ export function PostBookmarkAuthorStack({
 
       <Link
         href={profileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+        {...authorLinkProps}
         onClick={(e) => e.stopPropagation()}
         className="group/author flex min-w-0 cursor-pointer items-center">
         <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[18px]">
           <div className="flex min-w-0 items-center gap-[3px]">
-            <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
-              {user.user_name}
-            </span>
-            <PostBookmarkVerificationBadge user={user} />
-            <PostBookmarkAffiliateBadge user={user} />
+            <PostBookmarkDisplayName user={user} />
           </div>
           <span className="text-x-secondary! truncate text-sm">@{user.user_screen_name}</span>
         </div>
       </Link>
     </div>
+  );
+}
+
+function PostBookmarkDisplayName({user}: {user: PostBookmarkUser}) {
+  return (
+    <>
+      <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
+        {user.user_name}
+      </span>
+      <PostBookmarkVerificationBadge user={user} />
+      <PostBookmarkAffiliateBadge user={user} />
+    </>
   );
 }
 

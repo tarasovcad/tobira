@@ -33,35 +33,54 @@ export function PostBookmarkDetailPostSkeleton() {
     <article aria-hidden="true" className="border-border flex flex-col gap-[14px] px-4 pt-0 pb-10">
       <div className="relative z-[1] flex flex-col gap-5">
         <div className="flex flex-col gap-[14px]">
-          <div className="flex min-w-0 items-center gap-2 pr-10">
-            <Skeleton className="size-10 rounded-full" />
-
-            <div className="flex min-w-0 flex-col gap-1">
-              <div className="flex min-w-0 items-center gap-1">
-                <Skeleton className="h-[18px] w-32 rounded" />
-                <Skeleton className="h-4.5 w-4.5 rounded-full" />
-              </div>
-              <Skeleton className="h-4 w-24 rounded" />
-            </div>
-          </div>
-
+          <PostBookmarkDetailAuthorSkeleton />
           <div className="min-w-0 flex-1 space-y-[14px]">
-            <div className="space-y-1.5">
-              <Skeleton className="h-[18px] w-full rounded" />
-              <Skeleton className="h-[18px] w-11/12 rounded" />
-              <Skeleton className="h-[18px] w-4/5 rounded" />
-              <Skeleton className="h-[18px] w-2/5 rounded" />
-            </div>
-
-            <Skeleton className="aspect-video w-full rounded-lg" />
-
-            <div className="space-y-1.5">
-              <Skeleton className="h-[18px] w-10/12 rounded" />
-              <Skeleton className="h-[18px] w-8/12 rounded" />
-            </div>
+            <PostBookmarkDetailTextSkeleton />
+            <PostBookmarkDetailMediaSkeleton />
+            <PostBookmarkDetailFooterTextSkeleton />
           </div>
         </div>
       </div>
     </article>
+  );
+}
+
+function PostBookmarkDetailAuthorSkeleton() {
+  return (
+    <div className="flex min-w-0 items-center gap-2 pr-10">
+      <Skeleton className="size-10 rounded-full" />
+
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 items-center gap-1">
+          <Skeleton className="h-[18px] w-32 rounded" />
+          <Skeleton className="h-4.5 w-4.5 rounded-full" />
+        </div>
+        <Skeleton className="h-4 w-24 rounded" />
+      </div>
+    </div>
+  );
+}
+
+function PostBookmarkDetailTextSkeleton() {
+  return (
+    <div className="space-y-1.5">
+      <Skeleton className="h-[18px] w-full rounded" />
+      <Skeleton className="h-[18px] w-11/12 rounded" />
+      <Skeleton className="h-[18px] w-4/5 rounded" />
+      <Skeleton className="h-[18px] w-2/5 rounded" />
+    </div>
+  );
+}
+
+function PostBookmarkDetailMediaSkeleton() {
+  return <Skeleton className="aspect-video w-full rounded-lg" />;
+}
+
+function PostBookmarkDetailFooterTextSkeleton() {
+  return (
+    <div className="space-y-1.5">
+      <Skeleton className="h-[18px] w-10/12 rounded" />
+      <Skeleton className="h-[18px] w-8/12 rounded" />
+    </div>
   );
 }

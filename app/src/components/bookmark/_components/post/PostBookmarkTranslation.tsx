@@ -1,60 +1,69 @@
 "use client";
 
-import {useState, type MouseEvent} from "react";
+import {useCallback, useState, type MouseEvent} from "react";
 
 import type {FreebirdXPost} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
 
-const LANGUAGE_NAMES: Record<string, string> = {
-  ar: "Arabic",
-  bn: "Bengali",
-  cs: "Czech",
-  da: "Danish",
-  de: "German",
-  el: "Greek",
-  en: "English",
-  es: "Spanish",
-  fa: "Persian",
-  fi: "Finnish",
-  fil: "Filipino",
-  fr: "French",
-  gu: "Gujarati",
-  he: "Hebrew",
-  hi: "Hindi",
-  hu: "Hungarian",
-  id: "Indonesian",
-  it: "Italian",
-  ja: "Japanese",
-  kn: "Kannada",
-  ko: "Korean",
-  ml: "Malayalam",
-  mr: "Marathi",
-  ms: "Malay",
-  nl: "Dutch",
-  no: "Norwegian",
-  pl: "Polish",
-  pt: "Portuguese",
-  ro: "Romanian",
-  ru: "Russian",
-  sv: "Swedish",
-  ta: "Tamil",
-  te: "Telugu",
-  th: "Thai",
-  tr: "Turkish",
-  uk: "Ukrainian",
-  ur: "Urdu",
-  vi: "Vietnamese",
-  zh: "Chinese",
-  "zh-Hans": "Chinese (Simplified)",
-  "zh-Hant": "Chinese (Traditional)",
-};
+const LANGUAGE_NAMES = new Map([
+  ["ar", "Arabic"],
+  ["bn", "Bengali"],
+  ["cs", "Czech"],
+  ["da", "Danish"],
+  ["de", "German"],
+  ["el", "Greek"],
+  ["en", "English"],
+  ["es", "Spanish"],
+  ["fa", "Persian"],
+  ["fi", "Finnish"],
+  ["fil", "Filipino"],
+  ["fr", "French"],
+  ["gu", "Gujarati"],
+  ["he", "Hebrew"],
+  ["hi", "Hindi"],
+  ["hu", "Hungarian"],
+  ["id", "Indonesian"],
+  ["it", "Italian"],
+  ["ja", "Japanese"],
+  ["kn", "Kannada"],
+  ["ko", "Korean"],
+  ["ml", "Malayalam"],
+  ["mr", "Marathi"],
+  ["ms", "Malay"],
+  ["nl", "Dutch"],
+  ["no", "Norwegian"],
+  ["pl", "Polish"],
+  ["pt", "Portuguese"],
+  ["ro", "Romanian"],
+  ["ru", "Russian"],
+  ["sv", "Swedish"],
+  ["ta", "Tamil"],
+  ["te", "Telugu"],
+  ["th", "Thai"],
+  ["tr", "Turkish"],
+  ["uk", "Ukrainian"],
+  ["ur", "Urdu"],
+  ["vi", "Vietnamese"],
+  ["zh", "Chinese"],
+  ["zh-Hans", "Chinese (Simplified)"],
+  ["zh-Hant", "Chinese (Traditional)"],
+]);
 
 function getLanguageName(code: string): string {
-  return LANGUAGE_NAMES[code] ?? code;
+  return LANGUAGE_NAMES.get(code) ?? code;
 }
 
 type UseTranslationToggleOptions = {
   initialTranslationExpanded?: boolean;
+};
+
+type PostTranslationLabelProps = {
+  className?: string;
+  displayButton?: boolean;
+  onToggle: () => void;
+  provider?: string | null;
+  showOriginal: boolean;
+  sourceLanguage: string;
 };
 
 export function useTranslationToggle(
@@ -64,12 +73,19 @@ export function useTranslationToggle(
   const [showOriginal, setShowOriginal] = useState(false);
   const [isTranslationExpanded, setIsTranslationExpanded] = useState(initialTranslationExpanded);
   const translation = post?.translation ?? null;
+  const toggleOriginal = useCallback(() => {
+    setShowOriginal((current) => !current);
+  }, []);
+  const expandTranslation = useCallback(() => {
+    setIsTranslationExpanded(true);
+  }, []);
 
   return {
+    expandTranslation,
+    hasTranslation: !!translation,
     isTranslationExpanded,
-    setIsTranslationExpanded,
     showOriginal,
-    setShowOriginal,
+    toggleOriginal,
     translation,
     isTranslated: !!translation && !showOriginal,
     sourceLanguage: translation?.source_language ?? "",
@@ -84,14 +100,7 @@ export function PostTranslationLabel({
   onToggle,
   displayButton = true,
   provider,
-}: {
-  className?: string;
-  sourceLanguage: string;
-  showOriginal: boolean;
-  onToggle: () => void;
-  displayButton?: boolean;
-  provider?: string | null;
-}) {
+}: PostTranslationLabelProps) {
   const languageName = getLanguageName(sourceLanguage);
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();

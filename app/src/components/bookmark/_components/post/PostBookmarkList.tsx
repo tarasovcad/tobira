@@ -1,9 +1,9 @@
 "use client";
 
-import {useCallback, useMemo, useState, type MouseEvent} from "react";
+import {useCallback, useMemo, useState, type MouseEvent, type ReactNode} from "react";
 import Link from "next/link";
 
-import type {FreebirdXPostResponse} from "@/lib/fetch/post";
+import type {FreebirdXPost, FreebirdXPostResponse} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
 import {formatPostFullDate} from "@/lib/utils/dates";
 import {useViewOptionsStore} from "@/store/use-view-options";
@@ -34,6 +34,9 @@ import {
 import {useTranslationToggle, PostTranslationLabel} from "./PostBookmarkTranslation";
 
 const MAX_LENGTH = 280;
+type TranslationToggle = ReturnType<typeof useTranslationToggle>;
+type PreparedText = ReturnType<typeof preparePostBookmarkText>;
+type PostBookmarkUser = FreebirdXPostResponse["user"];
 
 /** Room for the avatar selection checkbox without shifting post body content. */
 const postListSelectionInsetClass =
@@ -137,56 +140,15 @@ export default function PostBookmarkList({
 
   const postBodyContent = (
     <>
-      {post.replyingTo && !isPostDetailOpen ? (
-        <p className="text-x-secondary text-[14px]">
-          Replying to{" "}
-          <Link
-            href={`https://x.com/${post.replyingTo}`}
-            target="_blank"
-            onClick={(e) => e.stopPropagation()}
-            className="text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline">
-            @{post.replyingTo}
-          </Link>
-        </p>
-      ) : null}
+      <PostBookmarkReplyingTo post={post} isPostDetailOpen={isPostDetailOpen} />
 
-      <div>
-        {translationToggle.translation ? (
-          <PostTranslationLabel
-            sourceLanguage={translationToggle.sourceLanguage}
-            showOriginal={translationToggle.showOriginal}
-            provider={translationToggle.provider}
-            onToggle={() => translationToggle.setShowOriginal(!translationToggle.showOriginal)}
-          />
-        ) : null}
-        {translationToggle.isTranslated ? (
-          <p className="text-foreground text-[15px] whitespace-pre-wrap">
-            <PostBookmarkText preparedText={preparedTranslationText} />
-          </p>
-        ) : preparedText.hasText ? (
-          <p className="text-foreground text-[15px] whitespace-pre-wrap">
-            <PostBookmarkText preparedText={preparedText} />
-          </p>
-        ) : null}
-        {translationToggle.isTranslated &&
-        preparedTranslationText.isLongText &&
-        !translationToggle.isTranslationExpanded ? (
-          <button
-            type="button"
-            onClick={() => translationToggle.setIsTranslationExpanded(true)}
-            className="-mt-0.5 block cursor-pointer text-[15px] leading-[18px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
-            Show more
-          </button>
-        ) : null}
-        {!isExpanded && preparedText.isLongText && !translationToggle.isTranslated ? (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(true)}
-            className="-mt-0.5 block cursor-pointer text-[15px] leading-[18px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
-            Show more
-          </button>
-        ) : null}
-      </div>
+      <PostBookmarkPostText
+        isExpanded={isExpanded}
+        preparedText={preparedText}
+        preparedTranslationText={preparedTranslationText}
+        translationToggle={translationToggle}
+        onExpandOriginal={() => setIsExpanded(true)}
+      />
 
       {showMedia && post.card ? <PostBookmarkExternalCard card={post.card} /> : null}
 
@@ -215,21 +177,9 @@ export default function PostBookmarkList({
         />
       ) : null}
 
-      {showTags && item.tags && item.tags.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1">
-          {item.tags.map((tag) => (
-            <Tag key={tag} displayHash={false} size="md" variant="outline">
-              # {tag}
-            </Tag>
-          ))}
-        </div>
-      ) : null}
+      {showTags ? <PostBookmarkTags tags={item.tags} /> : null}
 
-      {showTimestamp && !showAuthor ? (
-        <div className="text-x-secondary flex items-center gap-3 text-[14px]">
-          {formatPostFullDate(post.date_epoch)}
-        </div>
-      ) : null}
+      {showTimestamp && !showAuthor ? <PostBookmarkStandaloneTimestamp post={post} /> : null}
     </>
   );
 
@@ -247,43 +197,18 @@ export default function PostBookmarkList({
       )}>
       <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-200 group-data-[selection-mode=true]/bookmark-row:opacity-100" />
 
-      {!onOpenDetail && !isPostDetailOpen ? (
-        <Link
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute inset-0 z-0"
-          aria-label={`Open post by ${user.user_name}`}
-          tabIndex={-1}
-        />
-      ) : null}
+      <PostBookmarkExternalOverlayLink
+        item={item}
+        userName={user.user_name}
+        onOpenDetail={onOpenDetail}
+        isPostDetailOpen={isPostDetailOpen}
+      />
 
-      <BookmarkHoverActions
-        className="top-2.5 right-3 z-[3]"
-        onSave={
-          onSave
-            ? (e) => {
-                e.stopPropagation();
-                onSave(item);
-              }
-            : undefined
-        }
-        onDismiss={
-          onDismiss
-            ? (e) => {
-                e.stopPropagation();
-                onDismiss(item);
-              }
-            : undefined
-        }
-        onOptions={
-          onOpenMenu
-            ? (e) => {
-                e.stopPropagation();
-                onOpenMenu(item);
-              }
-            : undefined
-        }
+      <PostBookmarkRowActions
+        item={item}
+        onDismiss={onDismiss}
+        onOpenMenu={onOpenMenu}
+        onSave={onSave}
       />
 
       {!showAuthor ? (
@@ -298,51 +223,36 @@ export default function PostBookmarkList({
       ) : null}
 
       {showAuthor && isPostDetailOpen ? (
-        <div className="relative z-[1] flex flex-col gap-5">
-          <PostBookmarkReplyChain item={item} replies={replyChain} showMedia={showMedia} />
-
-          <div className="flex flex-col gap-[14px]">
-            <PostBookmarkAuthorStack
-              user={user}
-              profileUrl={authorProfileUrl}
-              className="pr-10"
-              selectionSlot={authorSelectionCheckbox}
-            />
-
-            <div className="min-w-0 flex-1 space-y-[14px]">{postBodyContent}</div>
-          </div>
-        </div>
+        <PostBookmarkDetailAuthorLayout
+          item={item}
+          user={user}
+          profileUrl={authorProfileUrl}
+          selectionSlot={authorSelectionCheckbox}
+          replyChain={replyChain}
+          showMedia={showMedia}
+          postBodyContent={postBodyContent}
+        />
       ) : null}
 
       {showAuthor && !isPostDetailOpen ? (
-        <div className="relative z-[1] grid grid-cols-[40px_minmax(0,1fr)] gap-x-2">
-          <PostBookmarkAuthorAvatar
-            user={user}
-            profileUrl={authorProfileUrl}
-            selectionSlot={authorSelectionCheckbox}
-          />
-
-          <div className="min-w-0 space-y-0.5">
-            <PostBookmarkAuthorLine
-              user={user}
-              profileUrl={authorProfileUrl}
-              timestampEpoch={post.date_epoch}
-              showTimestamp={showTimestamp}
-              className="pr-10 text-[15px] leading-5"
-            />
-
-            {postBodyContent}
-          </div>
-        </div>
+        <PostBookmarkListAuthorLayout
+          user={user}
+          post={post}
+          profileUrl={authorProfileUrl}
+          selectionSlot={authorSelectionCheckbox}
+          showTimestamp={showTimestamp}
+          postBodyContent={postBodyContent}
+        />
       ) : null}
 
       {!showAuthor ? (
-        <div className="relative z-[1] min-w-0 flex-1 space-y-5">
-          {isPostDetailOpen ? (
-            <PostBookmarkReplyChain item={item} replies={replyChain} showMedia={showMedia} />
-          ) : null}
-          {postBodyContent}
-        </div>
+        <PostBookmarkNoAuthorLayout
+          item={item}
+          replyChain={replyChain}
+          showMedia={showMedia}
+          isPostDetailOpen={isPostDetailOpen}
+          postBodyContent={postBodyContent}
+        />
       ) : null}
     </article>
   );
@@ -366,6 +276,297 @@ function isInteractiveTarget(target: EventTarget | null) {
         "[data-no-post-detail]",
       ].join(","),
     ),
+  );
+}
+
+function PostBookmarkDetailAuthorLayout({
+  item,
+  postBodyContent,
+  profileUrl,
+  replyChain,
+  selectionSlot,
+  showMedia,
+  user,
+}: {
+  item: PostBookmark;
+  postBodyContent: ReactNode;
+  profileUrl: string;
+  replyChain: FreebirdXPostResponse[];
+  selectionSlot: ReactNode;
+  showMedia: boolean;
+  user: PostBookmarkUser;
+}) {
+  return (
+    <div className="relative z-[1] flex flex-col gap-5">
+      <PostBookmarkReplyChain item={item} replies={replyChain} showMedia={showMedia} />
+
+      <div className="flex flex-col gap-[14px]">
+        <PostBookmarkAuthorStack
+          user={user}
+          profileUrl={profileUrl}
+          className="pr-10"
+          selectionSlot={selectionSlot}
+        />
+
+        <div className="min-w-0 flex-1 space-y-[14px]">{postBodyContent}</div>
+      </div>
+    </div>
+  );
+}
+
+function PostBookmarkListAuthorLayout({
+  post,
+  postBodyContent,
+  profileUrl,
+  selectionSlot,
+  showTimestamp,
+  user,
+}: {
+  post: FreebirdXPost;
+  postBodyContent: ReactNode;
+  profileUrl: string;
+  selectionSlot: ReactNode;
+  showTimestamp: boolean;
+  user: PostBookmarkUser;
+}) {
+  return (
+    <div className="relative z-[1] grid grid-cols-[40px_minmax(0,1fr)] gap-x-2">
+      <PostBookmarkAuthorAvatar user={user} profileUrl={profileUrl} selectionSlot={selectionSlot} />
+
+      <div className="min-w-0 space-y-0.5">
+        <PostBookmarkAuthorLine
+          user={user}
+          profileUrl={profileUrl}
+          timestampEpoch={post.date_epoch}
+          showTimestamp={showTimestamp}
+          className="pr-10 text-[15px] leading-5"
+        />
+
+        {postBodyContent}
+      </div>
+    </div>
+  );
+}
+
+function PostBookmarkNoAuthorLayout({
+  isPostDetailOpen,
+  item,
+  postBodyContent,
+  replyChain,
+  showMedia,
+}: {
+  isPostDetailOpen: boolean;
+  item: PostBookmark;
+  postBodyContent: ReactNode;
+  replyChain: FreebirdXPostResponse[];
+  showMedia: boolean;
+}) {
+  return (
+    <div className="relative z-[1] min-w-0 flex-1 space-y-5">
+      {isPostDetailOpen ? (
+        <PostBookmarkReplyChain item={item} replies={replyChain} showMedia={showMedia} />
+      ) : null}
+      {postBodyContent}
+    </div>
+  );
+}
+
+function PostBookmarkExternalOverlayLink({
+  isPostDetailOpen,
+  item,
+  onOpenDetail,
+  userName,
+}: {
+  isPostDetailOpen: boolean;
+  item: PostBookmark;
+  onOpenDetail?: (item: PostBookmark) => void;
+  userName: string;
+}) {
+  if (onOpenDetail || isPostDetailOpen) return null;
+
+  return (
+    <Link
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="absolute inset-0 z-0"
+      aria-label={`Open post by ${userName}`}
+      tabIndex={-1}
+    />
+  );
+}
+
+function PostBookmarkRowActions({
+  item,
+  onDismiss,
+  onOpenMenu,
+  onSave,
+}: {
+  item: PostBookmark;
+  onDismiss?: (item: PostBookmark) => void;
+  onOpenMenu?: (item: PostBookmark) => void;
+  onSave?: (item: PostBookmark) => void;
+}) {
+  return (
+    <BookmarkHoverActions
+      className="top-2.5 right-3 z-[3]"
+      onSave={
+        onSave
+          ? (e) => {
+              e.stopPropagation();
+              onSave(item);
+            }
+          : undefined
+      }
+      onDismiss={
+        onDismiss
+          ? (e) => {
+              e.stopPropagation();
+              onDismiss(item);
+            }
+          : undefined
+      }
+      onOptions={
+        onOpenMenu
+          ? (e) => {
+              e.stopPropagation();
+              onOpenMenu(item);
+            }
+          : undefined
+      }
+    />
+  );
+}
+
+function PostBookmarkReplyingTo({
+  isPostDetailOpen,
+  post,
+}: {
+  isPostDetailOpen: boolean;
+  post: FreebirdXPost;
+}) {
+  if (!post.replyingTo || isPostDetailOpen) return null;
+
+  return (
+    <p className="text-x-secondary text-[14px]">
+      Replying to{" "}
+      <Link
+        href={`https://x.com/${post.replyingTo}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline">
+        @{post.replyingTo}
+      </Link>
+    </p>
+  );
+}
+
+function PostBookmarkTags({tags}: {tags: string[] | null | undefined}) {
+  if (!tags?.length) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-1">
+      {tags.map((tag) => (
+        <Tag key={tag} displayHash={false} size="md" variant="outline">
+          # {tag}
+        </Tag>
+      ))}
+    </div>
+  );
+}
+
+function PostBookmarkStandaloneTimestamp({post}: {post: FreebirdXPost}) {
+  return (
+    <div className="text-x-secondary flex items-center gap-3 text-[14px]">
+      {formatPostFullDate(post.date_epoch)}
+    </div>
+  );
+}
+
+function PostBookmarkPostText({
+  isExpanded,
+  onExpandOriginal,
+  preparedText,
+  preparedTranslationText,
+  translationToggle,
+  wrap = true,
+}: {
+  isExpanded: boolean;
+  onExpandOriginal?: () => void;
+  preparedText: PreparedText;
+  preparedTranslationText: PreparedText;
+  translationToggle: TranslationToggle;
+  wrap?: boolean;
+}) {
+  const showTranslationMore =
+    translationToggle.isTranslated &&
+    preparedTranslationText.isLongText &&
+    !translationToggle.isTranslationExpanded;
+  const showOriginalMore =
+    !isExpanded && preparedText.isLongText && !translationToggle.isTranslated && onExpandOriginal;
+
+  const content = (
+    <>
+      {translationToggle.hasTranslation ? (
+        <PostTranslationLabel
+          sourceLanguage={translationToggle.sourceLanguage}
+          showOriginal={translationToggle.showOriginal}
+          provider={translationToggle.provider}
+          onToggle={translationToggle.toggleOriginal}
+        />
+      ) : null}
+      <PostBookmarkPostTextParagraph
+        preparedText={preparedText}
+        preparedTranslationText={preparedTranslationText}
+        translationToggle={translationToggle}
+      />
+      {showTranslationMore ? (
+        <PostBookmarkShowMoreButton onClick={translationToggle.expandTranslation} />
+      ) : null}
+      {showOriginalMore ? <PostBookmarkShowMoreButton onClick={onExpandOriginal} /> : null}
+    </>
+  );
+
+  if (!wrap) return content;
+
+  return <div>{content}</div>;
+}
+
+function PostBookmarkPostTextParagraph({
+  preparedText,
+  preparedTranslationText,
+  translationToggle,
+}: {
+  preparedText: PreparedText;
+  preparedTranslationText: PreparedText;
+  translationToggle: TranslationToggle;
+}) {
+  if (translationToggle.isTranslated) {
+    return (
+      <p className="text-foreground text-[15px] whitespace-pre-wrap">
+        <PostBookmarkText preparedText={preparedTranslationText} />
+      </p>
+    );
+  }
+
+  if (!preparedText.hasText) return null;
+
+  return (
+    <p className="text-foreground text-[15px] whitespace-pre-wrap">
+      <PostBookmarkText preparedText={preparedText} />
+    </p>
+  );
+}
+
+function PostBookmarkShowMoreButton({onClick}: {onClick: () => void}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="-mt-0.5 block cursor-pointer text-[15px] leading-[18px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
+      Show more
+    </button>
   );
 }
 
@@ -428,33 +629,13 @@ function PostBookmarkReplyChainPost({
           className="text-[15px] leading-5"
         />
 
-        {translationToggle.translation ? (
-          <PostTranslationLabel
-            sourceLanguage={translationToggle.sourceLanguage}
-            showOriginal={translationToggle.showOriginal}
-            provider={translationToggle.provider}
-            onToggle={() => translationToggle.setShowOriginal(!translationToggle.showOriginal)}
-          />
-        ) : null}
-        {translationToggle.isTranslated ? (
-          <p className="text-foreground text-[15px] whitespace-pre-wrap">
-            <PostBookmarkText preparedText={preparedTranslationText} />
-          </p>
-        ) : preparedText.hasText ? (
-          <p className="text-foreground text-[15px] whitespace-pre-wrap">
-            <PostBookmarkText preparedText={preparedText} />
-          </p>
-        ) : null}
-        {translationToggle.isTranslated &&
-        preparedTranslationText.isLongText &&
-        !translationToggle.isTranslationExpanded ? (
-          <button
-            type="button"
-            onClick={() => translationToggle.setIsTranslationExpanded(true)}
-            className="-mt-0.5 block cursor-pointer text-[15px] leading-[18px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
-            Show more
-          </button>
-        ) : null}
+        <PostBookmarkPostText
+          isExpanded
+          preparedText={preparedText}
+          preparedTranslationText={preparedTranslationText}
+          translationToggle={translationToggle}
+          wrap={false}
+        />
 
         {showMedia && reply.post.card ? <PostBookmarkExternalCard card={reply.post.card} /> : null}
 

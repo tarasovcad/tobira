@@ -28,8 +28,6 @@ export async function getInitialBookmarks({
   typeFilter?: TypeFilter;
   sort?: SortMode;
 }) {
-  const startTime = performance.now();
-
   const filters = getBookmarkFilters({userId, tagFilter, collectionFilter, typeFilter});
 
   const orderBy = (() => {
@@ -128,13 +126,6 @@ export async function getInitialBookmarks({
       metadata: (row.metadata ?? undefined) as PostBookmark["metadata"],
     };
   });
-
-  const endTime = performance.now();
-  // logger.info("getInitialBookmarks: completed", {
-  //   durationMs: parseFloat((endTime - startTime).toFixed(2)),
-  //   userId,
-  //   bookmarkCount: initialBookmarks.length,
-  // });
 
   return {
     initialBookmarks,

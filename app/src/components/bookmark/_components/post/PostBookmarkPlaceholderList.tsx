@@ -14,16 +14,16 @@ type PostBookmarkPlaceholderListProps = {
   tags?: string[];
 };
 
-function getPostBookmark(bookmark: Bookmark | null): PostBookmark | null {
-  return bookmark?.kind === "post" ? bookmark : null;
+function isPostBookmark(bookmark: Bookmark | null): bookmark is PostBookmark {
+  return bookmark?.kind === "post";
 }
 
 export default function PostBookmarkPlaceholderList({
   bookmark,
   onDone,
 }: PostBookmarkPlaceholderListProps) {
-  const postBookmark = getPostBookmark(bookmark);
-  const loaded = !!postBookmark;
+  const postBookmark = isPostBookmark(bookmark) ? bookmark : null;
+  const loaded = postBookmark != null;
 
   usePlaceholderDone(loaded, onDone);
 

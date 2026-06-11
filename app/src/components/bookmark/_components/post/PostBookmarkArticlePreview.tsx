@@ -1,5 +1,6 @@
 "use client";
 
+import type {ReactNode} from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -26,6 +27,14 @@ type PostBookmarkArticlePreviewProps = {
   post: FreebirdXPost;
   previewItem: PostBookmarkPreviewItem | null;
 };
+
+const articlePreviewLinkProps = {
+  rel: "noopener noreferrer",
+  target: "_blank",
+} as const;
+
+const articlePreviewCardClassName =
+  "group/article border-border/60 hover:bg-muted block overflow-hidden rounded-2xl border group-data-[selection-mode=true]/bookmark-row:pointer-events-none";
 
 export default function PostBookmarkArticlePreview({
   className,
@@ -72,63 +81,93 @@ function ArticlePreviewCard({
     return null;
   }
 
-  const content = (
-    <>
-      {image ? (
-        <div
-          className="bg-muted border-x-border relative w-full overflow-hidden border-b"
-          style={{aspectRatio: image.aspectRatio}}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={image.src}
-            alt={image.alt}
-            width={image.width}
-            height={image.height}
-            className="h-full w-full object-contain"
-            loading="lazy"
-          />
-          <div className="absolute bottom-3 left-3 flex items-center rounded-[5px] bg-black/75 px-1.5 py-0.5">
-            <Image
-              src="/socials/x_transparent.svg"
-              alt="X logo"
-              width={16}
-              height={16}
-              className="h-4 w-4"
-            />
-            <p className="text-[12px] leading-4 font-[450] text-white">Article</p>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="space-y-2 px-3 py-3">
-        {title ? (
-          <p className="text-foreground line-clamp-2 text-[17px] leading-5 font-bold">{title}</p>
-        ) : null}
-        {previewText ? (
-          <p className="line-clamp-4 text-[15px] leading-5 whitespace-pre-line text-[#0F1419] dark:text-[#E7E9EA]">
-            {previewText}...
-          </p>
-        ) : null}
-      </div>
-    </>
-  );
-  const cardClassName =
-    "group/article border-border/60 hover:bg-muted block overflow-hidden rounded-2xl border group-data-[selection-mode=true]/bookmark-row:pointer-events-none";
-
   return (
     <div className={cn("mt-3", className)}>
-      {openExternally ? (
-        <Link
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className={cardClassName}>
-          {content}
-        </Link>
-      ) : (
-        <div className={cardClassName}>{content}</div>
-      )}
+      <ArticlePreviewSurface href={href} openExternally={openExternally}>
+        <ArticlePreviewImageBlock image={image} />
+        <ArticlePreviewBody title={title} previewText={previewText} />
+      </ArticlePreviewSurface>
+    </div>
+  );
+}
+
+function ArticlePreviewSurface({
+  children,
+  href,
+  openExternally,
+}: {
+  children: ReactNode;
+  href: string;
+  openExternally: boolean;
+}) {
+  if (!openExternally) {
+    return <div className={articlePreviewCardClassName}>{children}</div>;
+  }
+
+  return (
+    <Link
+      href={href}
+      {...articlePreviewLinkProps}
+      onClick={(e) => e.stopPropagation()}
+      className={articlePreviewCardClassName}>
+      {children}
+    </Link>
+  );
+}
+
+function ArticlePreviewImageBlock({image}: {image: ArticlePreviewImage | null}) {
+  if (!image) return null;
+
+  return (
+    <div
+      className="bg-muted border-x-border relative w-full overflow-hidden border-b"
+      style={{aspectRatio: image.aspectRatio}}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image.src}
+        alt={image.alt}
+        width={image.width}
+        height={image.height}
+        className="h-full w-full object-contain"
+        loading="lazy"
+      />
+      <ArticlePreviewBadge />
+    </div>
+  );
+}
+
+function ArticlePreviewBadge() {
+  return (
+    <div className="absolute bottom-3 left-3 flex items-center rounded-[5px] bg-black/75 px-1.5 py-0.5">
+      <Image
+        src="/socials/x_transparent.svg"
+        alt="X logo"
+        width={16}
+        height={16}
+        className="h-4 w-4"
+      />
+      <p className="text-[12px] leading-4 font-[450] text-white">Article</p>
+    </div>
+  );
+}
+
+function ArticlePreviewBody({
+  previewText,
+  title,
+}: {
+  previewText: string | undefined;
+  title: string | undefined;
+}) {
+  return (
+    <div className="space-y-2 px-3 py-3">
+      {title ? (
+        <p className="text-foreground line-clamp-2 text-[17px] leading-5 font-bold">{title}</p>
+      ) : null}
+      {previewText ? (
+        <p className="line-clamp-4 text-[15px] leading-5 whitespace-pre-line text-[#0F1419] dark:text-[#E7E9EA]">
+          {previewText}...
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
-import {and, eq} from "drizzle-orm";
+import {and, eq, isNull} from "drizzle-orm";
 import {db} from "@/db";
 import {
   bookmarks,
@@ -38,6 +38,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({error: "Bookmark not found"}, {status: 404});
     }
 
+    if (bookmark.deletedAt) {
+      return NextResponse.json({ok: true, skipped: "bookmark deleted"});
+    }
+
     if (!isPostImages(bookmark.images)) {
       return NextResponse.json({ok: true, skipped: "no post media items"});
     }
@@ -53,7 +57,7 @@ export async function POST(request: NextRequest) {
 
 async function getPostBookmark(bookmarkId: string) {
   const [bookmark] = await db
-    .select({id: bookmarks.id, images: bookmarks.images})
+    .select({id: bookmarks.id, images: bookmarks.images, deletedAt: bookmarks.deletedAt})
     .from(bookmarks)
     .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "post")));
 
@@ -89,7 +93,10 @@ async function processPostImages(bookmarkId: string, images: PostImages) {
   ]);
 
   const processedImages = buildProcessedPostImages(items, qrtItems, replyItems, articleItems);
-  await db.update(bookmarks).set({images: processedImages}).where(eq(bookmarks.id, bookmarkId));
+  await db
+    .update(bookmarks)
+    .set({images: processedImages})
+    .where(and(eq(bookmarks.id, bookmarkId), isNull(bookmarks.deletedAt)));
 }
 
 function buildProcessedPostImages(

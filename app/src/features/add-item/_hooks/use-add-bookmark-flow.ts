@@ -12,7 +12,7 @@ import {
   type AddWebsiteBookmarkResult,
   type AddMediaBookmarkResult,
   type AddPostBookmarkResult,
-} from "@/app/actions/bookmarks";
+} from "@/app/actions/bookmarks/create";
 import {toastManager} from "@/components/ui/coss/toast";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {

@@ -51,25 +51,20 @@ export function PostBookmarkDetailView({
   );
 
   return (
-    <div className="s relative flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
       <PostBookmarkDetailHeader onBack={onBack} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className={getAllItemsBookmarkWidthClass(bookmarkWidth)}>
           {item ? (
-            <div
-              data-selection-mode={selectionMode}
-              className="group/bookmark-row relative"
-              onClickCapture={handleDetailClickCapture}>
-              <PostBookmarkList
-                item={item}
-                onOpenMenu={onOpenMenu}
-                isPostDetailOpen={true}
-                selectionIndex={0}
-                isSelected={isSelected}
-                setSelected={setSelected}
-              />
-            </div>
+            <PostBookmarkDetailLoadedContent
+              item={item}
+              onOpenMenu={onOpenMenu}
+              selectionMode={selectionMode}
+              isSelected={isSelected}
+              setSelected={setSelected}
+              onClickCapture={handleDetailClickCapture}
+            />
           ) : (
             <PostDetailState
               detailBookmarkId={detailBookmarkId}
@@ -79,6 +74,38 @@ export function PostBookmarkDetailView({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function PostBookmarkDetailLoadedContent({
+  isSelected,
+  item,
+  onClickCapture,
+  onOpenMenu,
+  selectionMode,
+  setSelected,
+}: {
+  isSelected: boolean;
+  item: PostBookmark;
+  onClickCapture: (event: MouseEvent<HTMLDivElement>) => void;
+  onOpenMenu?: (item: Bookmark) => void;
+  selectionMode: boolean;
+  setSelected: (id: string, checked: boolean) => void;
+}) {
+  return (
+    <div
+      data-selection-mode={selectionMode}
+      className="group/bookmark-row relative"
+      onClickCapture={onClickCapture}>
+      <PostBookmarkList
+        item={item}
+        onOpenMenu={onOpenMenu}
+        isPostDetailOpen={true}
+        selectionIndex={0}
+        isSelected={isSelected}
+        setSelected={setSelected}
+      />
     </div>
   );
 }
@@ -106,28 +133,42 @@ function PostDetailState({
   );
 }
 
+const POST_DETAIL_ERROR_COPY = new Map<
+  Exclude<PostDetailErrorCode, "NOT_FOUND">,
+  {description: string; title: string}
+>([
+  [
+    "INVALID_ID",
+    {
+      title: "Invalid post link",
+      description: "This post link contains an invalid bookmark id.",
+    },
+  ],
+  [
+    "UNAUTHORIZED",
+    {
+      title: "Sign in required",
+      description: "You need to be signed in to view saved posts.",
+    },
+  ],
+  [
+    "UNKNOWN_ERROR",
+    {
+      title: "Post unavailable",
+      description: "Something went wrong while loading this post.",
+    },
+  ],
+]);
+
 function getPostDetailErrorCopy(errorCode: PostDetailErrorCode | null, detailBookmarkId: string) {
-  switch (errorCode) {
-    case "INVALID_ID":
-      return {
-        title: "Invalid post link",
-        description: "This post link contains an invalid bookmark id.",
-      };
-    case "UNAUTHORIZED":
-      return {
-        title: "Sign in required",
-        description: "You need to be signed in to view saved posts.",
-      };
-    case "UNKNOWN_ERROR":
-      return {
-        title: "Post unavailable",
-        description: "Something went wrong while loading this post.",
-      };
-    case "NOT_FOUND":
-    default:
-      return {
-        title: "Post not found",
-        description: `No saved post was found for ${detailBookmarkId}.`,
-      };
+  const notFoundCopy = {
+    title: "Post not found",
+    description: `No saved post was found for ${detailBookmarkId}.`,
+  };
+
+  if (errorCode && errorCode !== "NOT_FOUND") {
+    return POST_DETAIL_ERROR_COPY.get(errorCode) ?? notFoundCopy;
   }
+
+  return notFoundCopy;
 }
