@@ -112,7 +112,7 @@ export function MediaPreviewOverlay({
         : undefined;
 
   return (
-    <div ref={overlayRef} className="fixed inset-0 z-100">
+    <div ref={overlayRef} className="fixed inset-0 z-100" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
         aria-label="Close preview"

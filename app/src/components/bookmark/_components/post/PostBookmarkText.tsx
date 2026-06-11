@@ -2,6 +2,7 @@
 
 import {Fragment} from "react";
 import Link from "next/link";
+import {decode} from "html-entities";
 
 import type {
   FreebirdXPost,
@@ -743,15 +744,20 @@ function getPartsText(parts: PreparedTextPart[]) {
 }
 
 function pushTextPart(parts: PreparedTextPart[], text: string) {
-  if (!text) return;
+  const decodedText = decodePostTextEntities(text);
+  if (!decodedText) return;
 
   const last = parts[parts.length - 1];
   if (last?.type === "text") {
-    last.text += text;
+    last.text += decodedText;
     return;
   }
 
-  parts.push({text, type: "text"});
+  parts.push({text: decodedText, type: "text"});
+}
+
+function decodePostTextEntities(text: string) {
+  return decode(text);
 }
 
 function sliceCodePoints(text: string, start: number, end: number) {

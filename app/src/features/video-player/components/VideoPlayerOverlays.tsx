@@ -1,7 +1,7 @@
 "use client";
 
 import {AnimatePresence, motion} from "framer-motion";
-import {Loader2} from "lucide-react";
+import {Arc} from "@/components/ui/app/arc";
 
 type VideoPlayerOverlaysProps = {
   isFastForwarding: boolean;
@@ -24,9 +24,9 @@ export function VideoPlayerOverlays({
 }: VideoPlayerOverlaysProps) {
   return (
     <>
-      {isLoading && !minimal && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
-          <Loader2 className="h-10 w-10 animate-spin text-white" />
+      {isLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
+          <Arc className="size-12 text-white" />
         </div>
       )}
 

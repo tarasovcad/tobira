@@ -55,6 +55,7 @@ export interface VideoPlayerActions {
   handleLoadedData: () => void;
   handleProgress: () => void;
   handleEnded: () => void;
+  handleWaiting: () => void;
   handleCanPlay: () => void;
   handlePlay: () => void;
   handlePlaying: () => void;

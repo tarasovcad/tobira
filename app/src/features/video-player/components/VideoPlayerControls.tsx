@@ -139,7 +139,7 @@ export function VideoPlayerControls({
             onSeek={onSeek}
           />
 
-          <div className="shrink-0 px-2 text-sm font-semibold text-white tabular-nums @max-[364px]/video-player:hidden">
+          <div className="min-w-[66px] shrink-0 px-2 text-sm font-semibold text-white tabular-nums @max-[364px]/video-player:hidden">
             -{formatTime(duration - currentTime)}
           </div>
 

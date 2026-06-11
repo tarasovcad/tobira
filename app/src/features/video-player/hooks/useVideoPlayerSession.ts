@@ -450,6 +450,10 @@ export function useVideoPlayerSession({
     togglePlay();
   }, [togglePlay]);
 
+  const handleWaiting = useCallback(() => {
+    setIsLoading(true);
+  }, []);
+
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
   }, []);
@@ -491,6 +495,7 @@ export function useVideoPlayerSession({
       handleLoadedData,
       handleProgress,
       handleEnded,
+      handleWaiting,
       handleCanPlay,
       handlePlay,
       handlePlaying,
@@ -502,6 +507,7 @@ export function useVideoPlayerSession({
       handleContainerMouseLeave,
       handleContainerMouseMove,
       handleEnded,
+      handleWaiting,
       handleLoadedData,
       handleLoadedMetadata,
       handlePause,
@@ -744,6 +750,12 @@ export function useVideoPlayerSession({
       currentActions.handlePause();
       callVideoHandler(handlersRef.current.onPause as ((event: Event) => void) | undefined, event);
     };
+    const handleWaitingEvent = (event: Event) => {
+      const currentActions = actionsRef.current;
+      if (!currentActions) return;
+
+      currentActions.handleWaiting();
+    };
     const handleErrorEvent = (event: Event) => {
       callVideoHandler(handlersRef.current.onError as ((event: Event) => void) | undefined, event);
     };
@@ -762,6 +774,7 @@ export function useVideoPlayerSession({
     video.addEventListener("play", handlePlayEvent);
     video.addEventListener("playing", handlePlayingEvent);
     video.addEventListener("pause", handlePauseEvent);
+    video.addEventListener("waiting", handleWaitingEvent);
     video.addEventListener("error", handleErrorEvent);
 
     if (activeMountRef.current) {
@@ -788,6 +801,7 @@ export function useVideoPlayerSession({
       video.removeEventListener("play", handlePlayEvent);
       video.removeEventListener("playing", handlePlayingEvent);
       video.removeEventListener("pause", handlePauseEvent);
+      video.removeEventListener("waiting", handleWaitingEvent);
       video.removeEventListener("error", handleErrorEvent);
       video.remove();
       videoRef.current = null;
