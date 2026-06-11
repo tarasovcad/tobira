@@ -6,9 +6,12 @@ import type {FreebirdXPostResponse} from "@/lib/fetch/post";
 import type {PostBookmarkPreviewItem} from "../../_utils/post-bookmark-preview";
 import {
   getPostReplyingToMentions,
+  PostBookmarkText,
   preparePostBookmarkText,
+  preparePostBookmarkTranslationText,
   type PostReplyingToMention,
 } from "./PostBookmarkText";
+import {useTranslationToggle, PostTranslationLabel} from "./PostBookmarkTranslation";
 import {PostBookmarkAuthorAvatar, PostBookmarkAuthorLine} from "./PostBookmarkAuthor";
 import PostBookmarkArticlePreview from "./PostBookmarkArticlePreview";
 import {
@@ -19,6 +22,7 @@ import {cn} from "@/lib/utils";
 
 type PostBookmarkQuotedPostProps = {
   articlePreviewItem: PostBookmarkPreviewItem | null;
+  isPostDetailOpen?: boolean;
   mediaItems: PostBookmarkPreviewItem[];
   mediaVariant: "compact" | "full";
   post: FreebirdXPostResponse;
@@ -26,18 +30,26 @@ type PostBookmarkQuotedPostProps = {
 
 export default function PostBookmarkQuotedPost({
   articlePreviewItem,
+  isPostDetailOpen = false,
   mediaItems,
   mediaVariant,
   post,
 }: PostBookmarkQuotedPostProps) {
   const preparedText = preparePostBookmarkText(post.post);
+  const translationToggle = useTranslationToggle(post.post, {
+    initialTranslationExpanded: isPostDetailOpen,
+  });
+  const preparedTranslationText = preparePostBookmarkTranslationText(post.post, {
+    expanded: translationToggle.isTranslationExpanded,
+  });
   const replyingToMentions = getPostReplyingToMentions(post.post);
   const authorProfileUrl = `https://x.com/${post.user.user_screen_name}`;
-  const hasTextContent = replyingToMentions.length > 0 || preparedText.hasText;
+  const hasTextContent =
+    replyingToMentions.length > 0 || preparedText.hasText || preparedTranslationText.hasText;
   const hasArticle = Boolean(post.post.article);
 
   return (
-    <div className="hover:bg-muted border-x-border mt-2 rounded-2xl border">
+    <div className="hover:bg-muted border-x-secondary/15 mt-2 overflow-hidden rounded-2xl border">
       <div className="flex min-w-0 items-center gap-2 px-3 pt-3 text-[14px] leading-5">
         <PostBookmarkAuthorAvatar user={post.user} profileUrl={authorProfileUrl} size="sm" />
         <PostBookmarkAuthorLine
@@ -51,13 +63,39 @@ export default function PostBookmarkQuotedPost({
       {mediaVariant === "compact" ? (
         <div className="mt-1.5 px-3 pb-3">
           {mediaItems.length > 0 || hasTextContent ? (
-            <div className="flex items-start gap-3">
+            <div className="mt-2 flex items-start gap-3">
               <PostBookmarkQuotedCompactMediaGrid media={mediaItems} />
               {hasTextContent ? (
                 <div className="max-w-full min-w-0">
                   <PostBookmarkQuotedReplyingTo mentions={replyingToMentions} />
-                  {preparedText.hasText ? (
-                    <p className="text-foreground mt-2 line-clamp-5 text-[15px] leading-[19px] wrap-break-word whitespace-pre-wrap">
+                  {translationToggle.translation ? (
+                    <PostTranslationLabel
+                      sourceLanguage={translationToggle.sourceLanguage}
+                      showOriginal={translationToggle.showOriginal}
+                      provider={translationToggle.provider}
+                      displayButton={false}
+                      className="my-0!"
+                      onToggle={() =>
+                        translationToggle.setShowOriginal(!translationToggle.showOriginal)
+                      }
+                    />
+                  ) : null}
+                  {translationToggle.isTranslated ? (
+                    <p
+                      className={cn(
+                        "text-foreground mt-1 text-[15px] leading-[19px] wrap-break-word whitespace-pre-wrap",
+                        !translationToggle.isTranslationExpanded &&
+                          !isPostDetailOpen &&
+                          "line-clamp-5",
+                      )}>
+                      <PostBookmarkText preparedText={preparedTranslationText} />
+                    </p>
+                  ) : preparedText.hasText ? (
+                    <p
+                      className={cn(
+                        "text-foreground text-[15px] leading-[19px] wrap-break-word whitespace-pre-wrap",
+                        !isPostDetailOpen && "line-clamp-5",
+                      )}>
                       {preparedText.text}
                     </p>
                   ) : null}
@@ -79,10 +117,44 @@ export default function PostBookmarkQuotedPost({
           {hasTextContent ? (
             <div className={cn("max-w-full min-w-0 px-3", mediaItems.length === 0 && "pb-4")}>
               <PostBookmarkQuotedReplyingTo mentions={replyingToMentions} />
-              {preparedText.hasText ? (
-                <p className="text-foreground line-clamp-5 text-[15px] leading-[19px] wrap-break-word whitespace-pre-wrap">
+              {translationToggle.translation ? (
+                <PostTranslationLabel
+                  sourceLanguage={translationToggle.sourceLanguage}
+                  showOriginal={translationToggle.showOriginal}
+                  provider={translationToggle.provider}
+                  className="my-1!"
+                  displayButton={false}
+                  onToggle={() =>
+                    translationToggle.setShowOriginal(!translationToggle.showOriginal)
+                  }
+                />
+              ) : null}
+              {translationToggle.isTranslated ? (
+                <p
+                  className={cn(
+                    "text-foreground text-[15px] leading-[19px] wrap-break-word whitespace-pre-wrap",
+                    !translationToggle.isTranslationExpanded && !isPostDetailOpen && "line-clamp-5",
+                  )}>
+                  <PostBookmarkText preparedText={preparedTranslationText} />
+                </p>
+              ) : preparedText.hasText ? (
+                <p
+                  className={cn(
+                    "text-foreground text-[15px] leading-[19px] wrap-break-word whitespace-pre-wrap",
+                    !isPostDetailOpen && "line-clamp-5",
+                  )}>
                   {preparedText.text}
                 </p>
+              ) : null}
+              {translationToggle.isTranslated &&
+              preparedTranslationText.isLongText &&
+              !translationToggle.isTranslationExpanded ? (
+                <button
+                  type="button"
+                  onClick={() => translationToggle.setIsTranslationExpanded(true)}
+                  className="-mt-0.5 block cursor-pointer text-[15px] leading-[18px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
+                  Show more
+                </button>
               ) : null}
             </div>
           ) : null}

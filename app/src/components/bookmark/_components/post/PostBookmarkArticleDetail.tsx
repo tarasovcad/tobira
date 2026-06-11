@@ -18,7 +18,12 @@ import PostBookmarkArticlePreview from "./PostBookmarkArticlePreview";
 import {PostBookmarkAuthorAvatar, PostBookmarkAuthorLine} from "./PostBookmarkAuthor";
 import PostBookmarkExternalCard from "./PostBookmarkExternalCard";
 import {PostBookmarkMediaPreviewGrid} from "./PostBookmarkMediaGrid";
-import {PostBookmarkText, preparePostBookmarkText} from "./PostBookmarkText";
+import {
+  PostBookmarkText,
+  preparePostBookmarkText,
+  preparePostBookmarkTranslationText,
+} from "./PostBookmarkText";
+import {useTranslationToggle, PostTranslationLabel} from "./PostBookmarkTranslation";
 
 type PostBookmarkArticleDetailProps = {
   fallbackHref: string;
@@ -312,10 +317,14 @@ function ArticleImage({
 }
 
 function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const preparedText = preparePostBookmarkText(post.post, {
     expanded: isExpanded,
     maxLength: ARTICLE_TWEET_TEXT_MAX_LENGTH,
+  });
+  const translationToggle = useTranslationToggle(post.post, {initialTranslationExpanded: true});
+  const preparedTranslationText = preparePostBookmarkTranslationText(post.post, {
+    expanded: translationToggle.isTranslationExpanded,
   });
   const mediaItems = getResolvedTweetMediaPreviewItems(post);
   const profileUrl = `https://x.com/${post.user.user_screen_name}`;
@@ -338,13 +347,39 @@ function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
             className="text-[15px] leading-5"
           />
 
-          {preparedText.hasText ? (
+          {translationToggle.translation ? (
+            <PostTranslationLabel
+              sourceLanguage={translationToggle.sourceLanguage}
+              showOriginal={translationToggle.showOriginal}
+              provider={translationToggle.provider}
+              onToggle={() => translationToggle.setShowOriginal(!translationToggle.showOriginal)}
+            />
+          ) : null}
+          {translationToggle.isTranslated ? (
+            <p className="text-foreground text-[15px] leading-5 whitespace-pre-wrap">
+              <PostBookmarkText preparedText={preparedTranslationText} />
+            </p>
+          ) : preparedText.hasText ? (
             <p className="text-foreground text-[15px] leading-5 whitespace-pre-wrap">
               <PostBookmarkText preparedText={preparedText} />
             </p>
           ) : null}
+          {translationToggle.isTranslated &&
+          preparedTranslationText.isLongText &&
+          !translationToggle.isTranslationExpanded ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                translationToggle.setIsTranslationExpanded(true);
+              }}
+              className="-mt-1 block cursor-pointer text-[15px] leading-5 text-[#1D9BF0] hover:underline focus:outline-none">
+              Show more
+            </button>
+          ) : null}
 
-          {!isExpanded && preparedText.isLongText ? (
+          {!isExpanded && preparedText.isLongText && !translationToggle.isTranslated ? (
             <button
               type="button"
               onClick={(event) => {

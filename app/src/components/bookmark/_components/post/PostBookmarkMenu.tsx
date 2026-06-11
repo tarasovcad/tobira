@@ -40,7 +40,12 @@ import {
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
 import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
-import {PostBookmarkText, preparePostBookmarkText} from "./PostBookmarkText";
+import {
+  PostBookmarkText,
+  preparePostBookmarkText,
+  preparePostBookmarkTranslationText,
+} from "./PostBookmarkText";
+import {useTranslationToggle, PostTranslationLabel} from "./PostBookmarkTranslation";
 
 const POST_TEXT_PREVIEW_MAX_LENGTH = 280;
 
@@ -52,6 +57,10 @@ function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
   const preparedText = preparePostBookmarkText(post, {
     expanded: false,
     maxLength: POST_TEXT_PREVIEW_MAX_LENGTH,
+  });
+  const translationToggle = useTranslationToggle(post);
+  const preparedTranslationText = preparePostBookmarkTranslationText(post, {
+    expanded: translationToggle.isTranslationExpanded,
   });
 
   return (
@@ -76,9 +85,37 @@ function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
           </div>
         </div>
 
-        <p className="text-foreground line-clamp-5 text-[15px] leading-[20px] whitespace-pre-wrap">
-          <PostBookmarkText preparedText={preparedText} />
-        </p>
+        {translationToggle.translation ? (
+          <PostTranslationLabel
+            sourceLanguage={translationToggle.sourceLanguage}
+            showOriginal={translationToggle.showOriginal}
+            provider={translationToggle.provider}
+            onToggle={() => translationToggle.setShowOriginal(!translationToggle.showOriginal)}
+          />
+        ) : null}
+        {translationToggle.isTranslated ? (
+          <p
+            className={cn(
+              "text-foreground text-[15px] leading-[20px] whitespace-pre-wrap",
+              !translationToggle.isTranslationExpanded && "line-clamp-5",
+            )}>
+            <PostBookmarkText preparedText={preparedTranslationText} />
+          </p>
+        ) : (
+          <p className="text-foreground line-clamp-5 text-[15px] leading-[20px] whitespace-pre-wrap">
+            <PostBookmarkText preparedText={preparedText} />
+          </p>
+        )}
+        {translationToggle.isTranslated &&
+        preparedTranslationText.isLongText &&
+        !translationToggle.isTranslationExpanded ? (
+          <button
+            type="button"
+            onClick={() => translationToggle.setIsTranslationExpanded(true)}
+            className="-mt-2 block cursor-pointer text-left text-[15px] leading-[18px] text-[#1D9BF0] hover:underline focus:outline-none">
+            Show more
+          </button>
+        ) : null}
       </div>
     </div>
   );

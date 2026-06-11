@@ -3,7 +3,12 @@
 import {Fragment} from "react";
 import Link from "next/link";
 
-import type {FreebirdXPost, FreebirdXPostCommunity, FreebirdXPostUrlEntity} from "@/lib/fetch/post";
+import type {
+  FreebirdXPost,
+  FreebirdXPostCommunity,
+  FreebirdXPostTranslation,
+  FreebirdXPostUrlEntity,
+} from "@/lib/fetch/post";
 
 const LINK_CLASS_NAME =
   "text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline";
@@ -17,7 +22,7 @@ type PreparedTextPart =
       href: string;
       key: string;
       text: string;
-      type: "hashtag" | "mention" | "url";
+      type: "hashtag" | "mention" | "symbol" | "url";
     };
 
 type PreparedEntity =
@@ -33,7 +38,7 @@ type PreparedEntity =
       key: string;
       start: number;
       text: string;
-      type: "hashtag" | "mention";
+      type: "hashtag" | "mention" | "symbol";
     };
 
 type CodePointRange = [number, number];
@@ -54,6 +59,10 @@ export type PostReplyingToMention = {
 type PreparePostBookmarkTextOptions = {
   expanded?: boolean;
   maxLength?: number;
+};
+
+type PreparePostBookmarkTranslationTextOptions = {
+  expanded?: boolean;
 };
 
 type PostBookmarkTextProps = {
@@ -92,6 +101,33 @@ export function preparePostBookmarkText(
     hasText: visibleText.length > 0,
     isLongText,
     parts: visibleParts,
+    text: visibleText,
+  };
+}
+
+export function preparePostBookmarkTranslationText(
+  post: FreebirdXPost,
+  {expanded = false}: PreparePostBookmarkTranslationTextOptions = {},
+): PreparedPostBookmarkText {
+  const translation = post.translation;
+  if (!translation) {
+    return {hasText: false, isLongText: false, parts: [], text: ""};
+  }
+
+  const fullText = translation.text ?? "";
+  const previewText = translation.preview_translation ?? "";
+  const hasPreviewText = previewText.length > 0 && previewText !== fullText;
+  const text = hasPreviewText && !expanded ? previewText : fullText;
+  const textLength = getCodePointLength(text);
+  const displayRange: CodePointRange = [0, textLength];
+  const entities = getTranslationDisplayEntities(post, translation, displayRange, text);
+  const parts = trimTextPartsEnd(buildTextPartsForText(post, text, displayRange, entities));
+  const visibleText = getPartsText(parts);
+
+  return {
+    hasText: visibleText.length > 0,
+    isLongText: hasPreviewText,
+    parts,
     text: visibleText,
   };
 }
@@ -175,26 +211,104 @@ function getDisplayEntities(post: FreebirdXPost, displayRange: CodePointRange): 
   return entities.sort((a, b) => a.start - b.start || b.end - a.end);
 }
 
+function getTranslationDisplayEntities(
+  post: FreebirdXPost,
+  translation: FreebirdXPostTranslation,
+  displayRange: CodePointRange,
+  text: string,
+): PreparedEntity[] {
+  const entities: PreparedEntity[] = [];
+  const hashtagBaseUrl = getHashtagBaseUrl(post.community);
+  const translationEntities = translation.entities;
+
+  for (const entity of translationEntities?.urls ?? []) {
+    const range = getEntityRange(entity.indices, displayRange);
+    if (!range) continue;
+
+    entities.push({
+      end: range[1],
+      entity,
+      start: range[0],
+      type: "url",
+    });
+  }
+
+  for (const tag of translationEntities?.hashtags ?? []) {
+    const range = getEntityRange(tag.indices, displayRange);
+    if (!range) continue;
+
+    entities.push({
+      end: range[1],
+      href: `${hashtagBaseUrl}/hashtag/${encodeURIComponent(tag.text)}`,
+      key: `translated-hashtag-${range[0]}-${range[1]}`,
+      start: range[0],
+      text: sliceCodePoints(text, range[0], range[1]),
+      type: "hashtag",
+    });
+  }
+
+  for (const symbol of translationEntities?.symbols ?? []) {
+    const range = getEntityRange(symbol.indices, displayRange);
+    if (!range) continue;
+
+    entities.push({
+      end: range[1],
+      href: `https://x.com/search?q=${encodeURIComponent(`$${symbol.text}`)}&src=cashtag_click`,
+      key: `translated-symbol-${range[0]}-${range[1]}`,
+      start: range[0],
+      text: sliceCodePoints(text, range[0], range[1]),
+      type: "symbol",
+    });
+  }
+
+  for (const mention of translationEntities?.user_mentions ?? []) {
+    if (!mention.indices || !mention.screen_name) continue;
+
+    const range = getEntityRange(mention.indices, displayRange);
+    if (!range) continue;
+
+    entities.push({
+      end: range[1],
+      href: `https://x.com/${encodeURIComponent(mention.screen_name)}`,
+      key: `translated-mention-${range[0]}-${range[1]}`,
+      start: range[0],
+      text: sliceCodePoints(text, range[0], range[1]),
+      type: "mention",
+    });
+  }
+
+  return entities.sort((a, b) => a.start - b.start || b.end - a.end);
+}
+
 function buildTextParts(
   post: FreebirdXPost,
   displayRange: CodePointRange,
   entities: PreparedEntity[],
 ): PreparedTextPart[] {
+  return buildTextPartsForText(post, post.text, displayRange, entities);
+}
+
+function buildTextPartsForText(
+  post: FreebirdXPost,
+  text: string,
+  displayRange: CodePointRange,
+  entities: PreparedEntity[],
+): PreparedTextPart[] {
   const parts: PreparedTextPart[] = [];
-  const hiddenUrlContext = getHiddenUrlContext(post);
+  const hiddenUrlContext = getHiddenUrlContext(post, text);
   let cursor = displayRange[0];
 
   for (const entity of entities) {
     if (entity.start < cursor) continue;
     if (entity.start >= displayRange[1] || entity.end > displayRange[1]) continue;
 
-    pushTextPart(parts, sliceCodePoints(post.text, cursor, entity.start));
+    pushTextPart(parts, sliceCodePoints(text, cursor, entity.start));
     pushEntityPart(parts, hiddenUrlContext, entity);
 
     cursor = entity.end;
   }
 
-  pushTextPart(parts, sliceCodePoints(post.text, cursor, displayRange[1]));
+  pushTextPart(parts, sliceCodePoints(text, cursor, displayRange[1]));
 
   return linkPlainUrls(hiddenUrlContext, parts);
 }
@@ -273,13 +387,13 @@ function shouldRemoveUrlEntity(
   return isMediaUrlEntity(entity);
 }
 
-function getHiddenUrlContext(post: FreebirdXPost): HiddenUrlContext {
+function getHiddenUrlContext(post: FreebirdXPost, postText = post.text): HiddenUrlContext {
   return {
     cardDomain: post.card?.domain,
     cardUrl: post.card?.url,
     hasMedia: post.hasMedia,
     hiddenAttachmentUrls: getHiddenAttachmentUrls(post),
-    postText: post.text,
+    postText,
   };
 }
 

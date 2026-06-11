@@ -12,11 +12,7 @@ export function PostBookmarkQuotedCompactMediaGrid({media}: {media: PostBookmark
   const count = items.length;
 
   return (
-    <div
-      className={cn(
-        "mt-2 w-[100px] shrink-0 overflow-hidden rounded-xl border",
-        count === 2 ? "h-[50px]" : "h-[100px]",
-      )}>
+    <div className="h-[100px] w-[100px] shrink-0 overflow-hidden rounded-xl border">
       <div
         className={cn(
           "grid h-full w-full gap-[2px]",
@@ -99,9 +95,7 @@ export function PostBookmarkQuotedFullMediaGrid({media}: {media: PostBookmarkPre
   }
 
   return (
-    <div
-      className="bg-muted/30 mt-4 overflow-hidden rounded-b-xl"
-      style={{aspectRatio: containerAspect}}>
+    <div className="bg-muted/30 mt-4 overflow-hidden" style={{aspectRatio: containerAspect}}>
       <div
         className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
         {items.map((item, i) => {

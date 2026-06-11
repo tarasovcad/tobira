@@ -25,7 +25,7 @@ export default function PostBookmarkExternalCard({card}: {card: FreebirdXPostCar
               loading="lazy"
             />
             <div
-              className="absolute right-0 bottom-0 left-0 mx-3 mb-3 h-5.25 w-fit rounded-[5px] px-2"
+              className="absolute right-3 bottom-3 left-3 min-w-0 rounded-[5px] px-2"
               style={{backgroundColor: "rgba(0, 0, 0, 0.77)"}}>
               <p className="truncate text-[13px] leading-5.25 font-[450] text-white">
                 {card.title}

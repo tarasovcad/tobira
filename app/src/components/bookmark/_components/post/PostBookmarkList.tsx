@@ -26,7 +26,12 @@ import {
 import PostBookmarkExternalCard from "./PostBookmarkExternalCard";
 import PostBookmarkMediaGrid, {PostBookmarkMediaPreviewGrid} from "./PostBookmarkMediaGrid";
 import PostBookmarkQuotedPost from "./PostBookmarkQuotedPost";
-import {PostBookmarkText, preparePostBookmarkText} from "./PostBookmarkText";
+import {
+  PostBookmarkText,
+  preparePostBookmarkText,
+  preparePostBookmarkTranslationText,
+} from "./PostBookmarkText";
+import {useTranslationToggle, PostTranslationLabel} from "./PostBookmarkTranslation";
 
 const MAX_LENGTH = 280;
 
@@ -75,6 +80,10 @@ export default function PostBookmarkList({
     () => [...(meta?.reply_chain ?? [])].sort((a, b) => a.post.date_epoch - b.post.date_epoch),
     [meta?.reply_chain],
   );
+  const post = meta?.tweet.post ?? null;
+  const translationToggle = useTranslationToggle(post, {
+    initialTranslationExpanded: isPostDetailOpen,
+  });
   const handleOpenDetail = useCallback(
     (event: MouseEvent<HTMLElement>) => {
       if (!onOpenDetail || isInteractiveTarget(event.target)) {
@@ -85,7 +94,7 @@ export default function PostBookmarkList({
     },
     [item, onOpenDetail],
   );
-  if (!meta) {
+  if (!meta || !post) {
     return (
       <div className={cn("text-muted-foreground border-b px-4 py-3 text-sm", className)}>
         Post data unavailable or not supported.
@@ -93,7 +102,6 @@ export default function PostBookmarkList({
     );
   }
 
-  const post = meta.tweet.post;
   const user = meta.tweet.user;
   const articlePreviewItem = post.article
     ? getPostBookmarkArticleCoverPreviewItem(item, "list", 0)
@@ -104,6 +112,9 @@ export default function PostBookmarkList({
   const preparedText = preparePostBookmarkText(post, {
     expanded: isExpanded,
     maxLength: MAX_LENGTH,
+  });
+  const preparedTranslationText = preparePostBookmarkTranslationText(post, {
+    expanded: translationToggle.isTranslationExpanded,
   });
   const authorProfileUrl = `https://x.com/${user.user_screen_name}`;
   const authorSelectionCheckbox = (
@@ -140,12 +151,34 @@ export default function PostBookmarkList({
       ) : null}
 
       <div>
-        {preparedText.hasText ? (
+        {translationToggle.translation ? (
+          <PostTranslationLabel
+            sourceLanguage={translationToggle.sourceLanguage}
+            showOriginal={translationToggle.showOriginal}
+            provider={translationToggle.provider}
+            onToggle={() => translationToggle.setShowOriginal(!translationToggle.showOriginal)}
+          />
+        ) : null}
+        {translationToggle.isTranslated ? (
+          <p className="text-foreground text-[15px] whitespace-pre-wrap">
+            <PostBookmarkText preparedText={preparedTranslationText} />
+          </p>
+        ) : preparedText.hasText ? (
           <p className="text-foreground text-[15px] whitespace-pre-wrap">
             <PostBookmarkText preparedText={preparedText} />
           </p>
         ) : null}
-        {!isExpanded && preparedText.isLongText ? (
+        {translationToggle.isTranslated &&
+        preparedTranslationText.isLongText &&
+        !translationToggle.isTranslationExpanded ? (
+          <button
+            type="button"
+            onClick={() => translationToggle.setIsTranslationExpanded(true)}
+            className="-mt-0.5 block cursor-pointer text-[15px] leading-[18px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
+            Show more
+          </button>
+        ) : null}
+        {!isExpanded && preparedText.isLongText && !translationToggle.isTranslated ? (
           <button
             type="button"
             onClick={() => setIsExpanded(true)}
@@ -177,6 +210,7 @@ export default function PostBookmarkList({
           articlePreviewItem={quotedArticlePreviewItem}
           post={post.qrt}
           mediaItems={qrtMediaItems}
+          isPostDetailOpen={isPostDetailOpen}
           mediaVariant={isPostDetailOpen || mainMediaItems.length === 0 ? "full" : "compact"}
         />
       ) : null}
@@ -373,6 +407,10 @@ function PostBookmarkReplyChainPost({
 }) {
   const replyProfileUrl = `https://x.com/${reply.user.user_screen_name}`;
   const preparedText = preparePostBookmarkText(reply.post);
+  const translationToggle = useTranslationToggle(reply.post, {initialTranslationExpanded: true});
+  const preparedTranslationText = preparePostBookmarkTranslationText(reply.post, {
+    expanded: translationToggle.isTranslationExpanded,
+  });
   const mediaItems = getPostBookmarkReplyMediaPreviewItems(item, reply.post.tweetID, "list");
 
   return (
@@ -390,10 +428,32 @@ function PostBookmarkReplyChainPost({
           className="text-[15px] leading-5"
         />
 
-        {preparedText.hasText ? (
+        {translationToggle.translation ? (
+          <PostTranslationLabel
+            sourceLanguage={translationToggle.sourceLanguage}
+            showOriginal={translationToggle.showOriginal}
+            provider={translationToggle.provider}
+            onToggle={() => translationToggle.setShowOriginal(!translationToggle.showOriginal)}
+          />
+        ) : null}
+        {translationToggle.isTranslated ? (
+          <p className="text-foreground text-[15px] whitespace-pre-wrap">
+            <PostBookmarkText preparedText={preparedTranslationText} />
+          </p>
+        ) : preparedText.hasText ? (
           <p className="text-foreground text-[15px] whitespace-pre-wrap">
             <PostBookmarkText preparedText={preparedText} />
           </p>
+        ) : null}
+        {translationToggle.isTranslated &&
+        preparedTranslationText.isLongText &&
+        !translationToggle.isTranslationExpanded ? (
+          <button
+            type="button"
+            onClick={() => translationToggle.setIsTranslationExpanded(true)}
+            className="-mt-0.5 block cursor-pointer text-[15px] leading-[18px] text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline focus:outline-none">
+            Show more
+          </button>
         ) : null}
 
         {showMedia && reply.post.card ? <PostBookmarkExternalCard card={reply.post.card} /> : null}
