@@ -155,7 +155,9 @@ export default function PostBookmarkList({
         onExpandOriginal={() => setIsExpanded(true)}
       />
 
-      {showMedia && post.card ? <PostBookmarkExternalCard card={post.card} /> : null}
+      {showMedia && post.card ? (
+        <PostBookmarkExternalCard card={post.card} item={item} tweetId={post.tweetID} />
+      ) : null}
 
       {showMedia && post.article && isPostDetailOpen ? (
         <PostBookmarkArticleDetail item={item} post={post} fallbackHref={post.tweetURL} />
@@ -650,7 +652,13 @@ function PostBookmarkReplyChainPost({
           wrap={false}
         />
 
-        {showMedia && reply.post.card ? <PostBookmarkExternalCard card={reply.post.card} /> : null}
+        {showMedia && reply.post.card ? (
+          <PostBookmarkExternalCard
+            card={reply.post.card}
+            item={item}
+            tweetId={reply.post.tweetID}
+          />
+        ) : null}
 
         {showMedia ? (
           <PostBookmarkMediaPreviewGrid media={mediaItems} galleryEntries={mediaGalleryEntries} />

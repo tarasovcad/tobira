@@ -5,6 +5,7 @@ import {
   bookmarks,
   type ArticleImageItem,
   type ImageItem,
+  type PostCardImageItem,
   type PostImages,
   type VideoItem,
 } from "@/db/schema";
@@ -85,14 +86,21 @@ function getBookmarkIdFromBody(rawBody: string): string | NextResponse {
 }
 
 async function processPostImages(bookmarkId: string, images: PostImages) {
-  const [items, qrtItems, replyItems, articleItems] = await Promise.all([
+  const [items, qrtItems, replyItems, articleItems, cardItems] = await Promise.all([
     processPostMediaItems(images.items),
     processPostMediaItems(images.qrtItems ?? []),
     processReplyMediaItems(images.replyItems ?? []),
     processArticleMediaItems(images.articleItems ?? []),
+    processCardMediaItems(images.cardItems ?? []),
   ]);
 
-  const processedImages = buildProcessedPostImages(items, qrtItems, replyItems, articleItems);
+  const processedImages = buildProcessedPostImages(
+    items,
+    qrtItems,
+    replyItems,
+    articleItems,
+    cardItems,
+  );
   await db
     .update(bookmarks)
     .set({images: processedImages})
@@ -104,12 +112,14 @@ function buildProcessedPostImages(
   qrtItems: ProcessedMediaItem[],
   replyItems: ProcessedReplyMediaItems[],
   articleItems: ProcessedArticleMediaItem[],
+  cardItems: ProcessedCardMediaItem[],
 ): PostImages {
   const results = [
     ...items,
     ...qrtItems,
     ...replyItems.flatMap((reply) => reply.items),
     ...articleItems,
+    ...cardItems,
   ];
 
   if (results.some((result) => result.status === "failed")) {
@@ -129,6 +139,7 @@ function buildProcessedPostImages(
         }
       : {}),
     ...(articleItems.length > 0 ? {articleItems: articleItems.map((result) => result.item)} : {}),
+    ...(cardItems.length > 0 ? {cardItems: cardItems.map((result) => result.item)} : {}),
   };
 }
 
@@ -149,11 +160,16 @@ function processReplyMediaItems(
 }
 
 type ProcessedArticleMediaItem = ProcessedMediaItem<ArticleImageItem>;
+type ProcessedCardMediaItem = ProcessedMediaItem<PostCardImageItem>;
 
 function processArticleMediaItems(items: ArticleImageItem[]): Promise<ProcessedArticleMediaItem[]> {
   return Promise.all(
     items.map((item) => (item.type === "image" ? processImageItem(item) : processVideoItem(item))),
   );
+}
+
+function processCardMediaItems(items: PostCardImageItem[]): Promise<ProcessedCardMediaItem[]> {
+  return Promise.all(items.map(processImageItem));
 }
 
 function processPostMediaItems(items: PostMediaItem[]): Promise<ProcessedMediaItem[]> {

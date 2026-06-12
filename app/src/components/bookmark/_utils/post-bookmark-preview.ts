@@ -6,6 +6,7 @@ import {
   isFreebirdXArticleVideoMedia,
   type FreebirdXArticle,
   type FreebirdXArticleMedia,
+  type FreebirdXPostCard,
   type FreebirdXPostMediaItem,
 } from "@/lib/fetch/post";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
@@ -14,6 +15,7 @@ import type {MediaGalleryEntry} from "./media-grid-render";
 
 type StoredPostMediaItem = PostImages["items"][number];
 type StoredPostArticleItem = NonNullable<PostImages["articleItems"]>[number];
+type StoredPostCardItem = NonNullable<PostImages["cardItems"]>[number];
 type PostMediaGroup = "main" | "qrt";
 type PostPreviewVariant = "list" | "menu";
 
@@ -258,6 +260,42 @@ export function getPostBookmarkMediaPreviewItems(
       metadataItems.at(mediaIndex)?.duration_millis ?? null,
     ),
   );
+}
+
+function buildExternalCardPreviewItem(card: FreebirdXPostCard): PostBookmarkPreviewItem | null {
+  if (!card.image.url) {
+    return null;
+  }
+
+  return {
+    key: card.image.url,
+    type: "image",
+    src: card.image.url,
+    fullSizeSrc: card.image.url,
+    width: card.image.width,
+    height: card.image.height,
+    alt: card.image.altText ?? card.title,
+  };
+}
+
+export function getPostBookmarkCardPreviewItem(
+  item: PostBookmark,
+  tweetId: string,
+  card: FreebirdXPostCard,
+  variant: PostPreviewVariant,
+): PostBookmarkPreviewItem | null {
+  const storedItems: StoredPostCardItem[] = isPostImages(item.images)
+    ? (item.images.cardItems ?? [])
+    : [];
+  const storedItem = storedItems.find(
+    (mediaItem) => mediaItem.tweetId === tweetId && mediaItem.source_url === card.image.url,
+  );
+
+  if (storedItem) {
+    return buildStoredPreviewItem(storedItem, isPostMediaProcessing(item.images), variant);
+  }
+
+  return buildExternalCardPreviewItem(card);
 }
 
 export function getPostBookmarkReplyMediaPreviewItems(

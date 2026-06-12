@@ -128,7 +128,7 @@ export default function PostBookmarkArticleDetail({
       ) : null}
 
       <div className="space-y-4">
-        {renderArticleBlocks(contentState.blocks, contentState.entityMap, mediaById)}
+        {renderArticleBlocks(contentState.blocks, contentState.entityMap, mediaById, item)}
       </div>
     </section>
   );
@@ -138,6 +138,7 @@ function renderArticleBlocks(
   blocks: ArticleContentBlock[],
   entityMap: Map<string, ArticleEntity>,
   mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+  item: PostBookmark,
 ) {
   const renderedBlocks: ReactNode[] = [];
   let index = 0;
@@ -166,7 +167,7 @@ function renderArticleBlocks(
       continue;
     }
 
-    renderedBlocks.push(renderArticleBlock(block, entityMap, mediaById));
+    renderedBlocks.push(renderArticleBlock(block, entityMap, mediaById, item));
     index += 1;
   }
 
@@ -177,6 +178,7 @@ function renderArticleBlock(
   block: ArticleContentBlock,
   entityMap: Map<string, ArticleEntity>,
   mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+  item: PostBookmark,
 ) {
   switch (block.type) {
     case "header-two":
@@ -196,7 +198,7 @@ function renderArticleBlock(
         </blockquote>
       );
     case "atomic":
-      return renderAtomicBlock(block, entityMap, mediaById);
+      return renderAtomicBlock(block, entityMap, mediaById, item);
     default:
       if (!block.text.trim()) {
         return <div key={block.key} className="h-1" />;
@@ -237,6 +239,7 @@ function renderAtomicBlock(
   block: ArticleContentBlock,
   entityMap: Map<string, ArticleEntity>,
   mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+  item: PostBookmark,
 ) {
   const entity = getFirstBlockEntity(block, entityMap);
   if (!entity) {
@@ -256,7 +259,7 @@ function renderAtomicBlock(
 
     return (
       <div key={block.key} className="my-6">
-        <ArticleTweetEmbed post={resolvedTweet} />
+        <ArticleTweetEmbed item={item} post={resolvedTweet} />
       </div>
     );
   }
@@ -338,7 +341,7 @@ function getArticleImageClassName(variant: "body" | "cover") {
     : "bg-muted/30 dark:border-border my-6 overflow-hidden rounded-xl";
 }
 
-function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
+function ArticleTweetEmbed({item, post}: {item: PostBookmark; post: FreebirdXPostResponse}) {
   const [isExpanded, setIsExpanded] = useState(true);
   const preparedText = preparePostBookmarkText(post.post, {
     expanded: isExpanded,
@@ -387,7 +390,13 @@ function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
             onExpandTranslation={handleExpandTranslation}
           />
 
-          {post.post.card ? <PostBookmarkExternalCard card={post.post.card} /> : null}
+          {post.post.card ? (
+            <PostBookmarkExternalCard
+              card={post.post.card}
+              item={item}
+              tweetId={post.post.tweetID}
+            />
+          ) : null}
           <PostBookmarkMediaPreviewGrid media={mediaItems} />
         </div>
       </article>

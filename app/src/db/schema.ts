@@ -41,6 +41,10 @@ export type ArticleMediaItem = (ImageItem | VideoItem) & {
 
 export type ArticleImageItem = ArticleMediaItem;
 
+export type PostCardImageItem = ImageItem & {
+  tweetId: string;
+};
+
 export type WebsiteImages = {
   favicon?: {key: string};
   og?: {key: string; width?: number; height?: number};
@@ -57,6 +61,7 @@ export type PostImages = {
     items: (ImageItem | VideoItem)[];
   }[];
   articleItems?: ArticleImageItem[];
+  cardItems?: PostCardImageItem[];
 };
 
 export type MediaImages = {

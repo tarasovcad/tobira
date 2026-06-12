@@ -36,6 +36,7 @@ import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import type {PostBookmark} from "@/components/bookmark/types";
 import {
   getPostBookmarkArticleCoverPreviewItem,
+  getPostBookmarkCardPreviewItem,
   getPostBookmarkMediaPreviewItems,
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
@@ -218,40 +219,23 @@ function MediaPanelTile({
   );
 }
 
-function getPostBookmarkCardPreviewItem(
-  meta: PostBookmarkMetadata,
-): PostBookmarkPreviewItem | null {
-  const card = meta.tweet.post.card;
-  if (!card?.image.url) {
-    return null;
-  }
-
-  return {
-    key: card.image.url,
-    type: "image",
-    src: card.image.url,
-    fullSizeSrc: card.image.url,
-    width: card.image.width,
-    height: card.image.height,
-    alt: card.image.altText ?? card.title,
-  };
-}
-
 function getPostBookmarkMenuPreviewItems(
   item: PostBookmark,
   meta: PostBookmarkMetadata,
 ): PostBookmarkPreviewItem[] {
+  const post = meta.tweet.post;
   const mainMedia = getPostBookmarkMediaPreviewItems(item, "main", "menu");
   if (mainMedia.length > 0) {
     return mainMedia;
   }
 
-  const cardPreviewItem = getPostBookmarkCardPreviewItem(meta);
+  const cardPreviewItem = post.card
+    ? getPostBookmarkCardPreviewItem(item, post.tweetID, post.card, "menu")
+    : null;
   if (cardPreviewItem) {
     return [cardPreviewItem];
   }
 
-  const post = meta.tweet.post;
   const articleCoverPreviewItem = post.article
     ? getPostBookmarkArticleCoverPreviewItem(item, "menu", 0)
     : null;
