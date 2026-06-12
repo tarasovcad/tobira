@@ -165,7 +165,8 @@ export function HomeClient({
   const visibleItems = useMemo(() => {
     if (allBookmarks.length === 0) return [];
 
-    const resolvedIds = new Set(resolvedBookmarks.map((bookmark) => bookmark.id));
+    const resolvedIds =
+      sort === "az" ? new Set<string>() : new Set(resolvedBookmarks.map((bookmark) => bookmark.id));
 
     return allBookmarks.filter((item) => {
       const isBeingRemoved = removingIds.has(item.id);
@@ -174,7 +175,7 @@ export function HomeClient({
 
       return !isBeingRemoved && !isAnimatedOut && !isDuplicateOfResolved;
     });
-  }, [allBookmarks, animatedOutIds, removingIds, resolvedBookmarks]);
+  }, [allBookmarks, animatedOutIds, removingIds, resolvedBookmarks, sort]);
   const selectionItems = useMemo(
     () => (isPostDetailOpen && detailBookmark ? [detailBookmark] : visibleItems),
     [detailBookmark, isPostDetailOpen, visibleItems],
@@ -315,6 +316,7 @@ export function HomeClient({
         <AllItemsList
           view={view}
           typeFilter={typeFilter}
+          sort={sort}
           visibleItems={visibleItems}
           onOpenDetail={handleOpenPostDetail}
           animatingUrl={animatingUrl}

@@ -4,7 +4,7 @@ import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {TypeFilter} from "@/features/home/types";
+import type {SortMode, TypeFilter} from "@/features/home/types";
 import type {ViewMode} from "@/store/use-view-options";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {
@@ -38,6 +38,7 @@ function LoadingSpinner({className}: {className?: string}) {
 interface AllItemsListProps {
   view: ViewMode;
   typeFilter: TypeFilter;
+  sort: SortMode;
   visibleItems: Bookmark[];
   onOpenDetail?: (item: Bookmark) => void;
   animatingUrl: string | null;
@@ -65,6 +66,7 @@ interface AllItemsListProps {
 export function AllItemsList({
   view,
   typeFilter,
+  sort,
   visibleItems,
   onOpenDetail,
   animatingUrl,
@@ -280,19 +282,27 @@ export function AllItemsList({
     visibleItems,
   ]);
 
+  const placeholder = (
+    <AllItemsAnimatingPlaceholders
+      animatingUrl={animatingUrl}
+      animatingItemCount={animatingItemCount}
+      animatingTags={animatingTags}
+      pendingMediaItems={pendingMediaItems}
+      resolvedBookmarks={resolvedBookmarks}
+      flattenMediaBookmarks={isMediaGrid}
+      onTransitionDone={onTransitionDone}
+      PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}
+    />
+  );
+
+  const showPlaceholder = sort !== "az";
+  const isNewestAtBottom = sort === "oldest";
+
   const body = (
     <>
-      <AllItemsAnimatingPlaceholders
-        animatingUrl={animatingUrl}
-        animatingItemCount={animatingItemCount}
-        animatingTags={animatingTags}
-        pendingMediaItems={pendingMediaItems}
-        resolvedBookmarks={resolvedBookmarks}
-        flattenMediaBookmarks={isMediaGrid}
-        onTransitionDone={onTransitionDone}
-        PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}
-      />
+      {!isNewestAtBottom && showPlaceholder && placeholder}
       {content}
+      {isNewestAtBottom && showPlaceholder && placeholder}
     </>
   );
 
