@@ -32,6 +32,7 @@ export interface VideoPlayerState {
   loadedFraction: number;
   isFullscreen: boolean;
   isLoading: boolean;
+  hasError: boolean;
   showControls: boolean;
   isFastForwarding: boolean;
 }
@@ -60,6 +61,7 @@ export interface VideoPlayerActions {
   handlePlay: () => void;
   handlePlaying: () => void;
   handlePause: () => void;
+  handleError: () => void;
 }
 
 export interface VideoPlayerHostOptions {
@@ -96,4 +98,5 @@ export interface VideoPlayerShellProps {
   onRequestFullscreen?: () => void;
   attachVideo?: boolean;
   placeholder?: ReactNode;
+  errorFallback?: ReactNode;
 }

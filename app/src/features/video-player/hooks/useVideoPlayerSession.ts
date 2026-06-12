@@ -40,6 +40,7 @@ const DEFAULT_VIDEO_PLAYER_STATE: VideoPlayerState = {
   loadedFraction: 0,
   isFullscreen: false,
   isLoading: false,
+  hasError: false,
   showControls: false,
   isFastForwarding: false,
 };
@@ -113,6 +114,7 @@ export function useVideoPlayerSession({
   const [loadedFraction, setLoadedFraction] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(src));
+  const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isFastForwarding, setIsFastForwarding] = useState(false);
 
@@ -132,12 +134,14 @@ export function useVideoPlayerSession({
       loadedFraction,
       isFullscreen,
       isLoading,
+      hasError,
       showControls,
       isFastForwarding,
     }),
     [
       currentTime,
       duration,
+      hasError,
       isFastForwarding,
       isFullscreen,
       isLoading,
@@ -460,6 +464,7 @@ export function useVideoPlayerSession({
 
   const handleCanPlay = useCallback(() => {
     setIsLoading(false);
+    setHasError(false);
   }, []);
 
   const handlePlay = useCallback(() => {
@@ -469,10 +474,34 @@ export function useVideoPlayerSession({
   const handlePlaying = useCallback(() => {
     setIsPlaying(true);
     setIsLoading(false);
+    setHasError(false);
   }, []);
 
   const handlePause = useCallback(() => {
     setIsPlaying(false);
+  }, []);
+
+  const handleError = useCallback(() => {
+    if (fastForwardTimeoutRef.current) {
+      clearTimeout(fastForwardTimeoutRef.current);
+      fastForwardTimeoutRef.current = null;
+    }
+
+    const video = videoRef.current;
+    if (video && video.playbackRate === 2) {
+      video.playbackRate = 1;
+    }
+
+    wasFastForwardingRef.current = false;
+    startTransition(() => {
+      setHasError(true);
+      setIsLoading(false);
+      setIsPlaying(false);
+      setIsFastForwarding(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setLoadedFraction(0);
+    });
   }, []);
 
   const actions = useMemo<VideoPlayerActions>(
@@ -500,6 +529,7 @@ export function useVideoPlayerSession({
       handlePlay,
       handlePlaying,
       handlePause,
+      handleError,
     }),
     [
       consumeFirstInteractionUnmute,
@@ -514,6 +544,7 @@ export function useVideoPlayerSession({
       handlePlay,
       handlePlaying,
       handleProgress,
+      handleError,
       handleTimeUpdate,
       handleVideoClick,
       handleVideoPointerDown,
@@ -750,13 +781,17 @@ export function useVideoPlayerSession({
       currentActions.handlePause();
       callVideoHandler(handlersRef.current.onPause as ((event: Event) => void) | undefined, event);
     };
-    const handleWaitingEvent = (event: Event) => {
+    const handleWaitingEvent = () => {
       const currentActions = actionsRef.current;
       if (!currentActions) return;
 
       currentActions.handleWaiting();
     };
     const handleErrorEvent = (event: Event) => {
+      const currentActions = actionsRef.current;
+      if (currentActions) {
+        currentActions.handleError();
+      }
       callVideoHandler(handlersRef.current.onError as ((event: Event) => void) | undefined, event);
     };
 
@@ -859,6 +894,7 @@ export function useVideoPlayerSession({
         setIsLoading(false);
         setIsPlaying(false);
         setIsFastForwarding(false);
+        setHasError(false);
         setCurrentTime(0);
         setDuration(0);
         setLoadedFraction(0);
@@ -871,7 +907,10 @@ export function useVideoPlayerSession({
       video.src = src;
       video.load();
       startTransition(() => {
+        setHasError(false);
         setIsLoading(true);
+        setIsPlaying(false);
+        setIsFastForwarding(false);
         setLoadedFraction(0);
       });
     }

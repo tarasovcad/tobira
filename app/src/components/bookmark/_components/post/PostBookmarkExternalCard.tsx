@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import type {FreebirdXPostCard} from "@/lib/fetch/post";
 import type {PostBookmark} from "@/components/bookmark/types";
+import {FallbackImage} from "@/features/media/components/preview/FallbackImage";
 import {getPostBookmarkCardPreviewItem} from "../../_utils/post-bookmark-preview";
 
 type PostBookmarkExternalCardProps = {
@@ -89,10 +90,11 @@ function ExternalCardImage({card, item, tweetId}: PostBookmarkExternalCardProps)
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <FallbackImage
       src={previewItem.src}
       alt={previewItem.alt}
+      width={previewItem.width}
+      height={previewItem.height}
       className="h-full w-full object-cover"
       loading="lazy"
     />

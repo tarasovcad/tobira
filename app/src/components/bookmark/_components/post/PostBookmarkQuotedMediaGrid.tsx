@@ -3,6 +3,7 @@
 import {cn} from "@/lib/utils";
 import MediaPreview from "@/features/media/components/MediaPreview";
 import {MediaGalleryTilePreview} from "@/features/media/components/MediaGalleryTilePreview";
+import {FallbackImage} from "@/features/media/components/preview/FallbackImage";
 import {formatVideoTime} from "@/features/video-player/utils";
 import {
   type PostBookmarkMediaGalleryEntry,
@@ -132,8 +133,7 @@ function QuotedVideoPlaceholder({item}: {item: PostBookmarkPreviewItem}) {
   return (
     <div className="relative h-full w-full">
       {item.poster ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <FallbackImage
           src={item.poster}
           alt={item.alt}
           width={item.width}

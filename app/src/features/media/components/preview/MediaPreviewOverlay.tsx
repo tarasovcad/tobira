@@ -5,6 +5,7 @@ import type {Pan, Rect} from "./types";
 import {VideoPlayerShell} from "@/features/video-player/components/VideoPlayerShell";
 import type {VideoPlayerSession} from "@/features/video-player/types";
 import {cn} from "@/lib/utils";
+import {FallbackImage} from "./FallbackImage";
 
 type MediaPreviewOverlayProps = {
   overlayRef: RefObject<HTMLDivElement | null>;
@@ -212,13 +213,24 @@ export function MediaPreviewOverlay({
               videoClassName="h-full w-full object-contain"
               showMainPlayIcon
               minimal
+              errorFallback={
+                <div className="bg-muted flex h-full w-full flex-col items-center justify-center gap-3">
+                  {fallback ?? <DefaultFallback />}
+                </div>
+              }
             />
           ) : null
         ) : showFallback ? (
           (fallback ?? <DefaultFallback />)
         ) : (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={fullSizeSrc ?? src} alt={alt} className="h-full w-full object-cover" />
+          <FallbackImage
+            src={fullSizeSrc ?? src}
+            alt={alt}
+            fill
+            sizes="100vw"
+            parentClassName="bg-none!"
+            className="object-cover"
+          />
         )}
       </PreviewSurface>
     </div>

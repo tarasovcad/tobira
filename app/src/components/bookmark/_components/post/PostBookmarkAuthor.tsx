@@ -1,13 +1,14 @@
 "use client";
 
 import type {ReactNode} from "react";
-import Image from "next/image";
+
 import Link from "next/link";
 
 import type {FreebirdXPostResponse} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
 import {formatPostFullDate, formatShortPostDate} from "@/lib/utils/dates";
 import {Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger} from "@/components/ui/coss/tooltip";
+import {FallbackImage} from "@/features/media/components/preview/FallbackImage";
 
 import {BlueVerifiedBadgeIcon, YellowVerifiedBadgeIcon} from "./PostVerificationBadgeIcons";
 
@@ -89,13 +90,14 @@ export function PostBookmarkAuthorAvatar({
             "bg-muted ring-border overflow-hidden rounded-full ring-1",
             sizeClassNames.image,
           )}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <FallbackImage
             src={user.user_profile_image_url}
             alt={user.user_name}
-            width={sizeClassNames.pixelSize}
-            height={sizeClassNames.pixelSize}
+            width={sizeClassNames.pixelSize ?? 24}
+            height={sizeClassNames.pixelSize ?? 24}
             className="h-full w-full object-cover transition-all duration-100 group-hover/avatar:brightness-95"
+            avatar
+            unoptimized
           />
         </div>
       </Link>
@@ -207,11 +209,13 @@ function PostBookmarkAffiliateBadge({user}: {user: PostBookmarkUser}) {
 
   return (
     <div className="h-4 w-4 rounded-[2px] border border-[#CFD9DE]">
-      <Image
+      <FallbackImage
         src={user.affiliates_highlighted_label.badge_url}
         width={16}
         height={16}
         alt={user.affiliates_highlighted_label.description}
+        unoptimized
+        displayFallbackSvg={false}
       />
     </div>
   );

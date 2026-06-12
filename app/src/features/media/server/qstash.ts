@@ -29,7 +29,7 @@ export async function verifyQstashRequest(request: NextRequest, rawBody: string)
 
 export function buildTwitterSizedUrl(
   url: string,
-  size: "small" | "medium" | "large",
+  size: "small" | "medium" | "large" | "orig",
 ): string | null {
   try {
     const u = new URL(url);
@@ -46,7 +46,7 @@ export async function downloadAndUploadToR2(
   r2Key: string,
 ): Promise<string | null> {
   try {
-    const downloadUrl = buildTwitterSizedUrl(sourceUrl, "large") ?? sourceUrl;
+    const downloadUrl = buildTwitterSizedUrl(sourceUrl, "orig") ?? sourceUrl;
     const res = await fetch(downloadUrl, {cache: "no-store"});
     if (!res.ok) return null;
 

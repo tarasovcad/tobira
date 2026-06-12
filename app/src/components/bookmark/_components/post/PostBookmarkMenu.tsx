@@ -2,11 +2,11 @@
 
 import {useMemo, useCallback} from "react";
 import {Controller} from "react-hook-form";
-import Image from "next/image";
 import {SearchIcon} from "lucide-react";
 import {cn} from "@/lib/utils";
 import {formatDateWithTime} from "@/lib/utils/dates";
 import MediaPreview from "@/features/media/components/MediaPreview";
+import {FallbackImage} from "@/features/media/components/preview/FallbackImage";
 import {Sheet, SheetContent, SheetPanel} from "@/components/ui/coss/sheet";
 import {Button} from "@/components/ui/coss/button";
 import {Separator} from "@/components/ui/legacy-shadcn/separator";
@@ -84,12 +84,13 @@ function NoMediaPanelAuthor({meta}: {meta: PostBookmarkMetadata}) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="bg-background ring-border h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1">
-        <Image
+        <FallbackImage
           src={user.user_profile_image_url}
           alt={user.user_name}
           width={32}
           height={32}
           className="h-full w-full object-cover"
+          avatar
           unoptimized
         />
       </div>

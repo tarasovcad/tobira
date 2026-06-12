@@ -10,6 +10,7 @@ import {
   type FreebirdXPost,
 } from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
+import {FallbackImage} from "@/features/media/components/preview/FallbackImage";
 import type {PostBookmarkPreviewItem} from "../../_utils/post-bookmark-preview";
 
 type ArticlePreviewImage = {
@@ -122,8 +123,7 @@ function ArticlePreviewImageBlock({image}: {image: ArticlePreviewImage | null}) 
     <div
       className="bg-muted border-x-border relative w-full overflow-hidden border-b"
       style={{aspectRatio: image.aspectRatio}}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <FallbackImage
         src={image.src}
         alt={image.alt}
         width={image.width}
