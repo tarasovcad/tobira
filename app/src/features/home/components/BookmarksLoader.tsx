@@ -87,7 +87,7 @@ export function BookmarksLoader({
                 currentView === "compact" && "border-b",
                 currentView === "list" && "border-b",
               )}>
-              <Skeleton className="h-[21px] w-9 rounded-[2px]" />
+              <Skeleton className="h-5 w-9 rounded-[2px]" />
             </div>
           )}
 

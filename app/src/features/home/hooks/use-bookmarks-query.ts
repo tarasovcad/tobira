@@ -1,7 +1,7 @@
-import * as React from "react";
 import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
 import {PAGE_SIZE} from "@/features/home/constants";
 import {getTagById} from "@/app/actions/tags";
+import {getBookmarksCount} from "@/app/actions/bookmarks/getBookmarksCount";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {Collection} from "@/app/actions/collections";
 import type {UseBookmarksQueryProps} from "@/features/home/types";
@@ -17,6 +17,7 @@ export function useBookmarksQuery({
   userId,
   initialBookmarks,
   initialActiveTag,
+  initialTotalCount,
   sort,
   tagFilter,
   collectionFilter,
@@ -75,9 +76,26 @@ export function useBookmarksQuery({
       : undefined,
   });
 
-  const allBookmarks = React.useMemo(() => {
+  const allBookmarks = useMemo(() => {
     return bookmarksQuery.data?.pages.flatMap((p) => p.items) ?? [];
   }, [bookmarksQuery.data]);
+
+  const {data: totalCount} = useQuery({
+    queryKey: ["bookmarks", "count", userId, tagFilter, collectionFilter, typeFilter],
+    enabled: !!userId,
+    queryFn: async () => {
+      if (!userId) return 0;
+
+      return await getBookmarksCount({
+        userId,
+        tagFilter,
+        collectionFilter,
+        typeFilter,
+      });
+    },
+    initialData: isServerDataMatching ? initialTotalCount : undefined,
+    placeholderData: (previousCount) => previousCount,
+  });
 
   // We fetch collections separately to show the active collection's metadata (e.g., name)
   const {data: collections} = useQuery({
@@ -104,6 +122,7 @@ export function useBookmarksQuery({
   return {
     bookmarksQuery,
     allBookmarks,
+    totalCount: totalCount ?? initialTotalCount,
     activeCollection,
     activeTag,
     // "Initial load" is true only when we are loading and have no data yet

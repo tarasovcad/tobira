@@ -1,7 +1,6 @@
 "use client";
 
-import {useCallback, useMemo, useRef} from "react";
-import NumberFlow from "@number-flow/react";
+import {useCallback, useMemo, useRef, useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 
 // Components
@@ -13,6 +12,8 @@ import {
   PostBookmarkDetailView,
   type PostDetailErrorCode,
 } from "@/features/home/components/PostBookmarkDetailView";
+
+import {SlotText} from "@/components/ui/slot-text";
 
 // Hooks
 import {useBookmarksSelection} from "@/features/home/hooks/use-bookmarks-selection";
@@ -86,17 +87,24 @@ export function HomeClient({
   const currentView = getCurrentAllItemsView(view, typeFilter);
 
   // Query Hook
-  const {bookmarksQuery, allBookmarks, activeCollection, activeTag, isInitialLoad} =
-    useBookmarksQuery({
-      userId,
-      initialBookmarks,
-      initialActiveTag,
-      sort,
-      tagFilter,
-      collectionFilter,
-      typeFilter,
-      isServerDataMatching,
-    });
+  const {
+    bookmarksQuery,
+    allBookmarks,
+    totalCount: currentTotalCount,
+    activeCollection,
+    activeTag,
+    isInitialLoad,
+  } = useBookmarksQuery({
+    userId,
+    initialBookmarks,
+    initialActiveTag,
+    initialTotalCount: totalCount,
+    sort,
+    tagFilter,
+    collectionFilter,
+    typeFilter,
+    isServerDataMatching,
+  });
   const loadedDetailBookmark = useMemo(() => {
     if (!detailBookmarkId) {
       return null;
@@ -252,9 +260,12 @@ export function HomeClient({
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {activeCollection ? (
-        <CollectionHeader activeCollection={activeCollection} currentTotalCount={totalCount} />
+        <CollectionHeader
+          activeCollection={activeCollection}
+          currentTotalCount={currentTotalCount}
+        />
       ) : tagFilter && activeTag ? (
-        <TagHeader activeTag={activeTag} currentTotalCount={totalCount} />
+        <TagHeader activeTag={activeTag} currentTotalCount={currentTotalCount} />
       ) : null}
 
       {/* Toolbar */}
@@ -274,9 +285,10 @@ export function HomeClient({
             currentView === "compact" && "border-b",
             currentView === "list" && "border-b",
           )}>
-          <NumberFlow value={totalCount} /> items
+          <SlotTextWithFallback text={String(currentTotalCount)} /> items
         </div>
       )}
+
       {/* Scrollable content area */}
       {isPostDetailOpen && detailBookmarkId ? (
         <div className="min-h-0 flex-1">
@@ -340,5 +352,28 @@ export function HomeClient({
         onDelete={handleDeleteSelected}
       />
     </div>
+  );
+}
+
+function SlotTextWithFallback({text}: {text: string}) {
+  const [isReady, setIsReady] = useState(false);
+
+  return (
+    <span className="relative inline-block tabular-nums">
+      <span
+        aria-hidden={isReady}
+        className={cn("inline-block leading-[inherit]", isReady && "invisible")}>
+        {text}
+      </span>
+      <SlotText
+        aria-hidden={!isReady}
+        className={cn(
+          "absolute inset-0 inline-flex leading-[inherit] [&_.char-face]:block [&_.char-face]:text-center [&_.char-face]:leading-[inherit] [&_.char-slot]:leading-[inherit]",
+          !isReady && "invisible",
+        )}
+        onReady={() => setIsReady(true)}
+        text={text}
+      />
+    </span>
   );
 }
