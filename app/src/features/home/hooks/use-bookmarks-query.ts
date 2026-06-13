@@ -1,12 +1,11 @@
 import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
 import {PAGE_SIZE} from "@/features/home/constants";
+import {getCollectionById} from "@/app/actions/collections";
 import {getTagById} from "@/app/actions/tags";
 import {getBookmarksCount} from "@/app/actions/bookmarks/getBookmarksCount";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {Collection} from "@/app/actions/collections";
-import type {UseBookmarksQueryProps} from "@/features/home/types";
+import {getBookmarkWorkspaceFilters, type UseBookmarksQueryProps} from "@/features/home/types";
 import {useMemo} from "react";
-import {collectionsQueryOptions} from "@/features/home/hooks/use-home-metadata-query";
 import fetchBookmarksPageAction from "@/features/home/queries/fetchBookmarksPageAction";
 
 /**
@@ -16,23 +15,25 @@ import fetchBookmarksPageAction from "@/features/home/queries/fetchBookmarksPage
 export function useBookmarksQuery({
   userId,
   initialBookmarks,
+  initialActiveCollection,
   initialActiveTag,
   initialTotalCount,
+  scope,
   sort,
-  tagFilter,
-  collectionFilter,
   typeFilter,
   isServerDataMatching = true,
 }: UseBookmarksQueryProps) {
+  const {tagFilter, collectionFilter} = getBookmarkWorkspaceFilters(scope);
+
   const bookmarksQuery = useInfiniteQuery({
     queryKey: [
       "bookmarks",
       "all-items",
       userId,
       PAGE_SIZE,
+      scope.kind,
+      scope.kind === "all" ? null : scope.id,
       sort,
-      tagFilter,
-      collectionFilter,
       typeFilter,
     ],
     enabled: !!userId,
@@ -81,7 +82,14 @@ export function useBookmarksQuery({
   }, [bookmarksQuery.data]);
 
   const {data: totalCount} = useQuery({
-    queryKey: ["bookmarks", "count", userId, tagFilter, collectionFilter, typeFilter],
+    queryKey: [
+      "bookmarks",
+      "count",
+      userId,
+      scope.kind,
+      scope.kind === "all" ? null : scope.id,
+      typeFilter,
+    ],
     enabled: !!userId,
     queryFn: async () => {
       if (!userId) return 0;
@@ -97,27 +105,28 @@ export function useBookmarksQuery({
     placeholderData: (previousCount) => previousCount,
   });
 
-  // We fetch collections separately to show the active collection's metadata (e.g., name)
-  const {data: collections} = useQuery({
-    ...collectionsQueryOptions(userId),
+  const {data: activeCollectionData} = useQuery({
+    queryKey: ["active-collection", userId, scope.kind === "collection" ? scope.id : null],
+    enabled: !!userId && scope.kind === "collection",
+    queryFn: async () => {
+      if (scope.kind !== "collection") return null;
+      return await getCollectionById(scope.id);
+    },
+    initialData: isServerDataMatching ? initialActiveCollection : undefined,
   });
 
   const {data: activeTagData} = useQuery({
-    queryKey: ["active-tag", userId, tagFilter],
-    enabled: !!userId && !!tagFilter,
+    queryKey: ["active-tag", userId, scope.kind === "tag" ? scope.id : null],
+    enabled: !!userId && scope.kind === "tag",
     queryFn: async () => {
-      if (!tagFilter) return null;
-      return await getTagById(tagFilter);
+      if (scope.kind !== "tag") return null;
+      return await getTagById(scope.id);
     },
     initialData: isServerDataMatching ? initialActiveTag : undefined,
   });
 
-  const activeCollection = useMemo(() => {
-    if (!collectionFilter || !collections) return null;
-    return (collections as Collection[]).find((c) => c.id === collectionFilter) ?? null;
-  }, [collectionFilter, collections]);
-
-  const activeTag = tagFilter ? (activeTagData ?? null) : null;
+  const activeCollection = scope.kind === "collection" ? (activeCollectionData ?? null) : null;
+  const activeTag = scope.kind === "tag" ? (activeTagData ?? null) : null;
 
   return {
     bookmarksQuery,

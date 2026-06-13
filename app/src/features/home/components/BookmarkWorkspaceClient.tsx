@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useMemo, useRef, useState} from "react";
+import {useCallback, useMemo, useRef} from "react";
 import {useQuery} from "@tanstack/react-query";
 
 // Components
@@ -13,7 +13,7 @@ import {
   type PostDetailErrorCode,
 } from "@/features/home/components/PostBookmarkDetailView";
 
-import {SlotText} from "@/components/ui/slot-text";
+import {SlotTextWithFallback} from "@/components/ui/SlotTextWithFallback";
 
 // Hooks
 import {useBookmarksSelection} from "@/features/home/hooks/use-bookmarks-selection";
@@ -32,36 +32,53 @@ import {TagNotFoundState} from "@/features/home/components/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark, PostBookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
-import type {TypeFilter, SortMode, TagWithCount} from "@/features/home/types";
+import {
+  areBookmarkWorkspaceScopesEqual,
+  type BookmarkWorkspaceScope,
+  type SortMode,
+  type TagWithCount,
+  type TypeFilter,
+} from "@/features/home/types";
 import {AllItemsList} from "@/features/all-items/components/AllItemsList";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {getCurrentAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
 import {getPostBookmarkById} from "@/app/actions/bookmarks/getPostBookmarkById";
+import type {Collection} from "@/app/actions/collections";
 
 /**
- * Main client component for the All Items / Home page.
+ * Main client component for bookmark workspace pages.
  * Orchestrates fetching, filtering, selection, and mutations for bookmarks.
  */
-export function HomeClient({
+export function BookmarkWorkspaceClient({
   userId,
   initialBookmarks,
+  initialActiveCollection,
   initialActiveTag,
   totalCount,
+  scope,
   serverFilters,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
+  initialActiveCollection: Collection | null;
   initialActiveTag: TagWithCount | null;
   totalCount: number;
+  scope: BookmarkWorkspaceScope;
   serverFilters?: {
-    tagFilter: string | null;
-    collectionFilter: string | null;
+    scope: BookmarkWorkspaceScope;
     typeFilter: TypeFilter;
     sortFilter: SortMode;
   };
 }) {
-  const {tagFilter, collectionFilter, typeFilter, sort, handleTypeChange, handleSortChange} =
-    useHomeFilters();
+  const {
+    tagFilter,
+    collectionFilter,
+    scope: currentScope,
+    typeFilter,
+    sort,
+    handleTypeChange,
+    handleSortChange,
+  } = useHomeFilters();
   const {detailBookmarkId, isPostDetailOpen, openPostDetail, closePostDetail} = usePostDetailUrl();
   const handleOpenPostDetail = useCallback(
     (item: Bookmark) => {
@@ -75,11 +92,10 @@ export function HomeClient({
   );
 
   const isServerDataMatching = serverFilters
-    ? serverFilters.tagFilter === tagFilter &&
-      serverFilters.collectionFilter === collectionFilter &&
+    ? areBookmarkWorkspaceScopesEqual(serverFilters.scope, currentScope) &&
       serverFilters.typeFilter === typeFilter &&
       serverFilters.sortFilter === sort
-    : false;
+    : areBookmarkWorkspaceScopesEqual(scope, currentScope);
 
   // View & filter state
   const view = useViewOptionsStore((state) => state.view);
@@ -97,11 +113,11 @@ export function HomeClient({
   } = useBookmarksQuery({
     userId,
     initialBookmarks,
+    initialActiveCollection,
     initialActiveTag,
     initialTotalCount: totalCount,
+    scope: currentScope,
     sort,
-    tagFilter,
-    collectionFilter,
     typeFilter,
     isServerDataMatching,
   });
@@ -260,24 +276,26 @@ export function HomeClient({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      {activeCollection ? (
+      {activeCollection && !isPostDetailOpen ? (
         <CollectionHeader
           activeCollection={activeCollection}
           currentTotalCount={currentTotalCount}
         />
-      ) : tagFilter && activeTag ? (
+      ) : tagFilter && activeTag && !isPostDetailOpen ? (
         <TagHeader activeTag={activeTag} currentTotalCount={currentTotalCount} />
       ) : null}
 
-      {/* Toolbar */}
-      <HomeToolbar
-        typeFilter={typeFilter}
-        onTypeChange={handleTypeChange}
-        sort={sort}
-        onSortChange={handleSortChange}
-        selectionMode={selectionMode}
-        onSelectionEnabledChange={setSelectionEnabled}
-      />
+      {!isPostDetailOpen && (
+        <HomeToolbar
+          typeFilter={typeFilter}
+          onTypeChange={handleTypeChange}
+          sort={sort}
+          onSortChange={handleSortChange}
+          selectionMode={selectionMode}
+          onSelectionEnabledChange={setSelectionEnabled}
+        />
+      )}
+
       {/* Item count */}
       {!isPostDetailOpen && !activeCollection && !tagFilter && userId && (
         <div
@@ -354,28 +372,5 @@ export function HomeClient({
         onDelete={handleDeleteSelected}
       />
     </div>
-  );
-}
-
-function SlotTextWithFallback({text}: {text: string}) {
-  const [isReady, setIsReady] = useState(false);
-
-  return (
-    <span className="relative inline-block tabular-nums">
-      <span
-        aria-hidden={isReady}
-        className={cn("inline-block leading-[inherit]", isReady && "invisible")}>
-        {text}
-      </span>
-      <SlotText
-        aria-hidden={!isReady}
-        className={cn(
-          "absolute inset-0 inline-flex leading-[inherit] [&_.char-face]:block [&_.char-face]:text-center [&_.char-face]:leading-[inherit] [&_.char-slot]:leading-[inherit]",
-          !isReady && "invisible",
-        )}
-        onReady={() => setIsReady(true)}
-        text={text}
-      />
-    </span>
   );
 }

@@ -48,6 +48,29 @@ export async function getCollections(userId?: string): Promise<Collection[]> {
   return data.map(mapCollection);
 }
 
+export async function getCollectionById(
+  collectionId: string,
+  userId?: string,
+): Promise<Collection | null> {
+  const currentUserId = await getCurrentUserId();
+
+  if (!collectionId || !currentUserId) {
+    return null;
+  }
+
+  if (userId && userId !== currentUserId) {
+    throw new UnauthorizedError();
+  }
+
+  const [collection] = await db
+    .select()
+    .from(collections)
+    .where(and(eq(collections.id, collectionId), eq(collections.userId, currentUserId)))
+    .limit(1);
+
+  return collection ? mapCollection(collection) : null;
+}
+
 export async function createCollection(data: {
   name: string;
   description?: string;

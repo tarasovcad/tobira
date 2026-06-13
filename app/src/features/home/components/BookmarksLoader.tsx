@@ -15,6 +15,7 @@ import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-i
 import {PostBookmarkDetailViewSkeleton} from "@/features/home/components/PostBookmarkDetailViewSkeleton";
 import {useIsPostDetailOpen} from "@/lib/hooks/use-is-post-detail-open";
 import {cn} from "@/lib/utils";
+import {HeaderSkeleton} from "./HeaderSkeleton";
 
 const SKELETON_ROWS = 8;
 
@@ -22,10 +23,14 @@ export function BookmarksLoader({
   showCount = true,
   typeFilter,
   sort,
+  tagFilter,
+  collectionFilter,
 }: {
   showCount?: boolean;
   typeFilter: TypeFilter;
   sort: SortMode;
+  tagFilter?: string | null;
+  collectionFilter?: string | null;
 }) {
   const view = useViewOptionsStore((state) => state.view);
   const gridGap = useViewOptionsStore((state) => state.gridGap);
@@ -67,14 +72,17 @@ export function BookmarksLoader({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <HomeToolbar
-        typeFilter={typeFilter}
-        onTypeChange={() => {}}
-        sort={sort}
-        onSortChange={() => {}}
-        selectionMode={false}
-        onSelectionEnabledChange={() => {}}
-      />
+      {(tagFilter || collectionFilter) && !isPostDetailOpen && <HeaderSkeleton />}
+      {!isPostDetailOpen && (
+        <HomeToolbar
+          typeFilter={typeFilter}
+          onTypeChange={() => {}}
+          sort={sort}
+          onSortChange={() => {}}
+          selectionMode={false}
+          onSelectionEnabledChange={() => {}}
+        />
+      )}
 
       {isPostDetailOpen ? (
         <PostBookmarkDetailViewSkeleton className="min-h-0 flex-1" />

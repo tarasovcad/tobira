@@ -101,6 +101,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     onSuccess: () => {
       setSubmitSuccess("save");
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
+      queryClient.invalidateQueries({queryKey: ["active-collection"]});
       toastManager.add({title: "Collection updated", type: "success"});
       onOpenChange(false);
       window.setTimeout(() => setSubmitSuccess(null), SUCCESS_LABEL_RESET_MS);

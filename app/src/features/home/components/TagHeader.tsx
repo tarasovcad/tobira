@@ -1,7 +1,7 @@
 "use client";
 
-import NumberFlow from "@number-flow/react";
 import {Button} from "@/components/ui/coss/button";
+import {SlotTextWithFallback} from "@/components/ui/SlotTextWithFallback";
 import type {TagWithCount} from "@/features/home/types";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
@@ -32,7 +32,7 @@ export function TagHeader({activeTag, currentTotalCount}: TagHeaderProps) {
           )}
           <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <span>
-              Items: <NumberFlow value={currentTotalCount} />
+              Items: <SlotTextWithFallback text={String(currentTotalCount)} />
             </span>
 
             <span>

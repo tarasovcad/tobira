@@ -1,7 +1,7 @@
 "use client";
 
-import NumberFlow from "@number-flow/react";
 import {Button} from "@/components/ui/coss/button";
+import {SlotTextWithFallback} from "@/components/ui/SlotTextWithFallback";
 import type {Collection} from "@/app/actions/collections";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
@@ -25,7 +25,7 @@ export function CollectionHeader({activeCollection, currentTotalCount}: Collecti
           )}
           <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <span>
-              Items: <NumberFlow value={currentTotalCount} />
+              Items: <SlotTextWithFallback text={String(currentTotalCount)} />
             </span>
 
             <span>

@@ -45,6 +45,7 @@ export function DeleteCollectionDialog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
+      queryClient.invalidateQueries({queryKey: ["active-collection"]});
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
     },
     onError: (error) => {

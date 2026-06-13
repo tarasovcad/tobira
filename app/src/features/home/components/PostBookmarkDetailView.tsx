@@ -51,10 +51,10 @@ export function PostBookmarkDetailView({
   );
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col overflow-y-auto">
       <PostBookmarkDetailHeader onBack={onBack} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1">
         <div className={getAllItemsBookmarkWidthClass(bookmarkWidth)}>
           {item ? (
             <PostBookmarkDetailLoadedContent

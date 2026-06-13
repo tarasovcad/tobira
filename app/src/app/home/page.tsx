@@ -2,11 +2,16 @@ import {Suspense} from "react";
 import AppShell from "@/components/app-shell/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
-import type {SearchParams, SortMode, TypeFilter} from "@/features/home/types";
-import {BookmarksDataWrapper} from "@/features/home/components/BookmarksDataWrapper";
+import {
+  getBookmarkWorkspaceScope,
+  type SearchParams,
+  type SortMode,
+  type TypeFilter,
+} from "@/features/home/types";
+import {BookmarkWorkspaceDataWrapper} from "@/features/home/components/BookmarkWorkspaceDataWrapper";
 import {BookmarksLoader} from "@/features/home/components/BookmarksLoader";
 import {SidebarSkeleton} from "@/components/app-shell/sidebar/SidebarSkeleton";
-import {HomeClient} from "@/features/home/components/HomeClient";
+import {BookmarkWorkspaceClient} from "@/features/home/components/BookmarkWorkspaceClient";
 import {SidebarDataWrapper} from "@/components/app-shell/sidebar/SidebarDataWrapper";
 
 const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
@@ -19,7 +24,14 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   if (!session?.user?.id) {
     return (
       <AppShell session={session}>
-        <HomeClient userId={null} initialBookmarks={[]} initialActiveTag={null} totalCount={0} />
+        <BookmarkWorkspaceClient
+          userId={null}
+          initialBookmarks={[]}
+          initialActiveCollection={null}
+          initialActiveTag={null}
+          totalCount={0}
+          scope={{kind: "all"}}
+        />
       </AppShell>
     );
   }
@@ -27,14 +39,14 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const userId = session.user.id;
   const tagFilter = searchParams?.tag?.trim() || null;
   const collectionFilter = searchParams?.collection ?? null;
+  const scope = getBookmarkWorkspaceScope({tagFilter, collectionFilter});
   const typeFilter = (
     searchParams?.type === "media" ? "media" : searchParams?.type === "post" ? "post" : "website"
   ) as TypeFilter;
   const sortFilter = resolveSortFilter(searchParams?.sort);
 
   const filterParams = {
-    tagFilter,
-    collectionFilter,
+    scope,
     typeFilter,
     sortFilter,
   };
@@ -54,9 +66,11 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
             showCount={!collectionFilter && !tagFilter}
             typeFilter={typeFilter}
             sort={sortFilter}
+            tagFilter={tagFilter}
+            collectionFilter={collectionFilter}
           />
         }>
-        <BookmarksDataWrapper userId={userId} params={filterParams} />
+        <BookmarkWorkspaceDataWrapper userId={userId} params={filterParams} />
       </Suspense>
     </AppShell>
   );
