@@ -80,7 +80,6 @@ export function BookmarksLoader({
           sort={sort}
           onSortChange={() => {}}
           selectionMode={false}
-          onSelectionEnabledChange={() => {}}
         />
       )}
 
