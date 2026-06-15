@@ -1,26 +1,40 @@
 "use client";
 
-import {useMemo, useState, type ReactNode} from "react";
+import {useEffect, useMemo, useState, type ReactNode} from "react";
+import {useRouter} from "next/navigation";
+import {useQueryClient} from "@tanstack/react-query";
+import {useQueryState} from "nuqs";
 import {PageHeader} from "@/components/ui/app/page/PageHeader";
 import {SelectionModeButton} from "@/components/bookmark/SelectionModeButton";
+import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
+import {SlotTextWithFallback} from "@/components/ui/SlotTextWithFallback";
 import {Button} from "@/components/ui/coss/button";
+import {Checkbox} from "@/components/ui/coss/checkbox";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/ui/coss/menu";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/legacy-shadcn/context-menu";
+import {toggleCollectionPin, type Collection} from "@/app/actions/collections";
+import {toastManager} from "@/components/ui/coss/toast";
+import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
+import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useFloatingHoverTooltip} from "@/lib/hooks/use-floating-hover-tooltip";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
+import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
+import type {CollectionColor} from "@/db/schema";
+import {collectionSearchParser, serializeHomeParams} from "@/lib/query-params";
+import {cn} from "@/lib/utils";
 
 export type CollectionPageData = {
   collections: CollectionPageItem[];
   stats: {
     collectionCount: number;
     savedItemCount: number;
-    uncategorizedItemCount: number;
     updatedThisWeekCount: number;
   };
 };
@@ -29,11 +43,19 @@ export type CollectionPageItem = {
   id: string;
   name: string;
   description: string | null;
-  color: string | null;
+  color: CollectionColor | null;
   isPinned: boolean;
   createdAt: string;
   updatedAt: string | null;
   itemCount: number;
+};
+
+const selectionModeCheckboxClass =
+  "group-data-[selection-mode=true]/collection-row:grid-cols-[1fr] group-data-[selection-mode=true]/collection-row:opacity-100";
+
+type CollectionStat = {
+  label: string;
+  value: string;
 };
 
 type CollectionPageProps = {
@@ -58,11 +80,99 @@ function collectionMatchesQuery(collection: CollectionPageItem, rawQuery: string
   ].some((value) => value.toLowerCase().includes(query));
 }
 
+function toDialogCollection(collection: CollectionPageItem): Collection {
+  return {
+    id: collection.id,
+    name: collection.name,
+    description: collection.description,
+    color: collection.color,
+    is_pinned: collection.isPinned,
+    created_at: collection.createdAt,
+  };
+}
+
+function sortCollectionPageItems(collections: CollectionPageItem[]) {
+  return [...collections].sort((a, b) => {
+    if (a.isPinned !== b.isPinned) {
+      return a.isPinned ? -1 : 1;
+    }
+
+    const createdAtDiff = (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
+    if (createdAtDiff !== 0) return createdAtDiff;
+
+    return b.id.localeCompare(a.id);
+  });
+}
+
+function sortSidebarCollections(collections: Collection[]) {
+  return [...collections].sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) {
+      return a.is_pinned ? -1 : 1;
+    }
+
+    const createdAtDiff = (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0);
+    if (createdAtDiff !== 0) return createdAtDiff;
+
+    return b.id.localeCompare(a.id);
+  });
+}
+
+function isInteractiveChild(target: EventTarget | null) {
+  return target instanceof HTMLElement && !!target.closest("a, button, input, select, textarea");
+}
+
+function getStatsAfterCollectionsDeleted(
+  stats: CollectionPageData["stats"],
+  deletedCollections: CollectionPageItem[],
+): CollectionPageData["stats"] {
+  const deletedItemCount = deletedCollections.reduce(
+    (sum, collection) => sum + collection.itemCount,
+    0,
+  );
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const deletedUpdatedThisWeekCount = deletedCollections.filter(
+    (collection) => collection.updatedAt && Date.now() - Date.parse(collection.updatedAt) <= weekMs,
+  ).length;
+
+  return {
+    collectionCount: Math.max(0, stats.collectionCount - deletedCollections.length),
+    savedItemCount: Math.max(0, stats.savedItemCount - deletedItemCount),
+    updatedThisWeekCount: Math.max(0, stats.updatedThisWeekCount - deletedUpdatedThisWeekCount),
+  };
+}
+
+function getCollectionStats(stats: CollectionPageData["stats"]): CollectionStat[] {
+  return [
+    {label: "Collections", value: String(stats.collectionCount)},
+    {label: "Saved items", value: String(stats.savedItemCount)},
+    {label: "Updated this week", value: String(stats.updatedThisWeekCount)},
+  ];
+}
+
 export default function CollectionPage({data}: CollectionPageProps) {
+  const collectionsKey = data.collections
+    .map(
+      (collection) =>
+        `${collection.id}:${collection.name}:${collection.description ?? ""}:${collection.color?.hex ?? ""}:${collection.color?.opacity ?? ""}:${collection.isPinned}:${collection.createdAt}:${collection.updatedAt ?? ""}:${collection.itemCount}`,
+    )
+    .join("|");
+  const statsKey = `${data.stats.collectionCount}:${data.stats.savedItemCount}:${data.stats.updatedThisWeekCount}`;
+
+  return <CollectionPageContent key={`${collectionsKey}:${statsKey}`} data={data} />;
+}
+
+function CollectionPageContent({data}: CollectionPageProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const {getTriggerProps, tooltipRef, tooltipStyle, visible} = useFloatingHoverTooltip();
   const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
-  const {collections, stats: collectionStats} = data;
-  const [searchQuery, setSearchQuery] = useState("");
+  const openDeleteCollectionDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
+  const {copyText} = useClipboardCopy(2000, {toast: true});
+  const [collectionStats, setCollectionStats] = useState(data.stats);
+  const [collections, setCollections] = useState(data.collections);
+  const [searchQuery, setSearchQuery] = useQueryState("search", collectionSearchParser);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<Set<string>>(new Set());
   const trimmedSearchQuery = searchQuery.trim();
   const filteredCollections = useMemo(
     () => collections.filter((collection) => collectionMatchesQuery(collection, searchQuery)),
@@ -71,12 +181,161 @@ export default function CollectionPage({data}: CollectionPageProps) {
   const collectionCountLabel = trimmedSearchQuery
     ? `${filteredCollections.length} of ${collections.length}`
     : String(collections.length);
-  const stats = [
-    {label: "Collections", value: String(collectionStats.collectionCount)},
-    {label: "Saved items", value: String(collectionStats.savedItemCount)},
-    {label: "Uncategorized items", value: String(collectionStats.uncategorizedItemCount)},
-    {label: "Updated this week", value: String(collectionStats.updatedThisWeekCount)},
-  ];
+  const selectedCollectionCount = selectedCollectionIds.size;
+  const allFilteredCollectionsSelected = filteredCollections.length
+    ? filteredCollections.every((collection) => selectedCollectionIds.has(collection.id))
+    : false;
+  const stats = getCollectionStats(collectionStats);
+
+  const handleSelectionModeChange = (enabled: boolean) => {
+    setSelectionMode(enabled);
+    if (!enabled) {
+      setSelectedCollectionIds(new Set());
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedCollectionIds(new Set());
+    setSelectionMode(false);
+  };
+
+  const handleSelectAllCollections = () => {
+    setSelectedCollectionIds((prev) => {
+      const next = new Set(prev);
+
+      if (allFilteredCollectionsSelected) {
+        filteredCollections.forEach((collection) => next.delete(collection.id));
+      } else {
+        filteredCollections.forEach((collection) => next.add(collection.id));
+      }
+
+      return next;
+    });
+  };
+
+  const handleToggleCollectionSelection = (collectionId: string) => {
+    setSelectedCollectionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(collectionId)) {
+        next.delete(collectionId);
+      } else {
+        next.add(collectionId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectCollection = (collectionId: string, checked: boolean) => {
+    setSelectedCollectionIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(collectionId);
+      else next.delete(collectionId);
+      return next;
+    });
+  };
+
+  const handleDeleteSelectedCollections = () => {
+    const selectedCollections = collections.filter((collection) =>
+      selectedCollectionIds.has(collection.id),
+    );
+    const selectedIds = new Set(selectedCollectionIds);
+
+    if (selectedCollections.length === 0) return;
+
+    openDeleteCollectionDialog(selectedCollections, () => {
+      setCollections((prev) => prev.filter((collection) => !selectedIds.has(collection.id)));
+      setCollectionStats((prev) => getStatsAfterCollectionsDeleted(prev, selectedCollections));
+      handleClearSelection();
+      router.refresh();
+    });
+  };
+
+  const handleOpenCollection = (collection: CollectionPageItem) => {
+    router.push(serializeHomeParams("/home", {collection: collection.id}));
+  };
+
+  const handleEditCollection = (collection: CollectionPageItem) => {
+    openCollectionDialog(toDialogCollection(collection));
+  };
+
+  const handleCopyCollection = (collection: CollectionPageItem) => {
+    void copyText(collection.name, collection.id);
+  };
+
+  const handleToggleCollectionPin = async (collection: CollectionPageItem) => {
+    const previousCollections = collections;
+    const previousCollectionQueries = queryClient.getQueriesData<Collection[]>({
+      queryKey: homeMetadataKeys.collectionsRoot,
+    });
+    const isPinned = !collection.isPinned;
+
+    setCollections((prev) =>
+      sortCollectionPageItems(
+        prev.map((item) => (item.id === collection.id ? {...item, isPinned} : item)),
+      ),
+    );
+    queryClient.setQueriesData<Collection[]>(
+      {queryKey: homeMetadataKeys.collectionsRoot},
+      (prev) =>
+        prev
+          ? sortSidebarCollections(
+              prev.map((item) =>
+                item.id === collection.id ? {...item, is_pinned: isPinned} : item,
+              ),
+            )
+          : prev,
+    );
+
+    try {
+      await toggleCollectionPin(collection.id, isPinned);
+      void queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
+      router.refresh();
+      toastManager.add({
+        title: collection.isPinned ? "Collection unpinned" : "Collection pinned",
+        type: "success",
+      });
+    } catch (error) {
+      setCollections(previousCollections);
+      previousCollectionQueries.forEach(([queryKey, queryData]) => {
+        queryClient.setQueryData(queryKey, queryData);
+      });
+      toastManager.add({
+        title: "Action failed",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        type: "error",
+      });
+    }
+  };
+
+  const handleDeleteCollection = (collection: CollectionPageItem) => {
+    openDeleteCollectionDialog([collection], () => {
+      setCollections((prev) => prev.filter((item) => item.id !== collection.id));
+      setCollectionStats((prev) => getStatsAfterCollectionsDeleted(prev, [collection]));
+      setSelectedCollectionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(collection.id);
+        return next;
+      });
+      router.refresh();
+    });
+  };
+
+  useEffect(() => {
+    if (!selectionMode) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      const isInput =
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+
+      if (isInput || event.key !== "Escape") return;
+
+      handleClearSelection();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectionMode]);
 
   return (
     <div className="flex h-full w-full overflow-auto">
@@ -248,93 +507,178 @@ export default function CollectionPage({data}: CollectionPageProps) {
               </div>
             </div>
 
-            <div className="border-border mt-4 flex flex-wrap items-center gap-5.5 border-t pt-4">
-              {stats.map((stat, index) => (
-                <div key={stat.label} className="contents">
-                  {index > 0 && <div className="bg-border h-7 w-px" aria-hidden />}
-                  <Stat label={stat.label} value={stat.value} />
-                </div>
-              ))}
-            </div>
+            <CollectionStats stats={stats} />
           </div>
 
           <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4">
-              <h4 className="text-base font-[550]">
-                <span className="text-foreground/95 inline-flex items-center">
-                  Your collections
-                  <span className="text-muted-foreground/90 ml-1 font-medium tracking-wide">
-                    ({collectionCountLabel})
-                  </span>
-                </span>
-              </h4>
+            <CollectionSectionHeader
+              collectionCountLabel={collectionCountLabel}
+              searchQuery={searchQuery}
+              selectionMode={selectionMode}
+              onSearchQueryChange={(value) => void setSearchQuery(value)}
+              onSelectionModeChange={handleSelectionModeChange}
+            />
 
-              <div className="flex items-center gap-2">
-                <InputGroup className="w-full max-w-[320px]">
-                  <InputGroupInput
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    aria-label="Search collections"
-                    placeholder="Search collections"
-                    type="search"
-                    autoComplete="off"
-                  />
-                  <InputGroupAddon>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M13.3333 13.3333L10.751 10.751M10.751 10.751C11.6257 9.87633 12.1667 8.668 12.1667 7.33333C12.1667 4.66396 10.0027 2.5 7.33333 2.5C4.66396 2.5 2.5 4.66396 2.5 7.33333C2.5 10.0027 4.66396 12.1667 7.33333 12.1667C8.668 12.1667 9.87633 11.6257 10.751 10.751Z"
-                        stroke="currentColor"
-                        strokeWidth="1"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </InputGroupAddon>
-                </InputGroup>
-                <SelectionModeButton selectionMode={false} />
-                <Button variant="outline" size="default">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M4.55229 2C3.1427 2 2 3.1427 2 4.55229C2 5.22919 2.2689 5.87837 2.74755 6.35702L5.60947 9.21893C5.85953 9.469 6 9.80813 6 10.1617V13.3713C6 14.3023 6.9298 14.9467 7.80147 14.6198L9.1348 14.1198C9.65527 13.9246 10 13.4271 10 12.8713V10.1617C10 9.80813 10.1405 9.469 10.3905 9.21893L13.2525 6.35702C13.7311 5.87837 14 5.22919 14 4.55229C14 3.1427 12.8573 2 11.4477 2H4.55229Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  Filter
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-0.5">
-              {filteredCollections.length > 0 ? (
-                filteredCollections.map((collection) => (
-                  <CollectionRow key={collection.id} collection={collection} />
-                ))
-              ) : trimmedSearchQuery ? (
-                <CollectionSearchEmptyState query={trimmedSearchQuery} />
-              ) : (
-                <div className="border-border/80 text-muted-foreground border-y px-4 py-10 text-sm">
-                  No collections yet. Add one to start organizing your bookmarks.
-                </div>
-              )}
-            </div>
+            <CollectionList
+              collections={filteredCollections}
+              hasSearchQuery={!!trimmedSearchQuery}
+              selectionMode={selectionMode}
+              selectedCollectionIds={selectedCollectionIds}
+              onOpenCollection={handleOpenCollection}
+              onEditCollection={handleEditCollection}
+              onCopyCollection={handleCopyCollection}
+              onToggleCollectionPin={(collection) => void handleToggleCollectionPin(collection)}
+              onDeleteCollection={handleDeleteCollection}
+              onSelectCollection={handleSelectCollection}
+              onToggleCollectionSelection={handleToggleCollectionSelection}
+            />
           </section>
         </div>
+      </div>
+
+      <SelectionActionBar
+        visible={selectionMode && selectedCollectionCount > 0}
+        selectedCount={selectedCollectionCount}
+        allSelected={allFilteredCollectionsSelected}
+        onClearSelection={handleClearSelection}
+        onSelectAll={handleSelectAllCollections}
+        onDelete={handleDeleteSelectedCollections}
+        displayArchive={false}
+        displayFavorite={false}
+        displayCopy={false}
+      />
+    </div>
+  );
+}
+
+function CollectionStats({stats}: {stats: CollectionStat[]}) {
+  return (
+    <div className="border-border mt-4 flex flex-wrap items-center gap-5.5 border-t pt-4">
+      {stats.map((stat, index) => (
+        <div key={stat.label} className="contents">
+          {index > 0 && <div className="bg-border h-7 w-px" aria-hidden />}
+          <Stat label={stat.label} value={stat.value} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CollectionSectionHeader({
+  collectionCountLabel,
+  searchQuery,
+  selectionMode,
+  onSearchQueryChange,
+  onSelectionModeChange,
+}: {
+  collectionCountLabel: string;
+  searchQuery: string;
+  selectionMode: boolean;
+  onSearchQueryChange: (value: string) => void;
+  onSelectionModeChange: (enabled: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 px-4">
+      <h4 className="text-base font-[550]">
+        <span className="text-foreground/95 inline-flex items-center">
+          Your collections
+          <span className="text-muted-foreground/90 ml-1 font-medium tracking-wide">
+            ({collectionCountLabel})
+          </span>
+        </span>
+      </h4>
+
+      <div className="flex items-center gap-2">
+        <InputGroup className="w-full max-w-[320px]">
+          <InputGroupInput
+            value={searchQuery}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+            aria-label="Search collections"
+            placeholder="Search collections"
+            type="search"
+            autoComplete="off"
+          />
+          <InputGroupAddon>
+            <SearchIcon />
+          </InputGroupAddon>
+        </InputGroup>
+        <SelectionModeButton
+          selectionMode={selectionMode}
+          onSelectionEnabledChange={onSelectionModeChange}
+        />
+        <Button variant="outline" size="default" disabled>
+          <FilterIcon />
+          Filter
+        </Button>
       </div>
     </div>
   );
 }
 
-function CollectionSearchEmptyState({query}: {query: string}) {
+function CollectionList({
+  collections,
+  hasSearchQuery,
+  selectionMode,
+  selectedCollectionIds,
+  onOpenCollection,
+  onEditCollection,
+  onCopyCollection,
+  onToggleCollectionPin,
+  onDeleteCollection,
+  onSelectCollection,
+  onToggleCollectionSelection,
+}: {
+  collections: CollectionPageItem[];
+  hasSearchQuery: boolean;
+  selectionMode: boolean;
+  selectedCollectionIds: Set<string>;
+  onOpenCollection: (collection: CollectionPageItem) => void;
+  onEditCollection: (collection: CollectionPageItem) => void;
+  onCopyCollection: (collection: CollectionPageItem) => void;
+  onToggleCollectionPin: (collection: CollectionPageItem) => void;
+  onDeleteCollection: (collection: CollectionPageItem) => void;
+  onSelectCollection: (collectionId: string, checked: boolean) => void;
+  onToggleCollectionSelection: (collectionId: string) => void;
+}) {
+  if (collections.length === 0) {
+    return (
+      <div className="pt-0.5">
+        {hasSearchQuery ? <CollectionSearchEmptyState /> : <CollectionEmptyState />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-0.5">
+      {collections.map((collection, index) => (
+        <CollectionRow
+          key={collection.id}
+          collection={collection}
+          selectionIndex={index}
+          selectionMode={selectionMode}
+          isSelected={selectedCollectionIds.has(collection.id)}
+          onOpen={() => onOpenCollection(collection)}
+          onEdit={() => onEditCollection(collection)}
+          onCopy={() => onCopyCollection(collection)}
+          onTogglePin={() => onToggleCollectionPin(collection)}
+          onDelete={() => onDeleteCollection(collection)}
+          onToggleSelection={() => onToggleCollectionSelection(collection.id)}
+          onSelect={(checked) => onSelectCollection(collection.id, checked)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CollectionEmptyState() {
+  return (
+    <div className="border-border/80 text-muted-foreground border-y px-4 py-10 text-sm">
+      No collections yet. Add one to start organizing your bookmarks.
+    </div>
+  );
+}
+
+function CollectionSearchEmptyState() {
   return (
     <div className="px-4 py-18">
       <div className="mx-auto flex max-w-[240px] flex-col items-center text-center">
@@ -366,25 +710,101 @@ function CollectionNotFoundIcon() {
   );
 }
 
-function CollectionRow({collection}: {collection: CollectionPageItem}) {
+function CollectionRow({
+  collection,
+  selectionIndex,
+  selectionMode,
+  isSelected,
+  onOpen,
+  onEdit,
+  onCopy,
+  onTogglePin,
+  onDelete,
+  onSelect,
+  onToggleSelection,
+}: {
+  collection: CollectionPageItem;
+  selectionIndex: number;
+  selectionMode: boolean;
+  isSelected: boolean;
+  onOpen: () => void;
+  onEdit: () => void;
+  onCopy: () => void;
+  onTogglePin: () => void;
+  onDelete: () => void;
+  onSelect: (checked: boolean) => void;
+  onToggleSelection: () => void;
+}) {
   const pinLabel = collection.isPinned ? "Unpin" : "Pin";
-  const slug = createCollectionSlug(collection.name);
+  const collectionColor = collection.color?.hex ?? "#38bdf8";
+  const collectionColorOpacity = (collection.color?.opacity ?? 100) / 100;
+  const selectionDelay = Math.min(selectionIndex * 20, 120);
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger className="border-border/80 hover:bg-muted/80 focus-visible:bg-muted! relative grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-4 py-3 transition-none! outline-none last:border-b-0 md:grid-cols-[minmax(0,1fr)_90px_auto] xl:grid-cols-[minmax(0,1fr)_280px_90px_auto]">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      <ContextMenuTrigger
+        data-selection-mode={selectionMode}
+        role="button"
+        tabIndex={0}
+        onClick={(event) => {
+          if (isInteractiveChild(event.target)) return;
+
+          if (selectionMode) {
+            onToggleSelection();
+            return;
+          }
+
+          onOpen();
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          if (isInteractiveChild(event.target)) return;
+
+          event.preventDefault();
+
+          if (selectionMode) {
+            onToggleSelection();
+            return;
+          }
+
+          onOpen();
+        }}
+        className={cn(
+          "group/collection-row border-border/80 hover:bg-muted/80 focus-visible:bg-muted! relative grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-4 py-3 transition-none! outline-none last:border-b-0 md:grid-cols-[minmax(0,1fr)_90px_auto] xl:grid-cols-[minmax(0,1fr)_280px_90px_auto]",
+          isSelected && "bg-muted/60",
+        )}>
+        <div className="flex min-w-0 flex-1 items-center">
+          <div
+            className={cn(
+              "grid shrink-0 grid-cols-[0fr] items-center opacity-0 transition-[grid-template-columns,opacity] duration-200 ease-out",
+              selectionModeCheckboxClass,
+            )}
+            style={{transitionDelay: `${selectionDelay}ms`}}>
+            <span className="min-w-0 overflow-hidden">
+              <span className="flex items-center pr-3">
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={(checked) => onSelect(!!checked)}
+                  onClick={(event) => event.stopPropagation()}
+                  aria-label={`Select ${collection.name}`}
+                  className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                  tabIndex={-1}
+                />
+              </span>
+            </span>
+          </div>
           <span
             aria-hidden="true"
-            className="ring-border/70 ring-offset-background size-2.5 shrink-0 rounded-full ring-2 ring-offset-2"
-            style={{backgroundColor: collection.color ?? "#70D6FF"}}
+            className="ring-border/70 ring-offset-background mr-3 size-2.5 shrink-0 rounded-full ring-2 ring-offset-2"
+            style={{backgroundColor: collectionColor, opacity: collectionColorOpacity}}
           />
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-            <span className="text-foreground text-sm font-medium">{collection.name}</span>
-            <span className="text-muted-foreground text-sm">/{slug}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+            <span className="text-foreground min-w-0 shrink truncate text-sm font-medium">
+              {collection.name}
+            </span>
             {collection.isPinned && (
               <span
-                className="text-muted-foreground/80 inline-flex size-5 items-center justify-center rounded-full"
+                className="text-muted-foreground/80 inline-flex size-5 shrink-0 items-center justify-center rounded-full"
                 aria-label="Pinned collection"
                 title="Pinned collection">
                 <PinIcon />
@@ -394,11 +814,11 @@ function CollectionRow({collection}: {collection: CollectionPageItem}) {
         </div>
 
         <div className="text-muted-foreground hidden min-w-0 text-sm xl:block">
-          <p className="truncate">{collection.description ?? "No description"}</p>
+          <p className="truncate">{collection.description}</p>
         </div>
 
         <div className="text-muted-foreground hidden min-w-0 text-left text-sm md:block">
-          {collection.itemCount} items
+          {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}
         </div>
 
         <div className="relative z-10 flex shrink-0 items-center gap-1.5">
@@ -416,50 +836,111 @@ function CollectionRow({collection}: {collection: CollectionPageItem}) {
               <MoreIcon />
             </MenuTrigger>
             <MenuPopup align="end" className="w-fit">
-              <CollectionMenuItems pinLabel={pinLabel} ItemComponent={MenuItem} />
+              <CollectionMenuItems
+                pinLabel={pinLabel}
+                ItemComponent={MenuItem}
+                separator={<MenuSeparator />}
+                onOpen={onOpen}
+                onEdit={onEdit}
+                onCopy={onCopy}
+                onTogglePin={onTogglePin}
+                onDelete={onDelete}
+              />
             </MenuPopup>
           </Menu>
         </div>
       </ContextMenuTrigger>
 
       <ContextMenuContent className="w-fit">
-        <CollectionMenuItems pinLabel={pinLabel} ItemComponent={ContextMenuItem} />
+        <CollectionMenuItems
+          pinLabel={pinLabel}
+          ItemComponent={ContextMenuItem}
+          separator={<ContextMenuSeparator />}
+          onOpen={onOpen}
+          onEdit={onEdit}
+          onCopy={onCopy}
+          onTogglePin={onTogglePin}
+          onDelete={onDelete}
+        />
       </ContextMenuContent>
     </ContextMenu>
   );
 }
 
+type CollectionMenuItemProps = {
+  children: ReactNode;
+  variant?: "default" | "destructive";
+  onClick?: () => void;
+};
+
 function CollectionMenuItems({
   pinLabel,
   ItemComponent,
+  separator,
+  onOpen,
+  onEdit,
+  onCopy,
+  onTogglePin,
+  onDelete,
 }: {
   pinLabel: string;
-  ItemComponent: (props: {children: ReactNode; variant?: "default" | "destructive"}) => ReactNode;
+  ItemComponent: (props: CollectionMenuItemProps) => ReactNode;
+  separator: ReactNode;
+  onOpen: () => void;
+  onEdit: () => void;
+  onCopy: () => void;
+  onTogglePin: () => void;
+  onDelete: () => void;
 }) {
   return (
     <>
-      <ItemComponent>
+      <ItemComponent onClick={onOpen}>
         <OpenIcon />
         Open
       </ItemComponent>
-      <ItemComponent>
+      <ItemComponent onClick={onEdit}>
         <EditIcon />
         Edit
       </ItemComponent>
-      <ItemComponent>
+      <ItemComponent onClick={onCopy}>
         <CopyIcon />
         Copy
       </ItemComponent>
-      <ItemComponent>
+      <ItemComponent onClick={onTogglePin}>
         {pinLabel === "Unpin" ? <UnpinIcon /> : <PinIcon />}
         {pinLabel}
       </ItemComponent>
-      <MenuSeparator />
-      <ItemComponent variant="destructive">
+      {separator}
+      <ItemComponent variant="destructive" onClick={onDelete}>
         <DeleteIcon />
         Delete
       </ItemComponent>
     </>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M13.3333 13.3333L10.751 10.751M10.751 10.751C11.6257 9.87633 12.1667 8.668 12.1667 7.33333C12.1667 4.66396 10.0027 2.5 7.33333 2.5C4.66396 2.5 2.5 4.66396 2.5 7.33333C2.5 10.0027 4.66396 12.1667 7.33333 12.1667C8.668 12.1667 9.87633 11.6257 10.751 10.751Z"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M4.55229 2C3.1427 2 2 3.1427 2 4.55229C2 5.22919 2.2689 5.87837 2.74755 6.35702L5.60947 9.21893C5.85953 9.469 6 9.80813 6 10.1617V13.3713C6 14.3023 6.9298 14.9467 7.80147 14.6198L9.1348 14.1198C9.65527 13.9246 10 13.4271 10 12.8713V10.1617C10 9.80813 10.1405 9.469 10.3905 9.21893L13.2525 6.35702C13.7311 5.87837 14 5.22919 14 4.55229C14 3.1427 12.8573 2 11.4477 2H4.55229Z"
+        fill="currentColor"
+      />
+    </svg>
   );
 }
 
@@ -572,7 +1053,9 @@ function Stat({label, value}: {label: string; value: string}) {
       <span className="text-muted-foreground text-[12px] font-medium tracking-wide uppercase">
         {label}
       </span>
-      <span className="text-foreground font-mono text-sm font-medium">{value}</span>
+      <span className="text-foreground font-mono text-sm font-medium">
+        <SlotTextWithFallback text={value} />
+      </span>
     </div>
   );
 }

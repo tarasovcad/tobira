@@ -4,7 +4,7 @@ import {Button} from "@/components/ui/coss/button";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import {Skeleton} from "@/components/ui/coss/skeleton";
 
-const stats = ["Collections", "Saved items", "Uncategorized items", "Updated this week"];
+const stats = ["Collections", "Saved items", "Updated this week"];
 
 export function CollectionPageSkeleton() {
   return (
@@ -161,25 +161,6 @@ function FilterIcon() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M4.55229 2C3.1427 2 2 3.1427 2 4.55229C2 5.22919 2.2689 5.87837 2.74755 6.35702L5.60947 9.21893C5.85953 9.469 6 9.80813 6 10.1617V13.3713C6 14.3023 6.9298 14.9467 7.80147 14.6198L9.1348 14.1198C9.65527 13.9246 10 13.4271 10 12.8713V10.1617C10 9.80813 10.1405 9.469 10.3905 9.21893L13.2525 6.35702C13.7311 5.87837 14 5.22919 14 4.55229C14 3.1427 12.8573 2 11.4477 2H4.55229Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function MoreIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M2.50016 6.8335C1.85583 6.8335 1.3335 7.35583 1.3335 8.00016C1.3335 8.6445 1.85583 9.16683 2.50016 9.16683C3.1445 9.16683 3.66683 8.6445 3.66683 8.00016C3.66683 7.35583 3.1445 6.8335 2.50016 6.8335Z"
-        fill="currentColor"
-      />
-      <path
-        d="M8.00016 6.8335C7.35583 6.8335 6.8335 7.35583 6.8335 8.00016C6.8335 8.6445 7.35583 9.16683 8.00016 9.16683C8.6445 9.16683 9.16683 8.6445 9.16683 8.00016C9.16683 7.35583 8.6445 6.8335 8.00016 6.8335Z"
-        fill="currentColor"
-      />
-      <path
-        d="M13.5002 6.8335C12.8558 6.8335 12.3335 7.35583 12.3335 8.00016C12.3335 8.6445 12.8558 9.16683 13.5002 9.16683C14.1445 9.16683 14.6668 8.6445 14.6668 8.00016C14.6668 7.35583 14.1445 6.8335 13.5002 6.8335Z"
         fill="currentColor"
       />
     </svg>

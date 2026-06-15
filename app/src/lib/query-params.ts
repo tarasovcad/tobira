@@ -44,3 +44,5 @@ export const settingsParsers = {
 };
 
 export const serializeSettingsParams = createSerializer(settingsParsers);
+
+export const collectionSearchParser = parseAsString.withDefault("");

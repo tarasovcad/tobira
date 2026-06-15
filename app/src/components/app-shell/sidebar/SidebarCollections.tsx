@@ -5,7 +5,6 @@ import {usePathname, useRouter} from "next/navigation";
 import {useQueryState} from "nuqs";
 import {cn} from "@/lib/utils";
 import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
-import {AnimatePresence, motion} from "framer-motion";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarCollectionItem, SidebarCollectionSkeleton} from "./SidebarItems";
@@ -15,6 +14,8 @@ import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dial
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useCollectionsQuery} from "@/features/home/hooks/use-home-metadata-query";
 import {homeFilterParsers} from "@/lib/query-params";
+
+const SIDEBAR_COLLECTION_LIMIT = 5;
 
 export function SidebarCollections({
   allCollections,
@@ -68,6 +69,8 @@ function SidebarCollectionsContent({
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<Set<string>>(new Set());
   const [collectionMenuOpen, setCollectionMenuOpen] = useState(false);
   const [collectionsSelectValue, setCollectionsSelectValue] = useState("all");
+  const visibleCollections = collections.slice(0, SIDEBAR_COLLECTION_LIMIT);
+  const hasMoreCollections = collections.length > SIDEBAR_COLLECTION_LIMIT;
 
   useEffect(() => {
     if (!collectionSelectionMode) return;
@@ -82,8 +85,8 @@ function SidebarCollectionsContent({
   }, [collectionSelectionMode]);
 
   const selectedCollectionCount = selectedCollectionIds.size;
-  const allCollectionsSelected = collections.length
-    ? selectedCollectionCount === collections.length
+  const allCollectionsSelected = visibleCollections.length
+    ? selectedCollectionCount === visibleCollections.length
     : false;
 
   const handleClearCollectionSelection = React.useCallback(() => {
@@ -95,15 +98,15 @@ function SidebarCollectionsContent({
     if (allCollectionsSelected) {
       setSelectedCollectionIds(new Set());
     } else {
-      setSelectedCollectionIds(new Set(collections.map((c) => c.id)));
+      setSelectedCollectionIds(new Set(visibleCollections.map((c) => c.id)));
     }
-  }, [allCollectionsSelected, collections]);
+  }, [allCollectionsSelected, visibleCollections]);
 
   const handleDeleteSelectedCollections = React.useCallback(() => {
-    const selectedCols = collections.filter((c) => selectedCollectionIds.has(c.id));
+    const selectedCols = visibleCollections.filter((c) => selectedCollectionIds.has(c.id));
     if (selectedCols.length === 0) return;
     openDeleteDialog(selectedCols, handleClearCollectionSelection);
-  }, [selectedCollectionIds, collections, openDeleteDialog, handleClearCollectionSelection]);
+  }, [selectedCollectionIds, visibleCollections, openDeleteDialog, handleClearCollectionSelection]);
 
   return (
     <>
@@ -192,14 +195,10 @@ function SidebarCollectionsContent({
             </button>
           </div>
         </div>
-        <div className="flex flex-col gap-0.5">
-          <AnimatePresence initial={false}>
+        <div className="flex flex-col">
+          <>
             {collectionsExpanded && collections.length === 0 && !isFetching && (
-              <motion.div
-                initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
-                animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-                exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-                transition={{duration: 0.2, ease: "easeOut"}}>
+              <div>
                 <button
                   onClick={handleCreateCollection}
                   className={cn(
@@ -226,7 +225,7 @@ function SidebarCollectionsContent({
                   </span>
                   <span className="">Add collection</span>
                 </button>
-              </motion.div>
+              </div>
             )}
             {isFetching &&
               collections.length === 0 &&
@@ -237,7 +236,7 @@ function SidebarCollectionsContent({
                 />
               ))}
             {collectionsExpanded &&
-              collections.map((c, index) => {
+              visibleCollections.map((c, index) => {
                 const isActive = pathname === "/home" && collectionParam === c.id;
                 return (
                   <SidebarCollectionItem
@@ -270,7 +269,43 @@ function SidebarCollectionsContent({
                   />
                 );
               })}
-          </AnimatePresence>
+            {collectionsExpanded && hasMoreCollections && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => router.push("/collections")}
+                  className={cn(
+                    "text-secondary bg-transparent",
+                    "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                    "hover:bg-muted hover:text-foreground transition-none!",
+                    "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                  )}>
+                  <span className="inline-flex size-5 shrink-0 items-center justify-center text-current">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M8.00033 9.33332C8.73671 9.33332 9.33366 8.73637 9.33366 7.99999C9.33366 7.26361 8.73671 6.66666 8.00033 6.66666C7.26395 6.66666 6.66699 7.26361 6.66699 7.99999C6.66699 8.73637 7.26395 9.33332 8.00033 9.33332Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M12.6663 9.33332C13.4027 9.33332 13.9997 8.73637 13.9997 7.99999C13.9997 7.26361 13.4027 6.66666 12.6663 6.66666C11.93 6.66666 11.333 7.26361 11.333 7.99999C11.333 8.73637 11.93 9.33332 12.6663 9.33332Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M3.33333 9.33332C4.06971 9.33332 4.66667 8.73637 4.66667 7.99999C4.66667 7.26361 4.06971 6.66666 3.33333 6.66666C2.59695 6.66666 2 7.26361 2 7.99999C2 8.73637 2.59695 9.33332 3.33333 9.33332Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </span>
+                  <span>More</span>
+                </button>
+              </div>
+            )}
+          </>
         </div>
       </div>
 

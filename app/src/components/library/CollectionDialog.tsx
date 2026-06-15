@@ -91,6 +91,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     onSuccess: () => {
       setSubmitSuccess("create");
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
+      router.refresh();
       toastManager.add({title: "Collection created", type: "success"});
       onOpenChange(false);
       window.setTimeout(() => setSubmitSuccess(null), SUCCESS_LABEL_RESET_MS);
@@ -113,6 +114,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
       setSubmitSuccess("save");
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
       queryClient.invalidateQueries({queryKey: ["active-collection"]});
+      router.refresh();
       toastManager.add({title: "Collection updated", type: "success"});
       onOpenChange(false);
       window.setTimeout(() => setSubmitSuccess(null), SUCCESS_LABEL_RESET_MS);

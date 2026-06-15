@@ -2,7 +2,7 @@
 
 import {db} from "@/db";
 import {bookmarkCollections, bookmarks, collections, type CollectionColor} from "@/db/schema";
-import {and, asc, count, desc, eq, exists, inArray, isNull, not} from "drizzle-orm";
+import {and, count, desc, eq, inArray, isNull} from "drizzle-orm";
 import {NotFoundError, UnauthorizedError} from "@/lib/shared/errors";
 import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth/session";
 
@@ -20,7 +20,7 @@ export type CollectionsOverviewData = {
     id: string;
     name: string;
     description: string | null;
-    color: string | null;
+    color: CollectionColor | null;
     isPinned: boolean;
     createdAt: string;
     updatedAt: string | null;
@@ -29,12 +29,34 @@ export type CollectionsOverviewData = {
   stats: {
     collectionCount: number;
     savedItemCount: number;
-    uncategorizedItemCount: number;
     updatedThisWeekCount: number;
   };
 };
 
-function mapCollection(row: typeof collections.$inferSelect): Collection {
+const collectionBaseSelect = {
+  id: collections.id,
+  name: collections.name,
+  description: collections.description,
+  color: collections.color,
+  isPinned: collections.isPinned,
+  createdAt: collections.createdAt,
+};
+
+type CollectionBaseRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: CollectionColor | null;
+  isPinned: boolean | null;
+  createdAt: string | null;
+};
+
+type CollectionOverviewRow = CollectionBaseRow & {
+  updatedAt: string | null;
+  itemCount: number | string | bigint;
+};
+
+function mapCollection(row: CollectionBaseRow): Collection {
   return {
     id: row.id,
     name: row.name,
@@ -42,6 +64,21 @@ function mapCollection(row: typeof collections.$inferSelect): Collection {
     color: row.color ?? null,
     is_pinned: !!row.isPinned,
     created_at: row.createdAt ?? "",
+  };
+}
+
+function mapOverviewCollection(
+  row: CollectionOverviewRow,
+): CollectionsOverviewData["collections"][number] {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? null,
+    color: row.color ?? null,
+    isPinned: !!row.isPinned,
+    createdAt: row.createdAt ?? "",
+    updatedAt: row.updatedAt ?? null,
+    itemCount: Number(row.itemCount),
   };
 }
 
@@ -57,10 +94,10 @@ export async function getCollections(userId?: string): Promise<Collection[]> {
   }
 
   const data = await db
-    .select()
+    .select(collectionBaseSelect)
     .from(collections)
     .where(eq(collections.userId, currentUserId))
-    .orderBy(desc(collections.isPinned), desc(collections.createdAt));
+    .orderBy(desc(collections.isPinned), desc(collections.createdAt), desc(collections.id));
 
   return data.map(mapCollection);
 }
@@ -74,7 +111,6 @@ export async function getCollectionsOverview(userId?: string): Promise<Collectio
       stats: {
         collectionCount: 0,
         savedItemCount: 0,
-        uncategorizedItemCount: 0,
         updatedThisWeekCount: 0,
       },
     };
@@ -84,60 +120,28 @@ export async function getCollectionsOverview(userId?: string): Promise<Collectio
     throw new UnauthorizedError();
   }
 
-  const [collectionRows, uncategorizedItemCount] = await Promise.all([
-    db
-      .select({
-        id: collections.id,
-        name: collections.name,
-        description: collections.description,
-        color: collections.color,
-        isPinned: collections.isPinned,
-        createdAt: collections.createdAt,
-        updatedAt: collections.updatedAt,
-        itemCount: count(bookmarks.id),
-      })
-      .from(collections)
-      .leftJoin(bookmarkCollections, eq(collections.id, bookmarkCollections.collectionId))
-      .leftJoin(
-        bookmarks,
-        and(
-          eq(bookmarkCollections.bookmarkId, bookmarks.id),
-          eq(bookmarks.userId, collections.userId),
-          isNull(bookmarks.archivedAt),
-          isNull(bookmarks.deletedAt),
-        ),
-      )
-      .where(eq(collections.userId, currentUserId))
-      .groupBy(collections.id)
-      .orderBy(desc(collections.isPinned), asc(collections.name)),
-    db.$count(
+  const collectionRows = await db
+    .select({
+      ...collectionBaseSelect,
+      updatedAt: collections.updatedAt,
+      itemCount: count(bookmarks.id),
+    })
+    .from(collections)
+    .leftJoin(bookmarkCollections, eq(collections.id, bookmarkCollections.collectionId))
+    .leftJoin(
       bookmarks,
       and(
-        eq(bookmarks.userId, currentUserId),
+        eq(bookmarkCollections.bookmarkId, bookmarks.id),
+        eq(bookmarks.userId, collections.userId),
         isNull(bookmarks.archivedAt),
         isNull(bookmarks.deletedAt),
-        not(
-          exists(
-            db
-              .select()
-              .from(bookmarkCollections)
-              .where(eq(bookmarkCollections.bookmarkId, bookmarks.id)),
-          ),
-        ),
       ),
-    ),
-  ]);
+    )
+    .where(eq(collections.userId, currentUserId))
+    .groupBy(collections.id)
+    .orderBy(desc(collections.isPinned), desc(collections.createdAt), desc(collections.id));
 
-  const collectionItems = collectionRows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    description: row.description ?? null,
-    color: row.color?.hex ?? null,
-    isPinned: !!row.isPinned,
-    createdAt: row.createdAt ?? "",
-    updatedAt: row.updatedAt ?? null,
-    itemCount: Number(row.itemCount),
-  }));
+  const collectionItems = collectionRows.map(mapOverviewCollection);
 
   const weekMs = 7 * 24 * 60 * 60 * 1000;
   const savedItemCount = collectionItems.reduce((sum, collection) => sum + collection.itemCount, 0);
@@ -150,7 +154,6 @@ export async function getCollectionsOverview(userId?: string): Promise<Collectio
     stats: {
       collectionCount: collectionItems.length,
       savedItemCount,
-      uncategorizedItemCount,
       updatedThisWeekCount,
     },
   };

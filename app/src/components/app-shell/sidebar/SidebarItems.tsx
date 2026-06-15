@@ -57,6 +57,8 @@ export function SidebarCollectionItem({
   const pathname = usePathname();
   const [, setHomeFilters] = useQueryStates(homeFilterParsers);
   const hasMounted = useHasMounted();
+  const collectionColor = collection.color?.hex ?? "#38bdf8";
+  const collectionColorOpacity = (collection.color?.opacity ?? 100) / 100;
 
   const openCollection = () => {
     if (pathname === "/home") {
@@ -68,12 +70,7 @@ export function SidebarCollectionItem({
   };
 
   return (
-    <motion.div
-      layout="position"
-      initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-      exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
-      transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
+    <div className={cn("relative focus-within:z-20", isActive ? "z-10" : "z-0")}>
       <ContextMenu>
         <ContextMenuTrigger
           tabIndex={0}
@@ -98,12 +95,12 @@ export function SidebarCollectionItem({
             isActive
               ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
               : "text-secondary bg-transparent",
-            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+            "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
             "hover:bg-muted hover:text-foreground",
             "cursor-pointer justify-between transition-none!",
             "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
-          <div className="flex items-center">
+          <div className="flex min-w-0 flex-1 items-center">
             <div
               className={cn(
                 "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
@@ -113,7 +110,7 @@ export function SidebarCollectionItem({
                 transitionDelay: selectionMode ? `${Math.min(index * 20, 120)}ms` : "0ms",
               }}>
               <div className="min-w-0 overflow-hidden">
-                <div className="pr-2">
+                <div className="flex items-center pr-2">
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={(checked) => onSelect(!!checked)}
@@ -123,23 +120,15 @@ export function SidebarCollectionItem({
                 </div>
               </div>
             </div>
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <span aria-hidden="true" className="text-base leading-none">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M8.1801 5.20811C8.42024 4.93063 8.80956 4.93063 9.04971 5.20811L11.4597 7.99274C12.1801 8.8252 12.1801 10.1748 11.4597 11.0073L9.04971 13.7919C8.80956 14.0694 8.42024 14.0694 8.1801 13.7919C7.93997 13.5144 7.93997 13.0646 8.1801 12.7871L10.59 10.0024C10.8302 9.72492 10.8302 9.2751 10.59 8.99762L8.1801 6.21295C7.93997 5.93547 7.93997 5.48558 8.1801 5.20811Z"
-                    fill="currentColor"
-                  />
-                </svg>
+            <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
+              <span
+                aria-hidden="true"
+                className="ring-border/70 size-2.5 shrink-0 rounded-full ring-2"
+                style={{backgroundColor: collectionColor, opacity: collectionColorOpacity}}
+              />
+              <span className="min-w-0 truncate" title={collection.name}>
+                {collection.name}
               </span>
-              {collection.name}
             </span>
           </div>
           {collection.is_pinned && (
@@ -147,7 +136,7 @@ export function SidebarCollectionItem({
               width="16"
               height="16"
               viewBox="0 0 16 16"
-              className="text-muted-foreground/80"
+              className="text-muted-foreground/80 shrink-0"
               fill="none"
               xmlns="http://www.w3.org/2000/svg">
               <path
@@ -166,7 +155,7 @@ export function SidebarCollectionItem({
           />
         )}
       </ContextMenu>
-    </motion.div>
+    </div>
   );
 }
 
@@ -209,6 +198,7 @@ export function SidebarTagItem({
 
   return (
     <motion.div
+      className={cn("relative focus-within:z-20", isActive ? "z-10" : "z-0")}
       layout="position"
       initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
