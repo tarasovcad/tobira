@@ -2,9 +2,9 @@
 
 import React, {useEffect, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
-import {useQueryState} from "nuqs";
 import {cn} from "@/lib/utils";
 import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
+import {AnimatePresence, motion} from "framer-motion";
 import type {Collection} from "@/app/actions/collections";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
 import {SidebarCollectionItem, SidebarCollectionSkeleton} from "./SidebarItems";
@@ -13,7 +13,6 @@ import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useCollectionsQuery} from "@/features/home/hooks/use-home-metadata-query";
-import {homeFilterParsers} from "@/lib/query-params";
 
 const SIDEBAR_COLLECTION_LIMIT = 5;
 
@@ -51,7 +50,6 @@ function SidebarCollectionsContent({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [collectionParam] = useQueryState("collection", homeFilterParsers.collection);
   const openDialog = useCollectionDialogStore((state) => state.openDialog);
   const openDeleteDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
   const {copyText} = useClipboardCopy(2000, {toast: true});
@@ -71,6 +69,9 @@ function SidebarCollectionsContent({
   const [collectionsSelectValue, setCollectionsSelectValue] = useState("all");
   const visibleCollections = collections.slice(0, SIDEBAR_COLLECTION_LIMIT);
   const hasMoreCollections = collections.length > SIDEBAR_COLLECTION_LIMIT;
+  const pathCollectionId = pathname.startsWith("/collections/")
+    ? decodeURIComponent(pathname.split("/")[2] ?? "")
+    : null;
 
   useEffect(() => {
     if (!collectionSelectionMode) return;
@@ -110,7 +111,7 @@ function SidebarCollectionsContent({
 
   return (
     <>
-      <div className="px-3 pe-2">
+      <div className="px-3 pe-2 pt-1">
         <div
           tabIndex={0}
           role="button"
@@ -126,7 +127,7 @@ function SidebarCollectionsContent({
             "text-muted-foreground hover:bg-muted hover:text-foreground",
             "group/collections cursor-pointer text-[11px] font-semibold tracking-wider uppercase",
             "h-[37px]",
-            "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+            "focus-visible:ring-ring focus-visible:ring-offset-background relative outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center gap-0.5">
             <span className="">Collections</span>
@@ -196,9 +197,13 @@ function SidebarCollectionsContent({
           </div>
         </div>
         <div className="flex flex-col">
-          <>
+          <AnimatePresence initial={false}>
             {collectionsExpanded && collections.length === 0 && !isFetching && (
-              <div>
+              <motion.div
+                initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
+                animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
+                exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+                transition={{duration: 0.2, ease: "easeOut"}}>
                 <button
                   onClick={handleCreateCollection}
                   className={cn(
@@ -225,7 +230,7 @@ function SidebarCollectionsContent({
                   </span>
                   <span className="">Add collection</span>
                 </button>
-              </div>
+              </motion.div>
             )}
             {isFetching &&
               collections.length === 0 &&
@@ -237,7 +242,7 @@ function SidebarCollectionsContent({
               ))}
             {collectionsExpanded &&
               visibleCollections.map((c, index) => {
-                const isActive = pathname === "/home" && collectionParam === c.id;
+                const isActive = pathCollectionId === c.id;
                 return (
                   <SidebarCollectionItem
                     key={c.id}
@@ -270,7 +275,11 @@ function SidebarCollectionsContent({
                 );
               })}
             {collectionsExpanded && hasMoreCollections && (
-              <div>
+              <motion.div
+                initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
+                animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
+                exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+                transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
                 <button
                   type="button"
                   onClick={() => router.push("/collections")}
@@ -303,9 +312,9 @@ function SidebarCollectionsContent({
                   </span>
                   <span>More</span>
                 </button>
-              </div>
+              </motion.div>
             )}
-          </>
+          </AnimatePresence>
         </div>
       </div>
 

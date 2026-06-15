@@ -37,7 +37,7 @@ export function SidebarMain({
 }: SidebarMainProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [{tag, collection}] = useQueryStates(homeFilterParsers);
+  const [{tag}] = useQueryStates(homeFilterParsers);
 
   const activeTag = tag?.trim() || null;
   const isCollapsed = state === "collapsed";
@@ -86,7 +86,7 @@ export function SidebarMain({
           <div className="flex flex-col gap-0.5">
             {NAV_ITEMS.map((item) => {
               const isAllItemsWithFilter =
-                item.href === "/home" && pathname === "/home" && (!!activeTag || !!collection);
+                item.href === "/home" && pathname === "/home" && !!activeTag;
 
               const isActive = item.href === pathname && !isAllItemsWithFilter;
 
@@ -105,7 +105,7 @@ export function SidebarMain({
             })}
           </div>
 
-          <div className="bg-border my-4 h-px w-full" />
+          <div className="bg-border my-3 h-px w-full" />
         </div>
 
         {!isCollapsed && (
@@ -119,7 +119,7 @@ export function SidebarMain({
                 userId={userId}
               />
               <div className="px-3">
-                <div className="bg-border my-4 h-px w-full" />
+                <div className="bg-border my-3 h-px w-full" />
               </div>
 
               <SidebarTags allTags={allTags} userId={userId} />

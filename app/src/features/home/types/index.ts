@@ -59,7 +59,6 @@ export function areBookmarkWorkspaceScopesEqual(
 
 export type SearchParams = {
   tag?: string;
-  collection?: string;
   id?: string;
   type?: TypeFilter;
   sort?: SortMode;

@@ -27,7 +27,7 @@ import {useFloatingHoverTooltip} from "@/lib/hooks/use-floating-hover-tooltip";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import type {CollectionColor} from "@/db/schema";
-import {collectionSearchParser, serializeHomeParams} from "@/lib/query-params";
+import {collectionSearchParser} from "@/lib/query-params";
 import {cn} from "@/lib/utils";
 
 export type CollectionPageData = {
@@ -251,7 +251,7 @@ function CollectionPageContent({data}: CollectionPageProps) {
   };
 
   const handleOpenCollection = (collection: CollectionPageItem) => {
-    router.push(serializeHomeParams("/home", {collection: collection.id}));
+    router.push(`/collections/${collection.id}`);
   };
 
   const handleEditCollection = (collection: CollectionPageItem) => {

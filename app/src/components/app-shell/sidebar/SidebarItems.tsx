@@ -54,23 +54,21 @@ export function SidebarCollectionItem({
   onContextMenuDelete,
 }: SidebarCollectionItemProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const [, setHomeFilters] = useQueryStates(homeFilterParsers);
   const hasMounted = useHasMounted();
   const collectionColor = collection.color?.hex ?? "#38bdf8";
   const collectionColorOpacity = (collection.color?.opacity ?? 100) / 100;
 
   const openCollection = () => {
-    if (pathname === "/home") {
-      void setHomeFilters({collection: collection.id, tag: null, id: null}, {history: "push"});
-      return;
-    }
-
-    router.push(serializeHomeParams("/home", {collection: collection.id}));
+    router.push(`/collections/${collection.id}`);
   };
 
   return (
-    <div className={cn("relative focus-within:z-20", isActive ? "z-10" : "z-0")}>
+    <motion.div
+      className={cn("relative focus-within:z-20", isActive ? "z-10" : "z-0")}
+      initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
+      animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
+      exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+      transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
       <ContextMenu>
         <ContextMenuTrigger
           tabIndex={0}
@@ -155,7 +153,7 @@ export function SidebarCollectionItem({
           />
         )}
       </ContextMenu>
-    </div>
+    </motion.div>
   );
 }
 
@@ -189,7 +187,7 @@ export function SidebarTagItem({
 
   const openTag = () => {
     if (pathname === "/home") {
-      void setHomeFilters({tag: tag.id, collection: null, id: null}, {history: "push"});
+      void setHomeFilters({tag: tag.id, id: null}, {history: "push"});
       return;
     }
 

@@ -2,24 +2,40 @@ import {Suspense} from "react";
 import AppShell from "@/components/app-shell/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
-import {
-  getBookmarkWorkspaceScope,
-  type SearchParams,
-  type SortMode,
-  type TypeFilter,
-} from "@/features/home/types";
 import {BookmarkWorkspaceDataWrapper} from "@/features/home/components/BookmarkWorkspaceDataWrapper";
 import {BookmarksLoader} from "@/features/home/components/BookmarksLoader";
 import {SidebarSkeleton} from "@/components/app-shell/sidebar/SidebarSkeleton";
 import {BookmarkWorkspaceClient} from "@/features/home/components/BookmarkWorkspaceClient";
 import {SidebarDataWrapper} from "@/components/app-shell/sidebar/SidebarDataWrapper";
+import type {SearchParams, SortMode, TypeFilter} from "@/features/home/types";
 
-const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
-  const searchParams = await props.searchParams;
+const resolveSortFilter = (sortParam?: string): SortMode => {
+  if (sortParam === "oldest" || sortParam === "az") return sortParam;
+  return "recent";
+};
 
+const resolveTypeFilter = (typeParam?: string): TypeFilter => {
+  if (typeParam === "media" || typeParam === "post") return typeParam;
+  return "website";
+};
+
+export const metadata = {
+  title: "Collection - Tobira",
+  description: "Browse bookmarks in a Tobira collection.",
+};
+
+const CollectionItemsPage = async (props: {
+  params: Promise<{id: string}>;
+  searchParams?: Promise<SearchParams>;
+}) => {
+  const [{id}, searchParams] = await Promise.all([props.params, props.searchParams]);
+  const collectionId = id.trim();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  const scope = {kind: "collection", id: collectionId} as const;
+  const typeFilter = resolveTypeFilter(searchParams?.type);
+  const sortFilter = resolveSortFilter(searchParams?.sort);
 
   if (!session?.user?.id) {
     return (
@@ -30,20 +46,13 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
           initialActiveCollection={null}
           initialActiveTag={null}
           totalCount={0}
-          scope={{kind: "all"}}
+          scope={scope}
         />
       </AppShell>
     );
   }
 
   const userId = session.user.id;
-  const tagFilter = searchParams?.tag?.trim() || null;
-  const scope = getBookmarkWorkspaceScope({tagFilter, collectionFilter: null});
-  const typeFilter = (
-    searchParams?.type === "media" ? "media" : searchParams?.type === "post" ? "post" : "website"
-  ) as TypeFilter;
-  const sortFilter = resolveSortFilter(searchParams?.sort);
-
   const filterParams = {
     scope,
     typeFilter,
@@ -62,11 +71,11 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
       <Suspense
         fallback={
           <BookmarksLoader
-            showCount={!tagFilter}
+            showCount={false}
             typeFilter={typeFilter}
             sort={sortFilter}
-            tagFilter={tagFilter}
-            collectionFilter={null}
+            tagFilter={null}
+            collectionFilter={collectionId}
           />
         }>
         <BookmarkWorkspaceDataWrapper userId={userId} params={filterParams} />
@@ -75,9 +84,4 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   );
 };
 
-const resolveSortFilter = (sortParam?: string): SortMode => {
-  if (sortParam === "oldest" || sortParam === "az") return sortParam;
-  return "recent";
-};
-
-export default AllItems;
+export default CollectionItemsPage;

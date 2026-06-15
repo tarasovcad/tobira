@@ -1,17 +1,22 @@
 "use client";
 
 import {useQueryStates} from "nuqs";
+import {usePathname} from "next/navigation";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {getBookmarkWorkspaceScope, type SortMode, type TypeFilter} from "@/features/home/types";
 import {getDefaultAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
 import {homeFilterParsers} from "@/lib/query-params";
 
 export function useHomeFilters() {
+  const pathname = usePathname();
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
-  const [{tag, collection, type, sort}, setHomeFilters] = useQueryStates(homeFilterParsers);
+  const [{tag, type, sort}, setHomeFilters] = useQueryStates(homeFilterParsers);
 
-  const tagFilter = tag?.trim() || null;
-  const collectionFilter = collection;
+  const pathCollectionId = pathname.startsWith("/collections/")
+    ? decodeURIComponent(pathname.split("/")[2] ?? "") || null
+    : null;
+  const tagFilter = pathCollectionId ? null : tag?.trim() || null;
+  const collectionFilter = pathCollectionId;
   const scope = getBookmarkWorkspaceScope({tagFilter, collectionFilter});
   const typeFilter = type;
 

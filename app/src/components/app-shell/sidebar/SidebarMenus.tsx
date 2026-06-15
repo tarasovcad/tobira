@@ -91,7 +91,7 @@ export function CollectionContextMenuContent({
 
   return (
     <ContextMenuContent>
-      <Link href={serializeHomeParams("/home", {collection: collection.id})}>
+      <Link href={`/collections/${collection.id}`}>
         <ContextMenuItem>
           <svg
             width="16"
