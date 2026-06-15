@@ -13,152 +13,42 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/legacy-shadcn/context-menu";
 import {useFloatingHoverTooltip} from "@/lib/hooks/use-floating-hover-tooltip";
+import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 
-const collections = [
-  {
-    name: "Design references",
-    slug: "design-references",
-    description: "Interfaces, palettes, spacing notes, and product details worth revisiting.",
-    itemCount: 48,
-    updatedAt: "Updated 12m ago",
-    updatedThisWeek: true,
-    isPinned: true,
-    visibility: "Private",
-    accent: "#70D6FF",
-  },
-  {
-    name: "Reading queue",
-    slug: "reading-queue",
-    description: "Long-form articles, essays, and technical docs saved for focused sessions.",
-    itemCount: 27,
-    updatedAt: "Updated yesterday",
-    updatedThisWeek: true,
-    isPinned: true,
-    visibility: "Private",
-    accent: "#FFD166",
-  },
-  {
-    name: "Build ideas",
-    slug: "build-ideas",
-    description: "Small product ideas, experiments, and implementation sketches.",
-    itemCount: 16,
-    updatedAt: "Updated 3d ago",
-    updatedThisWeek: true,
-    isPinned: false,
-    visibility: "Shared",
-    accent: "#95E06C",
-  },
-  {
-    name: "Tools to try",
-    slug: "tools-to-try",
-    description: "Utilities, libraries, apps, and workflows to evaluate later.",
-    itemCount: 34,
-    updatedAt: "Updated last week",
-    updatedThisWeek: false,
-    isPinned: false,
-    visibility: "Private",
-    accent: "#C792EA",
-  },
-  {
-    name: "Launch checklist",
-    slug: "launch-checklist",
-    description: "Release notes, QA reminders, launch assets, and rollout references.",
-    itemCount: 21,
-    updatedAt: "Updated 2h ago",
-    updatedThisWeek: true,
-    isPinned: true,
-    visibility: "Shared",
-    accent: "#FF8FAB",
-  },
-  {
-    name: "Marketing angles",
-    slug: "marketing-angles",
-    description: "Positioning notes, landing page inspiration, and campaign examples.",
-    itemCount: 39,
-    updatedAt: "Updated 5h ago",
-    updatedThisWeek: true,
-    isPinned: false,
-    visibility: "Private",
-    accent: "#F4A261",
-  },
-  {
-    name: "Technical deep dives",
-    slug: "technical-deep-dives",
-    description: "Architecture writeups, database guides, and implementation references.",
-    itemCount: 62,
-    updatedAt: "Updated 2d ago",
-    updatedThisWeek: true,
-    isPinned: true,
-    visibility: "Private",
-    accent: "#4D96FF",
-  },
-  {
-    name: "Customer research",
-    slug: "customer-research",
-    description: "Interview notes, feedback patterns, screenshots, and support insights.",
-    itemCount: 18,
-    updatedAt: "Updated 4d ago",
-    updatedThisWeek: true,
-    isPinned: false,
-    visibility: "Shared",
-    accent: "#06D6A0",
-  },
-  {
-    name: "Motion ideas",
-    slug: "motion-ideas",
-    description: "Interaction patterns, transition references, and animation timing notes.",
-    itemCount: 13,
-    updatedAt: "Updated 6d ago",
-    updatedThisWeek: true,
-    isPinned: false,
-    visibility: "Private",
-    accent: "#B8F2E6",
-  },
-  {
-    name: "Competitor notes",
-    slug: "competitor-notes",
-    description: "Pricing pages, feature comparisons, onboarding flows, and messaging.",
-    itemCount: 44,
-    updatedAt: "Updated 8d ago",
-    updatedThisWeek: false,
-    isPinned: false,
-    visibility: "Private",
-    accent: "#EF476F",
-  },
-  {
-    name: "Learning backlog",
-    slug: "learning-backlog",
-    description: "Courses, talks, tutorials, and concepts to study when there is time.",
-    itemCount: 31,
-    updatedAt: "Updated 10d ago",
-    updatedThisWeek: false,
-    isPinned: true,
-    visibility: "Private",
-    accent: "#9B5DE5",
-  },
-  {
-    name: "Team rituals",
-    slug: "team-rituals",
-    description: "Meeting formats, retro prompts, planning templates, and async habits.",
-    itemCount: 11,
-    updatedAt: "Updated 2w ago",
-    updatedThisWeek: false,
-    isPinned: false,
-    visibility: "Shared",
-    accent: "#00BBF9",
-  },
-];
+export type CollectionPageData = {
+  collections: CollectionPageItem[];
+  stats: {
+    collectionCount: number;
+    savedItemCount: number;
+    uncategorizedItemCount: number;
+    updatedThisWeekCount: number;
+  };
+};
 
-export default function CollectionPage() {
+export type CollectionPageItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+  itemCount: number;
+};
+
+type CollectionPageProps = {
+  data: CollectionPageData;
+};
+
+export default function CollectionPage({data}: CollectionPageProps) {
   const {getTriggerProps, tooltipRef, tooltipStyle, visible} = useFloatingHoverTooltip();
-  const totalItems = collections.reduce((sum, collection) => sum + collection.itemCount, 0);
-  const uncategorizedItems = 7;
-  const updatedThisWeek = collections.filter((collection) => collection.updatedThisWeek).length;
+  const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
+  const {collections, stats: collectionStats} = data;
   const stats = [
-    {label: "Collections", value: String(collections.length)},
-    {label: "Saved items", value: String(totalItems)},
-    {label: "Uncategorized items", value: String(uncategorizedItems)},
-    {label: "Updated this week", value: String(updatedThisWeek)},
+    {label: "Collections", value: String(collectionStats.collectionCount)},
+    {label: "Saved items", value: String(collectionStats.savedItemCount)},
+    {label: "Uncategorized items", value: String(collectionStats.uncategorizedItemCount)},
+    {label: "Updated this week", value: String(collectionStats.updatedThisWeekCount)},
   ];
 
   return (
@@ -182,7 +72,7 @@ export default function CollectionPage() {
                 description="A simple overview of the groups you use to keep bookmarks organized."
               />
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="w-fit">
+                <Button variant="outline" className="w-fit" onClick={() => openCollectionDialog()}>
                   <svg
                     width="16"
                     height="16"
@@ -407,8 +297,12 @@ export default function CollectionPage() {
   );
 }
 
-function CollectionRow({collection}: {collection: (typeof collections)[number]}) {
+function CollectionRow({collection}: {collection: CollectionPageItem}) {
   const pinLabel = collection.isPinned ? "Unpin" : "Pin";
+  const slug = collection.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
   return (
     <ContextMenu>
@@ -417,11 +311,11 @@ function CollectionRow({collection}: {collection: (typeof collections)[number]})
           <span
             aria-hidden="true"
             className="ring-border/70 ring-offset-background size-2.5 shrink-0 rounded-full ring-2 ring-offset-2"
-            style={{backgroundColor: collection.accent}}
+            style={{backgroundColor: collection.color ?? "#70D6FF"}}
           />
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <span className="text-foreground text-sm font-medium">{collection.name}</span>
-            <span className="text-muted-foreground text-sm">/{collection.slug}</span>
+            <span className="text-muted-foreground text-sm">/{slug}</span>
             {collection.isPinned && (
               <span
                 className="text-muted-foreground/80 inline-flex size-5 items-center justify-center rounded-full"
@@ -434,7 +328,7 @@ function CollectionRow({collection}: {collection: (typeof collections)[number]})
         </div>
 
         <div className="text-muted-foreground hidden min-w-0 text-sm xl:block">
-          <p className="truncate">{collection.description}</p>
+          <p className="truncate">{collection.description ?? "No description"}</p>
         </div>
 
         <div className="text-muted-foreground hidden min-w-0 text-left text-sm md:block">
