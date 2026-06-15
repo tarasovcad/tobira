@@ -71,6 +71,11 @@ export type MediaImages = {
 
 export type BookmarkImages = WebsiteImages | PostImages | MediaImages;
 
+export type CollectionColor = {
+  hex: string;
+  opacity: number;
+};
+
 export const bookmarkKind = pgEnum("Bookmark kind", ["website", "image", "media", "post"]);
 export const syncProvider = pgEnum("sync_provider", [
   "x",
@@ -133,8 +138,7 @@ export const collections = pgTable(
     userId: text("user_id").notNull(),
     name: text().notNull(),
     description: text(),
-    color: text(),
-    icon: text(),
+    color: jsonb().$type<CollectionColor>(),
     createdAt: timestamp("created_at", {withTimezone: true, mode: "string"}).defaultNow(),
     updatedAt: timestamp("updated_at", {withTimezone: true, mode: "string"}).defaultNow(),
     isPinned: boolean("is_pinned").default(false),

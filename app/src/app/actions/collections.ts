@@ -1,7 +1,7 @@
 "use server";
 
 import {db} from "@/db";
-import {collections} from "@/db/schema";
+import {collections, type CollectionColor} from "@/db/schema";
 import {and, desc, eq, inArray} from "drizzle-orm";
 import {NotFoundError, UnauthorizedError} from "@/lib/shared/errors";
 import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth/session";
@@ -10,8 +10,7 @@ export type Collection = {
   id: string;
   name: string;
   description: string | null;
-  color: string | null;
-  icon: string | null;
+  color: CollectionColor | null;
   is_pinned: boolean;
   created_at: string;
 };
@@ -22,7 +21,6 @@ function mapCollection(row: typeof collections.$inferSelect): Collection {
     name: row.name,
     description: row.description ?? null,
     color: row.color ?? null,
-    icon: row.icon ?? null,
     is_pinned: !!row.isPinned,
     created_at: row.createdAt ?? "",
   };
@@ -74,8 +72,7 @@ export async function getCollectionById(
 export async function createCollection(data: {
   name: string;
   description?: string;
-  color?: string;
-  icon?: string;
+  color?: CollectionColor;
 }): Promise<Collection> {
   const userId = await requireAuthenticatedUserId();
 
@@ -85,7 +82,6 @@ export async function createCollection(data: {
       name: data.name,
       description: data.description ?? null,
       color: data.color ?? null,
-      icon: data.icon ?? null,
       userId,
     })
     .returning();
@@ -110,8 +106,7 @@ export async function updateCollection(
   data: {
     name?: string;
     description?: string;
-    color?: string;
-    icon?: string;
+    color?: CollectionColor;
   },
 ): Promise<Collection> {
   const userId = await requireAuthenticatedUserId();
@@ -122,7 +117,6 @@ export async function updateCollection(
       ...(data.name !== undefined && {name: data.name}),
       ...(data.description !== undefined && {description: data.description}),
       ...(data.color !== undefined && {color: data.color}),
-      ...(data.icon !== undefined && {icon: data.icon}),
     })
     .where(and(eq(collections.id, id), eq(collections.userId, userId)))
     .returning();

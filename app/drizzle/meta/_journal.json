@@ -43,6 +43,13 @@
       "when": 1776541188635,
       "tag": "0005_cuddly_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781488053042,
+      "tag": "0006_collection_color_jsonb",
+      "breakpoints": true
     }
   ]
 }

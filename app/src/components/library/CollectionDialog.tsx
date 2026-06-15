@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import {
   Dialog,
   DialogPopup,
@@ -17,17 +17,23 @@ import {Label} from "@/components/ui/coss/label";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {createCollection, updateCollection} from "@/app/actions/collections";
 import {toastManager} from "@/components/ui/coss/toast";
-import {useForm} from "react-hook-form";
+import {Controller, useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {useRouter} from "next/navigation";
 import * as z from "zod";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import Spinner from "@/components/ui/app/spinner";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
+import type {CollectionColor} from "@/db/schema";
+import {CollectionColorPicker, DEFAULT_COLLECTION_COLOR_VALUE} from "./CollectionColorPicker";
 
 const collectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
   description: z.string().max(200, "Description is too long").optional(),
+  color: z.object({
+    hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    opacity: z.number().min(0).max(100),
+  }),
 });
 
 type CollectionFormValues = z.infer<typeof collectionSchema>;
@@ -51,6 +57,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: {errors, isValid, isDirty},
@@ -59,6 +66,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     defaultValues: {
       name: collection?.name || "",
       description: collection?.description || "",
+      color: collection?.color ?? DEFAULT_COLLECTION_COLOR_VALUE,
     },
     mode: "onChange",
   });
@@ -68,10 +76,11 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
       reset({
         name: collection?.name || "",
         description: collection?.description || "",
+        color: collection?.color ?? DEFAULT_COLLECTION_COLOR_VALUE,
       });
     } else {
       const t = setTimeout(() => {
-        reset({name: "", description: ""});
+        reset({name: "", description: "", color: DEFAULT_COLLECTION_COLOR_VALUE});
       }, 500);
       return () => clearTimeout(t);
     }
@@ -96,8 +105,10 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
   });
 
   const updateMutation = useMutation({
-    mutationFn: (variables: {id: string; data: {name: string; description?: string}}) =>
-      updateCollection(variables.id, variables.data),
+    mutationFn: (variables: {
+      id: string;
+      data: {name: string; description?: string; color?: CollectionColor};
+    }) => updateCollection(variables.id, variables.data),
     onSuccess: () => {
       setSubmitSuccess("save");
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
@@ -128,6 +139,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
         data: {
           name: data.name.trim(),
           description: data.description?.trim() || undefined,
+          color: data.color,
         },
       });
       return;
@@ -136,6 +148,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     mutation.mutate({
       name: data.name.trim(),
       description: data.description?.trim() || undefined,
+      color: data.color,
     });
   };
 
@@ -198,6 +211,17 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
                 <p className="text-xs text-red-500">{errors.description.message}</p>
               )}
             </div>
+            <Controller
+              name="color"
+              control={control}
+              render={({field}) => (
+                <CollectionColorPicker
+                  key={isOpen ? `open-${collection?.id ?? "new"}` : "closed"}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
             {collection && (
               <div className="space-y-2">
                 <Label htmlFor="created_at">Created at</Label>
