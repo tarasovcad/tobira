@@ -216,7 +216,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
               control={control}
               render={({field}) => (
                 <CollectionColorPicker
-                  key={isOpen ? `open-${collection?.id ?? "new"}` : "closed"}
+                  key={collection?.id ?? "new"}
                   value={field.value}
                   onChange={field.onChange}
                 />
