@@ -26,24 +26,24 @@ export function SidebarSkeleton() {
               ))}
             </div>
 
-            <div className="bg-border my-4 h-px w-full" />
+            <div className="bg-border my-3 h-px w-full" />
           </div>
 
-          <div className="min-h-0 flex-1">
+          <div className="bg min-h-0 flex-1">
             {/* Collections Section */}
-            <div className="px-3">
+            <div className="px-3 pt-1">
               <div className="text-muted-foreground flex h-[37px] w-full items-center justify-between rounded-md px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
                 <span>Collections</span>
               </div>
-              <div className="flex flex-col gap-0.5">
-                {[1, 2, 3, 4].map((i, idx) => (
+              <div className="flex flex-col">
+                {[1, 2, 3, 4, 5, 6].map((i, idx) => (
                   <SidebarCollectionSkeleton
                     key={`col-skeleton-${i}`}
                     width={["w-[60%]", "w-[40%]", "w-[75%]", "w-[50%]"][idx % 4]}
                   />
                 ))}
               </div>
-              <div className="bg-border my-4 h-px w-full" />
+              <div className="bg-border my-3 h-px w-full" />
             </div>
 
             {/* Tags Section */}
@@ -51,7 +51,7 @@ export function SidebarSkeleton() {
               <div className="text-muted-foreground flex h-[37px] w-full items-center justify-between rounded-md px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
                 <span>Tags</span>
               </div>
-              <div className="flex flex-col gap-0.5 pb-2">
+              <div className="flex flex-col pb-2">
                 {[1, 2, 3, 4, 5].map((i, idx) => (
                   <SidebarTagSkeleton
                     key={`tag-skeleton-${i}`}

@@ -1,5 +1,4 @@
 import {Suspense} from "react";
-import AppShell from "@/components/app-shell/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
 import {
@@ -10,9 +9,8 @@ import {
 } from "@/features/home/types";
 import {BookmarkWorkspaceDataWrapper} from "@/features/home/components/BookmarkWorkspaceDataWrapper";
 import {BookmarksLoader} from "@/features/home/components/BookmarksLoader";
-import {SidebarSkeleton} from "@/components/app-shell/sidebar/SidebarSkeleton";
 import {BookmarkWorkspaceClient} from "@/features/home/components/BookmarkWorkspaceClient";
-import {SidebarDataWrapper} from "@/components/app-shell/sidebar/SidebarDataWrapper";
+import {AddBookmarkDialog} from "@/features/add-item/AddBookmarkDialog";
 
 const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const searchParams = await props.searchParams;
@@ -23,16 +21,14 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
 
   if (!session?.user?.id) {
     return (
-      <AppShell session={session}>
-        <BookmarkWorkspaceClient
-          userId={null}
-          initialBookmarks={[]}
-          initialActiveCollection={null}
-          initialActiveTag={null}
-          totalCount={0}
-          scope={{kind: "all"}}
-        />
-      </AppShell>
+      <BookmarkWorkspaceClient
+        userId={null}
+        initialBookmarks={[]}
+        initialActiveCollection={null}
+        initialActiveTag={null}
+        totalCount={0}
+        scope={{kind: "all"}}
+      />
     );
   }
 
@@ -51,14 +47,8 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   };
 
   return (
-    <AppShell
-      session={session}
-      displayAddBookmarkDialog={true}
-      sidebar={
-        <Suspense fallback={<SidebarSkeleton />}>
-          <SidebarDataWrapper userId={userId} />
-        </Suspense>
-      }>
+    <>
+      <AddBookmarkDialog isAuthenticated user={session.user} />
       <Suspense
         fallback={
           <BookmarksLoader
@@ -71,7 +61,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
         }>
         <BookmarkWorkspaceDataWrapper userId={userId} params={filterParams} />
       </Suspense>
-    </AppShell>
+    </>
   );
 };
 

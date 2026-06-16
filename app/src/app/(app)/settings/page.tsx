@@ -1,5 +1,4 @@
 import React from "react";
-import AppShell from "@/components/app-shell/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
 import {SettingsContent} from "./SettingsContent";
@@ -20,11 +19,7 @@ const SettingsPage = async ({searchParams}: {searchParams: Promise<{tab?: string
     redirect("/login");
   }
 
-  return (
-    <AppShell session={data}>
-      <SettingsContent activeTag={activeTag} user={data?.user} />
-    </AppShell>
-  );
+  return <SettingsContent activeTag={activeTag} user={data?.user} />;
 };
 
 export default SettingsPage;

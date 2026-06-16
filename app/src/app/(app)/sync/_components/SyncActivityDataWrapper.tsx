@@ -1,7 +1,7 @@
 import {db} from "@/db";
 import {syncConnections, syncRuns} from "@/db/schema";
 import {desc, eq} from "drizzle-orm";
-import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
+import {PROVIDERS} from "../_lib/sync-providers";
 import {
   SyncActivitySection,
   type SyncActivityItem,

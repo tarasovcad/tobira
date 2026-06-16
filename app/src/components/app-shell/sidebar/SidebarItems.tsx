@@ -15,7 +15,7 @@ import {homeFilterParsers, serializeHomeParams} from "@/lib/query-params";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (
-    <div className="flex w-full items-center gap-1 rounded-md px-3 py-2">
+    <div className="flex w-full items-center gap-1 rounded-md px-3 py-2.5">
       <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
     </div>
   );
@@ -23,7 +23,7 @@ export function SidebarCollectionSkeleton({width}: {width?: string}) {
 
 export function SidebarTagSkeleton({width}: {width?: string}) {
   return (
-    <div className="flex w-full items-center justify-between rounded-md px-3 py-2">
+    <div className="flex w-full items-center justify-between rounded-md px-3 py-2.5">
       <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
       <Skeleton className="ml-10 h-5 w-5 shrink-0 animate-pulse rounded-sm" />
     </div>

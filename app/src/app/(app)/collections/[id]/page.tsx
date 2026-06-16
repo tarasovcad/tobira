@@ -1,13 +1,11 @@
 import {Suspense} from "react";
-import AppShell from "@/components/app-shell/AppShell";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
 import {BookmarkWorkspaceDataWrapper} from "@/features/home/components/BookmarkWorkspaceDataWrapper";
 import {BookmarksLoader} from "@/features/home/components/BookmarksLoader";
-import {SidebarSkeleton} from "@/components/app-shell/sidebar/SidebarSkeleton";
 import {BookmarkWorkspaceClient} from "@/features/home/components/BookmarkWorkspaceClient";
-import {SidebarDataWrapper} from "@/components/app-shell/sidebar/SidebarDataWrapper";
 import type {SearchParams, SortMode, TypeFilter} from "@/features/home/types";
+import {AddBookmarkDialog} from "@/features/add-item/AddBookmarkDialog";
 
 const resolveSortFilter = (sortParam?: string): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;
@@ -39,16 +37,14 @@ const CollectionItemsPage = async (props: {
 
   if (!session?.user?.id) {
     return (
-      <AppShell session={session}>
-        <BookmarkWorkspaceClient
-          userId={null}
-          initialBookmarks={[]}
-          initialActiveCollection={null}
-          initialActiveTag={null}
-          totalCount={0}
-          scope={scope}
-        />
-      </AppShell>
+      <BookmarkWorkspaceClient
+        userId={null}
+        initialBookmarks={[]}
+        initialActiveCollection={null}
+        initialActiveTag={null}
+        totalCount={0}
+        scope={scope}
+      />
     );
   }
 
@@ -60,14 +56,8 @@ const CollectionItemsPage = async (props: {
   };
 
   return (
-    <AppShell
-      session={session}
-      displayAddBookmarkDialog={true}
-      sidebar={
-        <Suspense fallback={<SidebarSkeleton />}>
-          <SidebarDataWrapper userId={userId} />
-        </Suspense>
-      }>
+    <>
+      <AddBookmarkDialog isAuthenticated user={session.user} />
       <Suspense
         fallback={
           <BookmarksLoader
@@ -80,7 +70,7 @@ const CollectionItemsPage = async (props: {
         }>
         <BookmarkWorkspaceDataWrapper userId={userId} params={filterParams} />
       </Suspense>
-    </AppShell>
+    </>
   );
 };
 
