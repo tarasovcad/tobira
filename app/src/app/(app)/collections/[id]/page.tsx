@@ -57,7 +57,7 @@ const CollectionItemsPage = async (props: {
 
   return (
     <>
-      <AddBookmarkDialog isAuthenticated user={session.user} />
+      <AddBookmarkDialog isAuthenticated user={session.user} defaultCollectionId={collectionId} />
       <Suspense
         fallback={
           <BookmarksLoader

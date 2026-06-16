@@ -13,7 +13,7 @@ import {Label} from "@/components/ui/coss/label";
 import type {CollectionColor} from "@/db/schema";
 import {cn} from "@/lib/utils";
 
-const COLLECTION_COLOR_OPTIONS = [
+export const COLLECTION_COLOR_OPTIONS = [
   {value: "#38bdf8"},
   {value: "#8b5cf6"},
   {value: "#f43f5e"},
@@ -32,6 +32,13 @@ export const DEFAULT_COLLECTION_COLOR_VALUE: CollectionColor = {
   hex: COLLECTION_COLOR_OPTIONS[0].value,
   opacity: 100,
 };
+
+export function getRandomCollectionColorValue(): CollectionColor {
+  const option =
+    COLLECTION_COLOR_OPTIONS[Math.floor(Math.random() * COLLECTION_COLOR_OPTIONS.length)];
+
+  return {hex: option.value, opacity: DEFAULT_COLLECTION_COLOR_VALUE.opacity};
+}
 
 const DEFAULT_COLLECTION_COLOR = DEFAULT_COLLECTION_COLOR_VALUE.hex;
 

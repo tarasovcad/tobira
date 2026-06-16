@@ -357,6 +357,7 @@ export function BookmarkWorkspaceClient({
           setSelected={setSelected}
           onMenuArchive={handleArchive}
           onMenuDelete={openDeleteDialog}
+          scrollTopPadding={Boolean(activeCollection || tagFilter)}
         />
       )}
 

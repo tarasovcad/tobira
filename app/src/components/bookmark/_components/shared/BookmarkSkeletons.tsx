@@ -7,31 +7,32 @@ export function WebsiteSkeletonList() {
   const {contentToggles} = useViewOptionsStore();
 
   return (
-    <div className="flex w-full gap-5 border-b px-6 py-5 pr-16">
-      <div className="flex items-center">
-        <Skeleton className="size-9 rounded-md" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <Skeleton className="h-[20px] w-48 rounded-[2px]" />
-        {(contentToggles.source || contentToggles.savedDate) && (
-          <div className="mt-2">
-            <Skeleton className="h-[13.5px] w-32 rounded-[2px]" />
-          </div>
-        )}
-        {contentToggles.description && (
-          <>
-            <div className="mt-3">
-              <Skeleton className="h-4 w-80 rounded-[2px]" />
+    <div className="flex w-full flex-col gap-2 border-b px-6 py-5 pr-16">
+      <div className="flex min-w-0 flex-1 items-center gap-5">
+        <div className="flex items-center">
+          <Skeleton className="size-9 rounded-md" />
+        </div>
+        <div className="min-w-0 flex-1 text-[13px]">
+          <Skeleton className="h-[22.5px] w-48 rounded" />
+          {(contentToggles.source || contentToggles.savedDate) && (
+            <div className="mt-0.5">
+              <Skeleton className="h-[19.5px] w-64 rounded" />
             </div>
-          </>
-        )}
-        {contentToggles.tags && (
-          <div className="mt-3 flex gap-2">
-            <Skeleton className="h-5 w-16 rounded-[2px]" />
-            <Skeleton className="h-5 w-20 rounded-[2px]" />
-          </div>
-        )}
+          )}
+          {contentToggles.description && (
+            <div
+              className={contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5"}>
+              <Skeleton className="h-[19.5px] w-40 rounded" />
+            </div>
+          )}
+        </div>
       </div>
+      {contentToggles.tags && (
+        <div className="flex flex-wrap gap-1 pl-14">
+          <Skeleton className="h-[20.5px] w-16 rounded-[2px]" />
+          <Skeleton className="h-[20.5px] w-20 rounded-[2px]" />
+        </div>
+      )}
     </div>
   );
 }
@@ -41,7 +42,31 @@ export function WebsiteSkeletonTable() {
 }
 
 export function WebsiteSkeletonCompact() {
-  return <div>TODO: add skeleton for compact</div>;
+  const {contentToggles} = useViewOptionsStore();
+
+  return (
+    <div className="flex w-full items-center gap-3 border-b px-5 py-2.5 pr-12">
+      <div className="flex shrink-0 items-center">
+        <Skeleton className="size-[18px] rounded-none" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <Skeleton className="h-[20px] w-48 rounded" />
+      </div>
+      {(contentToggles.source || contentToggles.savedDate || contentToggles.tags) && (
+        <div className="flex shrink-0 items-center gap-2">
+          {(contentToggles.source || contentToggles.savedDate) && (
+            <Skeleton className="hidden h-[18px] w-24 rounded sm:block" />
+          )}
+          {contentToggles.tags && (
+            <div className="flex items-center gap-1">
+              <Skeleton className="h-[18px] w-12 rounded-[2px]" />
+              <Skeleton className="h-[18px] w-16 rounded-[2px]" />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function WebsiteSkeletonGrid({
@@ -50,29 +75,39 @@ export function WebsiteSkeletonGrid({
   borderRadiusClass?: string;
 }) {
   const {contentToggles} = useViewOptionsStore();
+  const onlyTitle =
+    !contentToggles.source &&
+    !contentToggles.savedDate &&
+    !contentToggles.description &&
+    !contentToggles.tags;
 
   return (
     <div className={cn("bg-background w-full overflow-hidden border", borderRadiusClass)}>
-      <Skeleton className="aspect-16/10 w-full" />
-      <div className="p-4">
-        <Skeleton className="h-4 w-3/4 rounded" />
+      <Skeleton className="aspect-16/10 w-full rounded-none" />
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-1 flex-col px-4",
+          onlyTitle ? "py-3" : "pt-3 pb-4",
+        )}>
+        <Skeleton className="h-[22.5px] w-3/4 rounded" />
         {(contentToggles.source || contentToggles.savedDate) && (
-          <div className="mt-2">
-            <Skeleton className="h-3 w-1/2 rounded" />
+          <div className="mt-1">
+            <Skeleton className="h-[19.5px] w-1/2 rounded" />
           </div>
         )}
         {contentToggles.description && (
-          <div className="mt-3">
-            <Skeleton className="h-3 w-full rounded" />
+          <div
+            className={cn(contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5")}>
+            <Skeleton className="h-[19.5px] w-full rounded" />
             <div className="mt-1.5">
-              <Skeleton className="h-3 w-2/3 rounded" />
+              <Skeleton className="h-[19.5px] w-2/3 rounded" />
             </div>
           </div>
         )}
         {contentToggles.tags && (
-          <div className="mt-3 flex gap-2">
-            <Skeleton className="h-4 w-12 rounded" />
-            <Skeleton className="h-4 w-16 rounded" />
+          <div className="mt-2 flex flex-wrap gap-1">
+            <Skeleton className="h-[20.5px] w-12 rounded-[2px]" />
+            <Skeleton className="h-[20.5px] w-16 rounded-[2px]" />
           </div>
         )}
       </div>

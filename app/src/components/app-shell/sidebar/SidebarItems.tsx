@@ -1,6 +1,5 @@
 import React from "react";
 import {cn} from "@/lib/utils";
-import {Checkbox} from "@/components/ui/coss/checkbox";
 import {ContextMenu, ContextMenuTrigger} from "@/components/ui/legacy-shadcn/context-menu";
 import {motion} from "framer-motion";
 import NumberFlow from "@number-flow/react";
@@ -15,7 +14,7 @@ import {homeFilterParsers, serializeHomeParams} from "@/lib/query-params";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (
-    <div className="flex w-full items-center gap-1 rounded-md px-3 py-2.5">
+    <div className="flex w-full items-center gap-1 rounded-md px-3 py-2.25">
       <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
     </div>
   );
@@ -23,7 +22,7 @@ export function SidebarCollectionSkeleton({width}: {width?: string}) {
 
 export function SidebarTagSkeleton({width}: {width?: string}) {
   return (
-    <div className="flex w-full items-center justify-between rounded-md px-3 py-2.5">
+    <div className="flex w-full items-center justify-between rounded-md px-3 py-2.25">
       <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
       <Skeleton className="ml-10 h-5 w-5 shrink-0 animate-pulse rounded-sm" />
     </div>
@@ -32,24 +31,14 @@ export function SidebarTagSkeleton({width}: {width?: string}) {
 
 interface SidebarCollectionItemProps {
   collection: Collection;
-  index: number;
   isActive: boolean;
-  selectionMode: boolean;
-  isSelected: boolean;
-  onSelect: (checked: boolean) => void;
-  onToggleSelection: () => void;
   onCopy: () => void;
   onContextMenuDelete: () => void;
 }
 
 export function SidebarCollectionItem({
   collection,
-  index,
   isActive,
-  selectionMode,
-  isSelected,
-  onSelect,
-  onToggleSelection,
   onCopy,
   onContextMenuDelete,
 }: SidebarCollectionItemProps) {
@@ -73,51 +62,24 @@ export function SidebarCollectionItem({
         <ContextMenuTrigger
           tabIndex={0}
           onClick={() => {
-            if (selectionMode) {
-              onToggleSelection();
-              return;
-            }
             openCollection();
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              if (selectionMode) {
-                onToggleSelection();
-              } else {
-                openCollection();
-              }
+              openCollection();
             }
           }}
           className={cn(
             isActive
               ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
               : "text-secondary bg-transparent",
-            "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium",
+            "flex w-full items-center gap-2 rounded-md px-3 py-2.25 text-sm font-medium",
             "hover:bg-muted hover:text-foreground",
             "cursor-pointer justify-between transition-none!",
             "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex min-w-0 flex-1 items-center">
-            <div
-              className={cn(
-                "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
-                selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
-              )}
-              style={{
-                transitionDelay: selectionMode ? `${Math.min(index * 20, 120)}ms` : "0ms",
-              }}>
-              <div className="min-w-0 overflow-hidden">
-                <div className="flex items-center pr-2">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={(checked) => onSelect(!!checked)}
-                    onClick={(e) => e.stopPropagation()}
-                    tabIndex={-1}
-                  />
-                </div>
-              </div>
-            </div>
             <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
               <span
                 aria-hidden="true"
@@ -161,22 +123,14 @@ interface SidebarTagItemProps {
   tag: SidebarTag;
   index: number;
   isActive: boolean;
-  selectionMode: boolean;
-  isSelected: boolean;
-  onSelect: (checked: boolean) => void;
-  onToggleSelection: () => void;
   onCopy: () => void;
   onContextMenuDelete: () => void;
 }
 
 export function SidebarTagItem({
   tag,
-  index,
+  index: _index,
   isActive,
-  selectionMode,
-  isSelected,
-  onSelect,
-  onToggleSelection,
   onCopy,
   onContextMenuDelete,
 }: SidebarTagItemProps) {
@@ -206,51 +160,24 @@ export function SidebarTagItem({
         <ContextMenuTrigger
           tabIndex={0}
           onClick={() => {
-            if (selectionMode) {
-              onToggleSelection();
-              return;
-            }
             openTag();
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              if (selectionMode) {
-                onToggleSelection();
-              } else {
-                openTag();
-              }
+              openTag();
             }
           }}
           className={cn(
             isActive
               ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
               : "text-secondary bg-transparent",
-            "flex w-full items-center gap-2 rounded-md px-3 py-2",
+            "flex w-full items-center gap-2 rounded-md px-3 py-[9px] leading-none",
             "hover:bg-muted hover:text-foreground",
             "cursor-pointer justify-between",
             "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex items-center">
-            <div
-              className={cn(
-                "grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-200 ease-out",
-                selectionMode ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
-              )}
-              style={{
-                transitionDelay: selectionMode ? `${Math.min(index * 20, 120)}ms` : "0ms",
-              }}>
-              <div className="min-w-0 overflow-hidden">
-                <div className="pr-2">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={(checked) => onSelect(!!checked)}
-                    onClick={(e) => e.stopPropagation()}
-                    tabIndex={-1}
-                  />
-                </div>
-              </div>
-            </div>
             <span className="flex items-center gap-0.5 text-sm font-medium">
               <span className="inline-flex size-5 shrink-0 items-center justify-center text-current">
                 #
@@ -273,7 +200,7 @@ export function SidebarTagItem({
                 />
               </svg>
             )}
-            <span className="text-secondary text-sm tabular-nums">
+            <span className="text-secondary h-[20px] text-sm leading-0 tabular-nums">
               <NumberFlow value={tag.count} />
             </span>
           </div>

@@ -25,7 +25,7 @@ import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import Spinner from "@/components/ui/app/spinner";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 import type {CollectionColor} from "@/db/schema";
-import {CollectionColorPicker, DEFAULT_COLLECTION_COLOR_VALUE} from "./CollectionColorPicker";
+import {CollectionColorPicker, getRandomCollectionColorValue} from "./CollectionColorPicker";
 
 const collectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -50,9 +50,15 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
   const queryClient = useQueryClient();
   const {isOpen, collection, closeDialog} = useCollectionDialogStore();
   const [submitSuccess, setSubmitSuccess] = useState<"save" | "create" | null>(null);
+  const [defaultCollectionColor, setDefaultCollectionColor] = useState(
+    getRandomCollectionColorValue,
+  );
 
   const onOpenChange = (val: boolean) => {
-    if (!val) closeDialog();
+    if (!val) {
+      setDefaultCollectionColor(getRandomCollectionColorValue());
+      closeDialog();
+    }
   };
 
   const {
@@ -66,7 +72,7 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     defaultValues: {
       name: collection?.name || "",
       description: collection?.description || "",
-      color: collection?.color ?? DEFAULT_COLLECTION_COLOR_VALUE,
+      color: collection?.color ?? defaultCollectionColor,
     },
     mode: "onChange",
   });
@@ -76,15 +82,15 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
       reset({
         name: collection?.name || "",
         description: collection?.description || "",
-        color: collection?.color ?? DEFAULT_COLLECTION_COLOR_VALUE,
+        color: collection?.color ?? defaultCollectionColor,
       });
     } else {
       const t = setTimeout(() => {
-        reset({name: "", description: "", color: DEFAULT_COLLECTION_COLOR_VALUE});
+        reset({name: "", description: "", color: defaultCollectionColor});
       }, 500);
       return () => clearTimeout(t);
     }
-  }, [isOpen, collection, reset]);
+  }, [isOpen, collection, defaultCollectionColor, reset]);
 
   const mutation = useMutation({
     mutationFn: createCollection,

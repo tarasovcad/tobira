@@ -27,9 +27,11 @@ export type AddBookmarkDialogUser = AuthUser & {
 export function AddBookmarkDialog({
   isAuthenticated = false,
   user,
+  defaultCollectionId,
 }: {
   isAuthenticated?: boolean;
   user?: AddBookmarkDialogUser | null;
+  defaultCollectionId?: string | null;
 }) {
   const [typeParam] = useQueryState("type", typeParamParser);
   const userId = user?.id;
@@ -56,7 +58,7 @@ export function AddBookmarkDialog({
     handleOpenDialogClick,
     handleSubmitForm,
     confirmMediaSelection,
-  } = useAddBookmarkFlow({userId, isAuthenticated, defaultType});
+  } = useAddBookmarkFlow({userId, isAuthenticated, defaultType, defaultCollectionId});
 
   const tagNames = tags.map((t) => t.name);
 

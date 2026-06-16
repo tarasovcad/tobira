@@ -13,7 +13,7 @@ export function SidebarSkeleton() {
       <div className="absolute inset-0 flex min-h-0 flex-col">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="px-3 pt-3">
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col">
               {NAV_ITEMS.map((item) => (
                 <NavItem
                   key={item.label}
@@ -32,7 +32,7 @@ export function SidebarSkeleton() {
           <div className="bg min-h-0 flex-1">
             {/* Collections Section */}
             <div className="px-3 pt-1">
-              <div className="text-muted-foreground flex h-[37px] w-full items-center justify-between rounded-md px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
+              <div className="text-muted-foreground flex h-[38px] w-full items-center justify-between rounded-md px-3 py-2.25 text-[11px] font-semibold tracking-wider uppercase">
                 <span>Collections</span>
               </div>
               <div className="flex flex-col">
@@ -48,7 +48,7 @@ export function SidebarSkeleton() {
 
             {/* Tags Section */}
             <div className="px-3">
-              <div className="text-muted-foreground flex h-[37px] w-full items-center justify-between rounded-md px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
+              <div className="text-muted-foreground flex h-[38px] w-full items-center justify-between rounded-md px-3 py-2.25 text-[11px] font-semibold tracking-wider uppercase">
                 <span>Tags</span>
               </div>
               <div className="flex flex-col pb-2">

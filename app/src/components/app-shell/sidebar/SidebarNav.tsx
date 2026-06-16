@@ -50,7 +50,7 @@ export const NavItem = ({
 
   const baseStyles = cn(
     isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
-    "flex w-full items-center rounded-md py-2 text-sm font-medium",
+    "flex w-full items-center rounded-md py-[9px] text-sm font-medium",
     collapsed ? "justify-start px-2" : "justify-start px-3",
     "transition-[padding] duration-50 ease-linear",
     "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",

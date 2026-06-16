@@ -10,6 +10,14 @@ import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {SlotTextWithFallback} from "@/components/ui/SlotTextWithFallback";
 import {Button} from "@/components/ui/coss/button";
 import {Checkbox} from "@/components/ui/coss/checkbox";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/coss/empty";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import {Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger} from "@/components/ui/coss/menu";
 import {
@@ -524,6 +532,7 @@ function CollectionPageContent({data}: CollectionPageProps) {
               hasSearchQuery={!!trimmedSearchQuery}
               selectionMode={selectionMode}
               selectedCollectionIds={selectedCollectionIds}
+              onCreateCollection={() => openCollectionDialog()}
               onOpenCollection={handleOpenCollection}
               onEditCollection={handleEditCollection}
               onCopyCollection={handleCopyCollection}
@@ -620,6 +629,7 @@ function CollectionList({
   hasSearchQuery,
   selectionMode,
   selectedCollectionIds,
+  onCreateCollection,
   onOpenCollection,
   onEditCollection,
   onCopyCollection,
@@ -632,6 +642,7 @@ function CollectionList({
   hasSearchQuery: boolean;
   selectionMode: boolean;
   selectedCollectionIds: Set<string>;
+  onCreateCollection: () => void;
   onOpenCollection: (collection: CollectionPageItem) => void;
   onEditCollection: (collection: CollectionPageItem) => void;
   onCopyCollection: (collection: CollectionPageItem) => void;
@@ -643,7 +654,11 @@ function CollectionList({
   if (collections.length === 0) {
     return (
       <div className="pt-0.5">
-        {hasSearchQuery ? <CollectionSearchEmptyState /> : <CollectionEmptyState />}
+        {hasSearchQuery ? (
+          <CollectionSearchEmptyState />
+        ) : (
+          <CollectionEmptyState onCreateCollection={onCreateCollection} />
+        )}
       </div>
     );
   }
@@ -670,11 +685,36 @@ function CollectionList({
   );
 }
 
-function CollectionEmptyState() {
+function CollectionEmptyState({onCreateCollection}: {onCreateCollection: () => void}) {
   return (
-    <div className="border-border/80 text-muted-foreground border-y px-4 py-10 text-sm">
-      No collections yet. Add one to start organizing your bookmarks.
-    </div>
+    <Empty className="gap-4 px-4 py-14 md:py-18">
+      <EmptyHeader>
+        <EmptyMedia variant="icon" className="text-foreground/90 mb-2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M5.33317 1.33334C3.86041 1.33334 2.6665 2.52725 2.6665 4.00001V13.3299C2.6665 14.4097 3.88307 15.0417 4.76654 14.4207L7.2331 12.6871C7.69317 12.3637 8.3065 12.3637 8.76657 12.6871L11.2331 14.4207C12.1166 15.0417 13.3332 14.4097 13.3332 13.3299V4.00001C13.3332 2.52725 12.1392 1.33334 10.6665 1.33334H5.33317Z"
+              fill="currentColor"
+            />
+          </svg>
+        </EmptyMedia>
+        <EmptyTitle className="text-foreground/90 text-lg">
+          Your first collection starts here
+        </EmptyTitle>
+        <EmptyDescription className="max-w-[32rem]">
+          Group related bookmarks for quick access later.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button type="button" onClick={onCreateCollection}>
+          Create collection
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }
 

@@ -4,6 +4,7 @@ import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import type {Bookmark} from "@/components/bookmark/types";
+import {cn} from "@/lib/utils";
 import type {SortMode, TypeFilter} from "@/features/home/types";
 import type {ViewMode} from "@/store/use-view-options";
 import {useViewOptionsStore} from "@/store/use-view-options";
@@ -61,6 +62,7 @@ interface AllItemsListProps {
   setSelected: (id: string, checked: boolean) => void;
   onMenuArchive: (item: Bookmark) => void;
   onMenuDelete: (item: Bookmark) => void;
+  scrollTopPadding?: boolean;
 }
 
 export function AllItemsList({
@@ -89,9 +91,14 @@ export function AllItemsList({
   onMenuArchive,
   onMenuDelete,
   isInitialLoad,
+  scrollTopPadding,
 }: AllItemsListProps) {
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
+  const applyScrollTopPadding =
+    scrollTopPadding &&
+    currentView !== "compact" &&
+    !(currentView === "list" && typeFilter === "website");
 
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
@@ -250,7 +257,12 @@ export function AllItemsList({
         isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
         className={
-          typeFilter === "post" && entry.bookmarkIndex === 0 && !animatingUrl ? "pt-6" : undefined
+          typeFilter === "post" &&
+          entry.bookmarkIndex === 0 &&
+          !animatingUrl &&
+          !applyScrollTopPadding
+            ? "pt-6"
+            : undefined
         }
         onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
@@ -273,6 +285,7 @@ export function AllItemsList({
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,
+    applyScrollTopPadding,
     removingIds,
     selectedIds,
     selectionMode,
@@ -310,7 +323,7 @@ export function AllItemsList({
     <>
       <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
         <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
-          <div className={layoutConfig.wrapperClassName}>
+          <div className={cn(layoutConfig.wrapperClassName, applyScrollTopPadding && "pt-6")}>
             <div className={layoutConfig.containerClassName}>
               {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
               {!layoutConfig.isMasonry ? (

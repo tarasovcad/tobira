@@ -27,10 +27,12 @@ export function useAddBookmarkFlow({
   userId,
   isAuthenticated,
   defaultType = "website",
+  defaultCollectionId = null,
 }: {
   userId?: string;
   isAuthenticated: boolean;
   defaultType?: AddBookmarkFormValues["type"];
+  defaultCollectionId?: string | null;
 }) {
   const router = useRouter();
   const open = useAddItemDialogStore((state) => state.isOpen);
@@ -63,7 +65,7 @@ export function useAddBookmarkFlow({
     defaultValues: {
       url: "",
       tags: [],
-      collectionId: null,
+      collectionId: defaultCollectionId,
       type: defaultType,
     },
     mode: "onChange",
@@ -125,7 +127,7 @@ export function useAddBookmarkFlow({
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       setTimeout(() => {
-        reset({url: "", tags: [], collectionId: null, type: defaultType});
+        reset({url: "", tags: [], collectionId: defaultCollectionId, type: defaultType});
         setStep(1);
         setMediaItems([]);
         setSelectedMediaUrls([]);
@@ -188,7 +190,7 @@ export function useAddBookmarkFlow({
   );
 
   const resetLocalState = () => {
-    reset({url: "", tags: [], collectionId: null, type: defaultType});
+    reset({url: "", tags: [], collectionId: defaultCollectionId, type: defaultType});
     setStep(1);
     setMediaItems([]);
     setSelectedMediaUrls([]);

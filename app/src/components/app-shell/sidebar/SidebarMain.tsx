@@ -83,7 +83,7 @@ export function SidebarMain({
     <TooltipProvider>
       <div className="flex min-h-0 flex-1 flex-col">
         <div className={cn("px-3 pt-3")}>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col">
             {NAV_ITEMS.map((item) => {
               const isAllItemsWithFilter =
                 item.href === "/home" && pathname === "/home" && !!activeTag;
