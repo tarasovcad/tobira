@@ -11,13 +11,9 @@ export const sortParser = parseAsStringLiteral(["recent", "oldest", "az"] as con
 );
 
 export const homeFilterParsers = {
-  tag: parseAsString,
-  id: parseAsString,
   type: typeFilterParser,
   sort: sortParser,
 };
-
-export const serializeHomeParams = createSerializer(homeFilterParsers);
 
 export const SETTINGS_TABS = [
   "general",
@@ -45,3 +41,4 @@ export const settingsParsers = {
 export const serializeSettingsParams = createSerializer(settingsParsers);
 
 export const collectionSearchParser = parseAsString.withDefault("");
+export const tagSearchParser = parseAsString.withDefault("");

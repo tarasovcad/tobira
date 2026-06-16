@@ -11,7 +11,7 @@ import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useCollectionsQuery} from "@/features/home/hooks/use-home-metadata-query";
-import Link from "next/link";
+import {SidebarSectionMenu} from "./SidebarSectionMenu";
 
 const SIDEBAR_COLLECTION_LIMIT = 5;
 
@@ -62,6 +62,8 @@ function SidebarCollectionsContent({
   };
 
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
+  const [collectionMenuOpen, setCollectionMenuOpen] = useState(false);
+  const [collectionsSelectValue, setCollectionsSelectValue] = useState("5");
   const visibleCollections = collections.slice(0, SIDEBAR_COLLECTION_LIMIT);
   const hasMoreCollections = collections.length > SIDEBAR_COLLECTION_LIMIT;
   const pathCollectionId = pathname.startsWith("/collections/")
@@ -113,28 +115,15 @@ function SidebarCollectionsContent({
           </span>
         </div>
         <div className="flex items-center">
-          {/*<SidebarSectionMenu
+          <SidebarSectionMenu
             open={collectionMenuOpen}
             onOpenChange={setCollectionMenuOpen}
             selectValue={collectionsSelectValue}
             onSelectValueChange={(v) => setCollectionsSelectValue(String(v))}
             ariaLabel="Collection options"
             triggerClassName="group-hover/collections:pointer-events-auto group-hover/collections:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
-          />*/}
+          />
 
-          {!hasMoreCollections && (
-            <Link
-              href="/collections"
-              className={cn(
-                buttonVariants({variant: "ghost", size: "xs"}),
-                "text-muted-foreground hover:bg-foreground/5",
-                "pointer-events-none opacity-0 transition-opacity duration-150 ease-out",
-                "group-hover/collections:pointer-events-auto group-hover/collections:opacity-100",
-                "px-1.5 text-xs! normal-case focus-visible:pointer-events-auto focus-visible:opacity-100",
-              )}>
-              All
-            </Link>
-          )}
           <button
             onClick={(e) => {
               e.stopPropagation();

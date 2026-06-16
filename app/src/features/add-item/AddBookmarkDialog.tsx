@@ -28,10 +28,12 @@ export function AddBookmarkDialog({
   isAuthenticated = false,
   user,
   defaultCollectionId,
+  defaultTagNames,
 }: {
   isAuthenticated?: boolean;
   user?: AddBookmarkDialogUser | null;
   defaultCollectionId?: string | null;
+  defaultTagNames?: string[];
 }) {
   const [typeParam] = useQueryState("type", typeParamParser);
   const userId = user?.id;
@@ -58,7 +60,13 @@ export function AddBookmarkDialog({
     handleOpenDialogClick,
     handleSubmitForm,
     confirmMediaSelection,
-  } = useAddBookmarkFlow({userId, isAuthenticated, defaultType, defaultCollectionId});
+  } = useAddBookmarkFlow({
+    userId,
+    isAuthenticated,
+    defaultType,
+    defaultCollectionId,
+    defaultTagNames,
+  });
 
   const tagNames = tags.map((t) => t.name);
 

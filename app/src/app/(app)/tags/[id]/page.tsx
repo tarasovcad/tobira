@@ -6,6 +6,7 @@ import {BookmarksLoader} from "@/features/home/components/BookmarksLoader";
 import {BookmarkWorkspaceClient} from "@/features/home/components/BookmarkWorkspaceClient";
 import type {SearchParams, SortMode, TypeFilter} from "@/features/home/types";
 import {AddBookmarkDialog} from "@/features/add-item/AddBookmarkDialog";
+import {getTagById} from "@/app/actions/tags";
 
 const resolveSortFilter = (sortParam?: string): SortMode => {
   if (sortParam === "oldest" || sortParam === "az") return sortParam;
@@ -18,20 +19,20 @@ const resolveTypeFilter = (typeParam?: string): TypeFilter => {
 };
 
 export const metadata = {
-  title: "Collection - Tobira",
-  description: "Explore and manage bookmarks within this collection.",
+  title: "Tag - Tobira",
+  description: "Browse bookmarks with a Tobira tag.",
 };
 
-const CollectionItemsPage = async (props: {
+const TagItemsPage = async (props: {
   params: Promise<{id: string}>;
   searchParams?: Promise<SearchParams>;
 }) => {
   const [{id}, searchParams] = await Promise.all([props.params, props.searchParams]);
-  const collectionId = id.trim();
+  const tagId = id.trim();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
-  const scope = {kind: "collection", id: collectionId} as const;
+  const scope = {kind: "tag", id: tagId} as const;
   const typeFilter = resolveTypeFilter(searchParams?.type);
   const sortFilter = resolveSortFilter(searchParams?.sort);
 
@@ -49,6 +50,7 @@ const CollectionItemsPage = async (props: {
   }
 
   const userId = session.user.id;
+  const activeTag = await getTagById(tagId, userId);
   const filterParams = {
     scope,
     typeFilter,
@@ -57,15 +59,19 @@ const CollectionItemsPage = async (props: {
 
   return (
     <>
-      <AddBookmarkDialog isAuthenticated user={session.user} defaultCollectionId={collectionId} />
+      <AddBookmarkDialog
+        isAuthenticated
+        user={session.user}
+        defaultTagNames={activeTag ? [activeTag.name] : undefined}
+      />
       <Suspense
         fallback={
           <BookmarksLoader
             showCount={false}
             typeFilter={typeFilter}
             sort={sortFilter}
-            tagFilter={null}
-            collectionFilter={collectionId}
+            tagFilter={tagId}
+            collectionFilter={null}
           />
         }>
         <BookmarkWorkspaceDataWrapper userId={userId} params={filterParams} />
@@ -74,4 +80,4 @@ const CollectionItemsPage = async (props: {
   );
 };
 
-export default CollectionItemsPage;
+export default TagItemsPage;

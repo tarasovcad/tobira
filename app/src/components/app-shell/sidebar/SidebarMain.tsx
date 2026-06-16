@@ -2,7 +2,6 @@
 
 import React, {useMemo} from "react";
 import {usePathname} from "next/navigation";
-import {useQueryStates} from "nuqs";
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import type {Collection} from "@/app/actions/collections";
 import {NavItem, NAV_ITEMS} from "./SidebarNav";
@@ -15,7 +14,6 @@ import {
   TooltipPopup,
   TooltipProvider,
 } from "@/components/ui/coss/tooltip";
-import {homeFilterParsers} from "@/lib/query-params";
 import {useSidebarStore} from "@/store/use-sidebar-store";
 
 interface SidebarMainProps {
@@ -34,10 +32,8 @@ export function SidebarMain({
   state,
 }: SidebarMainProps) {
   const pathname = usePathname();
-  const [{tag}] = useQueryStates(homeFilterParsers);
   const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 
-  const activeTag = tag?.trim() || null;
   const isCollapsed = state === "collapsed";
   const navTooltipHandle = useMemo(() => TooltipCreateHandle<React.ComponentType>(), []);
 
@@ -48,10 +44,7 @@ export function SidebarMain({
           <div className={cn("px-3 pt-3")}>
             <div className="flex flex-col">
               {NAV_ITEMS.map((item) => {
-                const isAllItemsWithFilter =
-                  item.href === "/home" && pathname === "/home" && !!activeTag;
-
-                const isActive = item.href === pathname && !isAllItemsWithFilter;
+                const isActive = item.href === pathname;
 
                 return (
                   <NavItem
@@ -92,7 +85,7 @@ export function SidebarMain({
         </div>
 
         <div className={cn("shrink-0 p-3 pt-0")}>
-          <div className="bg-border my-3 h-px w-full" />
+          {/*<div className="bg-border my-3 h-px w-full" />*/}
           <button
             type="button"
             onClick={toggleSidebar}
@@ -108,21 +101,21 @@ export function SidebarMain({
               <svg
                 width="20"
                 height="20"
-                viewBox="0 0 22 22"
+                viewBox="0 0 20 20"
                 fill="none"
+                xmlns="http://www.w3.org/2000/svg"
                 className={cn(
                   "transition-[transform,color] duration-150 ease-out",
                   isCollapsed ? "rotate-180" : "",
-                )}
-                xmlns="http://www.w3.org/2000/svg">
+                )}>
                 <path
-                  d="M6.41667 2.75C4.39162 2.75 2.75 4.39162 2.75 6.41667V15.5833C2.75 17.6083 4.39162 19.25 6.41667 19.25V2.75Z"
+                  d="M5.83333 2.5C3.99238 2.5 2.5 3.99238 2.5 5.83333V14.1667C2.5 16.0076 3.99238 17.5 5.83333 17.5V2.5Z"
                   fill="currentColor"
                 />
                 <path
                   fillRule="evenodd"
                   clipRule="evenodd"
-                  d="M8.25 19.25H15.5833C17.6083 19.25 19.25 17.6083 19.25 15.5833V6.41667C19.25 4.39162 17.6083 2.75 15.5833 2.75H8.25V19.25ZM15.3148 8.51848C15.6728 8.87647 15.6728 9.45688 15.3148 9.81484L14.1297 11L15.3148 12.1852C15.6728 12.5431 15.6728 13.1236 15.3148 13.4815C14.9569 13.8395 14.3765 13.8395 14.0185 13.4815L12.1852 11.6482C11.8272 11.2902 11.8272 10.7098 12.1852 10.3518L14.0185 8.51848C14.3765 8.16051 14.9569 8.16051 15.3148 8.51848Z"
+                  d="M7.5 17.5H14.1667C16.0076 17.5 17.5 16.0076 17.5 14.1667V5.83333C17.5 3.99238 16.0076 2.5 14.1667 2.5H7.5V17.5ZM13.9226 7.74407C14.248 8.06952 14.248 8.59717 13.9226 8.92258L12.8452 10L13.9226 11.0774C14.248 11.4028 14.248 11.9305 13.9226 12.2559C13.5972 12.5813 13.0695 12.5813 12.7441 12.2559L11.0774 10.5892C10.752 10.2638 10.752 9.73617 11.0774 9.41075L12.7441 7.74407C13.0695 7.41864 13.5972 7.41864 13.9226 7.74407Z"
                   fill="currentColor"
                 />
               </svg>

@@ -10,23 +10,30 @@ import {homeFilterParsers} from "@/lib/query-params";
 export function useHomeFilters() {
   const pathname = usePathname();
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
-  const [{tag, type, sort}, setHomeFilters] = useQueryStates(homeFilterParsers);
+  const [{type, sort}, setHomeFilters] = useQueryStates({
+    type: homeFilterParsers.type,
+    sort: homeFilterParsers.sort,
+  });
 
   const pathCollectionId = pathname.startsWith("/collections/")
     ? decodeURIComponent(pathname.split("/")[2] ?? "") || null
     : null;
-  const tagFilter = pathCollectionId ? null : tag?.trim() || null;
+  const pathTagId = pathname.startsWith("/tags/")
+    ? decodeURIComponent(pathname.split("/")[2] ?? "") || null
+    : null;
+
+  const tagFilter = pathCollectionId ? null : pathTagId;
   const collectionFilter = pathCollectionId;
   const scope = getBookmarkWorkspaceScope({tagFilter, collectionFilter});
   const typeFilter = type;
 
   const handleTypeChange = (nextType: TypeFilter) => {
-    void setHomeFilters({type: nextType, id: null});
+    void setHomeFilters({type: nextType});
     resetViewOptions(getDefaultAllItemsView(nextType));
   };
 
   const handleSortChange = (nextSort: SortMode) => {
-    void setHomeFilters({sort: nextSort, id: null});
+    void setHomeFilters({sort: nextSort});
   };
 
   return {

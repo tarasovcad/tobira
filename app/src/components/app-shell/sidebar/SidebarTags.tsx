@@ -1,17 +1,17 @@
 "use client";
 
 import React, {useState} from "react";
-import Link from "next/link";
-import {useQueryState} from "nuqs";
+import {usePathname, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
-import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
-import {AnimatePresence} from "framer-motion";
+import {AnimatePresence, motion} from "framer-motion";
 import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import type {SidebarTag} from "@/features/home/types";
 import {useTagsQuery} from "@/features/home/hooks/use-home-metadata-query";
-import {homeFilterParsers} from "@/lib/query-params";
+import {SidebarSectionMenu} from "./SidebarSectionMenu";
+
+const SIDEBAR_TAG_LIMIT = 5;
 
 export type SidebarTagsType = SidebarTag[];
 
@@ -25,13 +25,20 @@ export function SidebarTags({allTags, userId}: {allTags?: SidebarTagsType; userI
 }
 
 function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetching: boolean}) {
-  const [tagParam] = useQueryState("tag", homeFilterParsers.tag);
+  const pathname = usePathname();
+  const router = useRouter();
   const openDeleteDialog = useDeleteTagDialogStore((state) => state.openDialog);
   const {copyText} = useClipboardCopy(2000, {toast: true});
 
   const [tagsExpanded, setTagsExpanded] = useState(true);
+  const [tagMenuOpen, setTagMenuOpen] = useState(false);
+  const [tagsSelectValue, setTagsSelectValue] = useState("5");
 
-  const activeTag = tagParam?.trim() || null;
+  const pathTagId = pathname.startsWith("/tags/")
+    ? decodeURIComponent(pathname.split("/")[2] ?? "")
+    : null;
+  const visibleTags = tags.slice(0, SIDEBAR_TAG_LIMIT);
+  const hasMoreTags = tags.length > SIDEBAR_TAG_LIMIT;
 
   return (
     <div className="px-3 pe-2">
@@ -79,25 +86,14 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
         </div>
 
         <div className="flex items-center">
-          {/*<SidebarSectionMenu
+          <SidebarSectionMenu
             open={tagMenuOpen}
             onOpenChange={setTagMenuOpen}
             selectValue={tagsSelectValue}
             onSelectValueChange={(v) => setTagsSelectValue(String(v))}
             ariaLabel="Tag options"
             triggerClassName="group-hover/tags:pointer-events-auto group-hover/tags:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
-          />*/}
-          <Link
-            href="/tags"
-            className={cn(
-              buttonVariants({variant: "ghost", size: "xs"}),
-              "text-muted-foreground hover:bg-foreground/5",
-              "pointer-events-none opacity-0 transition-opacity duration-150 ease-out",
-              "group-hover/tags:pointer-events-auto group-hover/tags:opacity-100",
-              "px-1.5 text-xs! normal-case focus-visible:pointer-events-auto focus-visible:opacity-100",
-            )}>
-            All
-          </Link>
+          />
         </div>
       </div>
       <div className="flex flex-col pb-2">
@@ -111,8 +107,8 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
           ))}
         <AnimatePresence initial={false}>
           {tagsExpanded &&
-            tags.map((tag, index) => {
-              const isActive = activeTag === tag.id;
+            visibleTags.map((tag, index) => {
+              const isActive = pathTagId === tag.id;
               return (
                 <SidebarTagItem
                   key={tag.id}
@@ -126,6 +122,46 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
                 />
               );
             })}
+          {tagsExpanded && hasMoreTags && (
+            <motion.div
+              initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
+              animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
+              exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+              transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
+              <button
+                type="button"
+                onClick={() => router.push("/tags")}
+                className={cn(
+                  "text-secondary bg-transparent",
+                  "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-[9px] text-sm font-medium",
+                  "hover:bg-muted hover:text-foreground transition-none!",
+                  "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                )}>
+                <span className="inline-flex size-5 shrink-0 items-center justify-center text-current">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M8.00033 9.33332C8.73671 9.33332 9.33366 8.73637 9.33366 7.99999C9.33366 7.26361 8.73671 6.66666 8.00033 6.66666C7.26395 6.66666 6.66699 7.26361 6.66699 7.99999C6.66699 8.73637 7.26395 9.33332 8.00033 9.33332Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M12.6663 9.33332C13.4027 9.33332 13.9997 8.73637 13.9997 7.99999C13.9997 7.26361 13.4027 6.66666 12.6663 6.66666C11.93 6.66666 11.333 7.26361 11.333 7.99999C11.333 8.73637 11.93 9.33332 12.6663 9.33332Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M3.33333 9.33332C4.06971 9.33332 4.66667 8.73637 4.66667 7.99999C4.66667 7.26361 4.06971 6.66666 3.33333 6.66666C2.59695 6.66666 2 7.26361 2 7.99999C2 8.73637 2.59695 9.33332 3.33333 9.33332Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+                <span>More</span>
+              </button>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
     </div>

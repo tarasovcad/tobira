@@ -58,20 +58,8 @@ export function areBookmarkWorkspaceScopesEqual(
 }
 
 export type SearchParams = {
-  tag?: string;
-  id?: string;
   type?: TypeFilter;
   sort?: SortMode;
-};
-
-export type TagsWithCountsRow = {
-  id: string;
-  name: string;
-  count: number | string | null;
-  description: string | null;
-  is_pinned: boolean;
-  created_at: string;
-  updated_at: string;
 };
 
 export type TagWithCount = {

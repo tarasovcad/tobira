@@ -14,12 +14,14 @@ import {toastManager} from "@/components/ui/coss/toast";
 import {Avatar} from "@/components/ui/app/avatar";
 import {Button, buttonVariants} from "@/components/ui/coss/button";
 import {serializeSettingsParams} from "@/lib/query-params";
+import {useFloatingHoverTooltip} from "@/lib/hooks/use-floating-hover-tooltip";
 
 export type AppShellSession = Session | null;
 
 export function Header({session}: {session: AppShellSession}) {
   const email = session?.user?.email ?? null;
   const router = useRouter();
+  const {getTriggerProps, tooltipRef, tooltipStyle, visible} = useFloatingHoverTooltip();
   const signOutMutation = useMutation({
     mutationFn: async () => {
       const res = await signOutAction();
@@ -42,6 +44,16 @@ export function Header({session}: {session: AppShellSession}) {
 
   return (
     <div className="bg-muted/30 flex items-center justify-between border-b px-6 py-3.5">
+      <div
+        ref={tooltipRef}
+        aria-hidden="true"
+        className="bg-popover text-foreground pointer-events-none fixed top-0 left-0 z-[9999] rounded-md border px-2.5 py-1 text-sm whitespace-nowrap"
+        style={{
+          ...tooltipStyle,
+          transform: `scale(${visible ? 1 : 0.98})`,
+        }}>
+        Coming soon
+      </div>
       <div className="text-foreground flex flex-1">
         <Link href="/home" aria-label="Go to home" className="hit-area-2! cursor-pointer">
           <svg
@@ -113,23 +125,6 @@ export function Header({session}: {session: AppShellSession}) {
             <MenuPopup align="end" className="w-44">
               <MenuItem
                 onClick={() => {
-                  router.push("/favorites");
-                }}>
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M11.3245 1.66454C10.7912 0.556155 9.20781 0.556155 8.67456 1.66454L6.86368 5.42816C6.83245 5.49308 6.76926 5.5397 6.69416 5.54952L2.52885 6.09405C1.30664 6.25383 0.806898 7.75978 1.71091 8.61084L4.75525 11.4769C4.80877 11.5273 4.83199 11.6 4.81892 11.67L4.05425 15.7654C3.82669 16.9843 5.11807 17.9028 6.1972 17.322L9.89373 15.3323C9.95956 15.2968 10.0395 15.2968 10.1053 15.3323L13.8018 17.322C14.881 17.9028 16.1724 16.9843 15.9448 15.7654L15.1801 11.67C15.1671 11.6 15.1903 11.5273 15.2438 11.4769L18.2881 8.61084C19.1921 7.75978 18.6924 6.25383 17.4702 6.09405L13.3049 5.54952C13.2298 5.5397 13.1666 5.49308 13.1354 5.42816L11.3245 1.66454Z"
-                    fill="currentColor"
-                  />
-                </svg>
-                Favorites
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
                   router.push(serializeSettingsParams("/settings", {tab: "general"}));
                 }}>
                 <svg
@@ -147,6 +142,100 @@ export function Header({session}: {session: AppShellSession}) {
                 </svg>
                 Settings
               </MenuItem>
+              <div {...getTriggerProps()}>
+                <MenuItem disabled>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M8 1.33334C5.40401 1.33334 3.26405 3.36898 3.13441 5.96173L3.02179 8.21421C3.01257 8.39848 2.96521 8.57888 2.88269 8.74394L2.12732 10.2547C2.04359 10.4221 2 10.6067 2 10.794C2 11.4601 2.53995 12 3.20601 12H4.73335C5.04219 13.5215 6.38736 14.6667 8 14.6667C9.61267 14.6667 10.9578 13.5215 11.2667 12H12.794C13.4601 12 14 11.4601 14 10.794C14 10.6067 13.9564 10.4221 13.8727 10.2547L13.1173 8.74394C13.0348 8.57888 12.9874 8.39848 12.9782 8.21421L12.8656 5.96173C12.7359 3.36898 10.596 1.33334 8 1.33334ZM8 13.3333C7.1292 13.3333 6.38836 12.7768 6.11381 12H9.8862C9.61167 12.7768 8.8708 13.3333 8 13.3333Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  Notifications
+                </MenuItem>
+              </div>
+              <div {...getTriggerProps()}>
+                <MenuItem disabled>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M8.33333 12.0123V13C8.33333 13.9205 7.58713 14.6667 6.66667 14.6667C5.74621 14.6667 5.00002 13.9205 5 13V11H6.71287L8.33333 12.0123Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M10.8034 2.28971C11.4694 1.87345 12.3332 2.35205 12.3333 3.13736V11.5293C12.3332 12.3146 11.4694 12.7931 10.8034 12.3769L7 10V4.66666L10.8034 2.28971Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M6 10H3.66667C2.19392 10 1.00002 8.80607 1 7.33334C1 5.86056 2.19391 4.66666 3.66667 4.66666H6V10Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M13.333 6C14.2535 6 14.9997 6.74621 14.9997 7.66668C14.9997 8.58715 14.2535 9.33335 13.333 9.33335V6Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  Feedback
+                </MenuItem>
+              </div>
+              <div {...getTriggerProps()}>
+                <MenuItem disabled>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M12.8607 9.17707C12.947 8.81927 13.3069 8.5994 13.6647 8.68553C14.0225 8.77193 14.2431 9.13173 14.1569 9.4896C13.4868 12.2682 10.9853 14.3332 8.00001 14.3333C6.15241 14.3333 4.49055 13.5413 3.33333 12.2806V13C3.33333 13.3681 3.03479 13.6666 2.66667 13.6667C2.29847 13.6667 2 13.3682 2 13V10.6667C2 10.2985 2.29847 10 2.66667 10H5C5.36813 10.0001 5.66667 10.2985 5.66667 10.6667C5.66667 11.0348 5.36813 11.3333 5 11.3333H4.27344C5.18953 12.3568 6.51987 13 8.00001 13C10.3551 12.9999 12.3316 11.3707 12.8607 9.17707Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M8.00033 5.66667C8.36847 5.66674 8.667 5.96519 8.667 6.33333V7.33333H9.667C10.0351 7.3334 10.3337 7.63187 10.3337 8C10.3337 8.36813 10.0351 8.6666 9.667 8.66667H8.667V9.66667C8.667 10.0348 8.36847 10.3333 8.00033 10.3333C7.63213 10.3333 7.33367 10.0349 7.33367 9.66667V8.66667H6.33366C5.96547 8.66667 5.66699 8.3682 5.66699 8C5.66699 7.6318 5.96547 7.33333 6.33366 7.33333H7.33367V6.33333C7.33367 5.96515 7.63213 5.66667 8.00033 5.66667Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M7.99987 1.66667C9.84734 1.66676 11.5095 2.45817 12.6665 3.71875V3C12.6665 2.63181 12.965 2.33333 13.3332 2.33333C13.7013 2.33341 13.9999 2.63185 13.9999 3V5.33333C13.9999 5.70148 13.7013 5.99993 13.3332 6H10.9999C10.6317 6 10.3332 5.70152 10.3332 5.33333C10.3332 4.96515 10.6317 4.66667 10.9999 4.66667H11.7238C10.8078 3.64381 9.47941 3.00009 7.99987 3C5.64455 3 3.66761 4.62917 3.13854 6.82293C3.05222 7.1808 2.69238 7.40067 2.3345 7.31447C1.97659 7.22813 1.75665 6.86833 1.84297 6.51041C2.51313 3.73171 5.01449 1.66667 7.99987 1.66667Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  Changelog
+                </MenuItem>
+              </div>
+              <div {...getTriggerProps()}>
+                <MenuItem disabled>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M12.8607 9.17707C12.947 8.81927 13.3069 8.5994 13.6647 8.68553C14.0225 8.77193 14.2431 9.13173 14.1569 9.4896C13.4868 12.2682 10.9853 14.3332 8.00001 14.3333C6.15241 14.3333 4.49055 13.5413 3.33333 12.2806V13C3.33333 13.3681 3.03479 13.6666 2.66667 13.6667C2.29847 13.6667 2 13.3682 2 13V10.6667C2 10.2985 2.29847 10 2.66667 10H5C5.36813 10.0001 5.66667 10.2985 5.66667 10.6667C5.66667 11.0348 5.36813 11.3333 5 11.3333H4.27344C5.18953 12.3568 6.51987 13 8.00001 13C10.3551 12.9999 12.3316 11.3707 12.8607 9.17707Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M8.00033 5.66667C8.36847 5.66674 8.667 5.96519 8.667 6.33333V7.33333H9.667C10.0351 7.3334 10.3337 7.63187 10.3337 8C10.3337 8.36813 10.0351 8.6666 9.667 8.66667H8.667V9.66667C8.667 10.0348 8.36847 10.3333 8.00033 10.3333C7.63213 10.3333 7.33367 10.0349 7.33367 9.66667V8.66667H6.33366C5.96547 8.66667 5.66699 8.3682 5.66699 8C5.66699 7.6318 5.96547 7.33333 6.33366 7.33333H7.33367V6.33333C7.33367 5.96515 7.63213 5.66667 8.00033 5.66667Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M7.99987 1.66667C9.84734 1.66676 11.5095 2.45817 12.6665 3.71875V3C12.6665 2.63181 12.965 2.33333 13.3332 2.33333C13.7013 2.33341 13.9999 2.63185 13.9999 3V5.33333C13.9999 5.70148 13.7013 5.99993 13.3332 6H10.9999C10.6317 6 10.3332 5.70152 10.3332 5.33333C10.3332 4.96515 10.6317 4.66667 10.9999 4.66667H11.7238C10.8078 3.64381 9.47941 3.00009 7.99987 3C5.64455 3 3.66761 4.62917 3.13854 6.82293C3.05222 7.1808 2.69238 7.40067 2.3345 7.31447C1.97659 7.22813 1.75665 6.86833 1.84297 6.51041C2.51313 3.73171 5.01449 1.66667 7.99987 1.66667Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  Shortcuts
+                </MenuItem>
+              </div>
               <MenuSeparator />
               <MenuItem
                 variant="destructive"

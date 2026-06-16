@@ -4,13 +4,11 @@ import {ContextMenu, ContextMenuTrigger} from "@/components/ui/legacy-shadcn/con
 import {motion} from "framer-motion";
 import NumberFlow from "@number-flow/react";
 import {CollectionContextMenuContent, TagContextMenuContent} from "./SidebarMenus";
-import {usePathname, useRouter} from "next/navigation";
-import {useQueryStates} from "nuqs";
+import {useRouter} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/features/home/types";
 import {Skeleton} from "@/components/ui/app/skeleton";
 import {useHasMounted} from "@/lib/hooks/use-has-mounted";
-import {homeFilterParsers, serializeHomeParams} from "@/lib/query-params";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (
@@ -135,17 +133,10 @@ export function SidebarTagItem({
   onContextMenuDelete,
 }: SidebarTagItemProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const [, setHomeFilters] = useQueryStates(homeFilterParsers);
   const hasMounted = useHasMounted();
 
   const openTag = () => {
-    if (pathname === "/home") {
-      void setHomeFilters({tag: tag.id, id: null}, {history: "push"});
-      return;
-    }
-
-    router.push(serializeHomeParams("/home", {tag: tag.id}));
+    router.push(`/tags/${tag.id}`);
   };
 
   return (
@@ -177,12 +168,12 @@ export function SidebarTagItem({
             "cursor-pointer justify-between",
             "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
-          <div className="flex items-center">
-            <span className="flex items-center gap-0.5 text-sm font-medium">
+          <div className="flex min-w-0 flex-1 items-center">
+            <span className="flex min-w-0 items-center gap-0.5 text-sm font-medium">
               <span className="inline-flex size-5 shrink-0 items-center justify-center text-current">
                 #
               </span>
-              {tag.name}
+              <span className="truncate">{tag.name}</span>
             </span>
           </div>
           <div className="flex items-center gap-1.5">

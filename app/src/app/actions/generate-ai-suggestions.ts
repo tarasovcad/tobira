@@ -10,7 +10,7 @@ import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 const MAX_AI_TAG_SUGGESTIONS = 10;
 const DEFAULT_AI_TAG_SUGGESTIONS = 5;
-const MAX_TAG_LENGTH = 64;
+const MAX_TAG_LENGTH = 50;
 
 const aiTagSuggestionsSchema = z.object({
   suggestions: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(MAX_AI_TAG_SUGGESTIONS),

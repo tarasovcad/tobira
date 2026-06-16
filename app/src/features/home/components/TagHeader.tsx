@@ -25,7 +25,7 @@ export function TagHeader({activeTag, currentTotalCount}: TagHeaderProps) {
   return (
     <div className="border-b px-6 py-8">
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-0.5">
+        <div className="space-y-1">
           <h1 className="text-foreground text-[22px] font-[550]">#{activeTag.name}</h1>
           {activeTag.description && (
             <p className="text-muted-foreground text-sm">{activeTag.description}</p>

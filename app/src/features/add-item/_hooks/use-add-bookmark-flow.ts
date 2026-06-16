@@ -28,11 +28,13 @@ export function useAddBookmarkFlow({
   isAuthenticated,
   defaultType = "website",
   defaultCollectionId = null,
+  defaultTagNames = [],
 }: {
   userId?: string;
   isAuthenticated: boolean;
   defaultType?: AddBookmarkFormValues["type"];
   defaultCollectionId?: string | null;
+  defaultTagNames?: string[];
 }) {
   const router = useRouter();
   const open = useAddItemDialogStore((state) => state.isOpen);
@@ -64,7 +66,7 @@ export function useAddBookmarkFlow({
     resolver: zodResolver(addBookmarkSchema),
     defaultValues: {
       url: "",
-      tags: [],
+      tags: [...defaultTagNames],
       collectionId: defaultCollectionId,
       type: defaultType,
     },
@@ -127,7 +129,12 @@ export function useAddBookmarkFlow({
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       setTimeout(() => {
-        reset({url: "", tags: [], collectionId: defaultCollectionId, type: defaultType});
+        reset({
+          url: "",
+          tags: [...defaultTagNames],
+          collectionId: defaultCollectionId,
+          type: defaultType,
+        });
         setStep(1);
         setMediaItems([]);
         setSelectedMediaUrls([]);
@@ -190,7 +197,12 @@ export function useAddBookmarkFlow({
   );
 
   const resetLocalState = () => {
-    reset({url: "", tags: [], collectionId: defaultCollectionId, type: defaultType});
+    reset({
+      url: "",
+      tags: [...defaultTagNames],
+      collectionId: defaultCollectionId,
+      type: defaultType,
+    });
     setStep(1);
     setMediaItems([]);
     setSelectedMediaUrls([]);

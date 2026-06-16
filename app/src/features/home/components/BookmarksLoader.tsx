@@ -73,6 +73,7 @@ export function BookmarksLoader({
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {(tagFilter || collectionFilter) && !isPostDetailOpen && <HeaderSkeleton />}
+
       {!isPostDetailOpen && (
         <HomeToolbar
           typeFilter={typeFilter}

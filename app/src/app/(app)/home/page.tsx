@@ -1,16 +1,16 @@
 import {Suspense} from "react";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
-import {
-  getBookmarkWorkspaceScope,
-  type SearchParams,
-  type SortMode,
-  type TypeFilter,
-} from "@/features/home/types";
+import {type SearchParams, type SortMode, type TypeFilter} from "@/features/home/types";
 import {BookmarkWorkspaceDataWrapper} from "@/features/home/components/BookmarkWorkspaceDataWrapper";
 import {BookmarksLoader} from "@/features/home/components/BookmarksLoader";
 import {BookmarkWorkspaceClient} from "@/features/home/components/BookmarkWorkspaceClient";
 import {AddBookmarkDialog} from "@/features/add-item/AddBookmarkDialog";
+
+const resolveSortFilter = (sortParam?: string): SortMode => {
+  if (sortParam === "oldest" || sortParam === "az") return sortParam;
+  return "recent";
+};
 
 const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   const searchParams = await props.searchParams;
@@ -33,8 +33,7 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
   }
 
   const userId = session.user.id;
-  const tagFilter = searchParams?.tag?.trim() || null;
-  const scope = getBookmarkWorkspaceScope({tagFilter, collectionFilter: null});
+  const scope = {kind: "all"} as const;
   const typeFilter = (
     searchParams?.type === "media" ? "media" : searchParams?.type === "post" ? "post" : "website"
   ) as TypeFilter;
@@ -52,10 +51,10 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
       <Suspense
         fallback={
           <BookmarksLoader
-            showCount={!tagFilter}
+            showCount={true}
             typeFilter={typeFilter}
             sort={sortFilter}
-            tagFilter={tagFilter}
+            tagFilter={null}
             collectionFilter={null}
           />
         }>
@@ -63,11 +62,6 @@ const AllItems = async (props: {searchParams?: Promise<SearchParams>}) => {
       </Suspense>
     </>
   );
-};
-
-const resolveSortFilter = (sortParam?: string): SortMode => {
-  if (sortParam === "oldest" || sortParam === "az") return sortParam;
-  return "recent";
 };
 
 export default AllItems;

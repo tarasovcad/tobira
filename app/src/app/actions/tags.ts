@@ -156,6 +156,88 @@ export async function getTagById(tagId: string, userId?: string): Promise<TagWit
   return tag ? mapTagWithCount(tag) : null;
 }
 
+export type TagsOverviewData = {
+  tags: {
+    id: string;
+    name: string;
+    description: string | null;
+    isPinned: boolean;
+    createdAt: string;
+    updatedAt: string | null;
+    itemCount: number;
+  }[];
+  stats: {
+    tagCount: number;
+    taggedItemCount: number;
+    updatedThisWeekCount: number;
+  };
+};
+
+export async function getTagsOverview(userId?: string): Promise<TagsOverviewData> {
+  const currentUserId = await getCurrentUserId();
+
+  if (!currentUserId) {
+    return {
+      tags: [],
+      stats: {tagCount: 0, taggedItemCount: 0, updatedThisWeekCount: 0},
+    };
+  }
+
+  if (userId && userId !== currentUserId) {
+    throw new UnauthorizedError();
+  }
+
+  const data = await db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      description: tags.description,
+      isPinned: tags.isPinned,
+      createdAt: tags.createdAt,
+      updatedAt: tags.updatedAt,
+      itemCount: count(bookmarks.id),
+    })
+    .from(tags)
+    .leftJoin(bookmarkTags, eq(tags.id, bookmarkTags.tagId))
+    .leftJoin(
+      bookmarks,
+      and(
+        eq(bookmarkTags.bookmarkId, bookmarks.id),
+        eq(bookmarks.userId, tags.userId),
+        isNull(bookmarks.archivedAt),
+        isNull(bookmarks.deletedAt),
+      ),
+    )
+    .where(eq(tags.userId, currentUserId))
+    .groupBy(tags.id)
+    .orderBy(desc(tags.isPinned), asc(tags.name));
+
+  const tagItems = data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description ?? null,
+    isPinned: !!row.isPinned,
+    createdAt: row.createdAt ?? "",
+    updatedAt: row.updatedAt ?? null,
+    itemCount: Number(row.itemCount),
+  }));
+
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const taggedItemCount = tagItems.reduce((sum, tag) => sum + tag.itemCount, 0);
+  const updatedThisWeekCount = tagItems.filter(
+    (tag) => tag.updatedAt && Date.now() - Date.parse(tag.updatedAt) <= weekMs,
+  ).length;
+
+  return {
+    tags: tagItems,
+    stats: {
+      tagCount: tagItems.length,
+      taggedItemCount,
+      updatedThisWeekCount,
+    },
+  };
+}
+
 export async function deleteTags(tagIds: string | string[]): Promise<{ok: true}> {
   const userId = await requireAuthenticatedUserId();
   const ids = Array.isArray(tagIds) ? tagIds : [tagIds];

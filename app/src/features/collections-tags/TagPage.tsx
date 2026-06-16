@@ -12,7 +12,6 @@ import {Button} from "@/components/ui/coss/button";
 import {Checkbox} from "@/components/ui/coss/checkbox";
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -27,31 +26,30 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/legacy-shadcn/context-menu";
-import {toggleCollectionPin, type Collection} from "@/app/actions/collections";
+import {toggleTagPin} from "@/app/actions/tags";
+import type {TagWithCount, SidebarTag} from "@/features/home/types";
 import {toastManager} from "@/components/ui/coss/toast";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useFloatingHoverTooltip} from "@/lib/hooks/use-floating-hover-tooltip";
-import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
-import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
-import type {CollectionColor} from "@/db/schema";
-import {collectionSearchParser} from "@/lib/query-params";
+import {useTagDialogStore} from "@/store/use-tag-dialog-store";
+import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
+import {tagSearchParser} from "@/lib/query-params";
 import {cn} from "@/lib/utils";
 
-export type CollectionPageData = {
-  collections: CollectionPageItem[];
+export type TagPageData = {
+  tags: TagPageItem[];
   stats: {
-    collectionCount: number;
-    savedItemCount: number;
+    tagCount: number;
+    taggedItemCount: number;
     updatedThisWeekCount: number;
   };
 };
 
-export type CollectionPageItem = {
+export type TagPageItem = {
   id: string;
   name: string;
   description: string | null;
-  color: CollectionColor | null;
   isPinned: boolean;
   createdAt: string;
   updatedAt: string | null;
@@ -59,69 +57,62 @@ export type CollectionPageItem = {
 };
 
 const selectionModeCheckboxClass =
-  "group-data-[selection-mode=true]/collection-row:grid-cols-[1fr] group-data-[selection-mode=true]/collection-row:opacity-100";
+  "group-data-[selection-mode=true]/tag-row:grid-cols-[1fr] group-data-[selection-mode=true]/tag-row:opacity-100";
 
-type CollectionStat = {
+type TagStat = {
   label: string;
   value: string;
 };
 
-type CollectionPageProps = {
-  data: CollectionPageData;
+type TagPageProps = {
+  data: TagPageData;
 };
 
-function createCollectionSlug(name: string) {
+function createTagSlug(name: string) {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
 
-function collectionMatchesQuery(collection: CollectionPageItem, rawQuery: string) {
+function tagMatchesQuery(tag: TagPageItem, rawQuery: string) {
   const query = rawQuery.trim().toLowerCase();
   if (!query) return true;
 
-  return [
-    collection.name,
-    createCollectionSlug(collection.name),
-    collection.description ?? "",
-  ].some((value) => value.toLowerCase().includes(query));
+  return [tag.name, createTagSlug(tag.name), tag.description ?? ""].some((value) =>
+    value.toLowerCase().includes(query),
+  );
 }
 
-function toDialogCollection(collection: CollectionPageItem): Collection {
+function toDialogTag(tag: TagPageItem): TagWithCount {
   return {
-    id: collection.id,
-    name: collection.name,
-    description: collection.description,
-    color: collection.color,
-    is_pinned: collection.isPinned,
-    created_at: collection.createdAt,
+    id: tag.id,
+    name: tag.name,
+    count: tag.itemCount,
+    description: tag.description,
+    is_pinned: tag.isPinned,
+    created_at: tag.createdAt,
+    updated_at: tag.updatedAt ?? tag.createdAt,
   };
 }
 
-function sortCollectionPageItems(collections: CollectionPageItem[]) {
-  return [...collections].sort((a, b) => {
+function sortTagPageItems(tags: TagPageItem[]) {
+  return [...tags].sort((a, b) => {
     if (a.isPinned !== b.isPinned) {
       return a.isPinned ? -1 : 1;
     }
 
-    const createdAtDiff = (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
-    if (createdAtDiff !== 0) return createdAtDiff;
-
-    return b.id.localeCompare(a.id);
+    return a.name.localeCompare(b.name);
   });
 }
 
-function sortSidebarCollections(collections: Collection[]) {
-  return [...collections].sort((a, b) => {
+function sortSidebarTags(tags: SidebarTag[]) {
+  return [...tags].sort((a, b) => {
     if (a.is_pinned !== b.is_pinned) {
       return a.is_pinned ? -1 : 1;
     }
 
-    const createdAtDiff = (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0);
-    if (createdAtDiff !== 0) return createdAtDiff;
-
-    return b.id.localeCompare(a.id);
+    return a.name.localeCompare(b.name);
   });
 }
 
@@ -129,182 +120,171 @@ function isInteractiveChild(target: EventTarget | null) {
   return target instanceof HTMLElement && !!target.closest("a, button, input, select, textarea");
 }
 
-function getStatsAfterCollectionsDeleted(
-  stats: CollectionPageData["stats"],
-  deletedCollections: CollectionPageItem[],
-): CollectionPageData["stats"] {
-  const deletedItemCount = deletedCollections.reduce(
-    (sum, collection) => sum + collection.itemCount,
-    0,
-  );
+function getStatsAfterTagsDeleted(
+  stats: TagPageData["stats"],
+  deletedTags: TagPageItem[],
+): TagPageData["stats"] {
+  const deletedItemCount = deletedTags.reduce((sum, tag) => sum + tag.itemCount, 0);
   const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const deletedUpdatedThisWeekCount = deletedCollections.filter(
-    (collection) => collection.updatedAt && Date.now() - Date.parse(collection.updatedAt) <= weekMs,
+  const deletedUpdatedThisWeekCount = deletedTags.filter(
+    (tag) => tag.updatedAt && Date.now() - Date.parse(tag.updatedAt) <= weekMs,
   ).length;
 
   return {
-    collectionCount: Math.max(0, stats.collectionCount - deletedCollections.length),
-    savedItemCount: Math.max(0, stats.savedItemCount - deletedItemCount),
+    tagCount: Math.max(0, stats.tagCount - deletedTags.length),
+    taggedItemCount: Math.max(0, stats.taggedItemCount - deletedItemCount),
     updatedThisWeekCount: Math.max(0, stats.updatedThisWeekCount - deletedUpdatedThisWeekCount),
   };
 }
 
-function getCollectionStats(stats: CollectionPageData["stats"]): CollectionStat[] {
+function getTagStats(stats: TagPageData["stats"]): TagStat[] {
   return [
-    {label: "Collections", value: String(stats.collectionCount)},
-    {label: "Saved items", value: String(stats.savedItemCount)},
+    {label: "Tags", value: String(stats.tagCount)},
+    {label: "Tagged items", value: String(stats.taggedItemCount)},
     {label: "Updated this week", value: String(stats.updatedThisWeekCount)},
   ];
 }
 
-export default function CollectionPage({data}: CollectionPageProps) {
-  const collectionsKey = data.collections
+export default function TagPage({data}: TagPageProps) {
+  const tagsKey = data.tags
     .map(
-      (collection) =>
-        `${collection.id}:${collection.name}:${collection.description ?? ""}:${collection.color?.hex ?? ""}:${collection.color?.opacity ?? ""}:${collection.isPinned}:${collection.createdAt}:${collection.updatedAt ?? ""}:${collection.itemCount}`,
+      (tag) =>
+        `${tag.id}:${tag.name}:${tag.description ?? ""}:${tag.isPinned}:${tag.createdAt}:${tag.updatedAt ?? ""}:${tag.itemCount}`,
     )
     .join("|");
-  const statsKey = `${data.stats.collectionCount}:${data.stats.savedItemCount}:${data.stats.updatedThisWeekCount}`;
+  const statsKey = `${data.stats.tagCount}:${data.stats.taggedItemCount}:${data.stats.updatedThisWeekCount}`;
 
-  return <CollectionPageContent key={`${collectionsKey}:${statsKey}`} data={data} />;
+  return <TagPageContent key={`${tagsKey}:${statsKey}`} data={data} />;
 }
 
-function CollectionPageContent({data}: CollectionPageProps) {
+function TagPageContent({data}: TagPageProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const {getTriggerProps, tooltipRef, tooltipStyle, visible} = useFloatingHoverTooltip();
-  const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
-  const openDeleteCollectionDialog = useDeleteCollectionDialogStore((state) => state.openDialog);
+  const openTagDialog = useTagDialogStore((state) => state.openDialog);
+  const openDeleteTagDialog = useDeleteTagDialogStore((state) => state.openDialog);
   const {copyText} = useClipboardCopy(2000, {toast: true});
-  const [collectionStats, setCollectionStats] = useState(data.stats);
-  const [collections, setCollections] = useState(data.collections);
-  const [searchQuery, setSearchQuery] = useQueryState("search", collectionSearchParser);
+  const [tagStats, setTagStats] = useState(data.stats);
+  const [tags, setTags] = useState(data.tags);
+  const [searchQuery, setSearchQuery] = useQueryState("search", tagSearchParser);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedCollectionIds, setSelectedCollectionIds] = useState<Set<string>>(new Set());
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const trimmedSearchQuery = searchQuery.trim();
-  const filteredCollections = useMemo(
-    () => collections.filter((collection) => collectionMatchesQuery(collection, searchQuery)),
-    [collections, searchQuery],
+  const filteredTags = useMemo(
+    () => tags.filter((tag) => tagMatchesQuery(tag, searchQuery)),
+    [tags, searchQuery],
   );
-  const collectionCountLabel = trimmedSearchQuery
-    ? `${filteredCollections.length} of ${collections.length}`
-    : String(collections.length);
-  const selectedCollectionCount = selectedCollectionIds.size;
-  const allFilteredCollectionsSelected = filteredCollections.length
-    ? filteredCollections.every((collection) => selectedCollectionIds.has(collection.id))
+  const tagCountLabel = trimmedSearchQuery
+    ? `${filteredTags.length} of ${tags.length}`
+    : String(tags.length);
+  const selectedTagCount = selectedTagIds.size;
+  const allFilteredTagsSelected = filteredTags.length
+    ? filteredTags.every((tag) => selectedTagIds.has(tag.id))
     : false;
-  const stats = getCollectionStats(collectionStats);
+  const stats = getTagStats(tagStats);
 
   const handleSelectionModeChange = (enabled: boolean) => {
     setSelectionMode(enabled);
     if (!enabled) {
-      setSelectedCollectionIds(new Set());
+      setSelectedTagIds(new Set());
     }
   };
 
   const handleClearSelection = () => {
-    setSelectedCollectionIds(new Set());
+    setSelectedTagIds(new Set());
     setSelectionMode(false);
   };
 
-  const handleSelectAllCollections = () => {
-    setSelectedCollectionIds((prev) => {
+  const handleSelectAllTags = () => {
+    setSelectedTagIds((prev) => {
       const next = new Set(prev);
 
-      if (allFilteredCollectionsSelected) {
-        filteredCollections.forEach((collection) => next.delete(collection.id));
+      if (allFilteredTagsSelected) {
+        filteredTags.forEach((tag) => next.delete(tag.id));
       } else {
-        filteredCollections.forEach((collection) => next.add(collection.id));
+        filteredTags.forEach((tag) => next.add(tag.id));
       }
 
       return next;
     });
   };
 
-  const handleToggleCollectionSelection = (collectionId: string) => {
-    setSelectedCollectionIds((prev) => {
+  const handleToggleTagSelection = (tagId: string) => {
+    setSelectedTagIds((prev) => {
       const next = new Set(prev);
-      if (next.has(collectionId)) {
-        next.delete(collectionId);
+      if (next.has(tagId)) {
+        next.delete(tagId);
       } else {
-        next.add(collectionId);
+        next.add(tagId);
       }
       return next;
     });
   };
 
-  const handleSelectCollection = (collectionId: string, checked: boolean) => {
-    setSelectedCollectionIds((prev) => {
+  const handleSelectTag = (tagId: string, checked: boolean) => {
+    setSelectedTagIds((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(collectionId);
-      else next.delete(collectionId);
+      if (checked) next.add(tagId);
+      else next.delete(tagId);
       return next;
     });
   };
 
-  const handleDeleteSelectedCollections = () => {
-    const selectedCollections = collections.filter((collection) =>
-      selectedCollectionIds.has(collection.id),
-    );
-    const selectedIds = new Set(selectedCollectionIds);
+  const handleDeleteSelectedTags = () => {
+    const selectedTags = tags.filter((tag) => selectedTagIds.has(tag.id));
+    const selectedIds = new Set(selectedTagIds);
 
-    if (selectedCollections.length === 0) return;
+    if (selectedTags.length === 0) return;
 
-    openDeleteCollectionDialog(selectedCollections, () => {
-      setCollections((prev) => prev.filter((collection) => !selectedIds.has(collection.id)));
-      setCollectionStats((prev) => getStatsAfterCollectionsDeleted(prev, selectedCollections));
+    openDeleteTagDialog(selectedTags, () => {
+      setTags((prev) => prev.filter((tag) => !selectedIds.has(tag.id)));
+      setTagStats((prev) => getStatsAfterTagsDeleted(prev, selectedTags));
       handleClearSelection();
       router.refresh();
     });
   };
 
-  const handleOpenCollection = (collection: CollectionPageItem) => {
-    router.push(`/collections/${collection.id}`);
+  const handleOpenTag = (tag: TagPageItem) => {
+    router.push(`/tags/${tag.id}`);
   };
 
-  const handleEditCollection = (collection: CollectionPageItem) => {
-    openCollectionDialog(toDialogCollection(collection));
+  const handleEditTag = (tag: TagPageItem) => {
+    openTagDialog(toDialogTag(tag));
   };
 
-  const handleCopyCollection = (collection: CollectionPageItem) => {
-    void copyText(collection.name, collection.id);
+  const handleCopyTag = (tag: TagPageItem) => {
+    void copyText(tag.name, tag.id);
   };
 
-  const handleToggleCollectionPin = async (collection: CollectionPageItem) => {
-    const previousCollections = collections;
-    const previousCollectionQueries = queryClient.getQueriesData<Collection[]>({
-      queryKey: homeMetadataKeys.collectionsRoot,
+  const handleToggleTagPin = async (tag: TagPageItem) => {
+    const previousTags = tags;
+    const previousTagQueries = queryClient.getQueriesData<SidebarTag[]>({
+      queryKey: homeMetadataKeys.tagsRoot,
     });
-    const isPinned = !collection.isPinned;
+    const isPinned = !tag.isPinned;
 
-    setCollections((prev) =>
-      sortCollectionPageItems(
-        prev.map((item) => (item.id === collection.id ? {...item, isPinned} : item)),
-      ),
+    setTags((prev) =>
+      sortTagPageItems(prev.map((item) => (item.id === tag.id ? {...item, isPinned} : item))),
     );
-    queryClient.setQueriesData<Collection[]>(
-      {queryKey: homeMetadataKeys.collectionsRoot},
-      (prev) =>
-        prev
-          ? sortSidebarCollections(
-              prev.map((item) =>
-                item.id === collection.id ? {...item, is_pinned: isPinned} : item,
-              ),
-            )
-          : prev,
+    queryClient.setQueriesData<SidebarTag[]>({queryKey: homeMetadataKeys.tagsRoot}, (prev) =>
+      prev
+        ? sortSidebarTags(
+            prev.map((item) => (item.id === tag.id ? {...item, is_pinned: isPinned} : item)),
+          )
+        : prev,
     );
 
     try {
-      await toggleCollectionPin(collection.id, isPinned);
-      void queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
+      await toggleTagPin(tag.id, isPinned);
+      void queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       router.refresh();
       toastManager.add({
-        title: collection.isPinned ? "Collection unpinned" : "Collection pinned",
+        title: tag.isPinned ? "Tag unpinned" : "Tag pinned",
         type: "success",
       });
     } catch (error) {
-      setCollections(previousCollections);
-      previousCollectionQueries.forEach(([queryKey, queryData]) => {
+      setTags(previousTags);
+      previousTagQueries.forEach(([queryKey, queryData]) => {
         queryClient.setQueryData(queryKey, queryData);
       });
       toastManager.add({
@@ -315,13 +295,13 @@ function CollectionPageContent({data}: CollectionPageProps) {
     }
   };
 
-  const handleDeleteCollection = (collection: CollectionPageItem) => {
-    openDeleteCollectionDialog([collection], () => {
-      setCollections((prev) => prev.filter((item) => item.id !== collection.id));
-      setCollectionStats((prev) => getStatsAfterCollectionsDeleted(prev, [collection]));
-      setSelectedCollectionIds((prev) => {
+  const handleDeleteTag = (tag: TagPageItem) => {
+    openDeleteTagDialog([tag], () => {
+      setTags((prev) => prev.filter((item) => item.id !== tag.id));
+      setTagStats((prev) => getStatsAfterTagsDeleted(prev, [tag]));
+      setSelectedTagIds((prev) => {
         const next = new Set(prev);
-        next.delete(collection.id);
+        next.delete(tag.id);
         return next;
       });
       router.refresh();
@@ -362,29 +342,13 @@ function CollectionPageContent({data}: CollectionPageProps) {
           <div className="px-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <PageHeader
-                title="Collections"
-                description="Organize your bookmarks into logical groups for better structure and discoverability."
+                title="Tags"
+                description="Keep your growing library in order with custom tags that make every bookmark findable."
               />
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="w-fit" onClick={() => openCollectionDialog()}>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M1.3335 7.99999C1.3335 4.31809 4.31826 1.33333 8.00016 1.33333C11.682 1.33333 14.6668 4.31809 14.6668 7.99999C14.6668 11.6819 11.682 14.6667 8.00016 14.6667C4.31826 14.6667 1.3335 11.6819 1.3335 7.99999ZM10.6668 8.66659C11.035 8.66659 11.3335 8.36813 11.3335 7.99993C11.3335 7.63173 11.035 7.33326 10.6668 7.33326L8.66683 7.33333V5.33341C8.66683 4.96522 8.36836 4.66674 8.00016 4.66674C7.63196 4.66674 7.3335 4.96522 7.3335 5.33341V7.33333L5.33348 7.33339C4.96529 7.33339 4.66682 7.63193 4.66683 8.00006C4.66684 8.36826 4.96532 8.66673 5.33352 8.66673L7.3335 8.66666V10.6667C7.3335 11.0349 7.63196 11.3333 8.00016 11.3333C8.36836 11.3333 8.66683 11.0349 8.66683 10.6667V8.66666L10.6668 8.66659Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  Add collection
-                </Button>
                 <Menu>
                   <MenuTrigger
-                    aria-label="Collection actions"
+                    aria-label="Tag actions"
                     render={<Button variant="outline" size="icon" className="w-fit" />}>
                     <svg
                       width="16"
@@ -416,7 +380,7 @@ function CollectionPageContent({data}: CollectionPageProps) {
                             fill="currentColor"
                           />
                         </svg>
-                        Import collections
+                        Import tags
                       </MenuItem>
                     </div>
                     <div {...getTriggerProps()}>
@@ -443,7 +407,7 @@ function CollectionPageContent({data}: CollectionPageProps) {
                             </clipPath>
                           </defs>
                         </svg>
-                        Suggest collections
+                        Suggest tags
                       </MenuItem>
                     </div>
                     <div {...getTriggerProps()}>
@@ -470,88 +434,47 @@ function CollectionPageContent({data}: CollectionPageProps) {
                         Auto-organize
                       </MenuItem>
                     </div>
-                    <div {...getTriggerProps()}>
-                      <MenuItem disabled>
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M14 10.1608C14 10.6975 14.0002 11.1405 13.9707 11.5013C13.9401 11.876 13.8745 12.2207 13.7097 12.5443C13.454 13.0459 13.0459 13.454 12.5443 13.7097C12.2207 13.8745 11.876 13.9401 11.5013 13.9707C11.1405 14.0002 10.6975 14 10.1608 14H5.83919C5.30254 14 4.8595 14.0002 4.4987 13.9707C4.12399 13.9401 3.77927 13.8745 3.45573 13.7097C2.95406 13.454 2.54601 13.0459 2.29037 12.5443C2.12551 12.2207 2.05991 11.876 2.0293 11.5013C1.99982 11.1405 1.99999 10.6975 2 10.1608V6H14V10.1608ZM9.7578 8.2422C9.52347 8.00787 9.1432 8.00787 8.90887 8.2422L8 9.15107L7.09113 8.2422C6.8568 8.00787 6.4765 8.00787 6.24219 8.2422C6.00787 8.47653 6.00787 8.8568 6.24219 9.09113L7.15107 10L6.24219 10.9089C6.00787 11.1432 6.00787 11.5235 6.24219 11.7578C6.4765 11.9921 6.8568 11.9921 7.09113 11.7578L8 10.8489L8.90887 11.7578C9.1432 11.9921 9.52347 11.9921 9.7578 11.7578C9.99213 11.5235 9.99213 11.1432 9.7578 10.9089L8.84893 10L9.7578 9.09113C9.99213 8.8568 9.99213 8.47653 9.7578 8.2422Z"
-                            fill="currentColor"
-                          />
-                          <path
-                            d="M13.9997 2C14.3679 2 14.6663 2.29848 14.6663 2.66667V4C14.6663 4.36819 14.3679 4.66667 13.9997 4.66667H1.99967C1.63149 4.66667 1.33301 4.36819 1.33301 4V2.66667C1.33301 2.29848 1.63149 2 1.99967 2H13.9997Z"
-                            fill="currentColor"
-                          />
-                        </svg>
-                        Review inactive
-                      </MenuItem>
-                    </div>
-                    <div {...getTriggerProps()}>
-                      <MenuItem disabled>
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M5.96404 1C7.33522 1 8.57623 1.55709 9.47444 2.45802C10.0505 3.03579 10.4866 3.75609 10.7241 4.56018C11.5497 4.7952 12.2862 5.23805 12.8764 5.82996C13.7746 6.73089 14.33 7.97565 14.33 9.35097C14.33 10.7263 13.7746 11.9711 12.8764 12.872C11.9782 13.7729 10.7371 14.33 9.36596 14.33C7.99478 14.33 6.75377 13.7729 5.85556 12.872C5.27953 12.2942 4.84344 11.5739 4.60587 10.7698C3.78034 10.5348 3.04376 10.092 2.45363 9.50004C1.55542 8.59802 1 7.35327 1 5.97903C1 4.6037 1.55542 3.35895 2.45363 2.45802C3.35184 1.55709 4.59285 1 5.96404 1ZM10.9107 5.56774C10.9194 5.67981 10.9248 5.79297 10.927 5.90722V5.9083V5.91483V5.91592V5.92136V5.92571V5.92789V5.94095V5.94312V5.94639V5.95183V5.95291V5.95944V5.96053V5.96597V5.97032V5.9725V5.97903C10.927 7.35435 10.3716 8.59911 9.47336 9.50004C8.57515 10.401 7.33414 10.9581 5.96295 10.9581H5.95753H5.95427H5.9521H5.94668H5.94126H5.938H5.93583H5.93041H5.92932H5.92498H5.92173H5.91956H5.91414H5.91305C5.81216 10.957 5.71128 10.9526 5.61256 10.9461C5.81867 11.4335 6.11699 11.8731 6.48474 12.242C7.2224 12.9819 8.24103 13.4389 9.36705 13.4389C10.492 13.4389 11.5117 12.9808 12.2483 12.242C12.9859 11.5021 13.4416 10.4804 13.4416 9.35206C13.4416 8.22373 12.9859 7.20094 12.2483 6.46105C11.8686 6.08022 11.4151 5.77447 10.9107 5.56774ZM9.36596 4.37194H9.37139H9.37464H9.37681H9.38224H9.38766H9.39091H9.39308H9.39851H9.39959H9.40393H9.40719H9.40936H9.41478H9.41586C9.51675 4.37303 9.61655 4.37738 9.71635 4.38391C9.51024 3.89645 9.21192 3.45687 8.84418 3.08801C8.10651 2.34812 7.08789 1.89113 5.96187 1.89113C4.83693 1.89113 3.81722 2.34921 3.08064 3.08801C2.34298 3.82791 1.88736 4.84961 1.88736 5.97794C1.88736 7.10627 2.34407 8.12906 3.08064 8.86895C3.45924 9.24869 3.91268 9.55444 4.41711 9.76226C4.40844 9.65019 4.40301 9.53703 4.40084 9.42278V9.4217V9.41517V9.41408V9.40864V9.40429V9.40211V9.38905V9.38688V9.38361V9.37817V9.37708V9.37056V9.36947V9.36403V9.35968V9.3575V9.35097C4.40084 7.97565 4.95626 6.73089 5.85447 5.82996C6.75485 4.92904 7.99586 4.37194 9.36596 4.37194Z"
-                            fill="currentColor"
-                            stroke="currentColor"
-                            strokeWidth="0.2"
-                          />
-                        </svg>
-                        Merge collections
-                      </MenuItem>
-                    </div>
                   </MenuPopup>
                 </Menu>
               </div>
             </div>
 
-            <CollectionStats stats={stats} />
+            <TagStats stats={stats} />
           </div>
 
           <section className="space-y-3">
-            <CollectionSectionHeader
-              collectionCountLabel={collectionCountLabel}
+            <TagSectionHeader
+              tagCountLabel={tagCountLabel}
               searchQuery={searchQuery}
               selectionMode={selectionMode}
               onSearchQueryChange={(value) => void setSearchQuery(value)}
               onSelectionModeChange={handleSelectionModeChange}
             />
 
-            <CollectionList
-              collections={filteredCollections}
+            <TagList
+              tags={filteredTags}
               hasSearchQuery={!!trimmedSearchQuery}
               selectionMode={selectionMode}
-              selectedCollectionIds={selectedCollectionIds}
-              onCreateCollection={() => openCollectionDialog()}
-              onOpenCollection={handleOpenCollection}
-              onEditCollection={handleEditCollection}
-              onCopyCollection={handleCopyCollection}
-              onToggleCollectionPin={(collection) => void handleToggleCollectionPin(collection)}
-              onDeleteCollection={handleDeleteCollection}
-              onSelectCollection={handleSelectCollection}
-              onToggleCollectionSelection={handleToggleCollectionSelection}
+              selectedTagIds={selectedTagIds}
+              onOpenTag={handleOpenTag}
+              onEditTag={handleEditTag}
+              onCopyTag={handleCopyTag}
+              onToggleTagPin={(tag) => void handleToggleTagPin(tag)}
+              onDeleteTag={handleDeleteTag}
+              onSelectTag={handleSelectTag}
+              onToggleTagSelection={handleToggleTagSelection}
             />
           </section>
         </div>
       </div>
 
       <SelectionActionBar
-        visible={selectionMode && selectedCollectionCount > 0}
-        selectedCount={selectedCollectionCount}
-        allSelected={allFilteredCollectionsSelected}
+        visible={selectionMode && selectedTagCount > 0}
+        selectedCount={selectedTagCount}
+        allSelected={allFilteredTagsSelected}
         onClearSelection={handleClearSelection}
-        onSelectAll={handleSelectAllCollections}
-        onDelete={handleDeleteSelectedCollections}
+        onSelectAll={handleSelectAllTags}
+        onDelete={handleDeleteSelectedTags}
         displayArchive={false}
         displayFavorite={false}
         displayCopy={false}
@@ -560,7 +483,7 @@ function CollectionPageContent({data}: CollectionPageProps) {
   );
 }
 
-function CollectionStats({stats}: {stats: CollectionStat[]}) {
+function TagStats({stats}: {stats: TagStat[]}) {
   return (
     <div className="border-border mt-4 flex flex-wrap items-center gap-5.5 border-t pt-4">
       {stats.map((stat, index) => (
@@ -573,14 +496,14 @@ function CollectionStats({stats}: {stats: CollectionStat[]}) {
   );
 }
 
-function CollectionSectionHeader({
-  collectionCountLabel,
+function TagSectionHeader({
+  tagCountLabel,
   searchQuery,
   selectionMode,
   onSearchQueryChange,
   onSelectionModeChange,
 }: {
-  collectionCountLabel: string;
+  tagCountLabel: string;
   searchQuery: string;
   selectionMode: boolean;
   onSearchQueryChange: (value: string) => void;
@@ -590,9 +513,9 @@ function CollectionSectionHeader({
     <div className="flex flex-wrap items-center justify-between gap-2 px-4">
       <h4 className="text-base font-[550]">
         <span className="text-foreground/95 inline-flex items-center">
-          Your collections
+          Your tags
           <span className="text-muted-foreground/90 ml-1 font-medium tracking-wide">
-            ({collectionCountLabel})
+            ({tagCountLabel})
           </span>
         </span>
       </h4>
@@ -602,8 +525,8 @@ function CollectionSectionHeader({
           <InputGroupInput
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
-            aria-label="Search collections"
-            placeholder="Search collections"
+            aria-label="Search tags"
+            placeholder="Search tags"
             type="search"
             autoComplete="off"
           />
@@ -624,68 +547,60 @@ function CollectionSectionHeader({
   );
 }
 
-function CollectionList({
-  collections,
+function TagList({
+  tags,
   hasSearchQuery,
   selectionMode,
-  selectedCollectionIds,
-  onCreateCollection,
-  onOpenCollection,
-  onEditCollection,
-  onCopyCollection,
-  onToggleCollectionPin,
-  onDeleteCollection,
-  onSelectCollection,
-  onToggleCollectionSelection,
+  selectedTagIds,
+  onOpenTag,
+  onEditTag,
+  onCopyTag,
+  onToggleTagPin,
+  onDeleteTag,
+  onSelectTag,
+  onToggleTagSelection,
 }: {
-  collections: CollectionPageItem[];
+  tags: TagPageItem[];
   hasSearchQuery: boolean;
   selectionMode: boolean;
-  selectedCollectionIds: Set<string>;
-  onCreateCollection: () => void;
-  onOpenCollection: (collection: CollectionPageItem) => void;
-  onEditCollection: (collection: CollectionPageItem) => void;
-  onCopyCollection: (collection: CollectionPageItem) => void;
-  onToggleCollectionPin: (collection: CollectionPageItem) => void;
-  onDeleteCollection: (collection: CollectionPageItem) => void;
-  onSelectCollection: (collectionId: string, checked: boolean) => void;
-  onToggleCollectionSelection: (collectionId: string) => void;
+  selectedTagIds: Set<string>;
+  onOpenTag: (tag: TagPageItem) => void;
+  onEditTag: (tag: TagPageItem) => void;
+  onCopyTag: (tag: TagPageItem) => void;
+  onToggleTagPin: (tag: TagPageItem) => void;
+  onDeleteTag: (tag: TagPageItem) => void;
+  onSelectTag: (tagId: string, checked: boolean) => void;
+  onToggleTagSelection: (tagId: string) => void;
 }) {
-  if (collections.length === 0) {
+  if (tags.length === 0) {
     return (
-      <div className="pt-0.5">
-        {hasSearchQuery ? (
-          <CollectionSearchEmptyState />
-        ) : (
-          <CollectionEmptyState onCreateCollection={onCreateCollection} />
-        )}
-      </div>
+      <div className="pt-0.5">{hasSearchQuery ? <TagSearchEmptyState /> : <TagEmptyState />}</div>
     );
   }
 
   return (
     <div className="pt-0.5">
-      {collections.map((collection, index) => (
-        <CollectionRow
-          key={collection.id}
-          collection={collection}
+      {tags.map((tag, index) => (
+        <TagRow
+          key={tag.id}
+          tag={tag}
           selectionIndex={index}
           selectionMode={selectionMode}
-          isSelected={selectedCollectionIds.has(collection.id)}
-          onOpen={() => onOpenCollection(collection)}
-          onEdit={() => onEditCollection(collection)}
-          onCopy={() => onCopyCollection(collection)}
-          onTogglePin={() => onToggleCollectionPin(collection)}
-          onDelete={() => onDeleteCollection(collection)}
-          onToggleSelection={() => onToggleCollectionSelection(collection.id)}
-          onSelect={(checked) => onSelectCollection(collection.id, checked)}
+          isSelected={selectedTagIds.has(tag.id)}
+          onOpen={() => onOpenTag(tag)}
+          onEdit={() => onEditTag(tag)}
+          onCopy={() => onCopyTag(tag)}
+          onTogglePin={() => onToggleTagPin(tag)}
+          onDelete={() => onDeleteTag(tag)}
+          onToggleSelection={() => onToggleTagSelection(tag.id)}
+          onSelect={(checked) => onSelectTag(tag.id, checked)}
         />
       ))}
     </div>
   );
 }
 
-function CollectionEmptyState({onCreateCollection}: {onCreateCollection: () => void}) {
+function TagEmptyState() {
   return (
     <Empty className="gap-4 px-4 py-14 md:py-18">
       <EmptyHeader>
@@ -697,61 +612,53 @@ function CollectionEmptyState({onCreateCollection}: {onCreateCollection: () => v
             fill="none"
             xmlns="http://www.w3.org/2000/svg">
             <path
-              d="M5.33317 1.33334C3.86041 1.33334 2.6665 2.52725 2.6665 4.00001V13.3299C2.6665 14.4097 3.88307 15.0417 4.76654 14.4207L7.2331 12.6871C7.69317 12.3637 8.3065 12.3637 8.76657 12.6871L11.2331 14.4207C12.1166 15.0417 13.3332 14.4097 13.3332 13.3299V4.00001C13.3332 2.52725 12.1392 1.33334 10.6665 1.33334H5.33317Z"
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M1.33301 4C1.33301 2.52724 2.52691 1.33333 3.99967 1.33333H7.17127C7.87847 1.33333 8.55674 1.61429 9.05687 2.11438L13.8902 6.94773C14.9316 7.98913 14.9316 9.67753 13.8902 10.7189L10.7186 13.8905C9.67721 14.9319 7.98881 14.9319 6.94741 13.8905L2.11405 9.0572C1.61396 8.55707 1.33301 7.8788 1.33301 7.1716V4ZM4.99967 6C5.55196 6 5.99967 5.55229 5.99967 5C5.99967 4.44771 5.55196 4 4.99967 4C4.44739 4 3.99967 4.44771 3.99967 5C3.99967 5.55229 4.44739 6 4.99967 6Z"
               fill="currentColor"
             />
           </svg>
         </EmptyMedia>
-        <EmptyTitle className="text-foreground/90 text-lg">
-          Your first collection starts here
-        </EmptyTitle>
+        <EmptyTitle className="text-foreground/90 text-lg">No tags yet</EmptyTitle>
         <EmptyDescription className="max-w-[32rem]">
-          Group related bookmarks for quick access later.
+          Tags are created automatically when you add them to bookmarks.
         </EmptyDescription>
       </EmptyHeader>
-      <EmptyContent>
-        <Button type="button" onClick={onCreateCollection}>
-          Create collection
-        </Button>
-      </EmptyContent>
     </Empty>
   );
 }
 
-function CollectionSearchEmptyState() {
+function TagSearchEmptyState() {
   return (
     <div className="px-4 py-18">
       <div className="mx-auto flex max-w-[240px] flex-col items-center text-center">
         <div className="bg-muted/50 text-muted-foreground mb-3 flex items-center justify-center rounded-full p-1">
-          <CollectionNotFoundIcon />
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M2 6C2 3.79086 3.79086 2 6 2H10.7574C11.8182 2 12.8356 2.42143 13.5858 3.17157L20.8358 10.4216C22.3979 11.9837 22.3979 14.5163 20.8358 16.0784L16.0784 20.8358C14.5163 22.3979 11.9837 22.3979 10.4216 20.8358L3.17157 13.5858C2.42143 12.8356 2 11.8182 2 10.7574V6ZM7.5 9C8.32843 9 9 8.32843 9 7.5C9 6.67157 8.32843 6 7.5 6C6.67157 6 6 6.67157 6 7.5C6 8.32843 6.67157 9 7.5 9Z"
+              fill="currentColor"
+            />
+          </svg>
         </div>
 
-        <h2 className="text-foreground text-lg font-medium tracking-tight">No collections found</h2>
+        <h2 className="text-foreground text-lg font-medium tracking-tight">No tags found</h2>
         <p className="text-muted-foreground mt-2 text-sm">
-          No collections found. Try searching by name, slug, or description.
+          No tags found. Try searching by name or description.
         </p>
       </div>
     </div>
   );
 }
 
-function CollectionNotFoundIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M9.04179 2.33333C6.62554 2.33333 4.66679 4.29208 4.66679 6.70833V15.8996L1.7411 16.9699C1.28728 17.136 1.05397 17.6385 1.22001 18.0923C1.38604 18.5461 1.88855 18.7794 2.34238 18.6133L26.259 9.86338C26.7128 9.69735 26.9462 9.19485 26.7801 8.74101C26.6141 8.28719 26.1116 8.05388 25.6578 8.21992L23.3335 9.07028V6.70833C23.3335 4.29208 21.3747 2.33333 18.9585 2.33333H9.04179Z"
-        fill="currentColor"
-      />
-      <path
-        d="M4.6665 23.6267V19.6265L23.3332 12.7972V23.6267C23.3332 25.2615 21.5077 26.2333 20.1514 25.3204L15.4656 22.1664C14.5794 21.5699 13.4202 21.5699 12.534 22.1663L7.84823 25.3204C6.49205 26.2333 4.6665 25.2615 4.6665 23.6267Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function CollectionRow({
-  collection,
+function TagRow({
+  tag,
   selectionIndex,
   selectionMode,
   isSelected,
@@ -763,7 +670,7 @@ function CollectionRow({
   onSelect,
   onToggleSelection,
 }: {
-  collection: CollectionPageItem;
+  tag: TagPageItem;
   selectionIndex: number;
   selectionMode: boolean;
   isSelected: boolean;
@@ -775,9 +682,7 @@ function CollectionRow({
   onSelect: (checked: boolean) => void;
   onToggleSelection: () => void;
 }) {
-  const pinLabel = collection.isPinned ? "Unpin" : "Pin";
-  const collectionColor = collection.color?.hex ?? "#38bdf8";
-  const collectionColorOpacity = (collection.color?.opacity ?? 100) / 100;
+  const pinLabel = tag.isPinned ? "Unpin" : "Pin";
   const selectionDelay = Math.min(selectionIndex * 20, 120);
 
   return (
@@ -810,7 +715,7 @@ function CollectionRow({
           onOpen();
         }}
         className={cn(
-          "group/collection-row border-border/80 hover:bg-muted/80 focus-visible:bg-muted! relative grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-4 py-3 transition-none! outline-none last:border-b-0 md:grid-cols-[minmax(0,1fr)_90px_auto] xl:grid-cols-[minmax(0,1fr)_280px_90px_auto]",
+          "group/tag-row border-border/80 hover:bg-muted/80 focus-visible:bg-muted! relative grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-4 py-3 transition-none! outline-none last:border-b-0 md:grid-cols-[minmax(0,1fr)_90px_auto] xl:grid-cols-[minmax(0,1fr)_280px_90px_auto]",
           isSelected && "bg-muted/60",
         )}>
         <div className="flex min-w-0 flex-1 items-center">
@@ -826,27 +731,25 @@ function CollectionRow({
                   checked={isSelected}
                   onCheckedChange={(checked) => onSelect(!!checked)}
                   onClick={(event) => event.stopPropagation()}
-                  aria-label={`Select ${collection.name}`}
+                  aria-label={`Select ${tag.name}`}
                   className="focus-visible:ring-0 focus-visible:ring-offset-0"
                   tabIndex={-1}
                 />
               </span>
             </span>
           </div>
-          <span
-            aria-hidden="true"
-            className="ring-border/70 ring-offset-background mr-3 size-2.5 shrink-0 rounded-full ring-2 ring-offset-2"
-            style={{backgroundColor: collectionColor, opacity: collectionColorOpacity}}
-          />
           <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-            <span className="text-foreground min-w-0 shrink truncate text-sm font-medium">
-              {collection.name}
+            <span className="text-muted-foreground/80 min-w-0 shrink truncate text-sm font-medium">
+              #
             </span>
-            {collection.isPinned && (
+            <span className="text-foreground min-w-0 shrink truncate text-sm font-medium">
+              {tag.name}
+            </span>
+            {tag.isPinned && (
               <span
                 className="text-muted-foreground/80 inline-flex size-5 shrink-0 items-center justify-center rounded-full"
-                aria-label="Pinned collection"
-                title="Pinned collection">
+                aria-label="Pinned tag"
+                title="Pinned tag">
                 <PinIcon />
               </span>
             )}
@@ -854,17 +757,17 @@ function CollectionRow({
         </div>
 
         <div className="text-muted-foreground hidden min-w-0 text-sm xl:block">
-          <p className="truncate">{collection.description}</p>
+          <p className="truncate">{tag.description}</p>
         </div>
 
         <div className="text-muted-foreground hidden min-w-0 text-left text-sm md:block">
-          {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}
+          {tag.itemCount} {tag.itemCount === 1 ? "item" : "items"}
         </div>
 
         <div className="relative z-10 flex shrink-0 items-center gap-1.5">
           <Menu>
             <MenuTrigger
-              aria-label={`More options for ${collection.name}`}
+              aria-label={`More options for ${tag.name}`}
               render={
                 <Button
                   variant="ghost"
@@ -876,7 +779,7 @@ function CollectionRow({
               <MoreIcon />
             </MenuTrigger>
             <MenuPopup align="end" className="w-fit">
-              <CollectionMenuItems
+              <TagMenuItems
                 pinLabel={pinLabel}
                 ItemComponent={MenuItem}
                 separator={<MenuSeparator />}
@@ -892,7 +795,7 @@ function CollectionRow({
       </ContextMenuTrigger>
 
       <ContextMenuContent className="w-fit">
-        <CollectionMenuItems
+        <TagMenuItems
           pinLabel={pinLabel}
           ItemComponent={ContextMenuItem}
           separator={<ContextMenuSeparator />}
@@ -907,13 +810,13 @@ function CollectionRow({
   );
 }
 
-type CollectionMenuItemProps = {
+type TagMenuItemProps = {
   children: ReactNode;
   variant?: "default" | "destructive";
   onClick?: () => void;
 };
 
-function CollectionMenuItems({
+function TagMenuItems({
   pinLabel,
   ItemComponent,
   separator,
@@ -924,7 +827,7 @@ function CollectionMenuItems({
   onDelete,
 }: {
   pinLabel: string;
-  ItemComponent: (props: CollectionMenuItemProps) => ReactNode;
+  ItemComponent: (props: TagMenuItemProps) => ReactNode;
   separator: ReactNode;
   onOpen: () => void;
   onEdit: () => void;
