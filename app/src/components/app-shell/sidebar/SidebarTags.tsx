@@ -41,7 +41,7 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
   const hasMoreTags = tags.length > SIDEBAR_TAG_LIMIT;
 
   return (
-    <div className="px-3 pe-2">
+    <div className="px-3">
       <div
         tabIndex={0}
         role="button"
@@ -53,10 +53,10 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
           }
         }}
         className={cn(
-          "flex w-full items-center justify-between rounded-md px-3 py-1.75 text-sm font-medium",
+          "flex h-[35px] w-full items-center justify-between rounded-md px-3 py-[7.5px] text-sm font-medium",
           "text-muted-foreground hover:bg-muted hover:text-foreground",
           "group/tags cursor-pointer text-[11px] font-semibold tracking-wider uppercase",
-          "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+          "focus-visible:ring-ring focus-visible:ring-offset-background relative outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-offset-1",
         )}>
         <div className="flex items-center gap-0.5">
           <span className="">TAGS</span>
@@ -96,7 +96,7 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
           />
         </div>
       </div>
-      <div className="flex flex-col pb-2">
+      <div className="flex flex-col gap-0.5 pb-2">
         {isFetching &&
           tags.length === 0 &&
           [1, 2, 3, 4, 5].map((i, idx) => (
@@ -107,13 +107,12 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
           ))}
         <AnimatePresence initial={false}>
           {tagsExpanded &&
-            visibleTags.map((tag, index) => {
+            visibleTags.map((tag) => {
               const isActive = pathTagId === tag.id;
               return (
                 <SidebarTagItem
                   key={tag.id}
                   tag={tag}
-                  index={index}
                   isActive={isActive}
                   onCopy={() => void copyText(tag.name, tag.id)}
                   onContextMenuDelete={() => {
@@ -133,7 +132,7 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
                 onClick={() => router.push("/tags")}
                 className={cn(
                   "text-secondary bg-transparent",
-                  "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-[9px] text-sm font-medium",
+                  "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-[7.5px] text-sm font-medium",
                   "hover:bg-muted hover:text-foreground transition-none!",
                   "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
                 )}>

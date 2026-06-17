@@ -12,7 +12,7 @@ import {useHasMounted} from "@/lib/hooks/use-has-mounted";
 
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (
-    <div className="flex w-full items-center gap-1 rounded-md px-3 py-2.25">
+    <div className="flex w-full items-center gap-1 rounded-md px-3 py-[7.5px]">
       <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
     </div>
   );
@@ -20,7 +20,7 @@ export function SidebarCollectionSkeleton({width}: {width?: string}) {
 
 export function SidebarTagSkeleton({width}: {width?: string}) {
   return (
-    <div className="flex w-full items-center justify-between rounded-md px-3 py-2.25">
+    <div className="flex w-full items-center justify-between rounded-md px-3 py-[7.5px]">
       <Skeleton className={cn("h-5 animate-pulse rounded-sm", width || "w-full")} />
       <Skeleton className="ml-10 h-5 w-5 shrink-0 animate-pulse rounded-sm" />
     </div>
@@ -72,7 +72,7 @@ export function SidebarCollectionItem({
             isActive
               ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
               : "text-secondary bg-transparent",
-            "flex w-full items-center gap-2 rounded-md px-3 py-2.25 text-sm font-medium",
+            "flex w-full items-center gap-2 rounded-md px-3 py-[7.5px] text-sm font-medium",
             "hover:bg-muted hover:text-foreground",
             "cursor-pointer justify-between transition-none!",
             "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
@@ -119,19 +119,12 @@ export function SidebarCollectionItem({
 
 interface SidebarTagItemProps {
   tag: SidebarTag;
-  index: number;
   isActive: boolean;
   onCopy: () => void;
   onContextMenuDelete: () => void;
 }
 
-export function SidebarTagItem({
-  tag,
-  index: _index,
-  isActive,
-  onCopy,
-  onContextMenuDelete,
-}: SidebarTagItemProps) {
+export function SidebarTagItem({tag, isActive, onCopy, onContextMenuDelete}: SidebarTagItemProps) {
   const router = useRouter();
   const hasMounted = useHasMounted();
 
@@ -163,14 +156,14 @@ export function SidebarTagItem({
             isActive
               ? "text-foreground bg-[#F0F0F0] dark:bg-[#181717]"
               : "text-secondary bg-transparent",
-            "flex w-full items-center gap-2 rounded-md px-3 py-[9px] leading-none",
+            "flex w-full items-center gap-2 rounded-md px-3 py-[7.5px] leading-none",
             "hover:bg-muted hover:text-foreground",
             "cursor-pointer justify-between",
             "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           )}>
           <div className="flex min-w-0 flex-1 items-center">
             <span className="flex min-w-0 items-center gap-0.5 text-sm font-medium">
-              <span className="inline-flex size-5 shrink-0 items-center justify-center text-current">
+              <span className="mr-[5px] inline-flex shrink-0 items-center justify-center text-current">
                 #
               </span>
               <span className="truncate">{tag.name}</span>

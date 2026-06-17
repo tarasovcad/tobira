@@ -5,6 +5,7 @@ import {WebsiteBookmarkMenu} from "@/components/bookmark/_components/website/Web
 import {MediaBookmarkMenu} from "@/components/bookmark/_components/media/MediaBookmarkMenu";
 import {PostBookmarkMenu} from "@/components/bookmark/_components/post/PostBookmarkMenu";
 import {Sidebar} from "./sidebar/Sidebar";
+import {useSidebarShortcut} from "./use-sidebar-shortcut";
 import {CollectionDialog} from "../library/CollectionDialog";
 import {DeleteBookmarkDialog} from "../bookmark/DeleteBookmarkDialog";
 import {DeleteCollectionDialog} from "../library/DeleteCollectionDialog";
@@ -22,6 +23,8 @@ const AppShell = ({
   session: AppShellSession;
   sidebar?: React.ReactNode;
 }) => {
+  useSidebarShortcut();
+
   return (
     <main className="flex h-dvh min-h-screen flex-col">
       <Header session={session} />

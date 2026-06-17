@@ -6,9 +6,8 @@ import GeneralSettings from "./tabs/GeneralSettings";
 import PersonalizationSettings from "./tabs/PersonalizationSettings";
 import AccountSettings from "./tabs/AccountSettings";
 import DataSettings from "./tabs/DataSettings";
-import {User} from "@/lib/auth/auth-client";
 
-export function SettingsContent({activeTag, user}: {activeTag: string; user: User}) {
+export function SettingsContent({activeTag}: {activeTag: string}) {
   return (
     <div className="flex h-full w-full overflow-auto">
       {/* Tab content */}

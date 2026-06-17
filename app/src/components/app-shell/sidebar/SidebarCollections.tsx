@@ -71,7 +71,7 @@ function SidebarCollectionsContent({
     : null;
 
   return (
-    <div className="px-3 pe-2 pt-1">
+    <div className="px-3 pt-1">
       <div
         tabIndex={0}
         role="button"
@@ -83,14 +83,13 @@ function SidebarCollectionsContent({
           }
         }}
         className={cn(
-          "flex w-full items-center justify-between rounded-md px-3 py-1.75 text-sm font-medium",
+          "flex h-8.75 w-full items-center justify-between rounded-md px-3 py-[7.5px] text-sm font-medium",
           "text-muted-foreground hover:bg-muted hover:text-foreground",
           "group/collections cursor-pointer text-[11px] font-semibold tracking-wider uppercase",
           "focus-visible:ring-ring focus-visible:ring-offset-background relative outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-offset-1",
         )}>
         <div className="flex items-center gap-0.5">
           <span className="">Collections</span>
-
           <span
             className={cn(
               "inline-flex size-5 shrink-0 items-center justify-center text-current transition-transform duration-200 ease-out",
@@ -152,7 +151,7 @@ function SidebarCollectionsContent({
           </button>
         </div>
       </div>
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-0.5">
         <AnimatePresence initial={false}>
           {collectionsExpanded && collections.length === 0 && !isFetching && (
             <motion.div
@@ -164,7 +163,7 @@ function SidebarCollectionsContent({
                 onClick={handleCreateCollection}
                 className={cn(
                   "text-secondary bg-transparent",
-                  "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                  "flex w-full items-center gap-2 rounded-md px-3 py-[7.5px] text-sm font-medium",
                   "hover:bg-muted hover:text-foreground transition-none!",
                   "cursor-pointer",
                   "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
@@ -222,7 +221,7 @@ function SidebarCollectionsContent({
                 onClick={() => router.push("/collections")}
                 className={cn(
                   "text-secondary bg-transparent",
-                  "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2.25 text-sm font-medium",
+                  "flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-[7.5px] text-sm font-medium",
                   "hover:bg-muted hover:text-foreground transition-none!",
                   "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
                 )}>
