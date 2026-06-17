@@ -50,8 +50,8 @@ export const NavItem = ({
 
   const baseStyles = cn(
     isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
-    "flex w-full items-center rounded-md py-2 text-sm font-medium",
-    collapsed ? "justify-start px-2" : "justify-start px-3",
+    "flex w-full items-center rounded-md py-[7.5px] text-sm font-medium",
+    collapsed ? "justify-start px-[7.5px]" : "justify-start px-3",
     "transition-[padding] duration-50 ease-linear",
     "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
     disabled
@@ -125,7 +125,7 @@ export const NAV_ITEMS: NavConfigItem[] = [
         />
       </svg>
     ),
-    label: "All Items",
+    label: "Home",
     href: "/home",
   },
   // {
@@ -152,24 +152,6 @@ export const NAV_ITEMS: NavConfigItem[] = [
   //   disabled: true,
   //   href: "/unsorted",
   // },
-  {
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M11.3245 1.66454C10.7912 0.556155 9.20781 0.556155 8.67456 1.66454L6.86368 5.42816C6.83245 5.49308 6.76926 5.5397 6.69416 5.54952L2.52885 6.09405C1.30664 6.25383 0.806898 7.75978 1.71091 8.61084L4.75525 11.4769C4.80877 11.5273 4.83199 11.6 4.81892 11.67L4.05425 15.7654C3.82669 16.9843 5.11807 17.9028 6.1972 17.322L9.89373 15.3323C9.95956 15.2968 10.0395 15.2968 10.1053 15.3323L13.8018 17.322C14.881 17.9028 16.1724 16.9843 15.9448 15.7654L15.1801 11.67C15.1671 11.6 15.1903 11.5273 15.2438 11.4769L18.2881 8.61084C19.1921 7.75978 18.6924 6.25383 17.4702 6.09405L13.3049 5.54952C13.2298 5.5397 13.1666 5.49308 13.1354 5.42816L11.3245 1.66454Z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-    label: "Favorites",
-    disabled: true,
-    href: "/favorites",
-  },
   {
     icon: (
       <svg
@@ -229,5 +211,43 @@ export const NAV_ITEMS: NavConfigItem[] = [
     label: "Sync",
     disabled: false,
     href: "/sync",
+  },
+  {
+    icon: (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 20 20"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M5.00033 2.5C3.15938 2.5 1.66699 3.99238 1.66699 5.83333V13.3333C1.66699 15.1743 3.15938 16.6667 5.00033 16.6667H15.0003C16.8412 16.6667 18.3337 15.1743 18.3337 13.3333V8.33333C18.3337 6.49238 16.8412 5 15.0003 5H10.8923C10.6137 5 10.3535 4.86075 10.1989 4.62892L9.52183 3.61325C9.05816 2.91775 8.27757 2.5 7.44168 2.5H5.00033Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+    label: "Collections",
+    disabled: false,
+    href: "/collections",
+  },
+  {
+    icon: (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 20 20"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M1.66699 5C1.66699 3.15905 3.15938 1.66667 5.00033 1.66667H8.96483C9.84883 1.66667 10.6967 2.01786 11.3218 2.64298L17.3635 8.68467C18.6652 9.98642 18.6652 12.0969 17.3635 13.3987L13.399 17.3632C12.0972 18.6649 9.98674 18.6649 8.68499 17.3632L2.6433 11.3215C2.01818 10.6963 1.66699 9.8485 1.66699 8.9645V5ZM6.25033 7.5C6.94068 7.5 7.50033 6.94036 7.50033 6.25C7.50033 5.55964 6.94068 5 6.25033 5C5.55997 5 5.00033 5.55964 5.00033 6.25C5.00033 6.94036 5.55997 7.5 6.25033 7.5Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+    label: "Tags",
+    disabled: false,
+    href: "/tags",
   },
 ];

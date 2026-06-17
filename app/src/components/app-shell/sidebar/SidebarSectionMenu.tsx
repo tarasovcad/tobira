@@ -3,14 +3,13 @@ import {
   Menu,
   MenuItem,
   MenuPopup,
-  MenuSeparator,
   MenuSub,
   MenuSubPopup,
   MenuSubTrigger,
   MenuTrigger,
   MenuRadioGroup,
   MenuRadioItem,
-  MenuCheckboxItem,
+  MenuSeparator,
 } from "@/components/ui/coss/menu";
 import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
 import {cn} from "@/lib/utils";
@@ -18,8 +17,6 @@ import {cn} from "@/lib/utils";
 interface SidebarSectionMenuProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectionMode: boolean;
-  onSelectionModeChange: (checked: boolean) => void;
   selectValue: string;
   onSelectValueChange: (value: string) => void;
   ariaLabel: string;
@@ -29,8 +26,6 @@ interface SidebarSectionMenuProps {
 export function SidebarSectionMenu({
   open,
   onOpenChange,
-  selectionMode,
-  onSelectionModeChange,
   selectValue,
   onSelectValueChange,
   ariaLabel,
@@ -69,10 +64,6 @@ export function SidebarSectionMenu({
         </svg>
       </MenuTrigger>
       <MenuPopup align="center" className="w-40">
-        <MenuCheckboxItem checked={selectionMode} onCheckedChange={onSelectionModeChange}>
-          Select
-        </MenuCheckboxItem>
-
         <MenuSub disabled>
           <MenuSubTrigger>
             <svg

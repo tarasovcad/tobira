@@ -16,7 +16,7 @@ const SIZES = {
 } as const;
 
 type ResizeSizeType = keyof typeof SIZES;
-type SizeType = ResizeSizeType | "large";
+type SizeType = ResizeSizeType | "large" | "orig";
 type FormatType = "webp" | "jpg" | "jpeg" | "png";
 
 const CACHE_CONTROL = "public, max-age=31536000, immutable";
@@ -28,8 +28,12 @@ function normalizeSizeParam(size: string | null): SizeType {
     return size;
   }
 
-  // "large" is now the public original/passthrough size. Legacy "original"
-  // and missing/unknown values use the same behavior.
+  // "orig" and "large" both return the original/passthrough size. Legacy
+  // "original" and missing/unknown values also use the same behavior.
+  if (size === "orig") {
+    return "orig";
+  }
+
   return "large";
 }
 
@@ -59,7 +63,7 @@ function buildCacheKeyUrl(
   cacheUrl.searchParams.set("size", size);
   cacheUrl.searchParams.set("source_etag", sourceEtag);
 
-  if (size !== "large") {
+  if (size !== "large" && size !== "orig") {
     cacheUrl.searchParams.set("format", format);
   }
 
@@ -137,7 +141,7 @@ export default {
 
     // 3. R2 derivative lookup
     const derivativeObj =
-      sizeParam === "large"
+      sizeParam === "large" || sizeParam === "orig"
         ? null
         : await env.BOOKMARKS.get(
             buildDerivativeKey(
@@ -168,8 +172,8 @@ export default {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 
-    // "large" is the original R2 object and does not go through Photon.
-    if (sizeParam === "large") {
+    // "large" and "orig" are the original R2 object and do not go through Photon.
+    if (sizeParam === "large" || sizeParam === "orig") {
       const headers = new Headers();
       originalObj.writeHttpMetadata(headers);
       headers.set("Cache-Control", CACHE_CONTROL);

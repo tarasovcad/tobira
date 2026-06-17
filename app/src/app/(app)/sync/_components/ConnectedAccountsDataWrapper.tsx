@@ -1,7 +1,7 @@
 import {db} from "@/db";
 import {syncConnections, syncItems} from "@/db/schema";
 import {and, asc, count, eq, ne} from "drizzle-orm";
-import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
+import {PROVIDERS} from "../_lib/sync-providers";
 import {
   ConnectedAccountsSection,
   type ConnectedAccount,

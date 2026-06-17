@@ -52,7 +52,7 @@ function getBasePreviewItem(mediaItem: MediaItem): Omit<MediaBookmarkPreviewItem
   };
 }
 
-type MediaAssetSize = BookmarkMediaPreviewSize | "thumb";
+type MediaAssetSize = BookmarkMediaPreviewSize | "thumb" | "orig";
 
 function buildR2SizedImageUrl(key: string, size: MediaAssetSize, format?: "webp"): string {
   const url = new URL(buildR2PublicUrl(key));
@@ -120,8 +120,8 @@ function getGridImagePreviewItem(
       ? buildProcessingImageUrl(mediaItem.source_url, "thumb")
       : buildR2SizedImageUrl(mediaItem.media_key!, "thumb", "webp"),
     fullSizeSrc: processing
-      ? buildProcessingImageUrl(mediaItem.source_url, "large")
-      : buildR2SizedImageUrl(mediaItem.media_key!, "large"),
+      ? buildProcessingImageUrl(mediaItem.source_url, "orig")
+      : buildR2SizedImageUrl(mediaItem.media_key!, "orig"),
   };
 }
 
@@ -141,8 +141,8 @@ function getMenuImagePreviewItem(
       ? buildProcessingImageUrl(mediaItem.source_url, "thumb")
       : buildR2SizedImageUrl(mediaItem.media_key!, "thumb", "webp"),
     fullSizeSrc: processing
-      ? buildProcessingImageUrl(mediaItem.source_url, "large")
-      : buildR2SizedImageUrl(mediaItem.media_key!, "large"),
+      ? buildProcessingImageUrl(mediaItem.source_url, "orig")
+      : buildR2SizedImageUrl(mediaItem.media_key!, "orig"),
   };
 }
 
@@ -191,7 +191,7 @@ function getMenuVideoPreviewItem(
         ? buildProcessingImageUrl(mediaItem.source_thumbnail_url, "thumb")
         : undefined
       : buildR2SizedImageUrl(mediaItem.key_thumbnail!, "thumb", "webp"),
-    fullSizeSrc: processing ? previewSrc : buildR2SizedImageUrl(mediaItem.key_thumbnail!, "large"),
+    fullSizeSrc: processing ? previewSrc : buildR2SizedImageUrl(mediaItem.key_thumbnail!, "orig"),
   };
 }
 

@@ -22,7 +22,7 @@ import {
   ComboboxValue,
 } from "@/components/ui/coss/combobox";
 import {SelectButton, Select} from "@/components/ui/coss/select";
-import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
+import {type UpdateBookmarkData} from "@/app/actions/bookmarks/update";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";

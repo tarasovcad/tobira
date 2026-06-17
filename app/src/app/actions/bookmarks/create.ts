@@ -264,6 +264,10 @@ export async function addPostBookmark(input: {
   const timingsMs: Record<string, number> = {};
   const userId = await requireAuthenticatedUserId();
 
+  if (input.kind !== "post") {
+    throw new Error("Invalid kind");
+  }
+
   const preparePostBookmarkCreationStart = performance.now();
   const prepared = await preparePostBookmarkCreation({url: input.url, userId});
   timingsMs.preparePostBookmarkCreation = Number(
@@ -292,10 +296,13 @@ export async function addPostBookmark(input: {
     attachments.push(
       (async () => {
         try {
-          await db.insert(bookmarkCollections).values({
-            bookmarkId: prepared.bookmarkId,
-            collectionId: input.collectionId!,
-          });
+          await db
+            .insert(bookmarkCollections)
+            .values({
+              bookmarkId: prepared.bookmarkId,
+              collectionId: input.collectionId!,
+            })
+            .onConflictDoNothing();
         } catch (error) {
           console.error("Failed to attach post bookmark to collection:", error);
         }
@@ -305,25 +312,27 @@ export async function addPostBookmark(input: {
 
   await Promise.all(attachments);
 
-  const qstashPublishStart = performance.now();
-  try {
-    await qstash.publishJSON({
-      url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-post-media`,
-      body: {id: prepared.bookmarkId},
-      idempotencyKey: `post-media-${prepared.bookmarkId}`,
-      headers: {"x-job-type": "process-post-media"},
-      timeout: 120,
-    });
-  } catch (error) {
-    console.error("Failed to queue post media processing job:", error);
+  if (prepared.bookmarkToInsert.images.processing) {
+    const qstashPublishStart = performance.now();
     try {
-      await db.delete(bookmarks).where(eq(bookmarks.id, prepared.bookmarkId));
-    } catch (cleanupError) {
-      console.error("Failed to delete post bookmark after queue failure:", cleanupError);
+      await qstash.publishJSON({
+        url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-post-media`,
+        body: {id: prepared.bookmarkId},
+        idempotencyKey: `post-media-${prepared.bookmarkId}`,
+        headers: {"x-job-type": "process-post-media"},
+        timeout: 120,
+      });
+    } catch (error) {
+      console.error("Failed to queue post media processing job:", error);
+      try {
+        await db.delete(bookmarks).where(eq(bookmarks.id, prepared.bookmarkId));
+      } catch (cleanupError) {
+        console.error("Failed to delete post bookmark after queue failure:", cleanupError);
+      }
+      throw new Error("Failed to queue post media processing job");
     }
-    throw new Error("Failed to queue post media processing job");
+    timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
   }
-  timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
   timingsMs.totalAddPostBookmark = Number((performance.now() - addPostBookmarkStart).toFixed(2));
 
   logger.info("addPostBookmark timings", {

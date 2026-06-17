@@ -12,7 +12,7 @@ import {
   type AddWebsiteBookmarkResult,
   type AddMediaBookmarkResult,
   type AddPostBookmarkResult,
-} from "@/app/actions/bookmarks";
+} from "@/app/actions/bookmarks/create";
 import {toastManager} from "@/components/ui/coss/toast";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {
@@ -27,10 +27,14 @@ export function useAddBookmarkFlow({
   userId,
   isAuthenticated,
   defaultType = "website",
+  defaultCollectionId = null,
+  defaultTagNames = [],
 }: {
   userId?: string;
   isAuthenticated: boolean;
   defaultType?: AddBookmarkFormValues["type"];
+  defaultCollectionId?: string | null;
+  defaultTagNames?: string[];
 }) {
   const router = useRouter();
   const open = useAddItemDialogStore((state) => state.isOpen);
@@ -62,8 +66,8 @@ export function useAddBookmarkFlow({
     resolver: zodResolver(addBookmarkSchema),
     defaultValues: {
       url: "",
-      tags: [],
-      collectionId: null,
+      tags: [...defaultTagNames],
+      collectionId: defaultCollectionId,
       type: defaultType,
     },
     mode: "onChange",
@@ -125,7 +129,12 @@ export function useAddBookmarkFlow({
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       setTimeout(() => {
-        reset({url: "", tags: [], collectionId: null, type: defaultType});
+        reset({
+          url: "",
+          tags: [...defaultTagNames],
+          collectionId: defaultCollectionId,
+          type: defaultType,
+        });
         setStep(1);
         setMediaItems([]);
         setSelectedMediaUrls([]);
@@ -188,7 +197,12 @@ export function useAddBookmarkFlow({
   );
 
   const resetLocalState = () => {
-    reset({url: "", tags: [], collectionId: null, type: defaultType});
+    reset({
+      url: "",
+      tags: [...defaultTagNames],
+      collectionId: defaultCollectionId,
+      type: defaultType,
+    });
     setStep(1);
     setMediaItems([]);
     setSelectedMediaUrls([]);
@@ -199,6 +213,10 @@ export function useAddBookmarkFlow({
       closeDialog();
       router.push("/login");
       return;
+    }
+
+    if (nextOpen) {
+      resetLocalState();
     }
 
     setDialogOpen(nextOpen);
@@ -214,6 +232,7 @@ export function useAddBookmarkFlow({
       router.push("/login");
       return;
     }
+    resetLocalState();
     setDialogOpen(true);
   };
 

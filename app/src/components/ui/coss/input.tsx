@@ -2,7 +2,6 @@
 
 import {Input as InputPrimitive} from "@base-ui/react/input";
 import type * as React from "react";
-
 import {cn} from "@/lib/utils";
 
 type InputProps = Omit<InputPrimitive.Props & React.RefAttributes<HTMLInputElement>, "size"> & {
@@ -43,10 +42,9 @@ function Input({
         data-size={size}
         data-slot="input-control">
         {nativeInput ? (
-          <input
+          <InputPrimitive
             className={inputClassName}
             data-slot="input"
-            aria-invalid={!!error || props["aria-invalid"]}
             size={typeof size === "number" ? size : undefined}
             {...props}
           />

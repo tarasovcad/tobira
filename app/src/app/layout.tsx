@@ -6,6 +6,7 @@ import {ReactQueryProvider} from "@/components/providers/ReactQueryProvider";
 import {AnchoredToastProvider, ToastProvider} from "@/components/ui/coss/toast";
 import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/next";
+import {NuqsAdapter} from "nuqs/adapters/next/app";
 
 const inter = Inter({subsets: ["latin"], variable: "--font-sans"});
 
@@ -35,7 +36,9 @@ export default function RootLayout({
           disableTransitionOnChange>
           <ReactQueryProvider>
             <ToastProvider position="top-right">
-              <AnchoredToastProvider>{children}</AnchoredToastProvider>
+              <NuqsAdapter>
+                <AnchoredToastProvider>{children}</AnchoredToastProvider>
+              </NuqsAdapter>
             </ToastProvider>
           </ReactQueryProvider>
         </ThemeProvider>

@@ -9,6 +9,7 @@ import {
 import {VideoProgressControl} from "@/features/video-player/components/VideoProgressControl";
 import {VideoVolumeControl} from "@/features/video-player/components/VideoVolumeControl";
 import type {VideoPlayerState} from "@/features/video-player/types";
+import {cn} from "@/lib/utils";
 
 type VideoPlayerControlsProps = {
   state: Pick<
@@ -55,9 +56,11 @@ export function VideoPlayerControls({
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className={`absolute right-0 bottom-0 left-0 z-20 transform bg-linear-to-t from-black/20 to-transparent px-3 pb-3 transition duration-150 ease-in will-change-transform group-hover/video:translate-y-0 group-hover/video:opacity-100 group-hover/video:duration-200 group-hover/video:ease-out group-has-[video:focus-visible]/video:translate-y-0 group-has-[video:focus-visible]/video:opacity-100 group-has-[video:focus-visible]/video:duration-200 group-has-[video:focus-visible]/video:ease-out group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:translate-y-4 group-data-[selection-mode=true]/bookmark-row:opacity-0 ${
-        showControls || controlsVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-      }`}>
+      className={cn(
+        "absolute right-0 bottom-0 left-0 z-20 transform px-3 pt-8 pb-3 transition duration-150 ease-in will-change-transform group-hover/video:translate-y-0 group-hover/video:opacity-100 group-hover/video:duration-200 group-hover/video:ease-out group-has-[video:focus-visible]/video:translate-y-0 group-has-[video:focus-visible]/video:opacity-100 group-has-[video:focus-visible]/video:duration-200 group-has-[video:focus-visible]/video:ease-out group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:translate-y-4 group-data-[selection-mode=true]/bookmark-row:opacity-0",
+        "bg-linear-to-t from-black/30 via-black/15 to-transparent",
+        showControls || controlsVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
+      )}>
       <TooltipProvider delay={150}>
         <div className="flex w-full flex-wrap items-center gap-x-0.5 gap-y-1 text-white">
           <Tooltip>
@@ -136,7 +139,7 @@ export function VideoPlayerControls({
             onSeek={onSeek}
           />
 
-          <div className="shrink-0 px-2 text-sm font-semibold text-white tabular-nums @max-[364px]/video-player:hidden">
+          <div className="min-w-[66px] shrink-0 px-2 text-sm font-semibold text-white tabular-nums @max-[364px]/video-player:hidden">
             -{formatTime(duration - currentTime)}
           </div>
 

@@ -11,7 +11,13 @@ import {
   type FreebirdXPostMediaItem,
 } from "@/lib/fetch/post";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
-import type {ArticleMediaItem, ImageItem, PostImages, VideoItem} from "@/db/schema";
+import type {
+  ArticleMediaItem,
+  ImageItem,
+  PostCardImageItem,
+  PostImages,
+  VideoItem,
+} from "@/db/schema";
 import {buildMediaAssetKey, buildVideoAssetKey} from "@/features/media/utils";
 
 type PostMediaItem = ImageItem | VideoItem;
@@ -65,11 +71,12 @@ export async function preparePostBookmarkCreation(input: {
 async function buildPostImages(postData: FreebirdXPostData): Promise<PostImages> {
   const post = postData.tweet.post;
   const replies = postData.reply_chain ?? [];
-  const [items, qrtItems, replyItems, articleItems] = await Promise.all([
+  const [items, qrtItems, replyItems, articleItems, cardItems] = await Promise.all([
     buildPostMediaItems(post.media_extended),
     buildPostMediaItems(post.qrt?.post.media_extended),
     buildReplyMediaItems(replies),
     buildArticleItems(post, replies),
+    buildCardImageItems(post, replies),
   ]);
 
   return {
@@ -77,11 +84,13 @@ async function buildPostImages(postData: FreebirdXPostData): Promise<PostImages>
       items.length > 0 ||
       qrtItems.length > 0 ||
       replyItems.some((reply) => reply.items.length > 0) ||
-      articleItems.length > 0,
+      articleItems.length > 0 ||
+      cardItems.length > 0,
     items,
     ...(qrtItems.length > 0 ? {qrtItems} : {}),
     ...(replyItems.length > 0 ? {replyItems} : {}),
     ...(articleItems.length > 0 ? {articleItems} : {}),
+    ...(cardItems.length > 0 ? {cardItems} : {}),
   };
 }
 
@@ -118,6 +127,42 @@ async function buildArticleItems(post: FreebirdXPost, replies: FreebirdXPostData
   ];
 
   return Promise.all(articleInputs.map(buildArticleMediaItem));
+}
+
+async function buildCardImageItems(
+  post: FreebirdXPost,
+  replies: FreebirdXPostData["reply_chain"],
+): Promise<PostCardImageItem[]> {
+  const posts = [post, post.qrt?.post, ...(replies ?? []).map((reply) => reply.post)].filter(
+    (item): item is FreebirdXPost => Boolean(item),
+  );
+  const seenCards = new Set<string>();
+  const inputs = posts.flatMap((item) => {
+    const image = item.card?.image;
+    if (!image?.url) {
+      return [];
+    }
+
+    const dedupeKey = `${item.tweetID}:${image.url}`;
+    if (seenCards.has(dedupeKey)) {
+      return [];
+    }
+
+    seenCards.add(dedupeKey);
+    return [{post: item, image}];
+  });
+
+  return Promise.all(
+    inputs.map(async ({post: item, image}) => ({
+      type: "image" as const,
+      tweetId: item.tweetID,
+      width: image.width,
+      height: image.height,
+      alt: image.altText ?? item.card?.title ?? null,
+      source_url: image.url,
+      media_key: await buildMediaAssetKey(image.url),
+    })),
+  );
 }
 
 function buildArticleItemInputs(post: FreebirdXPost | null | undefined) {

@@ -16,14 +16,13 @@ import {deleteTags} from "@/app/actions/tags";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useEffect, useState} from "react";
 import Spinner from "@/components/ui/app/spinner";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 
 export function DeleteTagDialog() {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const router = useRouter();
   const {isOpen: open, tags, onDeleted, closeDialog} = useDeleteTagDialogStore();
 
   const [displayTags, setDisplayTags] = useState(tags);
@@ -41,6 +40,7 @@ export function DeleteTagDialog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
+      queryClient.invalidateQueries({queryKey: ["active-tag"]});
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
     },
     onError: (error) => {
@@ -64,20 +64,19 @@ export function DeleteTagDialog() {
     if (tags.length === 0) return;
 
     const ids = tags.map((t) => t.id);
-
     deleteMutation.mutate(ids, {
       onSuccess: () => {
         toastManager.add({
-          title: count === 1 ? "Tag deleted" : `${count} tags deleted`,
+          title: tags.length === 1 ? "Tag deleted" : `${tags.length} tags deleted`,
           type: "success",
         });
 
-        const activeTagParam = searchParams.get("tag")?.trim() || null;
-        if (pathname === "/home" && activeTagParam && ids.includes(activeTagParam)) {
-          const nextParams = new URLSearchParams(searchParams.toString());
-          nextParams.delete("tag");
-          const query = nextParams.toString();
-          router.push(query ? `/home?${query}` : "/home");
+        const pathTagId = pathname.startsWith("/tags/")
+          ? decodeURIComponent(pathname.split("/")[2] ?? "")
+          : null;
+
+        if (pathTagId && ids.includes(pathTagId)) {
+          router.push("/tags");
         }
 
         closeDialog();

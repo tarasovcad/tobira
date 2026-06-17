@@ -1,15 +1,15 @@
 "use client";
 
 import {useState} from "react";
-import {usePathname} from "next/navigation";
 import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/features/home/types";
 import {SidebarMain} from "./SidebarMain";
 import {SidebarSettings} from "./SidebarSettings";
-import {AnimatePresence, motion} from "framer-motion";
 import {cn} from "@/lib/utils";
-import {useSidebarStore} from "@/store/use-sidebar-store";
+import {useSidebarStore, type SidebarMode} from "@/store/use-sidebar-store";
 import {useHasMounted} from "@/lib/hooks/use-has-mounted";
+import {AnimatePresence, motion} from "framer-motion";
+import {consumeSidebarSwitchTarget} from "./sidebar-switch-animation";
 
 const SIDEBAR_WIDTH = "224px";
 const SIDEBAR_WIDTH_ICON = "60px";
@@ -19,28 +19,28 @@ export function Sidebar({
   allTags,
   isAuthenticated = false,
   userId,
+  mode = "main",
+  allowModeSwitch = false,
 }: {
   allCollections?: Collection[];
   allTags?: SidebarTag[];
   isAuthenticated?: boolean;
   userId?: string;
+  mode?: SidebarMode;
+  allowModeSwitch?: boolean;
 }) {
-  const pathname = usePathname();
-  const [prevPathname, setPrevPathname] = useState(pathname);
-  const [showSettings, setShowSettings] = useState(pathname.startsWith("/settings"));
+  const [animateInitial] = useState(() => consumeSidebarSwitchTarget(mode));
   const hasMounted = useHasMounted();
   const isOpen = useSidebarStore((state) => state.isOpen);
+  const requestedMode = useSidebarStore((state) => state.requestedMode);
+  const requestMode = useSidebarStore((state) => state.requestMode);
   const sidebarIsOpen = hasMounted ? isOpen : true;
   const contentState = sidebarIsOpen ? "expanded" : "collapsed";
+  const currentMode = allowModeSwitch && requestedMode ? requestedMode : mode;
 
-  if (pathname !== prevPathname) {
-    setPrevPathname(pathname);
-    if (pathname.startsWith("/settings")) {
-      setShowSettings(true);
-    } else if (prevPathname.startsWith("/settings") && !pathname.startsWith("/settings")) {
-      setShowSettings(false);
-    }
-  }
+  const handleBackToMain = () => {
+    requestMode("main");
+  };
 
   return (
     <aside
@@ -50,8 +50,8 @@ export function Sidebar({
       style={{
         width: sidebarIsOpen ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON,
       }}>
-      <AnimatePresence initial={false} mode="sync">
-        {showSettings ? (
+      <AnimatePresence initial={animateInitial} mode="sync">
+        {currentMode === "settings" ? (
           <motion.div
             key="settings-sidebar"
             className="absolute inset-0"
@@ -63,7 +63,7 @@ export function Sidebar({
               duration: 0.16,
               ease: "easeOut",
             }}>
-            <SidebarSettings onBack={() => setShowSettings(false)} state={contentState} />
+            <SidebarSettings onBack={handleBackToMain} state={contentState} />
           </motion.div>
         ) : (
           <motion.div
@@ -82,7 +82,6 @@ export function Sidebar({
               allTags={allTags}
               isAuthenticated={isAuthenticated}
               userId={userId}
-              onShowSettings={() => setShowSettings(true)}
               state={contentState}
             />
           </motion.div>

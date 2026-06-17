@@ -11,7 +11,7 @@ import {Badge} from "@/components/ui/coss/badge";
 import {Menu, MenuTrigger, MenuPopup, MenuItem, MenuSeparator} from "@/components/ui/coss/menu";
 import {Tabs, TabsList, TabsTab} from "@/components/ui/coss/tabs";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
-import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
+import {PROVIDERS} from "../_lib/sync-providers";
 
 export type ConnectionStatus = "healthy" | "syncing" | "warning" | "error";
 type AccountStatusTag = "all" | ConnectionStatus;

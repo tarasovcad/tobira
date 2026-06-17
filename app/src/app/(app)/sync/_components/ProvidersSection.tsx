@@ -9,7 +9,7 @@ import {ArrowUpRightIcon} from "lucide-react";
 import {useSyncSetupStore} from "@/store/use-sync-setup-store";
 import {motion} from "motion/react";
 import {cn} from "@/lib/utils";
-import {PROVIDERS, type Provider} from "@/app/sync/_lib/sync-providers";
+import {PROVIDERS, type Provider} from "../_lib/sync-providers";
 
 function providerMatchesQuery(provider: Provider, rawQuery: string): boolean {
   const q = rawQuery.trim().toLowerCase();

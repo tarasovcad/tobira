@@ -1,8 +1,8 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React, {useEffect, useMemo} from "react";
 import Link from "next/link";
-import {useSearchParams} from "next/navigation";
+import {useQueryState} from "nuqs";
 import {cn} from "@/lib/utils";
 import {
   Tooltip,
@@ -11,10 +11,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/coss/tooltip";
+import {serializeSettingsParams, settingsTabParser, type SettingsTab} from "@/lib/query-params";
+import {SidebarToggleButton} from "./SidebarToggleButton";
 
 interface SettingsItem {
   label: string;
-  slug: string;
+  slug: SettingsTab;
   href: string;
   icon: React.ReactNode;
   disabled?: boolean;
@@ -24,7 +26,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "General",
     slug: "general",
-    href: "/settings?tab=general",
+    href: serializeSettingsParams("/settings", {tab: "general"}),
     icon: (
       <svg
         width="20"
@@ -44,7 +46,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Personalization",
     slug: "personalization",
-    href: "/settings?tab=personalization",
+    href: serializeSettingsParams("/settings", {tab: "personalization"}),
     icon: (
       <svg
         width="20"
@@ -64,7 +66,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Account & Security",
     slug: "account",
-    href: "/settings?tab=account",
+    href: serializeSettingsParams("/settings", {tab: "account"}),
     icon: (
       <svg
         width="20"
@@ -84,7 +86,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Billing",
     slug: "billing",
-    href: "/settings?tab=billing",
+    href: serializeSettingsParams("/settings", {tab: "billing"}),
     disabled: true,
     icon: (
       <svg
@@ -109,7 +111,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Privacy",
     slug: "privacy",
-    href: "/settings?tab=privacy",
+    href: serializeSettingsParams("/settings", {tab: "privacy"}),
     disabled: true,
     icon: (
       <svg
@@ -130,7 +132,7 @@ const ACCOUNT_ITEMS: SettingsItem[] = [
   {
     label: "Meta/About",
     slug: "meta",
-    href: "/settings?tab=meta",
+    href: serializeSettingsParams("/settings", {tab: "meta"}),
     disabled: true,
     icon: (
       <svg
@@ -154,7 +156,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Organization",
     slug: "organization",
-    href: "/settings?tab=organization",
+    href: serializeSettingsParams("/settings", {tab: "organization"}),
     disabled: true,
     icon: (
       <svg
@@ -183,7 +185,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Integrations",
     slug: "integrations",
-    href: "/settings?tab=integrations",
+    href: serializeSettingsParams("/settings", {tab: "integrations"}),
     disabled: true,
     icon: (
       <svg
@@ -210,7 +212,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Capture Tools",
     slug: "capture",
-    href: "/settings?tab=capture",
+    href: serializeSettingsParams("/settings", {tab: "capture"}),
     disabled: true,
     icon: (
       <svg
@@ -237,7 +239,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Data Management",
     slug: "data",
-    href: "/settings?tab=data",
+    href: serializeSettingsParams("/settings", {tab: "data"}),
     icon: (
       <svg
         width="20"
@@ -261,7 +263,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Usage",
     slug: "usage",
-    href: "/settings?tab=usage",
+    href: serializeSettingsParams("/settings", {tab: "usage"}),
     disabled: true,
     icon: (
       <svg
@@ -284,7 +286,7 @@ const WORKSPACE_ITEMS: SettingsItem[] = [
   {
     label: "Knowledge Base",
     slug: "kb",
-    href: "/settings?tab=kb",
+    href: serializeSettingsParams("/settings", {tab: "kb"}),
     disabled: true,
     icon: (
       <svg
@@ -343,8 +345,8 @@ function SettingsNavItem({
   );
 
   const baseStyles = cn(
-    "flex w-full items-center rounded-md py-1.5 text-sm font-medium",
-    collapsed ? "justify-start px-2" : "justify-start px-3",
+    "flex w-full items-center rounded-md py-[7.5px] text-sm font-medium",
+    collapsed ? "justify-start px-[7.5px]" : "justify-start px-3",
     "transition-[padding] duration-50 ease-linear",
     "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
     isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
@@ -399,11 +401,16 @@ export function SidebarSettings({
   onBack: () => void;
   state: "expanded" | "collapsed";
 }) {
-  const searchParams = useSearchParams();
-  const currentTab = searchParams.get("tab") || "general";
+  const [currentTab] = useQueryState("tab", settingsTabParser);
   const isCollapsed = state === "collapsed";
   const navTooltipHandle = useMemo(() => TooltipCreateHandle<React.ComponentType>(), []);
   const BackTooltipContent = () => <span>Back to app</span>;
+
+  useEffect(() => {
+    if (!isCollapsed) {
+      navTooltipHandle.close();
+    }
+  }, [isCollapsed, navTooltipHandle]);
 
   return (
     <TooltipProvider>
@@ -419,10 +426,10 @@ export function SidebarSettings({
                 onClick={onBack}
                 aria-label="Back to app"
                 className={cn(
-                  "mb-2 flex w-full cursor-pointer items-center rounded-md py-2 text-sm font-medium",
+                  "mb-2 flex w-full cursor-pointer items-center rounded-md py-[7.5px] text-sm font-medium",
                   "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
                   "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-                  "justify-start px-2 transition-[padding] duration-50 ease-linear",
+                  "justify-start px-[7.5px] transition-[padding] duration-50 ease-linear",
                 )}
               />
             }>
@@ -445,7 +452,7 @@ export function SidebarSettings({
             type="button"
             onClick={onBack}
             className={cn(
-              "mb-2 flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-sm font-medium",
+              "mb-2 flex w-full cursor-pointer items-center rounded-md px-3 py-[7.5px] text-sm font-medium",
               "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
               "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
             )}>
@@ -468,7 +475,7 @@ export function SidebarSettings({
 
         <div className="flex-1 overflow-y-auto pb-4">
           {!isCollapsed && (
-            <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
+            <div className="text-muted-foreground flex h-[37px] items-center px-3 py-[7.5px] text-[12px] font-medium">
               Account
             </div>
           )}
@@ -487,7 +494,7 @@ export function SidebarSettings({
             ))}
           </div>
           <div className="px-3">
-            <div className="bg-border my-4 h-px w-full" />
+            <div className="bg-border my-3 h-px w-full" />
           </div>
           {!isCollapsed && (
             <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
@@ -509,14 +516,19 @@ export function SidebarSettings({
             ))}
           </div>
         </div>
+        <div className="shrink-0">
+          <SidebarToggleButton isCollapsed={isCollapsed} />
+        </div>
       </div>
-      <Tooltip handle={navTooltipHandle}>
-        {({payload: Payload}) => (
-          <TooltipPopup side="right" align="center" sideOffset={6} size="md">
-            {Payload !== undefined && isCollapsed && <Payload />}
-          </TooltipPopup>
-        )}
-      </Tooltip>
+      {isCollapsed && (
+        <Tooltip handle={navTooltipHandle}>
+          {({payload: Payload}) => (
+            <TooltipPopup side="right" align="center" sideOffset={6} size="md">
+              {Payload !== undefined && <Payload />}
+            </TooltipPopup>
+          )}
+        </Tooltip>
+      )}
     </TooltipProvider>
   );
 }

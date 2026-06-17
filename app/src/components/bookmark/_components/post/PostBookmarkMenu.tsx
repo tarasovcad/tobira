@@ -2,11 +2,11 @@
 
 import {useMemo, useCallback} from "react";
 import {Controller} from "react-hook-form";
-import Image from "next/image";
 import {SearchIcon} from "lucide-react";
 import {cn} from "@/lib/utils";
 import {formatDateWithTime} from "@/lib/utils/dates";
 import MediaPreview from "@/features/media/components/MediaPreview";
+import {FallbackImage} from "@/features/media/components/preview/FallbackImage";
 import {Sheet, SheetContent, SheetPanel} from "@/components/ui/coss/sheet";
 import {Button} from "@/components/ui/coss/button";
 import {Separator} from "@/components/ui/legacy-shadcn/separator";
@@ -24,7 +24,7 @@ import {
   ComboboxValue,
 } from "@/components/ui/coss/combobox";
 import {SelectButton, Select} from "@/components/ui/coss/select";
-import {type UpdateBookmarkData} from "@/app/actions/bookmarks";
+import {type UpdateBookmarkData} from "@/app/actions/bookmarks/update";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
@@ -35,44 +35,116 @@ import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
 import type {PostBookmarkMetadata} from "@/components/bookmark/types/metadata";
 import type {PostBookmark} from "@/components/bookmark/types";
 import {
+  getPostBookmarkArticleCoverPreviewItem,
+  getPostBookmarkCardPreviewItem,
   getPostBookmarkMediaPreviewItems,
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
 import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
+import {
+  PostBookmarkText,
+  preparePostBookmarkText,
+  preparePostBookmarkTranslationText,
+} from "./PostBookmarkText";
+import {useTranslationToggle, PostTranslationLabel} from "./PostBookmarkTranslation";
+
+const POST_TEXT_PREVIEW_MAX_LENGTH = 280;
+const MAX_MENU_PREVIEW_ITEMS = 4;
 
 // ── 0 images ──────────────────────────────────────────────────────────────────
 
 function NoMediaPanel({meta}: {meta: PostBookmarkMetadata}) {
   const post = meta.tweet.post;
-  const user = meta.tweet.user;
+  const preparedText = preparePostBookmarkText(post, {
+    expanded: false,
+    maxLength: POST_TEXT_PREVIEW_MAX_LENGTH,
+  });
+  const translationToggle = useTranslationToggle(post);
+  const preparedTranslationText = preparePostBookmarkTranslationText(post, {
+    expanded: translationToggle.isTranslationExpanded,
+  });
 
   return (
     <div className="bg-muted relative flex aspect-video w-full items-center justify-center overflow-hidden border-b px-8">
       <div className="flex w-full max-w-[400px] flex-col gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="bg-background ring-border h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1">
-            <Image
-              src={user.user_profile_image_url}
-              alt={user.user_name}
-              width={32}
-              height={32}
-              className="h-full w-full object-cover"
-              unoptimized
-            />
-          </div>
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="text-foreground truncate text-[13px] font-semibold">
-              {user.user_name}
-            </span>
-            <span className="text-muted-foreground text-[12px]">@{user.user_screen_name}</span>
-          </div>
-        </div>
-
-        <p className="text-foreground line-clamp-5 text-[14px] leading-snug whitespace-pre-wrap">
-          {post.text}
-        </p>
+        <NoMediaPanelAuthor meta={meta} />
+        <NoMediaPanelText
+          preparedText={preparedText}
+          preparedTranslationText={preparedTranslationText}
+          translationToggle={translationToggle}
+        />
       </div>
     </div>
+  );
+}
+
+function NoMediaPanelAuthor({meta}: {meta: PostBookmarkMetadata}) {
+  const user = meta.tweet.user;
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="bg-background ring-border h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1">
+        <FallbackImage
+          src={user.user_profile_image_url}
+          alt={user.user_name}
+          width={32}
+          height={32}
+          className="h-full w-full object-cover"
+          avatar
+          unoptimized
+        />
+      </div>
+      <div className="flex min-w-0 flex-col leading-tight">
+        <span className="text-foreground truncate text-[13px] font-semibold">{user.user_name}</span>
+        <span className="text-muted-foreground text-[12px]">@{user.user_screen_name}</span>
+      </div>
+    </div>
+  );
+}
+
+function NoMediaPanelText({
+  preparedText,
+  preparedTranslationText,
+  translationToggle,
+}: {
+  preparedText: ReturnType<typeof preparePostBookmarkText>;
+  preparedTranslationText: ReturnType<typeof preparePostBookmarkTranslationText>;
+  translationToggle: ReturnType<typeof useTranslationToggle>;
+}) {
+  return (
+    <>
+      {translationToggle.hasTranslation ? (
+        <PostTranslationLabel
+          sourceLanguage={translationToggle.sourceLanguage}
+          showOriginal={translationToggle.showOriginal}
+          provider={translationToggle.provider}
+          onToggle={translationToggle.toggleOriginal}
+        />
+      ) : null}
+      {translationToggle.isTranslated ? (
+        <p
+          className={cn(
+            "text-foreground text-[15px] leading-[20px] whitespace-pre-wrap",
+            !translationToggle.isTranslationExpanded && "line-clamp-5",
+          )}>
+          <PostBookmarkText preparedText={preparedTranslationText} />
+        </p>
+      ) : (
+        <p className="text-foreground line-clamp-5 text-[15px] leading-[20px] whitespace-pre-wrap">
+          <PostBookmarkText preparedText={preparedText} />
+        </p>
+      )}
+      {translationToggle.isTranslated &&
+      preparedTranslationText.isLongText &&
+      !translationToggle.isTranslationExpanded ? (
+        <button
+          type="button"
+          onClick={translationToggle.expandTranslation}
+          className="-mt-2 block cursor-pointer text-left text-[15px] leading-[18px] text-[#1D9BF0] hover:underline focus:outline-none">
+          Show more
+        </button>
+      ) : null}
+    </>
   );
 }
 
@@ -85,8 +157,8 @@ function MediaPanel({
   media: PostBookmarkPreviewItem[];
   disableClickToOpen: boolean;
 }) {
-  const count = Math.min(media.length, 4);
-  const items = media.slice(0, count);
+  const items = media.slice(0, MAX_MENU_PREVIEW_ITEMS);
+  const count = items.length;
 
   return (
     <div
@@ -94,37 +166,97 @@ function MediaPanel({
         "relative aspect-video w-full overflow-hidden border-b",
         disableClickToOpen && "pointer-events-none",
       )}>
-      <div
-        className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
-        {items.map((m, i) => {
-          const isFirstOfThree = count === 3 && i === 0;
-          const isVideo = m.type === "video";
-
-          return (
-            <div
-              key={m.key}
-              className={cn(
-                "bg-muted relative h-full w-full overflow-hidden",
-                isFirstOfThree && "row-span-2",
-              )}>
-              <MediaPreview
-                src={m.src}
-                fullSizeSrc={isVideo ? undefined : m.fullSizeSrc}
-                alt={m.alt}
-                width={m.width}
-                height={m.height}
-                poster={m.poster}
-                type={isVideo ? "video" : "image"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                disableClickToOpen={disableClickToOpen}
-              />
-            </div>
-          );
-        })}
+      <div className={getMenuPreviewGridClassName(count)}>
+        {items.map((item, index) => (
+          <MediaPanelTile
+            key={item.key}
+            item={item}
+            index={index}
+            count={count}
+            disableClickToOpen={disableClickToOpen}
+          />
+        ))}
       </div>
     </div>
   );
+}
+
+function getMenuPreviewGridClassName(count: number) {
+  return cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2");
+}
+
+function MediaPanelTile({
+  count,
+  disableClickToOpen,
+  index,
+  item,
+}: {
+  count: number;
+  disableClickToOpen: boolean;
+  index: number;
+  item: PostBookmarkPreviewItem;
+}) {
+  const isVideo = item.type === "video";
+
+  return (
+    <div
+      className={cn(
+        "bg-muted relative h-full w-full overflow-hidden",
+        count === 3 && index === 0 && "row-span-2",
+      )}>
+      <MediaPreview
+        src={item.src}
+        fullSizeSrc={isVideo ? undefined : item.fullSizeSrc}
+        alt={item.alt}
+        width={item.width}
+        height={item.height}
+        poster={item.poster}
+        type={isVideo ? "video" : "image"}
+        className="h-full w-full object-cover"
+        loading="lazy"
+        disableClickToOpen={disableClickToOpen}
+      />
+    </div>
+  );
+}
+
+function getPostBookmarkMenuPreviewItems(
+  item: PostBookmark,
+  meta: PostBookmarkMetadata,
+): PostBookmarkPreviewItem[] {
+  const post = meta.tweet.post;
+  const mainMedia = getPostBookmarkMediaPreviewItems(item, "main", "menu");
+  if (mainMedia.length > 0) {
+    return mainMedia;
+  }
+
+  const cardPreviewItem = post.card
+    ? getPostBookmarkCardPreviewItem(item, post.tweetID, post.card, "menu")
+    : null;
+  if (cardPreviewItem) {
+    return [cardPreviewItem];
+  }
+
+  const articleCoverPreviewItem = post.article
+    ? getPostBookmarkArticleCoverPreviewItem(item, "menu", 0)
+    : null;
+  if (articleCoverPreviewItem) {
+    return [articleCoverPreviewItem];
+  }
+
+  const quotedMedia = getPostBookmarkMediaPreviewItems(item, "qrt", "menu");
+  if (quotedMedia.length > 0) {
+    return quotedMedia;
+  }
+
+  const quotedArticleCoverPreviewItem = post.qrt?.post.article
+    ? getPostBookmarkArticleCoverPreviewItem(item, "menu", post.article ? 1 : 0)
+    : null;
+  if (quotedArticleCoverPreviewItem) {
+    return [quotedArticleCoverPreviewItem];
+  }
+
+  return [];
 }
 
 function PostBookmarkMenuPreview({
@@ -136,7 +268,7 @@ function PostBookmarkMenuPreview({
   meta: PostBookmarkMetadata;
   disableClickToOpen: boolean;
 }) {
-  const media = getPostBookmarkMediaPreviewItems(item, "main", "menu");
+  const media = getPostBookmarkMenuPreviewItems(item, meta);
   return media.length > 0 ? (
     <MediaPanel media={media} disableClickToOpen={disableClickToOpen} />
   ) : (

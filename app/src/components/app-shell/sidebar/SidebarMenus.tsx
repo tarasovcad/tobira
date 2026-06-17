@@ -7,6 +7,7 @@ import {
   ContextMenuSeparator,
 } from "@/components/ui/legacy-shadcn/context-menu";
 import Link from "next/link";
+import {useQueryClient} from "@tanstack/react-query";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import type {Collection} from "@/app/actions/collections";
@@ -14,6 +15,7 @@ import type {SidebarTag} from "@/features/home/types";
 import {getTagById, toggleTagPin} from "@/app/actions/tags";
 import {toggleCollectionPin} from "@/app/actions/collections";
 import {toastManager} from "@/components/ui/coss/toast";
+import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 
 async function handleToggleCollectionPin(
   collectionId: string,
@@ -83,11 +85,12 @@ export function CollectionContextMenuContent({
   onCopy,
   onDelete,
 }: CollectionContextMenuContentProps) {
+  const queryClient = useQueryClient();
   const openCollectionDialog = useCollectionDialogStore((state) => state.openDialog);
 
   return (
     <ContextMenuContent>
-      <Link href={`/home?collection=${collection.id}`}>
+      <Link href={`/collections/${collection.id}`}>
         <ContextMenuItem>
           <svg
             width="16"
@@ -147,7 +150,11 @@ export function CollectionContextMenuContent({
       </ContextMenuItem>
 
       <ContextMenuItem
-        onClick={() => handleToggleCollectionPin(collection.id, collection.is_pinned)}>
+        onClick={() =>
+          handleToggleCollectionPin(collection.id, collection.is_pinned, () => {
+            void queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
+          })
+        }>
         {collection.is_pinned ? (
           <>
             <svg
@@ -216,7 +223,7 @@ export function TagContextMenuContent({tag, onCopy, onDelete}: TagContextMenuCon
 
   return (
     <ContextMenuContent>
-      <Link href={`/home?tag=${tag.id}`}>
+      <Link href={`/tags/${tag.id}`}>
         <ContextMenuItem>
           <svg
             width="16"

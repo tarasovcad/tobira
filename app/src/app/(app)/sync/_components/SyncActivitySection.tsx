@@ -15,7 +15,7 @@ import {
 import {Button} from "@/components/ui/coss/button";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import {Tabs, TabsList, TabsTab} from "@/components/ui/coss/tabs";
-import {PROVIDERS} from "@/app/sync/_lib/sync-providers";
+import {PROVIDERS} from "../_lib/sync-providers";
 
 export type SyncActivityStatus = "success" | "running" | "warning" | "error";
 type SyncActivityTag = "all" | "success" | "error" | "warning" | "info";

@@ -6,6 +6,7 @@ import {
   isFreebirdXArticleVideoMedia,
   type FreebirdXArticle,
   type FreebirdXArticleMedia,
+  type FreebirdXPostCard,
   type FreebirdXPostMediaItem,
 } from "@/lib/fetch/post";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
@@ -14,6 +15,7 @@ import type {MediaGalleryEntry} from "./media-grid-render";
 
 type StoredPostMediaItem = PostImages["items"][number];
 type StoredPostArticleItem = NonNullable<PostImages["articleItems"]>[number];
+type StoredPostCardItem = NonNullable<PostImages["cardItems"]>[number];
 type PostMediaGroup = "main" | "qrt";
 type PostPreviewVariant = "list" | "menu";
 
@@ -42,14 +44,20 @@ export type PostBookmarkMediaGalleryEntry = MediaGalleryEntry<
   PostBookmarkPreviewItem
 >;
 
-function buildR2SizedImageUrl(key: string, size: "thumb" | "small" | "medium" | "large"): string {
+function buildR2SizedImageUrl(
+  key: string,
+  size: "thumb" | "small" | "medium" | "large" | "orig",
+): string {
   const url = new URL(buildR2PublicUrl(key));
   url.searchParams.set("size", size);
   url.searchParams.set("format", "webp");
   return url.toString();
 }
 
-function buildProcessingImageUrl(sourceUrl: string, size: "thumb" | "small" | "medium" | "large") {
+function buildProcessingImageUrl(
+  sourceUrl: string,
+  size: "thumb" | "small" | "medium" | "large" | "orig",
+) {
   try {
     const url = new URL(sourceUrl);
     url.searchParams.set("name", size);
@@ -157,8 +165,8 @@ function buildStoredPreviewItem(
           : buildR2SizedImageUrl(item.media_key, previewSize),
       fullSizeSrc:
         processing || !item.media_key
-          ? buildProcessingImageUrl(item.source_url, "large")
-          : buildR2SizedImageUrl(item.media_key, "large"),
+          ? buildProcessingImageUrl(item.source_url, "orig")
+          : buildR2SizedImageUrl(item.media_key, "orig"),
     };
   }
 
@@ -180,7 +188,7 @@ function buildStoredPreviewItem(
       fullSizeSrc:
         processing || !item.key_thumbnail
           ? previewSrc
-          : buildR2SizedImageUrl(item.key_thumbnail, "large"),
+          : buildR2SizedImageUrl(item.key_thumbnail, "orig"),
     };
   }
 
@@ -252,6 +260,42 @@ export function getPostBookmarkMediaPreviewItems(
       metadataItems.at(mediaIndex)?.duration_millis ?? null,
     ),
   );
+}
+
+function buildExternalCardPreviewItem(card: FreebirdXPostCard): PostBookmarkPreviewItem | null {
+  if (!card.image.url) {
+    return null;
+  }
+
+  return {
+    key: card.image.url,
+    type: "image",
+    src: card.image.url,
+    fullSizeSrc: card.image.url,
+    width: card.image.width,
+    height: card.image.height,
+    alt: card.image.altText ?? card.title,
+  };
+}
+
+export function getPostBookmarkCardPreviewItem(
+  item: PostBookmark,
+  tweetId: string,
+  card: FreebirdXPostCard,
+  variant: PostPreviewVariant,
+): PostBookmarkPreviewItem | null {
+  const storedItems: StoredPostCardItem[] = isPostImages(item.images)
+    ? (item.images.cardItems ?? [])
+    : [];
+  const storedItem = storedItems.find(
+    (mediaItem) => mediaItem.tweetId === tweetId && mediaItem.source_url === card.image.url,
+  );
+
+  if (storedItem) {
+    return buildStoredPreviewItem(storedItem, isPostMediaProcessing(item.images), variant);
+  }
+
+  return buildExternalCardPreviewItem(card);
 }
 
 export function getPostBookmarkReplyMediaPreviewItems(
@@ -376,4 +420,20 @@ export function buildPostBookmarkMediaGalleryEntries(
     renderId: `${item.id}:${group}:${mediaIndex}`,
     previewItem,
   }));
+}
+
+export function buildPostBookmarkReplyMediaGalleryEntries(
+  item: PostBookmark,
+  tweetId: string,
+  variant: PostPreviewVariant = "list",
+): PostBookmarkMediaGalleryEntry[] {
+  return getPostBookmarkReplyMediaPreviewItems(item, tweetId, variant).map(
+    (previewItem, mediaIndex) => ({
+      item,
+      bookmarkIndex: 0,
+      mediaIndex,
+      renderId: `${item.id}:reply:${tweetId}:${mediaIndex}`,
+      previewItem,
+    }),
+  );
 }

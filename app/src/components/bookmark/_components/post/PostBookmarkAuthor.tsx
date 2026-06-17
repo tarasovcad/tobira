@@ -1,32 +1,56 @@
 "use client";
 
 import type {ReactNode} from "react";
-import Image from "next/image";
+
 import Link from "next/link";
 
 import type {FreebirdXPostResponse} from "@/lib/fetch/post";
 import {cn} from "@/lib/utils";
 import {formatPostFullDate, formatShortPostDate} from "@/lib/utils/dates";
 import {Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger} from "@/components/ui/coss/tooltip";
+import {FallbackImage} from "@/features/media/components/preview/FallbackImage";
 
 import {BlueVerifiedBadgeIcon, YellowVerifiedBadgeIcon} from "./PostVerificationBadgeIcons";
 
 type PostBookmarkUser = FreebirdXPostResponse["user"];
+type AvatarSize = "md" | "sm";
 
 type PostBookmarkAuthorAvatarProps = {
   profileUrl: string;
-  size?: "md" | "sm";
+  selectionSlot?: ReactNode;
+  size?: AvatarSize;
   user: PostBookmarkUser;
 };
 
 type PostBookmarkAuthorLineProps = {
   className?: string;
   profileUrl: string;
-  selectionSlot?: ReactNode;
   showTimestamp?: boolean;
   timestampEpoch?: number;
   user: PostBookmarkUser;
 };
+
+const authorLinkProps = {
+  rel: "noopener noreferrer",
+  target: "_blank",
+} as const;
+
+const mediumAvatarClassNames = {
+  container: "size-10",
+  image: "h-10 w-10 shrink-0",
+  link: "size-10",
+  pixelSize: 40,
+} as const;
+const smallAvatarClassNames = {
+  container: "shrink-0",
+  image: "h-6 w-6",
+  link: "shrink-0",
+  pixelSize: undefined,
+} as const;
+
+function getAvatarSizeClassNames(size: AvatarSize) {
+  return size === "sm" ? smallAvatarClassNames : mediumAvatarClassNames;
+}
 
 export function PostShortTimestamp({epoch, className}: {epoch: number; className?: string}) {
   return (
@@ -47,40 +71,43 @@ export function PostShortTimestamp({epoch, className}: {epoch: number; className
 
 export function PostBookmarkAuthorAvatar({
   profileUrl,
+  selectionSlot,
   size = "md",
   user,
 }: PostBookmarkAuthorAvatarProps) {
-  const isSmall = size === "sm";
+  const sizeClassNames = getAvatarSizeClassNames(size);
 
   return (
-    <Link
-      href={profileUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      className={cn("group/avatar cursor-pointer", isSmall ? "shrink-0" : "size-10")}>
-      <div
-        className={cn(
-          "bg-muted ring-border overflow-hidden rounded-full ring-1",
-          isSmall ? "h-6 w-6" : "h-10 w-10 shrink-0",
-        )}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={user.user_profile_image_url}
-          alt={user.user_name}
-          width={isSmall ? undefined : 40}
-          height={isSmall ? undefined : 40}
-          className="h-full w-full object-cover transition-all duration-100 group-hover/avatar:brightness-95"
-        />
-      </div>
-    </Link>
+    <div className={cn("relative", sizeClassNames.container)}>
+      {selectionSlot}
+      <Link
+        href={profileUrl}
+        {...authorLinkProps}
+        onClick={(e) => e.stopPropagation()}
+        className={cn("group/avatar block cursor-pointer", sizeClassNames.link)}>
+        <div
+          className={cn(
+            "bg-muted ring-border overflow-hidden rounded-full ring-1",
+            sizeClassNames.image,
+          )}>
+          <FallbackImage
+            src={user.user_profile_image_url}
+            alt={user.user_name}
+            width={sizeClassNames.pixelSize ?? 24}
+            height={sizeClassNames.pixelSize ?? 24}
+            className="h-full w-full object-cover transition-all duration-100 group-hover/avatar:brightness-95"
+            avatar
+            unoptimized
+          />
+        </div>
+      </Link>
+    </div>
   );
 }
 
 export function PostBookmarkAuthorLine({
   className,
   profileUrl,
-  selectionSlot,
   showTimestamp = false,
   timestampEpoch,
   user,
@@ -88,20 +115,13 @@ export function PostBookmarkAuthorLine({
   return (
     <div className={cn("flex min-w-0 items-center gap-1", className)}>
       <div className="flex min-w-0 items-center">
-        {selectionSlot}
-
         <Link
           href={profileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          {...authorLinkProps}
           onClick={(e) => e.stopPropagation()}
           className="group/author flex min-w-0 cursor-pointer items-center gap-[3px]">
-          <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
-            {user.user_name}
-          </span>
-          <PostBookmarkVerificationBadge user={user} />
-          <PostBookmarkAffiliateBadge user={user} />
-          <span className="min-w-0 shrink truncate pl-0.5 text-[#536471]!">
+          <PostBookmarkDisplayName user={user} />
+          <span className="text-x-secondary! min-w-0 shrink truncate pl-0.5">
             @{user.user_screen_name}
           </span>
         </Link>
@@ -109,8 +129,8 @@ export function PostBookmarkAuthorLine({
 
       {showTimestamp && timestampEpoch != null ? (
         <>
-          <span className="text-[#536471]">{"\u00b7"}</span>
-          <PostShortTimestamp epoch={timestampEpoch} className="text-[#536471]" />
+          <span className="text-x-secondary">{"\u00b7"}</span>
+          <PostShortTimestamp epoch={timestampEpoch} className="text-x-secondary" />
         </>
       ) : null}
     </div>
@@ -131,37 +151,34 @@ export function PostBookmarkAuthorStack({
   user,
 }: PostBookmarkAuthorStackProps) {
   return (
-    <div className={cn("flex min-w-0 items-center", className)}>
-      {selectionSlot}
+    <div className={cn("flex min-w-0 items-center gap-2", className)}>
+      <PostBookmarkAuthorAvatar user={user} profileUrl={profileUrl} selectionSlot={selectionSlot} />
 
       <Link
         href={profileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+        {...authorLinkProps}
         onClick={(e) => e.stopPropagation()}
-        className="group/author flex w-fit min-w-0 cursor-pointer items-center gap-2">
-        <div className="bg-muted ring-border h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={user.user_profile_image_url}
-            alt={user.user_name}
-            width={40}
-            height={40}
-            className="h-full w-full object-cover transition-all duration-100 group-hover/author:brightness-95"
-          />
-        </div>
+        className="group/author flex min-w-0 cursor-pointer items-center">
         <div className="flex min-w-0 flex-col gap-0 text-[15px] leading-[18px]">
           <div className="flex min-w-0 items-center gap-[3px]">
-            <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
-              {user.user_name}
-            </span>
-            <PostBookmarkVerificationBadge user={user} />
-            <PostBookmarkAffiliateBadge user={user} />
+            <PostBookmarkDisplayName user={user} />
           </div>
-          <span className="truncate text-sm text-[#536471]!">@{user.user_screen_name}</span>
+          <span className="text-x-secondary! truncate text-sm">@{user.user_screen_name}</span>
         </div>
       </Link>
     </div>
+  );
+}
+
+function PostBookmarkDisplayName({user}: {user: PostBookmarkUser}) {
+  return (
+    <>
+      <span className="text-foreground truncate font-semibold group-hover/author:underline group-data-[selection-mode=true]/bookmark-row:group-hover/author:no-underline">
+        {user.user_name}
+      </span>
+      <PostBookmarkVerificationBadge user={user} />
+      <PostBookmarkAffiliateBadge user={user} />
+    </>
   );
 }
 
@@ -192,11 +209,13 @@ function PostBookmarkAffiliateBadge({user}: {user: PostBookmarkUser}) {
 
   return (
     <div className="h-4 w-4 rounded-[2px] border border-[#CFD9DE]">
-      <Image
+      <FallbackImage
         src={user.affiliates_highlighted_label.badge_url}
         width={16}
         height={16}
         alt={user.affiliates_highlighted_label.description}
+        unoptimized
+        displayFallbackSvg={false}
       />
     </div>
   );

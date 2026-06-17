@@ -4,7 +4,7 @@ import {
   archiveBookmarks,
   resetBookmark,
   UpdateBookmarkData,
-} from "@/app/actions/bookmarks";
+} from "@/app/actions/bookmarks/update";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 import {toastManager} from "@/components/ui/coss/toast";
 import {UseFormReturn} from "react-hook-form";

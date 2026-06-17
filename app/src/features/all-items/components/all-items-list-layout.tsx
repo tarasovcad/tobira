@@ -104,7 +104,7 @@ function getMasonryChildSpacingClass(gapClass: string) {
   }
 }
 
-function getWidthClass(bookmarkWidth: BookmarkWidth) {
+export function getAllItemsBookmarkWidthClass(bookmarkWidth: BookmarkWidth) {
   switch (bookmarkWidth) {
     case "xs":
       return "max-w-xl mx-auto";
@@ -129,7 +129,7 @@ export function getAllItemsListLayoutConfig({
   bookmarkWidth,
   typeFilter,
 }: GetAllItemsListLayoutConfigArgs): AllItemsListLayoutConfig {
-  const widthClass = getWidthClass(bookmarkWidth);
+  const widthClass = getAllItemsBookmarkWidthClass(bookmarkWidth);
 
   switch (view) {
     case "grid":

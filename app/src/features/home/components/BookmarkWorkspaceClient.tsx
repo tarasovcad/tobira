@@ -1,7 +1,6 @@
 "use client";
 
 import {useCallback, useMemo, useRef} from "react";
-import NumberFlow from "@number-flow/react";
 import {useQuery} from "@tanstack/react-query";
 
 // Components
@@ -9,7 +8,12 @@ import {SelectionActionBar} from "@/components/bookmark/SelectionActionBar";
 import {CollectionHeader} from "@/features/home/components/CollectionHeader";
 import {TagHeader} from "@/features/home/components/TagHeader";
 import {HomeToolbar} from "@/features/home/components/HomeToolbar";
-import {PostBookmarkDetailView} from "@/features/home/components/PostBookmarkDetailView";
+import {
+  PostBookmarkDetailView,
+  type PostDetailErrorCode,
+} from "@/features/home/components/PostBookmarkDetailView";
+
+import {SlotTextWithFallback} from "@/components/ui/SlotTextWithFallback";
 
 // Hooks
 import {useBookmarksSelection} from "@/features/home/hooks/use-bookmarks-selection";
@@ -28,37 +32,54 @@ import {TagNotFoundState} from "@/features/home/components/TagNotFoundState";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import type {Bookmark, PostBookmark} from "@/components/bookmark/types";
 import {cn} from "@/lib/utils";
-import type {TypeFilter, SortMode, TagWithCount} from "@/features/home/types";
+import {
+  areBookmarkWorkspaceScopesEqual,
+  type BookmarkWorkspaceScope,
+  type SortMode,
+  type TagWithCount,
+  type TypeFilter,
+} from "@/features/home/types";
 import {AllItemsList} from "@/features/all-items/components/AllItemsList";
 import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {getCurrentAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
 import {getPostBookmarkById} from "@/app/actions/bookmarks/getPostBookmarkById";
+import type {Collection} from "@/app/actions/collections";
 
 /**
- * Main client component for the All Items / Home page.
+ * Main client component for bookmark workspace pages.
  * Orchestrates fetching, filtering, selection, and mutations for bookmarks.
  */
-export function HomeClient({
+export function BookmarkWorkspaceClient({
   userId,
   initialBookmarks,
+  initialActiveCollection,
   initialActiveTag,
   totalCount,
+  scope,
   serverFilters,
 }: {
   userId: string | null;
   initialBookmarks: Bookmark[];
+  initialActiveCollection: Collection | null;
   initialActiveTag: TagWithCount | null;
   totalCount: number;
+  scope: BookmarkWorkspaceScope;
   serverFilters?: {
-    tagFilter: string | null;
-    collectionFilter: string | null;
+    scope: BookmarkWorkspaceScope;
     typeFilter: TypeFilter;
     sortFilter: SortMode;
   };
 }) {
-  const {tagFilter, collectionFilter, typeFilter, sort, handleTypeChange, handleSortChange} =
-    useHomeFilters();
-  const {detailBookmarkId, openPostDetail, closePostDetail} = usePostDetailUrl();
+  const {
+    tagFilter,
+    collectionFilter,
+    scope: currentScope,
+    typeFilter,
+    sort,
+    handleTypeChange,
+    handleSortChange,
+  } = useHomeFilters();
+  const {detailBookmarkId, isPostDetailOpen, openPostDetail, closePostDetail} = usePostDetailUrl();
   const handleOpenPostDetail = useCallback(
     (item: Bookmark) => {
       if (item.kind !== "post") {
@@ -71,11 +92,10 @@ export function HomeClient({
   );
 
   const isServerDataMatching = serverFilters
-    ? serverFilters.tagFilter === tagFilter &&
-      serverFilters.collectionFilter === collectionFilter &&
+    ? areBookmarkWorkspaceScopesEqual(serverFilters.scope, currentScope) &&
       serverFilters.typeFilter === typeFilter &&
       serverFilters.sortFilter === sort
-    : false;
+    : areBookmarkWorkspaceScopesEqual(scope, currentScope);
 
   // View & filter state
   const view = useViewOptionsStore((state) => state.view);
@@ -83,17 +103,24 @@ export function HomeClient({
   const currentView = getCurrentAllItemsView(view, typeFilter);
 
   // Query Hook
-  const {bookmarksQuery, allBookmarks, activeCollection, activeTag, isInitialLoad} =
-    useBookmarksQuery({
-      userId,
-      initialBookmarks,
-      initialActiveTag,
-      sort,
-      tagFilter,
-      collectionFilter,
-      typeFilter,
-      isServerDataMatching,
-    });
+  const {
+    bookmarksQuery,
+    allBookmarks,
+    totalCount: currentTotalCount,
+    activeCollection,
+    activeTag,
+    isInitialLoad,
+  } = useBookmarksQuery({
+    userId,
+    initialBookmarks,
+    initialActiveCollection,
+    initialActiveTag,
+    initialTotalCount: totalCount,
+    scope: currentScope,
+    sort,
+    typeFilter,
+    isServerDataMatching,
+  });
   const loadedDetailBookmark = useMemo(() => {
     if (!detailBookmarkId) {
       return null;
@@ -105,20 +132,32 @@ export function HomeClient({
       ) ?? null
     );
   }, [allBookmarks, detailBookmarkId]);
+
   const detailBookmarkQuery = useQuery({
     queryKey: ["bookmarks", "post-detail", userId, detailBookmarkId],
     enabled: Boolean(userId && detailBookmarkId && !loadedDetailBookmark),
     queryFn: async () => {
       if (!detailBookmarkId) {
-        return null;
+        return {ok: false as const, code: "NOT_FOUND" as const};
       }
 
       return await getPostBookmarkById(detailBookmarkId);
     },
+    retry: false,
   });
-  const detailBookmark = loadedDetailBookmark ?? detailBookmarkQuery.data ?? null;
-  const isPostDetailOpen = typeFilter === "post" && Boolean(detailBookmarkId);
-
+  const fetchedDetailBookmark = detailBookmarkQuery.data?.ok
+    ? detailBookmarkQuery.data.bookmark
+    : null;
+  const detailBookmark = loadedDetailBookmark ?? fetchedDetailBookmark;
+  const detailErrorCode: PostDetailErrorCode | null = loadedDetailBookmark
+    ? null
+    : detailBookmarkQuery.data && !detailBookmarkQuery.data.ok
+      ? detailBookmarkQuery.data.code
+      : detailBookmarkQuery.isError
+        ? "UNKNOWN_ERROR"
+        : !userId
+          ? "UNAUTHORIZED"
+          : null;
   // Mutation Hook
   const {
     removingIds,
@@ -142,7 +181,8 @@ export function HomeClient({
   const visibleItems = useMemo(() => {
     if (allBookmarks.length === 0) return [];
 
-    const resolvedIds = new Set(resolvedBookmarks.map((bookmark) => bookmark.id));
+    const resolvedIds =
+      sort === "az" ? new Set<string>() : new Set(resolvedBookmarks.map((bookmark) => bookmark.id));
 
     return allBookmarks.filter((item) => {
       const isBeingRemoved = removingIds.has(item.id);
@@ -151,7 +191,18 @@ export function HomeClient({
 
       return !isBeingRemoved && !isAnimatedOut && !isDuplicateOfResolved;
     });
-  }, [allBookmarks, animatedOutIds, removingIds, resolvedBookmarks]);
+  }, [allBookmarks, animatedOutIds, removingIds, resolvedBookmarks, sort]);
+  const selectionItems = useMemo(
+    () => (isPostDetailOpen && detailBookmark ? [detailBookmark] : visibleItems),
+    [detailBookmark, isPostDetailOpen, visibleItems],
+  );
+  const selectionBookmarks = useMemo(() => {
+    if (!detailBookmark || allBookmarks.some((item) => item.id === detailBookmark.id)) {
+      return allBookmarks;
+    }
+
+    return [detailBookmark, ...allBookmarks];
+  }, [allBookmarks, detailBookmark]);
 
   // Selection Hook
   const {
@@ -165,7 +216,7 @@ export function HomeClient({
     handleClearSelection,
     handleSelectAll,
     handleCopySelected,
-  } = useBookmarksSelection(visibleItems, allBookmarks);
+  } = useBookmarksSelection(selectionItems, selectionBookmarks);
 
   // Keyboard shortcuts
   useHomeShortcuts({
@@ -178,7 +229,7 @@ export function HomeClient({
 
   // Dialogs
   const {openDeleteDialog, handleDeleteSelected} = useHomeDialogs({
-    allBookmarks,
+    allBookmarks: selectionBookmarks,
     selectedIds,
     onDeleted: handleClearSelection,
   });
@@ -225,21 +276,26 @@ export function HomeClient({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      {activeCollection ? (
-        <CollectionHeader activeCollection={activeCollection} currentTotalCount={totalCount} />
-      ) : tagFilter && activeTag ? (
-        <TagHeader activeTag={activeTag} currentTotalCount={totalCount} />
+      {activeCollection && !isPostDetailOpen ? (
+        <CollectionHeader
+          activeCollection={activeCollection}
+          currentTotalCount={currentTotalCount}
+        />
+      ) : tagFilter && activeTag && !isPostDetailOpen ? (
+        <TagHeader activeTag={activeTag} currentTotalCount={currentTotalCount} />
       ) : null}
 
-      {/* Toolbar */}
-      <HomeToolbar
-        typeFilter={typeFilter}
-        onTypeChange={handleTypeChange}
-        sort={sort}
-        onSortChange={handleSortChange}
-        selectionMode={selectionMode}
-        onSelectionEnabledChange={setSelectionEnabled}
-      />
+      {!isPostDetailOpen && (
+        <HomeToolbar
+          typeFilter={typeFilter}
+          onTypeChange={handleTypeChange}
+          sort={sort}
+          onSortChange={handleSortChange}
+          selectionMode={selectionMode}
+          onSelectionEnabledChange={setSelectionEnabled}
+        />
+      )}
+
       {/* Item count */}
       {!isPostDetailOpen && !activeCollection && !tagFilter && userId && (
         <div
@@ -248,19 +304,24 @@ export function HomeClient({
             currentView === "compact" && "border-b",
             currentView === "list" && "border-b",
           )}>
-          <NumberFlow value={totalCount} /> items
+          <SlotTextWithFallback text={String(currentTotalCount)} /> items
         </div>
       )}
+
       {/* Scrollable content area */}
       {isPostDetailOpen && detailBookmarkId ? (
         <div className="min-h-0 flex-1">
           <PostBookmarkDetailView
             detailBookmarkId={detailBookmarkId}
             item={detailBookmark}
-            isError={detailBookmarkQuery.isError}
+            errorCode={detailErrorCode}
             isLoading={!detailBookmark && detailBookmarkQuery.isLoading}
+            selectionMode={selectionMode}
+            isSelected={detailBookmark ? selectedIds.has(detailBookmark.id) : false}
             onBack={closePostDetail}
             onOpenMenu={handleOpenDetailMenu}
+            setSelected={setSelected}
+            toggleSelected={toggleSelected}
           />
         </div>
       ) : isCollectionNotFound ? (
@@ -273,6 +334,7 @@ export function HomeClient({
         <AllItemsList
           view={view}
           typeFilter={typeFilter}
+          sort={sort}
           visibleItems={visibleItems}
           onOpenDetail={handleOpenPostDetail}
           animatingUrl={animatingUrl}
@@ -295,6 +357,7 @@ export function HomeClient({
           setSelected={setSelected}
           onMenuArchive={handleArchive}
           onMenuDelete={openDeleteDialog}
+          scrollTopPadding={Boolean(activeCollection || tagFilter)}
         />
       )}
 

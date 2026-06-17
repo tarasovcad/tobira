@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {deleteBookmarks} from "@/app/actions/bookmarks";
+import {deleteBookmarks} from "@/app/actions/bookmarks/delete";
 import {Button} from "@/components/ui/coss/button";
 import {
   AlertDialog,

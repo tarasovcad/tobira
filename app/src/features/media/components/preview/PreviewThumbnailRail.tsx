@@ -3,6 +3,7 @@
 import type {MediaGalleryEntry} from "@/components/bookmark/_utils/media-grid-render";
 import Spinner from "@/components/ui/app/spinner";
 import {cn} from "@/lib/utils";
+import {FallbackImage} from "./FallbackImage";
 
 const MAX_VISIBLE_COUNT = 5;
 const BUFFER_COUNT = 2;
@@ -97,16 +98,17 @@ export function PreviewThumbnailRail({
                     onSelect(index);
                   }}
                   className={cn(
-                    "bg-muted absolute top-0 left-0 cursor-pointer overflow-hidden rounded-md border transition-transform duration-300 ease-out",
+                    "bg-muted absolute top-0 left-0 size-12 cursor-pointer overflow-hidden rounded-md border transition-transform duration-300 ease-out",
                     isActive
                       ? "border-white/80 opacity-100"
                       : "border-none opacity-70 hover:opacity-100",
                   )}
                   style={{transform: `translateX(${slot * THUMB_STRIDE}px)`}}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <FallbackImage
                     src={thumbnailSrc}
                     alt={entry.previewItem.alt}
+                    width={48}
+                    height={48}
                     className={cn(
                       "size-12 object-cover transition duration-300",
                       isActive ? "brightness-100" : "brightness-75",

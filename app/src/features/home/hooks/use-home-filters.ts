@@ -1,51 +1,45 @@
 "use client";
 
-import {useState} from "react";
-import {useSearchParams, useRouter, usePathname} from "next/navigation";
+import {useQueryStates} from "nuqs";
+import {usePathname} from "next/navigation";
 import {useViewOptionsStore} from "@/store/use-view-options";
-import type {TypeFilter, SortMode} from "@/features/home/types";
+import {getBookmarkWorkspaceScope, type SortMode, type TypeFilter} from "@/features/home/types";
 import {getDefaultAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
-
-const resolveSortFilter = (sortParam: string | null): SortMode => {
-  if (sortParam === "oldest" || sortParam === "az") return sortParam;
-  return "recent";
-};
+import {homeFilterParsers} from "@/lib/query-params";
 
 export function useHomeFilters() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const pathname = usePathname();
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
+  const [{type, sort}, setHomeFilters] = useQueryStates({
+    type: homeFilterParsers.type,
+    sort: homeFilterParsers.sort,
+  });
 
-  const tagFilter = searchParams.get("tag")?.trim() || null;
-  const collectionFilter = searchParams.get("collection");
-  const initialTypeFilter = (searchParams.get("type") ?? "website") as TypeFilter;
-  const initialSort = resolveSortFilter(searchParams.get("sort"));
+  const pathCollectionId = pathname.startsWith("/collections/")
+    ? decodeURIComponent(pathname.split("/")[2] ?? "") || null
+    : null;
+  const pathTagId = pathname.startsWith("/tags/")
+    ? decodeURIComponent(pathname.split("/")[2] ?? "") || null
+    : null;
 
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>(initialTypeFilter);
-  const [sort, setSort] = useState<SortMode>(initialSort);
-
-  const updateUrlParam = (key: "type" | "sort", value: TypeFilter | SortMode) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set(key, value);
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  };
+  const tagFilter = pathCollectionId ? null : pathTagId;
+  const collectionFilter = pathCollectionId;
+  const scope = getBookmarkWorkspaceScope({tagFilter, collectionFilter});
+  const typeFilter = type;
 
   const handleTypeChange = (nextType: TypeFilter) => {
-    setTypeFilter(nextType);
+    void setHomeFilters({type: nextType});
     resetViewOptions(getDefaultAllItemsView(nextType));
-    updateUrlParam("type", nextType);
   };
 
   const handleSortChange = (nextSort: SortMode) => {
-    setSort(nextSort);
-    updateUrlParam("sort", nextSort);
+    void setHomeFilters({sort: nextSort});
   };
 
   return {
     tagFilter,
     collectionFilter,
+    scope,
     typeFilter,
     sort,
     handleTypeChange,

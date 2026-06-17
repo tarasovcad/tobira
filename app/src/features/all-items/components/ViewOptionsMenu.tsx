@@ -389,8 +389,10 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
               <AccordionContent className="px-1 py-1">
                 <div className="grid grid-cols-2 gap-1">
                   {LAYOUT_OPTIONS.map(({id, title, icon: Icon}) => {
-                    const isOptionDisabled =
+                    const isOptionUnavailable =
                       id === "table" || !isAllItemsViewSelectable(id as ViewMode, typeFilter);
+                    const isOptionSelected = currentView === id;
+                    const isOptionDisabled = isOptionUnavailable || isOptionSelected;
                     return (
                       <div
                         key={id}
@@ -415,9 +417,11 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                           }
                         }}
                         className={cn(
-                          "hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-start gap-2 rounded-sm p-1",
+                          "hover:bg-accent hover:text-accent-foreground flex items-center justify-start gap-2 rounded-sm p-1",
+                          !isOptionDisabled && "cursor-pointer",
                           currentView === id && "bg-accent text-accent-foreground",
-                          isOptionDisabled && "pointer-events-none opacity-50",
+                          isOptionUnavailable && "pointer-events-none opacity-50",
+                          isOptionSelected && "pointer-events-none cursor-default",
                         )}>
                         <div className="border-border flex size-8 items-center justify-center rounded-md border">
                           <Icon />

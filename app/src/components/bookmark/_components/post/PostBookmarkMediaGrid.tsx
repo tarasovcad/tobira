@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo} from "react";
+import {useEffect, useMemo, type ReactNode} from "react";
 
 import {cn} from "@/lib/utils";
 import MediaPreview from "@/features/media/components/MediaPreview";
@@ -19,17 +19,32 @@ import {
   type PostBookmarkPreviewItem,
 } from "../../_utils/post-bookmark-preview";
 
-type PostMediaGalleryContext = {
+export type PostMediaGalleryContext = {
   entries: PostBookmarkMediaGalleryEntry[];
   controller: MediaGalleryController;
 };
+
+const DEFAULT_MEDIA_ASPECT_RATIO = 1.777;
+const MAX_GRID_ITEMS = 4;
 
 function getPreviewItemAspectRatio(item: PostBookmarkPreviewItem) {
   if (item.aspectRatio && item.aspectRatio > 0) {
     return item.aspectRatio;
   }
 
-  return item.width > 0 && item.height > 0 ? item.width / item.height : 1.777;
+  return item.width > 0 && item.height > 0 ? item.width / item.height : DEFAULT_MEDIA_ASPECT_RATIO;
+}
+
+function getMediaGridItems(media: PostBookmarkPreviewItem[]) {
+  return media.slice(0, MAX_GRID_ITEMS);
+}
+
+function getMediaGridAspectRatio(items: PostBookmarkPreviewItem[]) {
+  return items.length === 1 ? getPreviewItemAspectRatio(items[0]) : DEFAULT_MEDIA_ASPECT_RATIO;
+}
+
+function getMediaGridClassName(count: number) {
+  return cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2");
 }
 
 function MediaGridContent({
@@ -41,68 +56,100 @@ function MediaGridContent({
 }) {
   if (!media.length) return null;
 
-  const count = Math.min(media.length, 4);
-  const items = media.slice(0, count);
-
-  let containerAspect = 1.777;
-  if (count === 1) {
-    containerAspect = getPreviewItemAspectRatio(items[0]);
-  }
+  const items = getMediaGridItems(media);
+  const count = items.length;
 
   return (
     <div
       className="bg-muted/30 dark:border-border mt-3 overflow-hidden rounded-[16px] border border-[#CFD9DE]"
       style={{
-        aspectRatio: containerAspect,
+        aspectRatio: getMediaGridAspectRatio(items),
         maxHeight: count === 1 ? 512 : undefined,
       }}>
-      <div
-        className={cn("grid h-full w-full gap-[2px]", count === 1 ? "grid-cols-1" : "grid-cols-2")}>
-        {items.map((m, i) => {
-          const isFirstOfThree = count === 3 && i === 0;
-          const isVideo = m.type === "video";
-          const galleryEntry = gallery?.entries.at(i);
-
-          return (
-            <div
-              key={m.key}
-              className={cn(
-                "bg-muted relative h-full w-full overflow-hidden",
-                isFirstOfThree && "row-span-2",
-              )}>
-              {gallery && galleryEntry ? (
-                <MediaGalleryTilePreview
-                  controller={gallery.controller}
-                  index={i}
-                  renderId={galleryEntry.renderId}
-                  src={m.src}
-                  alt={m.alt}
-                  width={m.width}
-                  height={m.height}
-                  poster={m.poster}
-                  type={isVideo ? "video" : "image"}
-                  className="h-full w-full object-cover"
-                  buttonClassName="h-full w-full"
-                  loading="lazy"
-                />
-              ) : (
-                <MediaPreview
-                  src={m.src}
-                  fullSizeSrc={isVideo ? undefined : m.fullSizeSrc}
-                  alt={m.alt}
-                  width={m.width}
-                  height={m.height}
-                  poster={m.poster}
-                  type={isVideo ? "video" : "image"}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              )}
-            </div>
-          );
-        })}
+      <div className={getMediaGridClassName(count)}>
+        {items.map((item, index) => (
+          <MediaGridTile key={item.key} item={item} index={index} count={count} gallery={gallery} />
+        ))}
       </div>
     </div>
+  );
+}
+
+function MediaGridTile({
+  count,
+  gallery,
+  index,
+  item,
+}: {
+  count: number;
+  gallery?: PostMediaGalleryContext;
+  index: number;
+  item: PostBookmarkPreviewItem;
+}) {
+  const isVideo = item.type === "video";
+  const galleryEntry = gallery?.entries.at(index);
+
+  return (
+    <div
+      className={cn(
+        "bg-muted relative h-full w-full overflow-hidden",
+        count === 3 && index === 0 && "row-span-2",
+      )}>
+      {gallery && galleryEntry ? (
+        <MediaGalleryTilePreview
+          controller={gallery.controller}
+          index={index}
+          renderId={galleryEntry.renderId}
+          src={item.src}
+          alt={item.alt}
+          width={item.width}
+          height={item.height}
+          poster={item.poster}
+          type={isVideo ? "video" : "image"}
+          className="h-full w-full object-cover"
+          buttonClassName="h-full w-full"
+          loading="lazy"
+        />
+      ) : (
+        <MediaPreview
+          src={item.src}
+          fullSizeSrc={isVideo ? undefined : item.fullSizeSrc}
+          alt={item.alt}
+          width={item.width}
+          height={item.height}
+          poster={item.poster}
+          type={isVideo ? "video" : "image"}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      )}
+    </div>
+  );
+}
+
+export function PostBookmarkMediaGalleryFrame({
+  children,
+  galleryEntries,
+}: {
+  children: (gallery: PostMediaGalleryContext) => ReactNode;
+  galleryEntries: PostBookmarkMediaGalleryEntry[];
+}) {
+  const {galleryController, galleryPreview} = usePostMediaGallery(galleryEntries);
+  const gallery = useMemo(
+    () => ({entries: galleryEntries, controller: galleryController}),
+    [galleryController, galleryEntries],
+  );
+
+  return (
+    <>
+      {children(gallery)}
+      <MediaGalleryOverlay
+        entries={galleryEntries}
+        controller={galleryController}
+        isFetchingNextPage={false}
+        {...galleryPreview}
+      />
+    </>
   );
 }
 
@@ -113,6 +160,14 @@ function PostMediaGalleryGrid({
   media: PostBookmarkPreviewItem[];
   galleryEntries: PostBookmarkMediaGalleryEntry[];
 }) {
+  return (
+    <PostBookmarkMediaGalleryFrame galleryEntries={galleryEntries}>
+      {(gallery) => <MediaGridContent media={media} gallery={gallery} />}
+    </PostBookmarkMediaGalleryFrame>
+  );
+}
+
+function usePostMediaGallery(galleryEntries: PostBookmarkMediaGalleryEntry[]) {
   const galleryController = useMemo(() => createMediaGalleryController(), []);
   const galleryState = useMediaGalleryControllerSnapshot(galleryController);
   const boundedCurrentMediaIndex =
@@ -156,23 +211,20 @@ function PostMediaGalleryGrid({
     }
   }, [galleryController, galleryEntries.length, galleryState.currentIndex, galleryState.open]);
 
-  return (
-    <>
-      <MediaGridContent
-        media={media}
-        gallery={{entries: galleryEntries, controller: galleryController}}
-      />
-      <MediaGalleryOverlay
-        entries={galleryEntries}
-        controller={galleryController}
-        isFetchingNextPage={false}
-        {...galleryPreview}
-      />
-    </>
-  );
+  return {galleryController, galleryPreview};
 }
 
-export function PostBookmarkMediaPreviewGrid({media}: {media: PostBookmarkPreviewItem[]}) {
+export function PostBookmarkMediaPreviewGrid({
+  galleryEntries,
+  media,
+}: {
+  galleryEntries?: PostBookmarkMediaGalleryEntry[];
+  media: PostBookmarkPreviewItem[];
+}) {
+  if (galleryEntries && galleryEntries.length > 1) {
+    return <PostMediaGalleryGrid media={media} galleryEntries={galleryEntries} />;
+  }
+
   return <MediaGridContent media={media} />;
 }
 

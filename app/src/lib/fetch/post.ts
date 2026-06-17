@@ -132,6 +132,27 @@ export type FreebirdXPostHashtag = {
   text: string;
 };
 
+export type FreebirdXPostSymbolEntity = {
+  indices: [number, number];
+  text: string;
+};
+
+export type FreebirdXPostTranslationEntities = {
+  hashtags?: FreebirdXPostHashtag[];
+  symbols?: FreebirdXPostSymbolEntity[];
+  urls?: FreebirdXPostUrlEntity[];
+  user_mentions?: FreebirdXPostUserMentionEntity[];
+};
+
+export type FreebirdXPostTranslation = {
+  provider?: string;
+  source_language: string;
+  destination_language: string;
+  preview_translation?: string;
+  text: string;
+  entities?: FreebirdXPostTranslationEntities;
+};
+
 export type FreebirdXPost = {
   allSameType: boolean;
   article: FreebirdXArticle | null;
@@ -159,7 +180,7 @@ export type FreebirdXPost = {
   retweet: unknown | null;
   retweetURL: string | null;
   text: string;
-  translation: string | null;
+  translation: FreebirdXPostTranslation | null;
   tweetID: string;
   tweetURL: string;
 };
@@ -221,7 +242,7 @@ export async function fetchXPostData(url: string): Promise<FreebirdXPostData> {
     throw new Error("Invalid X/Twitter URL - could not extract tweet ID");
   }
 
-  const apiUrl = `https://freebird-api.com/status/${tweetId}/format/simple`;
+  const apiUrl = `https://freebird-api.com/status/${tweetId}/lang/en/format/simple`;
   const res = await fetch(apiUrl, {cache: "no-store"});
 
   if (!res.ok) {

@@ -1,10 +1,11 @@
 import {NextRequest, NextResponse} from "next/server";
-import {and, eq} from "drizzle-orm";
+import {and, eq, isNull} from "drizzle-orm";
 import {db} from "@/db";
 import {
   bookmarks,
   type ArticleImageItem,
   type ImageItem,
+  type PostCardImageItem,
   type PostImages,
   type VideoItem,
 } from "@/db/schema";
@@ -38,6 +39,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({error: "Bookmark not found"}, {status: 404});
     }
 
+    if (bookmark.deletedAt) {
+      return NextResponse.json({ok: true, skipped: "bookmark deleted"});
+    }
+
     if (!isPostImages(bookmark.images)) {
       return NextResponse.json({ok: true, skipped: "no post media items"});
     }
@@ -53,7 +58,7 @@ export async function POST(request: NextRequest) {
 
 async function getPostBookmark(bookmarkId: string) {
   const [bookmark] = await db
-    .select({id: bookmarks.id, images: bookmarks.images})
+    .select({id: bookmarks.id, images: bookmarks.images, deletedAt: bookmarks.deletedAt})
     .from(bookmarks)
     .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "post")));
 
@@ -81,15 +86,25 @@ function getBookmarkIdFromBody(rawBody: string): string | NextResponse {
 }
 
 async function processPostImages(bookmarkId: string, images: PostImages) {
-  const [items, qrtItems, replyItems, articleItems] = await Promise.all([
+  const [items, qrtItems, replyItems, articleItems, cardItems] = await Promise.all([
     processPostMediaItems(images.items),
     processPostMediaItems(images.qrtItems ?? []),
     processReplyMediaItems(images.replyItems ?? []),
     processArticleMediaItems(images.articleItems ?? []),
+    processCardMediaItems(images.cardItems ?? []),
   ]);
 
-  const processedImages = buildProcessedPostImages(items, qrtItems, replyItems, articleItems);
-  await db.update(bookmarks).set({images: processedImages}).where(eq(bookmarks.id, bookmarkId));
+  const processedImages = buildProcessedPostImages(
+    items,
+    qrtItems,
+    replyItems,
+    articleItems,
+    cardItems,
+  );
+  await db
+    .update(bookmarks)
+    .set({images: processedImages})
+    .where(and(eq(bookmarks.id, bookmarkId), isNull(bookmarks.deletedAt)));
 }
 
 function buildProcessedPostImages(
@@ -97,12 +112,14 @@ function buildProcessedPostImages(
   qrtItems: ProcessedMediaItem[],
   replyItems: ProcessedReplyMediaItems[],
   articleItems: ProcessedArticleMediaItem[],
+  cardItems: ProcessedCardMediaItem[],
 ): PostImages {
   const results = [
     ...items,
     ...qrtItems,
     ...replyItems.flatMap((reply) => reply.items),
     ...articleItems,
+    ...cardItems,
   ];
 
   if (results.some((result) => result.status === "failed")) {
@@ -122,6 +139,7 @@ function buildProcessedPostImages(
         }
       : {}),
     ...(articleItems.length > 0 ? {articleItems: articleItems.map((result) => result.item)} : {}),
+    ...(cardItems.length > 0 ? {cardItems: cardItems.map((result) => result.item)} : {}),
   };
 }
 
@@ -142,11 +160,16 @@ function processReplyMediaItems(
 }
 
 type ProcessedArticleMediaItem = ProcessedMediaItem<ArticleImageItem>;
+type ProcessedCardMediaItem = ProcessedMediaItem<PostCardImageItem>;
 
 function processArticleMediaItems(items: ArticleImageItem[]): Promise<ProcessedArticleMediaItem[]> {
   return Promise.all(
     items.map((item) => (item.type === "image" ? processImageItem(item) : processVideoItem(item))),
   );
+}
+
+function processCardMediaItems(items: PostCardImageItem[]): Promise<ProcessedCardMediaItem[]> {
+  return Promise.all(items.map(processImageItem));
 }
 
 function processPostMediaItems(items: PostMediaItem[]): Promise<ProcessedMediaItem[]> {

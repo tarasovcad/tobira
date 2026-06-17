@@ -1,8 +1,8 @@
-import Image from "next/image";
 import {type FocusEvent, type KeyboardEvent, type RefObject} from "react";
 import {VideoPlayerShell} from "@/features/video-player/components/VideoPlayerShell";
 import type {VideoPlayerSession} from "@/features/video-player/types";
 import {cn} from "@/lib/utils";
+import {FallbackImage} from "./FallbackImage";
 
 type MediaPreviewTriggerProps = {
   triggerRef: RefObject<HTMLDivElement | null>;
@@ -58,6 +58,23 @@ export function MediaPreviewTrigger({
   openPreview,
 }: MediaPreviewTriggerProps) {
   const canOpenPreview = !disableClickToOpen;
+  const videoPlaceholder = poster ? (
+    <FallbackImage
+      src={poster}
+      alt={alt}
+      width={width}
+      height={height}
+      sizes={sizes}
+      quality={quality}
+      loading={loading}
+      className={cn("h-full w-full", className)}
+      unoptimized={unoptimized}
+      onLoad={onCanPlay}
+      onError={onError}
+    />
+  ) : (
+    <div className={cn(className, "h-full w-full bg-black")} />
+  );
 
   // Check if the element is in selection mode and if so, don't show the hover state
   const isSelectionModeActive = (element: HTMLDivElement) =>
@@ -135,30 +152,13 @@ export function MediaPreviewTrigger({
               disableClickToggle
               onRequestFullscreen={openPreview}
               attachVideo={attachVideo}
-              placeholder={
-                poster ? (
-                  <Image
-                    src={poster}
-                    alt={alt}
-                    width={width}
-                    height={height}
-                    sizes={sizes}
-                    quality={quality}
-                    loading={loading}
-                    className={cn("h-full w-full", className)}
-                    unoptimized={unoptimized}
-                    onLoad={onCanPlay}
-                    onError={onError}
-                  />
-                ) : (
-                  <div className={cn(className, "h-full w-full bg-black")} />
-                )
-              }
+              placeholder={videoPlaceholder}
+              errorFallback={videoPlaceholder}
             />
           ) : null}
         </div>
       ) : (
-        <Image
+        <FallbackImage
           src={src}
           alt={alt}
           width={width}

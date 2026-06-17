@@ -1,36 +1,35 @@
 "use client";
 
 import {useCallback} from "react";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {parseAsString, parseAsStringLiteral, useQueryStates} from "nuqs";
+
+const postDetailParsers = {
+  type: parseAsStringLiteral(["post"]),
+  id: parseAsString,
+};
 
 export function usePostDetailUrl() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const [{type, id}, setPostDetailParams] = useQueryStates(postDetailParsers, {
+    shallow: true,
+  });
 
-  const detailBookmarkId = searchParams.get("id")?.trim() || null;
+  const detailBookmarkId = id?.trim() || null;
+  const isPostDetailOpen = type === "post" && Boolean(detailBookmarkId);
 
   const openPostDetail = useCallback(
     (bookmarkId: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("type", "post");
-      params.set("id", bookmarkId);
-      router.push(`${pathname}?${params.toString()}`);
+      void setPostDetailParams({type: "post", id: bookmarkId}, {history: "push"});
     },
-    [pathname, router, searchParams],
+    [setPostDetailParams],
   );
 
   const closePostDetail = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("type", "post");
-    params.delete("id");
-
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }, [pathname, router, searchParams]);
+    void setPostDetailParams({type: "post", id: null}, {history: "replace"});
+  }, [setPostDetailParams]);
 
   return {
     detailBookmarkId,
+    isPostDetailOpen,
     openPostDetail,
     closePostDetail,
   };

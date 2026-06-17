@@ -1,4 +1,3 @@
-import AppShell from "@/components/app-shell/AppShell";
 import {AccountHeader, type AccountHeaderData} from "./_components/AccountHeader";
 import {SyncAccountClient} from "./_components/SyncAccountClient";
 import type {TypeFilter} from "@/features/home/types";
@@ -76,11 +75,9 @@ export default async function SyncAccountPage({params}: {params: Promise<{accoun
   const {typeFilter} = getProviderTypeInfo(account.provider);
 
   return (
-    <AppShell session={null}>
-      <div className="flex h-full w-full flex-col overflow-auto">
-        <AccountHeader account={account} />
-        <SyncAccountClient typeFilter={typeFilter} />
-      </div>
-    </AppShell>
+    <div className="flex h-full w-full flex-col overflow-auto">
+      <AccountHeader account={account} />
+      <SyncAccountClient typeFilter={typeFilter} />
+    </div>
   );
 }

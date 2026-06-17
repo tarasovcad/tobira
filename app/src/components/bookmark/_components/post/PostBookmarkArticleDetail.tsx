@@ -1,6 +1,6 @@
 "use client";
 
-import {Fragment, useMemo, useState, type ReactNode} from "react";
+import {Fragment, useMemo, useState, type MouseEvent, type ReactNode} from "react";
 import Link from "next/link";
 
 import MediaPreview from "@/features/media/components/MediaPreview";
@@ -18,7 +18,12 @@ import PostBookmarkArticlePreview from "./PostBookmarkArticlePreview";
 import {PostBookmarkAuthorAvatar, PostBookmarkAuthorLine} from "./PostBookmarkAuthor";
 import PostBookmarkExternalCard from "./PostBookmarkExternalCard";
 import {PostBookmarkMediaPreviewGrid} from "./PostBookmarkMediaGrid";
-import {PostBookmarkText, preparePostBookmarkText} from "./PostBookmarkText";
+import {
+  PostBookmarkText,
+  preparePostBookmarkText,
+  preparePostBookmarkTranslationText,
+} from "./PostBookmarkText";
+import {useTranslationToggle, PostTranslationLabel} from "./PostBookmarkTranslation";
 
 type PostBookmarkArticleDetailProps = {
   fallbackHref: string;
@@ -59,6 +64,11 @@ type ArticleEntity = {
 const ARTICLE_LINK_CLASS_NAME =
   "hover:text-[#1D9BF0] hover:underline group-data-[selection-mode=true]/bookmark-row:hover:no-underline text-foreground/90 underline";
 const ARTICLE_TWEET_TEXT_MAX_LENGTH = 280;
+const DEFAULT_ARTICLE_MEDIA_ASPECT_RATIO = 1.777;
+const articleExternalLinkProps = {
+  rel: "noopener noreferrer",
+  target: "_blank",
+} as const;
 
 export default function PostBookmarkArticleDetail({
   fallbackHref,
@@ -108,8 +118,7 @@ export default function PostBookmarkArticleDetail({
         <>
           <Link
             href={articleHref}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...articleExternalLinkProps}
             onClick={(e) => e.stopPropagation()}
             className="text-foreground inline-block text-[28px] leading-[32px] font-bold hover:underline">
             {title}
@@ -119,7 +128,7 @@ export default function PostBookmarkArticleDetail({
       ) : null}
 
       <div className="space-y-4">
-        {renderArticleBlocks(contentState.blocks, contentState.entityMap, mediaById)}
+        {renderArticleBlocks(contentState.blocks, contentState.entityMap, mediaById, item)}
       </div>
     </section>
   );
@@ -129,6 +138,7 @@ function renderArticleBlocks(
   blocks: ArticleContentBlock[],
   entityMap: Map<string, ArticleEntity>,
   mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+  item: PostBookmark,
 ) {
   const renderedBlocks: ReactNode[] = [];
   let index = 0;
@@ -157,7 +167,7 @@ function renderArticleBlocks(
       continue;
     }
 
-    renderedBlocks.push(renderArticleBlock(block, entityMap, mediaById));
+    renderedBlocks.push(renderArticleBlock(block, entityMap, mediaById, item));
     index += 1;
   }
 
@@ -168,6 +178,7 @@ function renderArticleBlock(
   block: ArticleContentBlock,
   entityMap: Map<string, ArticleEntity>,
   mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+  item: PostBookmark,
 ) {
   switch (block.type) {
     case "header-two":
@@ -187,7 +198,7 @@ function renderArticleBlock(
         </blockquote>
       );
     case "atomic":
-      return renderAtomicBlock(block, entityMap, mediaById);
+      return renderAtomicBlock(block, entityMap, mediaById, item);
     default:
       if (!block.text.trim()) {
         return <div key={block.key} className="h-1" />;
@@ -209,8 +220,8 @@ function renderListBlocks(
   const ListTag = listType === "ordered-list-item" ? "ol" : "ul";
   const listClassName =
     listType === "ordered-list-item"
-      ? "list-decimal marker:text-[#536471]"
-      : "list-disc marker:text-[#536471]";
+      ? "list-decimal marker:text-x-secondary"
+      : "list-disc marker:text-x-secondary";
   const listKey = blocks.at(0)?.key ?? listType;
 
   return (
@@ -228,6 +239,7 @@ function renderAtomicBlock(
   block: ArticleContentBlock,
   entityMap: Map<string, ArticleEntity>,
   mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+  item: PostBookmark,
 ) {
   const entity = getFirstBlockEntity(block, entityMap);
   if (!entity) {
@@ -247,7 +259,7 @@ function renderAtomicBlock(
 
     return (
       <div key={block.key} className="my-6">
-        <ArticleTweetEmbed post={resolvedTweet} />
+        <ArticleTweetEmbed item={item} post={resolvedTweet} />
       </div>
     );
   }
@@ -256,17 +268,18 @@ function renderAtomicBlock(
     return <PostBookmarkArticleMarkdown key={block.key} data={entity.data} />;
   }
 
-  if (entity.type !== "MEDIA") {
-    return null;
-  }
+  return renderAtomicMediaBlock(block, entity, mediaById);
+}
 
-  const mediaItems = getEntityMediaIds(entity)
-    .map((mediaId) => mediaById.get(mediaId))
-    .filter((mediaItem): mediaItem is PostBookmarkArticlePreviewItem => Boolean(mediaItem));
+function renderAtomicMediaBlock(
+  block: ArticleContentBlock,
+  entity: ArticleEntity,
+  mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+) {
+  if (entity.type !== "MEDIA") return null;
 
-  if (!mediaItems.length) {
-    return null;
-  }
+  const mediaItems = getEntityMediaItems(entity, mediaById);
+  if (!mediaItems.length) return null;
 
   return (
     <div key={block.key} className="space-y-3">
@@ -277,6 +290,15 @@ function renderAtomicBlock(
   );
 }
 
+function getEntityMediaItems(
+  entity: ArticleEntity,
+  mediaById: Map<string, PostBookmarkArticlePreviewItem>,
+) {
+  return getEntityMediaIds(entity)
+    .map((mediaId) => mediaById.get(mediaId))
+    .filter((mediaItem): mediaItem is PostBookmarkArticlePreviewItem => Boolean(mediaItem));
+}
+
 function ArticleImage({
   item,
   variant,
@@ -284,16 +306,12 @@ function ArticleImage({
   item: PostBookmarkArticlePreviewItem;
   variant: "body" | "cover";
 }) {
-  const aspectRatio = item.width > 0 && item.height > 0 ? item.width / item.height : 1.777;
+  const aspectRatio = getArticleImageAspectRatio(item);
 
   return (
     <figure
       onClick={(event) => event.stopPropagation()}
-      className={
-        variant === "cover"
-          ? "bg-muted/30 dark:border-border overflow-hidden"
-          : "bg-muted/30 dark:border-border my-6 overflow-hidden rounded-xl"
-      }
+      className={getArticleImageClassName(variant)}
       style={{aspectRatio}}>
       <MediaPreview
         type={item.type}
@@ -311,20 +329,45 @@ function ArticleImage({
   );
 }
 
-function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
-  const [isExpanded, setIsExpanded] = useState(false);
+function getArticleImageAspectRatio(item: PostBookmarkArticlePreviewItem) {
+  return item.width > 0 && item.height > 0
+    ? item.width / item.height
+    : DEFAULT_ARTICLE_MEDIA_ASPECT_RATIO;
+}
+
+function getArticleImageClassName(variant: "body" | "cover") {
+  return variant === "cover"
+    ? "bg-muted/30 dark:border-border overflow-hidden"
+    : "bg-muted/30 dark:border-border my-6 overflow-hidden rounded-xl";
+}
+
+function ArticleTweetEmbed({item, post}: {item: PostBookmark; post: FreebirdXPostResponse}) {
+  const [isExpanded, setIsExpanded] = useState(true);
   const preparedText = preparePostBookmarkText(post.post, {
     expanded: isExpanded,
     maxLength: ARTICLE_TWEET_TEXT_MAX_LENGTH,
   });
+  const translationToggle = useTranslationToggle(post.post, {initialTranslationExpanded: true});
+  const preparedTranslationText = preparePostBookmarkTranslationText(post.post, {
+    expanded: translationToggle.isTranslationExpanded,
+  });
   const mediaItems = getResolvedTweetMediaPreviewItems(post);
   const profileUrl = `https://x.com/${post.user.user_screen_name}`;
+  const handleExpandOriginal = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsExpanded(true);
+  };
+  const handleExpandTranslation = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    translationToggle.expandTranslation();
+  };
 
   return (
     <Link
       href={post.post.tweetURL}
-      target="_blank"
-      rel="noopener noreferrer"
+      {...articleExternalLinkProps}
       onClick={(e) => e.stopPropagation()}>
       <article className="hover:bg-muted/80 grid grid-cols-[40px_minmax(0,1fr)] gap-x-3 rounded-2xl border border-[#CFD9DE] p-4 shadow-[0_0_6px_rgba(0,0,0,0.1)]">
         <PostBookmarkAuthorAvatar user={post.user} profileUrl={profileUrl} />
@@ -338,30 +381,112 @@ function ArticleTweetEmbed({post}: {post: FreebirdXPostResponse}) {
             className="text-[15px] leading-5"
           />
 
-          {preparedText.hasText ? (
-            <p className="text-foreground text-[15px] leading-5 whitespace-pre-wrap">
-              <PostBookmarkText preparedText={preparedText} />
-            </p>
-          ) : null}
+          <ArticleTweetEmbedText
+            preparedText={preparedText}
+            preparedTranslationText={preparedTranslationText}
+            translationToggle={translationToggle}
+            isExpanded={isExpanded}
+            onExpandOriginal={handleExpandOriginal}
+            onExpandTranslation={handleExpandTranslation}
+          />
 
-          {!isExpanded && preparedText.isLongText ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                setIsExpanded(true);
-              }}
-              className="-mt-1 block cursor-pointer text-[15px] leading-5 text-[#1D9BF0] hover:underline focus:outline-none">
-              Show more
-            </button>
+          {post.post.card ? (
+            <PostBookmarkExternalCard
+              card={post.post.card}
+              item={item}
+              tweetId={post.post.tweetID}
+            />
           ) : null}
-
-          {post.post.card ? <PostBookmarkExternalCard card={post.post.card} /> : null}
           <PostBookmarkMediaPreviewGrid media={mediaItems} />
         </div>
       </article>
     </Link>
+  );
+}
+
+function ArticleTweetEmbedText({
+  isExpanded,
+  onExpandOriginal,
+  onExpandTranslation,
+  preparedText,
+  preparedTranslationText,
+  translationToggle,
+}: {
+  isExpanded: boolean;
+  onExpandOriginal: (event: MouseEvent<HTMLButtonElement>) => void;
+  onExpandTranslation: (event: MouseEvent<HTMLButtonElement>) => void;
+  preparedText: ReturnType<typeof preparePostBookmarkText>;
+  preparedTranslationText: ReturnType<typeof preparePostBookmarkTranslationText>;
+  translationToggle: ReturnType<typeof useTranslationToggle>;
+}) {
+  const showTranslationMore =
+    translationToggle.isTranslated &&
+    preparedTranslationText.isLongText &&
+    !translationToggle.isTranslationExpanded;
+  const showOriginalMore =
+    !isExpanded && !translationToggle.isTranslated && preparedText.isLongText;
+
+  return (
+    <>
+      {translationToggle.hasTranslation ? (
+        <PostTranslationLabel
+          sourceLanguage={translationToggle.sourceLanguage}
+          showOriginal={translationToggle.showOriginal}
+          provider={translationToggle.provider}
+          onToggle={translationToggle.toggleOriginal}
+        />
+      ) : null}
+      <ArticleTweetEmbedTextParagraph
+        preparedText={preparedText}
+        preparedTranslationText={preparedTranslationText}
+        translationToggle={translationToggle}
+      />
+      {showTranslationMore ? (
+        <ArticleTweetEmbedShowMoreButton onClick={onExpandTranslation} />
+      ) : null}
+      {showOriginalMore ? <ArticleTweetEmbedShowMoreButton onClick={onExpandOriginal} /> : null}
+    </>
+  );
+}
+
+function ArticleTweetEmbedTextParagraph({
+  preparedText,
+  preparedTranslationText,
+  translationToggle,
+}: {
+  preparedText: ReturnType<typeof preparePostBookmarkText>;
+  preparedTranslationText: ReturnType<typeof preparePostBookmarkTranslationText>;
+  translationToggle: ReturnType<typeof useTranslationToggle>;
+}) {
+  if (translationToggle.isTranslated) {
+    return (
+      <p className="text-foreground text-[15px] leading-5 whitespace-pre-wrap">
+        <PostBookmarkText preparedText={preparedTranslationText} />
+      </p>
+    );
+  }
+
+  if (!preparedText.hasText) return null;
+
+  return (
+    <p className="text-foreground text-[15px] leading-5 whitespace-pre-wrap">
+      <PostBookmarkText preparedText={preparedText} />
+    </p>
+  );
+}
+
+function ArticleTweetEmbedShowMoreButton({
+  onClick,
+}: {
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="-mt-1 block cursor-pointer text-[15px] leading-5 text-[#1D9BF0] hover:underline focus:outline-none">
+      Show more
+    </button>
   );
 }
 

@@ -41,7 +41,7 @@ export type TagsInputProps = {
 };
 
 const DEFAULT_MAX_TAGS = 10;
-const DEFAULT_MAX_TAG_LENGTH = 64;
+const DEFAULT_MAX_TAG_LENGTH = 50;
 
 type Tag = string;
 
