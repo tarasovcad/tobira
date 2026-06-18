@@ -4,8 +4,10 @@ import * as React from "react";
 
 type ExitPhase = "idle" | "flash" | "exit" | "collapse" | "done";
 type RemovalKind = "delete" | "archive";
+type ExitTiming = {flash: number; exit: {list: number; grid: number}; collapse: number};
 
 const EXIT_TIMING = {flash: 120, exit: {list: 400, grid: 500}, collapse: 300} as const;
+const DELETE_EXIT_TIMING = {flash: 60, exit: {list: 200, grid: 250}, collapse: 150} as const;
 
 const EXIT_STYLES: Record<
   RemovalKind,
@@ -16,20 +18,20 @@ const EXIT_STYLES: Record<
       flash: {
         background: "linear-gradient(90deg, rgba(239,68,68,.08), rgba(239,68,68,.02))",
         boxShadow: "inset 4px 0 0 0 rgba(239,68,68,.6)",
-        transition: "all 120ms ease-out",
+        transition: "all 60ms ease-out",
       },
       exit: {
         transform: "translateX(80px) scale(.96) rotate(1.5deg)",
         opacity: 0,
         filter: "blur(6px)",
         transition:
-          "transform 400ms cubic-bezier(.36,0,.66,-.2), opacity 300ms ease-out, filter 400ms ease-out",
+          "transform 200ms cubic-bezier(.36,0,.66,-.2), opacity 150ms ease-out, filter 200ms ease-out",
       },
     },
     grid: {
       flash: {
         boxShadow: "0 0 0 2px rgba(239,68,68,.5), 0 0 24px rgba(239,68,68,.15)",
-        transition: "all 120ms ease-out",
+        transition: "all 60ms ease-out",
         borderRadius: "inherit",
       },
       exit: {
@@ -38,7 +40,7 @@ const EXIT_STYLES: Record<
         filter: "blur(10px)",
         transformOrigin: "center bottom",
         transition:
-          "transform 500ms cubic-bezier(.36,0,.66,-.2), opacity 400ms ease-out, filter 500ms ease-out",
+          "transform 250ms cubic-bezier(.36,0,.66,-.2), opacity 200ms ease-out, filter 250ms ease-out",
       },
     },
   },
@@ -92,6 +94,10 @@ function getExitStyles(
   }
 }
 
+function getExitTiming(kind: RemovalKind): ExitTiming {
+  return kind === "delete" ? DELETE_EXIT_TIMING : EXIT_TIMING;
+}
+
 export function AnimatedItem({
   id,
   isRemoving,
@@ -132,14 +138,15 @@ export function AnimatedItem({
   React.useEffect(() => {
     let ms: number;
     let next: ExitPhase;
+    const timing = getExitTiming(activeKind);
 
     switch (phase) {
       case "flash":
-        ms = EXIT_TIMING.flash;
+        ms = timing.flash;
         next = "exit";
         break;
       case "exit":
-        ms = variant === "list" ? EXIT_TIMING.exit.list : EXIT_TIMING.exit.grid;
+        ms = variant === "list" ? timing.exit.list : timing.exit.grid;
         next = variant === "list" ? "collapse" : "done";
         break;
       case "collapse": {
@@ -149,7 +156,7 @@ export function AnimatedItem({
           void el.offsetHeight;
           requestAnimationFrame(() => (el.style.height = "0px"));
         }
-        ms = EXIT_TIMING.collapse;
+        ms = timing.collapse;
         next = "done";
         break;
       }
@@ -163,7 +170,7 @@ export function AnimatedItem({
     }, ms);
 
     return () => clearTimeout(t);
-  }, [phase, id, variant]);
+  }, [phase, id, variant, activeKind]);
 
   if (phase === "done") return null;
 

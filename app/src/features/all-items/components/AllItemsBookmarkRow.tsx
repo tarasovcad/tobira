@@ -31,6 +31,9 @@ interface AllItemsBookmarkRowProps {
   setSelected: (id: string, checked: boolean) => void;
   onMenuArchive: (item: Bookmark) => void;
   onMenuDelete: (item: Bookmark) => void;
+  onRestore?: (item: Bookmark) => void;
+  onDeleteForever?: (item: Bookmark) => void;
+  actionsEnabled?: boolean;
 }
 
 function AllItemsBookmarkRowImpl({
@@ -53,6 +56,9 @@ function AllItemsBookmarkRowImpl({
   setSelected,
   onMenuArchive,
   onMenuDelete,
+  onRestore,
+  onDeleteForever,
+  actionsEnabled = true,
 }: AllItemsBookmarkRowProps) {
   const openMenu = useBookmarkMenuStore((state) => state.openMenu);
   const openDeleteDialog = useDeleteBookmarkDialogStore((state) => state.openDialog);
@@ -98,8 +104,10 @@ function AllItemsBookmarkRowImpl({
         <BookmarkItem
           item={item}
           onOpenDetail={onOpenDetail}
-          onOpenMenu={handleOpenMenu}
-          onDelete={handleDelete}
+          onOpenMenu={actionsEnabled ? handleOpenMenu : undefined}
+          onDelete={actionsEnabled ? handleDelete : undefined}
+          onRestore={onRestore}
+          onDeleteForever={onDeleteForever}
           renderId={renderId}
           mediaIndex={mediaIndex}
           galleryItem={galleryItem}
@@ -136,5 +144,8 @@ export const AllItemsBookmarkRow = memo(
     prev.toggleSelected === next.toggleSelected &&
     prev.setSelected === next.setSelected &&
     prev.onMenuArchive === next.onMenuArchive &&
-    prev.onMenuDelete === next.onMenuDelete,
+    prev.onMenuDelete === next.onMenuDelete &&
+    prev.onRestore === next.onRestore &&
+    prev.onDeleteForever === next.onDeleteForever &&
+    prev.actionsEnabled === next.actionsEnabled,
 );

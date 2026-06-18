@@ -3,7 +3,7 @@
 import {Client} from "@upstash/qstash";
 import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
-import {and, eq, inArray, sql} from "drizzle-orm";
+import {and, eq, inArray, isNotNull, sql} from "drizzle-orm";
 
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
 import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
@@ -73,6 +73,21 @@ export async function archiveBookmarks(bookmarkIds: string | string[]): Promise<
     .update(bookmarks)
     .set({archivedAt: now, updatedAt: now})
     .where(and(eq(bookmarks.userId, userId), inArray(bookmarks.id, ids)));
+
+  return {ok: true};
+}
+
+export async function restoreBookmarks(bookmarkIds: string | string[]): Promise<{ok: true}> {
+  const userId = await requireAuthenticatedUserId();
+  const ids = Array.isArray(bookmarkIds) ? bookmarkIds : [bookmarkIds];
+  const now = new Date().toISOString();
+
+  await db
+    .update(bookmarks)
+    .set({deletedAt: null, updatedAt: now})
+    .where(
+      and(eq(bookmarks.userId, userId), inArray(bookmarks.id, ids), isNotNull(bookmarks.deletedAt)),
+    );
 
   return {ok: true};
 }

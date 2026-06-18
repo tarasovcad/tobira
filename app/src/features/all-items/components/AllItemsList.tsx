@@ -15,7 +15,10 @@ import {
 } from "@/features/all-items/components/all-items-list-view-options";
 import {AllItemsAnimatingPlaceholders} from "@/features/all-items/components/AllItemsAnimatingPlaceholders";
 import {AllItemsBookmarkRow} from "@/features/all-items/components/AllItemsBookmarkRow";
-import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
+import {
+  getAllItemsListLayoutConfig,
+  type AllItemsSurface,
+} from "@/features/all-items/components/all-items-list-layout";
 import {buildMediaGalleryEntries} from "@/components/bookmark/_utils/media-grid-render";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {getBookmarkMediaPreviewSizeForColumnSize} from "@/components/bookmark/_utils/media-grid-image-config";
@@ -62,7 +65,11 @@ interface AllItemsListProps {
   setSelected: (id: string, checked: boolean) => void;
   onMenuArchive: (item: Bookmark) => void;
   onMenuDelete: (item: Bookmark) => void;
+  onRestore?: (item: Bookmark) => void;
+  onDeleteForever?: (item: Bookmark) => void;
   scrollTopPadding?: boolean;
+  actionsEnabled?: boolean;
+  itemSurface?: AllItemsSurface;
 }
 
 export function AllItemsList({
@@ -90,15 +97,20 @@ export function AllItemsList({
   setSelected,
   onMenuArchive,
   onMenuDelete,
+  onRestore,
+  onDeleteForever,
   isInitialLoad,
   scrollTopPadding,
+  actionsEnabled = true,
+  itemSurface = "library",
 }: AllItemsListProps) {
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
   const applyScrollTopPadding =
     scrollTopPadding &&
     currentView !== "compact" &&
-    !(currentView === "list" && typeFilter === "website");
+    !(currentView === "list" && typeFilter === "website") &&
+    typeFilter !== "post";
 
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
@@ -127,6 +139,7 @@ export function AllItemsList({
         isMediaGrid,
         bookmarkWidth,
         typeFilter,
+        itemSurface,
       }),
     [
       borderRadiusClass,
@@ -137,6 +150,7 @@ export function AllItemsList({
       isMediaGrid,
       bookmarkWidth,
       typeFilter,
+      itemSurface,
     ],
   );
 
@@ -269,6 +283,9 @@ export function AllItemsList({
         setSelected={setSelected}
         onMenuArchive={onMenuArchive}
         onMenuDelete={onMenuDelete}
+        onRestore={onRestore}
+        onDeleteForever={onDeleteForever}
+        actionsEnabled={actionsEnabled}
       />
     ));
   }, [
@@ -285,6 +302,9 @@ export function AllItemsList({
     onItemRemoved,
     onMenuArchive,
     onMenuDelete,
+    onRestore,
+    onDeleteForever,
+    actionsEnabled,
     applyScrollTopPadding,
     removingIds,
     selectedIds,
