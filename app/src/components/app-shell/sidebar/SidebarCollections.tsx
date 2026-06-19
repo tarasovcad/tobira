@@ -6,7 +6,11 @@ import {cn} from "@/lib/utils";
 import {buttonVariants} from "@/components/ui/legacy-shadcn/button";
 import {AnimatePresence, motion} from "framer-motion";
 import type {Collection} from "@/app/actions/collections";
-import {SidebarCollectionItem, SidebarCollectionSkeleton} from "./SidebarItems";
+import {
+  SidebarCollectionItem,
+  SidebarCollectionSkeleton,
+  sidebarCollapseExitTransition,
+} from "./SidebarItems";
 import {useCollectionDialogStore} from "@/store/use-collection-dialog-store";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
@@ -24,6 +28,7 @@ export function SidebarCollections({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  className,
 }: {
   allCollections?: Collection[];
   isAuthenticated?: boolean;
@@ -34,6 +39,7 @@ export function SidebarCollections({
   canMoveDown: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  className?: string;
 }) {
   const {data: collections = [], isFetching} = useCollectionsQuery({
     userId,
@@ -51,6 +57,7 @@ export function SidebarCollections({
       canMoveDown={canMoveDown}
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
+      className={className}
     />
   );
 }
@@ -65,6 +72,7 @@ function SidebarCollectionsContent({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  className,
 }: {
   collections: Collection[];
   isFetching: boolean;
@@ -75,6 +83,7 @@ function SidebarCollectionsContent({
   canMoveDown: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  className?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -107,7 +116,7 @@ function SidebarCollectionsContent({
   };
 
   return (
-    <div className="px-3 pt-1">
+    <div className={cn("px-3", className)}>
       <div
         tabIndex={0}
         role="button"
@@ -197,7 +206,12 @@ function SidebarCollectionsContent({
             <motion.div
               initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
               animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-              exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+              exit={{
+                opacity: 0,
+                height: 0,
+                filter: "blur(8px)",
+                transition: sidebarCollapseExitTransition,
+              }}
               transition={{duration: 0.2, ease: "easeOut"}}>
               <button
                 onClick={handleCreateCollection}
@@ -254,7 +268,12 @@ function SidebarCollectionsContent({
             <motion.div
               initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
               animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-              exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+              exit={{
+                opacity: 0,
+                height: 0,
+                filter: "blur(8px)",
+                transition: sidebarCollapseExitTransition,
+              }}
               transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
               <button
                 type="button"

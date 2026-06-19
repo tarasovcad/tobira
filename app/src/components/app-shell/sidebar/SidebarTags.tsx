@@ -4,7 +4,7 @@ import React, {useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
 import {AnimatePresence, motion} from "framer-motion";
-import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";
+import {SidebarTagItem, SidebarTagSkeleton, sidebarCollapseExitTransition} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import type {SidebarTag} from "@/features/home/types";
@@ -23,6 +23,7 @@ export function SidebarTags({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  className,
 }: {
   allTags?: SidebarTagsType;
   userId?: string;
@@ -32,6 +33,7 @@ export function SidebarTags({
   canMoveDown: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  className?: string;
 }) {
   const {data: tags = [], isFetching} = useTagsQuery({
     userId,
@@ -48,6 +50,7 @@ export function SidebarTags({
       canMoveDown={canMoveDown}
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
+      className={className}
     />
   );
 }
@@ -61,6 +64,7 @@ function SidebarTagsContent({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  className,
 }: {
   tags: SidebarTagsType;
   isFetching: boolean;
@@ -70,6 +74,7 @@ function SidebarTagsContent({
   canMoveDown: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  className?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -94,7 +99,7 @@ function SidebarTagsContent({
   };
 
   return (
-    <div className="px-3">
+    <div className={cn("px-3", className)}>
       <div
         tabIndex={0}
         role="button"
@@ -153,7 +158,7 @@ function SidebarTagsContent({
           />
         </div>
       </div>
-      <div className="flex flex-col gap-0.5 pb-2">
+      <div className="flex flex-col gap-0.5">
         {isFetching &&
           tags.length === 0 &&
           [1, 2, 3, 4, 5].map((i, idx) => (
@@ -182,7 +187,12 @@ function SidebarTagsContent({
             <motion.div
               initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
               animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-              exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+              exit={{
+                opacity: 0,
+                height: 0,
+                filter: "blur(8px)",
+                transition: sidebarCollapseExitTransition,
+              }}
               transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
               <button
                 type="button"

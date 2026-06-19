@@ -83,6 +83,10 @@ export function SidebarMain({
                 {preferences.sections.map(([section, limit], index) => {
                   const canMoveUp = index > 0;
                   const canMoveDown = index < preferences.sections.length - 1;
+                  const sectionClassName = cn(
+                    index === 0 && "pt-1",
+                    index === preferences.sections.length - 1 && "pb-2",
+                  );
                   const onLimitChange = (nextLimit: SidebarSectionLimit) => {
                     setSectionLimit(section, nextLimit);
                   };
@@ -100,6 +104,7 @@ export function SidebarMain({
                           canMoveDown={canMoveDown}
                           onMoveUp={() => moveSection(section, "up")}
                           onMoveDown={() => moveSection(section, "down")}
+                          className={sectionClassName}
                         />
                       ) : (
                         <SidebarTags
@@ -111,6 +116,7 @@ export function SidebarMain({
                           canMoveDown={canMoveDown}
                           onMoveUp={() => moveSection(section, "up")}
                           onMoveDown={() => moveSection(section, "down")}
+                          className={sectionClassName}
                         />
                       )}
                       {index < preferences.sections.length - 1 && (
