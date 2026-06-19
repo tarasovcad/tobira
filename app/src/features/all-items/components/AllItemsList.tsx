@@ -47,7 +47,6 @@ interface AllItemsListProps {
   onOpenDetail?: (item: Bookmark) => void;
   animatingUrl: string | null;
   animatingItemCount: number;
-  animatingTags?: string[];
   pendingMediaItems?: BookmarkMediaItem[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
@@ -55,12 +54,10 @@ interface AllItemsListProps {
   isFetchingNextPage: boolean;
   selectionMode: boolean;
   selectedIds: Set<string>;
-  removingIds: Map<string, "delete" | "archive">;
   scrollAreaRootRef: React.RefObject<HTMLDivElement | null>;
   bottomSentinelRef: React.RefObject<HTMLDivElement | null>;
   fetchNextPage: () => void;
   onTransitionDone: () => void;
-  onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
   onMenuArchive: (item: Bookmark) => void;
@@ -80,19 +77,16 @@ export function AllItemsList({
   onOpenDetail,
   animatingUrl,
   animatingItemCount,
-  animatingTags,
   pendingMediaItems,
   resolvedBookmarks,
   isFetchingNextPage,
   hasNextPage,
   selectionMode,
   selectedIds,
-  removingIds,
   scrollAreaRootRef,
   bottomSentinelRef,
   fetchNextPage,
   onTransitionDone,
-  onItemRemoved,
   toggleSelected,
   setSelected,
   onMenuArchive,
@@ -263,8 +257,6 @@ export function AllItemsList({
             : undefined
         }
         selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
-        isRemoving={removingIds.has(entry.item.id)}
-        removalKind={removingIds.get(entry.item.id) ?? "delete"}
         selectionMode={selectionMode}
         isSelected={selectedIds.has(entry.item.id)}
         animatedVariant={animatedVariant}
@@ -278,7 +270,6 @@ export function AllItemsList({
             ? "pt-6"
             : undefined
         }
-        onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
         onMenuArchive={onMenuArchive}
@@ -299,14 +290,12 @@ export function AllItemsList({
     mediaGalleryEntries,
     mediaGalleryController,
     onOpenDetail,
-    onItemRemoved,
     onMenuArchive,
     onMenuDelete,
     onRestore,
     onDeleteForever,
     actionsEnabled,
     applyScrollTopPadding,
-    removingIds,
     selectedIds,
     selectionMode,
     setSelected,
@@ -319,12 +308,11 @@ export function AllItemsList({
     <AllItemsAnimatingPlaceholders
       animatingUrl={animatingUrl}
       animatingItemCount={animatingItemCount}
-      animatingTags={animatingTags}
       pendingMediaItems={pendingMediaItems}
       resolvedBookmarks={resolvedBookmarks}
       flattenMediaBookmarks={isMediaGrid}
       onTransitionDone={onTransitionDone}
-      PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}
+      renderSkeletonItem={layoutConfig.renderSkeletonItem}
     />
   );
 

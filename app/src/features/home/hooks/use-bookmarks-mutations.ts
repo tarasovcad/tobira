@@ -80,23 +80,12 @@ export function useBookmarksMutations({
     .filter((v): v is string | string[] => !!v)
     .flat();
 
-  // ── Exit-animation state ──
-  const [animatedOutIds, setAnimatedOutIds] = useState<Set<string>>(new Set());
-
   const removingIds = useMemo(() => {
-    const archives = archivingIds
-      .filter((id) => !animatedOutIds.has(id))
-      .map((id) => [id, "archive"] as const);
-    const deletes = deletingIds
-      .filter((id) => !animatedOutIds.has(id))
-      .map((id) => [id, "delete"] as const);
+    const archives = archivingIds.map((id) => [id, "archive"] as const);
+    const deletes = deletingIds.map((id) => [id, "delete"] as const);
 
     return new Map([...archives, ...deletes]);
-  }, [animatedOutIds, archivingIds, deletingIds]);
-
-  const handleItemRemoved = useCallback((id: string) => {
-    setAnimatedOutIds((prev) => new Set(prev).add(id));
-  }, []);
+  }, [archivingIds, deletingIds]);
 
   // ── New-bookmark animation state ──
   const [animatingUrl, setAnimatingUrl] = useState<string | null>(null);
@@ -186,9 +175,6 @@ export function useBookmarksMutations({
     },
   });
 
-  const animatingTags =
-    animatingUrl && animatingUrl === inputUrl ? latestAdd?.inputTags : undefined;
-
   return {
     latestAdd,
     isPending,
@@ -196,11 +182,8 @@ export function useBookmarksMutations({
     inputUrl,
     latestAddAppliesToCurrentFilter,
     removingIds,
-    animatedOutIds,
-    handleItemRemoved,
     animatingUrl,
     animatingItemCount,
-    animatingTags,
     pendingMediaItems,
     resolvedBookmarks,
     handleTransitionDone,

@@ -154,6 +154,10 @@ export function BinPageClient({
     () => deletedBookmarksQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [deletedBookmarksQuery.data],
   );
+  const visibleBookmarks = useMemo(
+    () => allBookmarks.filter((item) => !removingIds.has(item.id)),
+    [allBookmarks, removingIds],
+  );
 
   const {
     selectionMode,
@@ -229,7 +233,7 @@ export function BinPageClient({
           view={view}
           typeFilter={typeFilter}
           sort={sort}
-          visibleItems={allBookmarks}
+          visibleItems={visibleBookmarks}
           animatingUrl={null}
           animatingItemCount={0}
           resolvedBookmarks={[]}
@@ -238,12 +242,10 @@ export function BinPageClient({
           isFetchingNextPage={isFetchingNextPage}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
-          removingIds={removingIds}
           scrollAreaRootRef={scrollAreaRootRef}
           bottomSentinelRef={bottomSentinelRef}
           fetchNextPage={fetchNextPage}
           onTransitionDone={() => {}}
-          onItemRemoved={() => {}}
           toggleSelected={toggleSelected}
           setSelected={setSelected}
           onMenuArchive={() => {}}

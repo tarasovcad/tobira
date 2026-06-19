@@ -161,11 +161,8 @@ export function BookmarkWorkspaceClient({
   // Mutation Hook
   const {
     removingIds,
-    animatedOutIds,
-    handleItemRemoved,
     animatingUrl,
     animatingItemCount,
-    animatingTags,
     pendingMediaItems,
     resolvedBookmarks,
     handleTransitionDone,
@@ -186,12 +183,11 @@ export function BookmarkWorkspaceClient({
 
     return allBookmarks.filter((item) => {
       const isBeingRemoved = removingIds.has(item.id);
-      const isAnimatedOut = animatedOutIds.has(item.id);
       const isDuplicateOfResolved = resolvedIds.has(item.id);
 
-      return !isBeingRemoved && !isAnimatedOut && !isDuplicateOfResolved;
+      return !isBeingRemoved && !isDuplicateOfResolved;
     });
-  }, [allBookmarks, animatedOutIds, removingIds, resolvedBookmarks, sort]);
+  }, [allBookmarks, removingIds, resolvedBookmarks, sort]);
   const selectionItems = useMemo(
     () => (isPostDetailOpen && detailBookmark ? [detailBookmark] : visibleItems),
     [detailBookmark, isPostDetailOpen, visibleItems],
@@ -339,7 +335,6 @@ export function BookmarkWorkspaceClient({
           onOpenDetail={handleOpenPostDetail}
           animatingUrl={animatingUrl}
           animatingItemCount={animatingItemCount}
-          animatingTags={animatingTags}
           pendingMediaItems={pendingMediaItems}
           resolvedBookmarks={resolvedBookmarks}
           isInitialLoad={isInitialLoad}
@@ -347,12 +342,10 @@ export function BookmarkWorkspaceClient({
           isFetchingNextPage={isFetchingNextPage}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
-          removingIds={removingIds}
           scrollAreaRootRef={scrollAreaRootRef}
           bottomSentinelRef={bottomSentinelRef}
           fetchNextPage={fetchNextPage}
           onTransitionDone={handleTransitionDone}
-          onItemRemoved={handleItemRemoved}
           toggleSelected={toggleSelected}
           setSelected={setSelected}
           onMenuArchive={handleArchive}

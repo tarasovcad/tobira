@@ -1,55 +1,52 @@
 "use client";
 
-import * as React from "react";
+import {useEffect, type ReactNode} from "react";
 import type {Bookmark} from "@/components/bookmark/types";
-import type {AllItemsNewBookmarkPlaceholderProps} from "./all-items-list-layout";
 import {flattenMediaGridBookmarks} from "@/components/bookmark/_utils/media-grid-render";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 
 interface AllItemsAnimatingPlaceholdersProps {
   animatingUrl: string | null;
   animatingItemCount: number;
-  animatingTags?: string[];
   pendingMediaItems?: BookmarkMediaItem[];
   resolvedBookmarks: Bookmark[];
   flattenMediaBookmarks?: boolean;
   onTransitionDone: () => void;
-  PlaceholderComponent: React.ComponentType<AllItemsNewBookmarkPlaceholderProps>;
+  renderSkeletonItem: (index: number) => ReactNode;
 }
 
 export function AllItemsAnimatingPlaceholders({
   animatingUrl,
   animatingItemCount,
-  animatingTags,
   pendingMediaItems = [],
   resolvedBookmarks,
   flattenMediaBookmarks = false,
   onTransitionDone,
-  PlaceholderComponent,
+  renderSkeletonItem,
 }: AllItemsAnimatingPlaceholdersProps) {
+  const resolvedEntries = flattenMediaBookmarks ? flattenMediaGridBookmarks(resolvedBookmarks) : [];
+  const hasResolvedBookmark = flattenMediaBookmarks
+    ? resolvedEntries.length > 0
+    : resolvedBookmarks.length > 0;
+
+  useEffect(() => {
+    if (!animatingUrl || !hasResolvedBookmark) {
+      return;
+    }
+
+    const timeout = window.setTimeout(onTransitionDone, 0);
+    return () => window.clearTimeout(timeout);
+  }, [animatingUrl, hasResolvedBookmark, onTransitionDone]);
+
   if (!animatingUrl) {
     return null;
   }
 
-  const resolvedEntries = flattenMediaBookmarks ? flattenMediaGridBookmarks(resolvedBookmarks) : [];
   const placeholderCount = flattenMediaBookmarks
-    ? Math.max(animatingItemCount ?? 1, resolvedEntries.length, pendingMediaItems.length)
-    : (animatingItemCount ?? 1);
+    ? Math.max(animatingItemCount, resolvedEntries.length, pendingMediaItems.length, 1)
+    : Math.max(animatingItemCount, 1);
 
   return Array.from({length: placeholderCount}, (_, index) => (
-    <div key={`animating-${animatingUrl}-${index}`}>
-      <PlaceholderComponent
-        url={animatingUrl}
-        bookmark={
-          flattenMediaBookmarks
-            ? (resolvedEntries.at(index)?.item ?? null)
-            : (resolvedBookmarks.at(index) ?? null)
-        }
-        mediaIndex={flattenMediaBookmarks ? resolvedEntries.at(index)?.mediaIndex : undefined}
-        pendingMediaItem={flattenMediaBookmarks ? pendingMediaItems.at(index) : undefined}
-        onDone={index === 0 ? onTransitionDone : () => {}}
-        tags={animatingTags}
-      />
-    </div>
+    <div key={`animating-${animatingUrl}-${index}`}>{renderSkeletonItem(index)}</div>
   ));
 }
