@@ -10,21 +10,67 @@ import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import type {SidebarTag} from "@/features/home/types";
 import {useTagsQuery} from "@/features/home/hooks/use-home-metadata-query";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
-
-const SIDEBAR_TAG_LIMIT = 5;
+import type {SidebarSectionLimit} from "@/lib/sidebar-preferences";
 
 export type SidebarTagsType = SidebarTag[];
 
-export function SidebarTags({allTags, userId}: {allTags?: SidebarTagsType; userId?: string}) {
+export function SidebarTags({
+  allTags,
+  userId,
+  limit,
+  onLimitChange,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+}: {
+  allTags?: SidebarTagsType;
+  userId?: string;
+  limit: SidebarSectionLimit;
+  onLimitChange: (limit: SidebarSectionLimit) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
   const {data: tags = [], isFetching} = useTagsQuery({
     userId,
     initialData: allTags,
   });
 
-  return <SidebarTagsContent tags={tags} isFetching={isFetching} />;
+  return (
+    <SidebarTagsContent
+      tags={tags}
+      isFetching={isFetching}
+      limit={limit}
+      onLimitChange={onLimitChange}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
+    />
+  );
 }
 
-function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetching: boolean}) {
+function SidebarTagsContent({
+  tags,
+  isFetching,
+  limit,
+  onLimitChange,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+}: {
+  tags: SidebarTagsType;
+  isFetching: boolean;
+  limit: SidebarSectionLimit;
+  onLimitChange: (limit: SidebarSectionLimit) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const openDeleteDialog = useDeleteTagDialogStore((state) => state.openDialog);
@@ -32,13 +78,20 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
 
   const [tagsExpanded, setTagsExpanded] = useState(true);
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
-  const [tagsSelectValue, setTagsSelectValue] = useState("5");
 
   const pathTagId = pathname.startsWith("/tags/")
     ? decodeURIComponent(pathname.split("/")[2] ?? "")
     : null;
-  const visibleTags = tags.slice(0, SIDEBAR_TAG_LIMIT);
-  const hasMoreTags = tags.length > SIDEBAR_TAG_LIMIT;
+  const visibleTags = tags.slice(0, limit);
+  const hasMoreTags = tags.length > limit;
+
+  const handleLimitChange = (value: string) => {
+    const nextLimit = Number(value);
+
+    if (nextLimit === 5 || nextLimit === 10 || nextLimit === 100) {
+      onLimitChange(nextLimit);
+    }
+  };
 
   return (
     <div className="px-3">
@@ -89,10 +142,14 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
           <SidebarSectionMenu
             open={tagMenuOpen}
             onOpenChange={setTagMenuOpen}
-            selectValue={tagsSelectValue}
-            onSelectValueChange={(v) => setTagsSelectValue(String(v))}
+            selectValue={String(limit)}
+            onSelectValueChange={handleLimitChange}
             ariaLabel="Tag options"
             triggerClassName="group-hover/tags:pointer-events-auto group-hover/tags:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
+            canMoveUp={canMoveUp}
+            canMoveDown={canMoveDown}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
           />
         </div>
       </div>

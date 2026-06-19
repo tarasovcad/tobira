@@ -12,17 +12,28 @@ import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dial
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import {useCollectionsQuery} from "@/features/home/hooks/use-home-metadata-query";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
-
-const SIDEBAR_COLLECTION_LIMIT = 5;
+import type {SidebarSectionLimit} from "@/lib/sidebar-preferences";
 
 export function SidebarCollections({
   allCollections,
   isAuthenticated = false,
   userId,
+  limit,
+  onLimitChange,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
 }: {
   allCollections?: Collection[];
   isAuthenticated?: boolean;
   userId?: string;
+  limit: SidebarSectionLimit;
+  onLimitChange: (limit: SidebarSectionLimit) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const {data: collections = [], isFetching} = useCollectionsQuery({
     userId,
@@ -34,6 +45,12 @@ export function SidebarCollections({
       collections={collections}
       isFetching={isFetching}
       isAuthenticated={isAuthenticated}
+      limit={limit}
+      onLimitChange={onLimitChange}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
     />
   );
 }
@@ -42,10 +59,22 @@ function SidebarCollectionsContent({
   collections,
   isFetching,
   isAuthenticated = false,
+  limit,
+  onLimitChange,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
 }: {
   collections: Collection[];
   isFetching: boolean;
   isAuthenticated?: boolean;
+  limit: SidebarSectionLimit;
+  onLimitChange: (limit: SidebarSectionLimit) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -63,12 +92,19 @@ function SidebarCollectionsContent({
 
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const [collectionMenuOpen, setCollectionMenuOpen] = useState(false);
-  const [collectionsSelectValue, setCollectionsSelectValue] = useState("5");
-  const visibleCollections = collections.slice(0, SIDEBAR_COLLECTION_LIMIT);
-  const hasMoreCollections = collections.length > SIDEBAR_COLLECTION_LIMIT;
+  const visibleCollections = collections.slice(0, limit);
+  const hasMoreCollections = collections.length > limit;
   const pathCollectionId = pathname.startsWith("/collections/")
     ? decodeURIComponent(pathname.split("/")[2] ?? "")
     : null;
+
+  const handleLimitChange = (value: string) => {
+    const nextLimit = Number(value);
+
+    if (nextLimit === 5 || nextLimit === 10 || nextLimit === 100) {
+      onLimitChange(nextLimit);
+    }
+  };
 
   return (
     <div className="px-3 pt-1">
@@ -117,10 +153,14 @@ function SidebarCollectionsContent({
           <SidebarSectionMenu
             open={collectionMenuOpen}
             onOpenChange={setCollectionMenuOpen}
-            selectValue={collectionsSelectValue}
-            onSelectValueChange={(v) => setCollectionsSelectValue(String(v))}
+            selectValue={String(limit)}
+            onSelectValueChange={handleLimitChange}
             ariaLabel="Collection options"
             triggerClassName="group-hover/collections:pointer-events-auto group-hover/collections:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
+            canMoveUp={canMoveUp}
+            canMoveDown={canMoveDown}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
           />
 
           <button
@@ -196,7 +236,7 @@ function SidebarCollectionsContent({
               />
             ))}
           {collectionsExpanded &&
-            visibleCollections.map((c, _index) => {
+            visibleCollections.map((c) => {
               const isActive = pathCollectionId === c.id;
               return (
                 <SidebarCollectionItem

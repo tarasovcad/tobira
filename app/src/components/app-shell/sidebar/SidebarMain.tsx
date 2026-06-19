@@ -15,6 +15,8 @@ import {
   TooltipProvider,
 } from "@/components/ui/coss/tooltip";
 import {SidebarToggleButton} from "./SidebarToggleButton";
+import type {SidebarPreferences, SidebarSectionLimit} from "@/lib/sidebar-preferences";
+import {useSidebarStore} from "@/store/use-sidebar-store";
 
 interface SidebarMainProps {
   allCollections?: Collection[];
@@ -22,6 +24,7 @@ interface SidebarMainProps {
   isAuthenticated?: boolean;
   userId?: string;
   state: "expanded" | "collapsed";
+  preferences: SidebarPreferences;
 }
 
 export function SidebarMain({
@@ -30,11 +33,14 @@ export function SidebarMain({
   isAuthenticated = false,
   userId,
   state,
+  preferences,
 }: SidebarMainProps) {
   const pathname = usePathname();
 
   const isCollapsed = state === "collapsed";
   const navTooltipHandle = useMemo(() => TooltipCreateHandle<React.ComponentType>(), []);
+  const setSectionLimit = useSidebarStore((store) => store.setSectionLimit);
+  const moveSection = useSidebarStore((store) => store.moveSection);
 
   useEffect(() => {
     if (!isCollapsed) {
@@ -74,16 +80,47 @@ export function SidebarMain({
               <ScrollArea
                 className="**:data-[slot=scroll-area-scrollbar]:m-0.5 [&_[data-orientation=horizontal]]:hidden"
                 viewportProps={{className: "overflow-x-hidden", tabIndex: -1}}>
-                <SidebarCollections
-                  allCollections={allCollections}
-                  isAuthenticated={isAuthenticated}
-                  userId={userId}
-                />
-                <div className="px-3">
-                  <div className="bg-border my-3 h-px w-full" />
-                </div>
+                {preferences.sections.map(([section, limit], index) => {
+                  const canMoveUp = index > 0;
+                  const canMoveDown = index < preferences.sections.length - 1;
+                  const onLimitChange = (nextLimit: SidebarSectionLimit) => {
+                    setSectionLimit(section, nextLimit);
+                  };
 
-                <SidebarTags allTags={allTags} userId={userId} />
+                  return (
+                    <React.Fragment key={section}>
+                      {section === "collections" ? (
+                        <SidebarCollections
+                          allCollections={allCollections}
+                          isAuthenticated={isAuthenticated}
+                          userId={userId}
+                          limit={limit}
+                          onLimitChange={onLimitChange}
+                          canMoveUp={canMoveUp}
+                          canMoveDown={canMoveDown}
+                          onMoveUp={() => moveSection(section, "up")}
+                          onMoveDown={() => moveSection(section, "down")}
+                        />
+                      ) : (
+                        <SidebarTags
+                          allTags={allTags}
+                          userId={userId}
+                          limit={limit}
+                          onLimitChange={onLimitChange}
+                          canMoveUp={canMoveUp}
+                          canMoveDown={canMoveDown}
+                          onMoveUp={() => moveSection(section, "up")}
+                          onMoveDown={() => moveSection(section, "down")}
+                        />
+                      )}
+                      {index < preferences.sections.length - 1 && (
+                        <div className="px-3">
+                          <div className="bg-border my-3 h-px w-full" />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </ScrollArea>
             </div>
           )}

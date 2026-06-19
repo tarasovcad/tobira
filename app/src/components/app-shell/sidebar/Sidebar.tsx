@@ -1,15 +1,15 @@
 "use client";
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import type {Collection} from "@/app/actions/collections";
 import type {SidebarTag} from "@/features/home/types";
 import {SidebarMain} from "./SidebarMain";
 import {SidebarSettings} from "./SidebarSettings";
 import {cn} from "@/lib/utils";
 import {useSidebarStore, type SidebarMode} from "@/store/use-sidebar-store";
-import {useHasMounted} from "@/lib/hooks/use-has-mounted";
 import {AnimatePresence, motion} from "framer-motion";
 import {consumeSidebarSwitchTarget} from "./sidebar-switch-animation";
+import {DEFAULT_SIDEBAR_PREFERENCES, type SidebarPreferences} from "@/lib/sidebar-preferences";
 
 const SIDEBAR_WIDTH = "224px";
 const SIDEBAR_WIDTH_ICON = "60px";
@@ -21,6 +21,7 @@ export function Sidebar({
   userId,
   mode = "main",
   allowModeSwitch = false,
+  initialPreferences = DEFAULT_SIDEBAR_PREFERENCES,
 }: {
   allCollections?: Collection[];
   allTags?: SidebarTag[];
@@ -28,15 +29,23 @@ export function Sidebar({
   userId?: string;
   mode?: SidebarMode;
   allowModeSwitch?: boolean;
+  initialPreferences?: SidebarPreferences;
 }) {
   const [animateInitial] = useState(() => consumeSidebarSwitchTarget(mode));
-  const hasMounted = useHasMounted();
   const isOpen = useSidebarStore((state) => state.isOpen);
+  const initialized = useSidebarStore((state) => state.initialized);
+  const preferences = useSidebarStore((state) => state.preferences);
+  const initializePreferences = useSidebarStore((state) => state.initializePreferences);
   const requestedMode = useSidebarStore((state) => state.requestedMode);
   const requestMode = useSidebarStore((state) => state.requestMode);
-  const sidebarIsOpen = hasMounted ? isOpen : true;
+  const activePreferences = initialized ? preferences : initialPreferences;
+  const sidebarIsOpen = initialized ? isOpen : !initialPreferences.collapsed;
   const contentState = sidebarIsOpen ? "expanded" : "collapsed";
   const currentMode = allowModeSwitch && requestedMode ? requestedMode : mode;
+
+  useEffect(() => {
+    initializePreferences(initialPreferences);
+  }, [initialPreferences, initializePreferences]);
 
   const handleBackToMain = () => {
     requestMode("main");
@@ -83,6 +92,7 @@ export function Sidebar({
               isAuthenticated={isAuthenticated}
               userId={userId}
               state={contentState}
+              preferences={activePreferences}
             />
           </motion.div>
         )}

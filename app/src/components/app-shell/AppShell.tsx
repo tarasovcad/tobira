@@ -13,15 +13,18 @@ import {DeleteTagDialog} from "../library/DeleteTagDialog";
 import {TagDialog} from "../library/TagDialog";
 import {Header, type AppShellSession} from "./Header";
 import SyncSetupSheet from "@/app/(app)/sync/_components/SyncSetupSheet";
+import type {SidebarPreferences} from "@/lib/sidebar-preferences";
 
 const AppShell = ({
   children,
   session,
   sidebar,
+  initialSidebarPreferences,
 }: {
   children: React.ReactNode;
   session: AppShellSession;
   sidebar?: React.ReactNode;
+  initialSidebarPreferences?: SidebarPreferences;
 }) => {
   useSidebarShortcut();
 
@@ -29,7 +32,13 @@ const AppShell = ({
     <main className="flex h-dvh min-h-screen flex-col">
       <Header session={session} />
       <div className="flex min-h-0 flex-1 overflow-auto">
-        {sidebar ?? <Sidebar isAuthenticated={Boolean(session)} userId={session?.user?.id} />}
+        {sidebar ?? (
+          <Sidebar
+            isAuthenticated={Boolean(session)}
+            userId={session?.user?.id}
+            initialPreferences={initialSidebarPreferences}
+          />
+        )}
         <div className="min-h-0 flex-1">{children}</div>
       </div>
       <WebsiteBookmarkMenu userId={session?.user?.id ?? null} />
