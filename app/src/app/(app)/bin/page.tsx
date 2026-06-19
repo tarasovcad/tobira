@@ -13,8 +13,8 @@ export const metadata = {
 };
 
 const resolveSortFilter = (sortParam?: string): SortMode => {
-  if (sortParam === "oldest" || sortParam === "az") return sortParam;
-  return "recent";
+  if (sortParam === "recent" || sortParam === "az") return sortParam;
+  return "oldest";
 };
 
 const resolveTypeFilter = (typeParam?: string): TypeFilter => {

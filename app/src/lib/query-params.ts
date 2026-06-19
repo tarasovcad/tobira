@@ -10,9 +10,18 @@ export const sortParser = parseAsStringLiteral(["recent", "oldest", "az"] as con
   "recent",
 );
 
+export const binSortParser = parseAsStringLiteral(["recent", "oldest", "az"] as const).withDefault(
+  "oldest",
+);
+
 export const homeFilterParsers = {
   type: typeFilterParser,
   sort: sortParser,
+};
+
+export const binFilterParsers = {
+  type: typeFilterParser,
+  sort: binSortParser,
 };
 
 export const SETTINGS_TABS = [

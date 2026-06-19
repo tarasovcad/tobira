@@ -11,11 +11,15 @@ import {
 import {getMediaBookmarkGridPreviewItem} from "@/components/bookmark/_utils/media-bookmark-preview";
 import BookmarkSelectionCheckbox from "@/components/bookmark/_components/shared/BookmarkSelectionCheckbox";
 import type {MediaBookmark} from "@/components/bookmark/types";
+import {Badge} from "@/components/ui/coss/badge";
 import MediaPreview from "@/features/media/components/MediaPreview";
 import {MediaGalleryTilePreview} from "@/features/media/components/MediaGalleryTilePreview";
 import type {MediaGalleryController} from "@/features/media/hooks/useMediaGalleryController";
 import {cn} from "@/lib/utils";
+import {formatDateAbsolute, normalizeUtcTimestamp} from "@/lib/utils/dates";
 import {useViewOptionsStore} from "@/store/use-view-options";
+
+const BIN_RETENTION_DAYS = 40;
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -66,6 +70,7 @@ export default function BinMediaBookmarkGrid({
   const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);
   const previewItem = getMediaBookmarkGridPreviewItem(item, mediaIndex, previewSize);
   const radiusClass = getRadiusClass(borderRadius);
+  const deletionInfo = getDeletionInfo(item.deleted_at);
 
   const meta = item.metadata;
   const width = previewItem?.width ?? meta?.width ?? 1200;
@@ -90,6 +95,23 @@ export default function BinMediaBookmarkGrid({
         onRestore={() => onRestore?.(item)}
         onDeleteForever={() => onDeleteForever?.(item)}
       />
+
+      <div
+        className={cn(
+          "pointer-events-none absolute top-2 left-2 z-20 transition-opacity",
+          "group-data-[selection-mode=true]/bookmark-row:opacity-0",
+        )}
+        title={deletionInfo.deletedTitle}>
+        <Badge
+          size="lg"
+          variant={deletionInfo.isExpired ? "error" : "outline"}
+          className={cn(
+            "bg-background/90 text-[13px]! font-normal shadow-xs backdrop-blur-sm",
+            !deletionInfo.isExpired && "text-muted-foreground",
+          )}>
+          {deletionInfo.label}
+        </Badge>
+      </div>
 
       <BookmarkSelectionCheckbox
         itemId={item.id}
@@ -151,6 +173,46 @@ export default function BinMediaBookmarkGrid({
       ) : null}
     </div>
   );
+}
+
+function getDeletionInfo(deletedAt: string) {
+  if (!deletedAt) {
+    return {
+      label: "Scheduled for deletion",
+      deletedTitle: "Deletion date unavailable",
+      isExpired: false,
+    };
+  }
+
+  const deletedDate = new Date(normalizeUtcTimestamp(deletedAt));
+  const expiresAt = new Date(deletedDate);
+  expiresAt.setDate(expiresAt.getDate() + BIN_RETENTION_DAYS);
+
+  const msUntilExpiry = expiresAt.getTime() - Date.now();
+  const daysUntilExpiry = Math.ceil(msUntilExpiry / (1000 * 60 * 60 * 24));
+  const deletedTitle = `Deleted ${formatDateAbsolute(deletedAt)}`;
+
+  if (daysUntilExpiry <= 0) {
+    return {
+      label: "Pending permanent deletion",
+      deletedTitle,
+      isExpired: true,
+    };
+  }
+
+  if (daysUntilExpiry === 1) {
+    return {
+      label: "Deletes tomorrow",
+      deletedTitle,
+      isExpired: false,
+    };
+  }
+
+  return {
+    label: `Deletes in ${daysUntilExpiry} days`,
+    deletedTitle,
+    isExpired: false,
+  };
 }
 
 function BinMediaGridActions({

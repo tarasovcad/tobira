@@ -32,3 +32,14 @@ export async function permanentlyDeleteBookmarks(
 
   return {ok: true};
 }
+
+export async function emptyBin(): Promise<{ok: true; deletedCount: number}> {
+  const userId = await requireAuthenticatedUserId();
+
+  const deletedBookmarks = await db
+    .delete(bookmarks)
+    .where(and(eq(bookmarks.userId, userId), isNotNull(bookmarks.deletedAt)))
+    .returning({id: bookmarks.id});
+
+  return {ok: true, deletedCount: deletedBookmarks.length};
+}

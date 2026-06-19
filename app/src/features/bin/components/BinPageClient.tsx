@@ -9,7 +9,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import {permanentlyDeleteBookmarks} from "@/app/actions/bookmarks/delete";
+import {emptyBin, permanentlyDeleteBookmarks} from "@/app/actions/bookmarks/delete";
 import {restoreBookmarks} from "@/app/actions/bookmarks/update";
 import type {Bookmark} from "@/components/bookmark/types";
 import {Button} from "@/components/ui/coss/button";
@@ -31,6 +31,7 @@ import {PAGE_SIZE} from "@/features/home/constants";
 import type {SortMode, TypeFilter} from "@/features/home/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {BinHeader, type BinHeaderStats} from "./BinHeader";
+import {BinSelectionActionBar} from "./BinSelectionActionBar";
 
 type BinPageClientProps = {
   userId: string;
@@ -41,7 +42,7 @@ type BinPageClientProps = {
 };
 
 type BinBookmarkAction = {
-  id: string;
+  ids: string[];
   action: "restore" | "deleteForever";
 };
 
@@ -59,7 +60,7 @@ export function BinPageClient({
     sort,
     handleTypeChange: setHomeTypeFilter,
     handleSortChange: setHomeSort,
-  } = useHomeFilters();
+  } = useHomeFilters({bin: true});
   const view = useViewOptionsStore((state) => state.view);
   const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
   const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -74,8 +75,8 @@ export function BinPageClient({
   const removingIds = useMemo(
     () =>
       new Map(
-        binActionIds.map(
-          ({id, action}) => [id, action === "deleteForever" ? "delete" : "archive"] as const,
+        binActionIds.flatMap(({ids, action}) =>
+          ids.map((id) => [id, action === "deleteForever" ? "delete" : "archive"] as const),
         ),
       ),
     [binActionIds],
@@ -83,18 +84,25 @@ export function BinPageClient({
 
   const binBookmarkActionMutation = useMutation({
     mutationKey: ["bin-bookmark-action"],
-    mutationFn: async ({id, action}: BinBookmarkAction) => {
+    mutationFn: async ({ids, action}: BinBookmarkAction) => {
       if (action === "restore") {
-        return restoreBookmarks(id);
+        return restoreBookmarks(ids);
       }
 
-      return permanentlyDeleteBookmarks(id);
+      return permanentlyDeleteBookmarks(ids);
     },
     onSuccess: async (_data, variables) => {
       const isRestore = variables.action === "restore";
+      const count = variables.ids.length;
 
       toastManager.add({
-        title: isRestore ? "Bookmark restored" : "Bookmark deleted forever",
+        title: isRestore
+          ? count === 1
+            ? "Bookmark restored"
+            : `${count} bookmarks restored`
+          : count === 1
+            ? "Bookmark deleted forever"
+            : `${count} bookmarks deleted forever`,
         type: "success",
       });
 
@@ -104,7 +112,7 @@ export function BinPageClient({
     onError: (error, variables) => {
       const isRestore = variables.action === "restore";
       console.error(`[BinPageClient] ${isRestore ? "restore" : "delete forever"} failed`, {
-        id: variables.id,
+        ids: variables.ids,
         error,
       });
       toastManager.add({
@@ -162,11 +170,37 @@ export function BinPageClient({
   const {
     selectionMode,
     selectedIds,
+    selectedCount,
+    allSelected,
     setSelectionEnabled,
     toggleSelected,
     setSelected,
     handleClearSelection,
-  } = useBookmarksSelection(allBookmarks, allBookmarks);
+    handleSelectAll,
+  } = useBookmarksSelection(visibleBookmarks, allBookmarks);
+
+  const emptyBinMutation = useMutation({
+    mutationKey: ["bin-empty"],
+    mutationFn: emptyBin,
+    onSuccess: async ({deletedCount}) => {
+      handleClearSelection();
+      toastManager.add({
+        title: deletedCount <= 1 ? "Bin emptied" : `${deletedCount} bookmarks deleted forever`,
+        type: "success",
+      });
+
+      await queryClient.invalidateQueries({queryKey: ["bookmarks", "bin"]});
+      router.refresh();
+    },
+    onError: (error) => {
+      console.error("[BinPageClient] empty bin failed", {error});
+      toastManager.add({
+        title: "Empty bin failed",
+        description: error instanceof Error ? error.message : "Failed to empty bin",
+        type: "error",
+      });
+    },
+  });
 
   const {hasNextPage, isFetchingNextPage, fetchNextPage} = deletedBookmarksQuery;
   const isInitialLoad = deletedBookmarksQuery.isLoading && allBookmarks.length === 0;
@@ -200,7 +234,7 @@ export function BinPageClient({
   const handleRestore = useCallback(
     (item: Bookmark) => {
       handleClearSelection();
-      binBookmarkActionMutation.mutate({id: item.id, action: "restore"});
+      binBookmarkActionMutation.mutate({ids: [item.id], action: "restore"});
     },
     [binBookmarkActionMutation, handleClearSelection],
   );
@@ -208,14 +242,34 @@ export function BinPageClient({
   const handleDeleteForever = useCallback(
     (item: Bookmark) => {
       handleClearSelection();
-      binBookmarkActionMutation.mutate({id: item.id, action: "deleteForever"});
+      binBookmarkActionMutation.mutate({ids: [item.id], action: "deleteForever"});
     },
     [binBookmarkActionMutation, handleClearSelection],
   );
 
+  const handleRestoreSelected = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    handleClearSelection();
+    binBookmarkActionMutation.mutate({ids, action: "restore"});
+  }, [binBookmarkActionMutation, handleClearSelection, selectedIds]);
+
+  const handleDeleteSelectedForever = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    handleClearSelection();
+    binBookmarkActionMutation.mutate({ids, action: "deleteForever"});
+  }, [binBookmarkActionMutation, handleClearSelection, selectedIds]);
+
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <BinHeader stats={stats} />
+      <BinHeader
+        stats={stats}
+        emptyBinPending={emptyBinMutation.isPending}
+        onEmptyBin={() => emptyBinMutation.mutate()}
+      />
       <HomeToolbar
         typeFilter={typeFilter}
         onTypeChange={handleTypeChange}
@@ -257,6 +311,16 @@ export function BinPageClient({
           scrollTopPadding
         />
       )}
+      <BinSelectionActionBar
+        visible={selectionMode && selectedCount > 0}
+        selectedCount={selectedCount}
+        allSelected={allSelected}
+        disabled={binBookmarkActionMutation.isPending}
+        onClearSelection={handleClearSelection}
+        onSelectAll={handleSelectAll}
+        onRestore={handleRestoreSelected}
+        onDeleteForever={handleDeleteSelectedForever}
+      />
     </div>
   );
 }
