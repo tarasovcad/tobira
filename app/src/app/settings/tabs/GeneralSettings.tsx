@@ -20,12 +20,23 @@ const fontItems = [
 ];
 
 const timeFormatItems = [
-  {label: "12-hour", value: "12-hour"},
-  {label: "24-hour", value: "24-hour"},
+  {label: "12-hour (2:40 PM)", value: "12-hour"},
+  {label: "24-hour (14:40)", value: "24-hour"},
+];
+
+const sidebarSortItems = [
+  {label: "Sort: Recent", value: "newest-to-oldest"},
+  {label: "Sort: Oldest", value: "oldest-to-newest"},
+  {label: "Sort: A to Z", value: "a-to-z"},
+  {label: "Sort: Z to A", value: "z-to-a"},
+  {label: "Sort: Most items", value: "most-items-first"},
+  {label: "Sort: Fewest items", value: "fewest-items-first"},
 ];
 
 const GeneralSettings = () => {
   const [hasChanges, setHasChanges] = useState(true); // Placeholder for UI demonstration
+  const [showTranslationLabels, setShowTranslationLabels] = useState(true);
+  const [useColorSidebarIcons, setUseColorSidebarIcons] = useState(true);
 
   return (
     <div className="space-y-10">
@@ -52,8 +63,22 @@ const GeneralSettings = () => {
               <SettingsLabel
                 title="Zen Mode"
                 description="Hide all UI elements except the current card to minimize distractions."
+                inDevelopment={true}
               />
-              <Switch checked={true} onToggle={() => {}} />
+              <Switch checked={true} onToggle={() => {}} disabled />
+            </div>
+
+            <div className="bg-border h-px w-full"></div>
+
+            <div className="flex items-center justify-between">
+              <SettingsLabel
+                title="Translation Labels"
+                description="Show a small label on translated posts with the source language and translation provider."
+              />
+              <Switch
+                checked={showTranslationLabels}
+                onToggle={() => setShowTranslationLabels((current) => !current)}
+              />
             </div>
 
             <div className="bg-border h-px w-full"></div>
@@ -62,9 +87,10 @@ const GeneralSettings = () => {
               <SettingsLabel
                 title="Font Family"
                 description="Choose the typeface that best fits your reading style."
+                inDevelopment={true}
               />
               <Select aria-label="Select font family" defaultValue="inter" items={fontItems}>
-                <SelectTrigger className="w-fit" size="sm">
+                <SelectTrigger className="w-fit" size="sm" disabled>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectPopup>
@@ -93,6 +119,47 @@ const GeneralSettings = () => {
                 </SelectTrigger>
                 <SelectPopup>
                   {timeFormatItems.map(({label, value}) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectPopup>
+              </Select>
+            </div>
+          </SettingsFrame>
+
+          <SettingsFrame title="Sidebar">
+            <div className="flex items-center justify-between">
+              <SettingsLabel
+                title="Color Sidebar Icons"
+                description="Use colorful icons in the sidebar instead of a simple SVG favicon."
+                inDevelopment
+              />
+              <Switch
+                checked={useColorSidebarIcons}
+                onToggle={() => setUseColorSidebarIcons((current) => !current)}
+                disabled
+              />
+            </div>
+
+            <div className="bg-border h-px w-full"></div>
+
+            <div className="flex items-center justify-between">
+              <SettingsLabel
+                title="Sidebar Sorting"
+                description="Choose how collections and tags are ordered in the sidebar."
+                inDevelopment
+              />
+              <Select
+                aria-label="Select sidebar sorting"
+                defaultValue="newest-to-oldest"
+                disabled
+                items={sidebarSortItems}>
+                <SelectTrigger className="w-fit" size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectPopup alignItemWithTrigger={false}>
+                  {sidebarSortItems.map(({label, value}) => (
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>
