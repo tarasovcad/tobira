@@ -2,7 +2,11 @@ import {NextRequest, NextResponse} from "next/server";
 import {fetchBestFaviconOne} from "@/lib/fetch/web/favicon";
 import {isRecord} from "@/lib/fetch/web/http";
 import {fetchResolvedOgImageUrl} from "@/lib/fetch/web/og";
-import {fetchScreenshotDataUrlViaCloudflare} from "@/lib/fetch/web/screenshot";
+import {
+  fetchScreenshotDataUrlViaCloudflare,
+  fetchScreenshotDataUrlViaFirecrawl,
+  isScreenshotAccessRestrictionError,
+} from "@/lib/fetch/web/screenshot";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {uploadToR2, existsInR2} from "@/lib/storage/r2-storage";
@@ -29,6 +33,13 @@ export async function POST(request: NextRequest) {
     await runEnrichment(payload.id);
   } catch (e) {
     console.error("enrich-bookmark failed", e);
+    return NextResponse.json(
+      {error: "Failed to enrich bookmark"},
+      {
+        status: 500,
+        headers: {"cache-control": "no-store"},
+      },
+    );
   }
 
   return NextResponse.json(
@@ -210,25 +221,23 @@ async function markScreenshotAccessRestricted(bookmarkId: string) {
 }
 
 async function fetchPreviewScreenshot(url: string, bookmark: WebsiteBookmarkProcessingInfo | null) {
-  return fetchScreenshotDataUrlViaCloudflare(url);
+  if (hasScreenshotAccessRestricted(bookmark?.metadata)) {
+    return fetchScreenshotDataUrlViaFirecrawl(url);
+  }
 
-  // if (hasScreenshotAccessRestricted(bookmark?.metadata)) {
-  //   return fetchScreenshotDataUrlViaFirecrawl(url);
-  // }
+  try {
+    return await fetchScreenshotDataUrlViaCloudflare(url);
+  } catch (error) {
+    if (!isScreenshotAccessRestrictionError(error)) {
+      throw error;
+    }
 
-  // try {
-  //   return await fetchScreenshotDataUrlViaCloudflare(url);
-  // } catch (error) {
-  //   if (!isScreenshotAccessRestrictionError(error)) {
-  //     throw error;
-  //   }
+    if (bookmark) {
+      await markScreenshotAccessRestricted(bookmark.id);
+    }
 
-  //   if (bookmark) {
-  //     await markScreenshotAccessRestricted(bookmark.id);
-  //   }
-
-  //   return fetchScreenshotDataUrlViaFirecrawl(url);
-  // }
+    return fetchScreenshotDataUrlViaFirecrawl(url);
+  }
 }
 
 async function runEnrichment(bookmarkId: string) {
@@ -245,25 +254,16 @@ async function runEnrichment(bookmarkId: string) {
     fetchFn: () => Promise<T>,
     uploadFn: (data: T) => Promise<void>,
   ) => {
-    try {
-      if (await existsInR2(key)) {
-        return;
-      }
-      const data = await fetchFn();
-      if (data) {
-        await uploadFn(data);
-      }
-    } catch (error) {
-      console.error(`website enrichment failed for ${label}`, {
-        bookmarkId: bookmark.id,
-        url: normalized,
-        error,
-      });
+    if (await existsInR2(key)) {
       return;
+    }
+    const data = await fetchFn();
+    if (data) {
+      await uploadFn(data);
     }
   };
 
-  await Promise.allSettled([
+  const results = await Promise.allSettled([
     fetchAndUpload(
       "favicon",
       keys.favicon,
@@ -299,4 +299,28 @@ async function runEnrichment(bookmarkId: string) {
       },
     ),
   ]);
+
+  const failures = results
+    .map((result, index) => ({
+      result,
+      label: ["favicon", "og", "preview"][index],
+    }))
+    .filter(
+      (item): item is {result: PromiseRejectedResult; label: string} =>
+        item.result.status === "rejected",
+    );
+
+  if (failures.length > 0) {
+    console.error("website enrichment failed", {
+      bookmarkId: bookmark.id,
+      url: normalized,
+      failures: failures.map((failure) => ({
+        label: failure.label,
+        reason: failure.result.reason,
+      })),
+    });
+    throw new Error(
+      `Website enrichment failed for ${failures.map((failure) => failure.label).join(", ")}`,
+    );
+  }
 }

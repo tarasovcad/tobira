@@ -117,13 +117,24 @@ export async function addWebsiteBookmark(input: {
   await Promise.all(attachments);
 
   const qstashPublishStart = performance.now();
-  qstash.publishJSON({
-    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
-    body: {id: bookmarkId},
-    idempotencyKey: `bookmark-${bookmarkId}`,
-    headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
-    timeout: 120,
-  });
+  try {
+    await qstash.publishJSON({
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
+      body: {id: bookmarkId},
+      idempotencyKey: `bookmark-${bookmarkId}`,
+      headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
+      timeout: 120,
+      retries: 2,
+    });
+  } catch (error) {
+    console.error("Failed to queue website bookmark processing job:", error);
+    try {
+      await db.delete(bookmarks).where(eq(bookmarks.id, bookmarkId));
+    } catch (cleanupError) {
+      console.error("Failed to delete website bookmark after queue failure:", cleanupError);
+    }
+    throw new Error("Failed to queue website bookmark processing job");
+  }
   timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
   timingsMs.totalAddWebsiteBookmark = Number(
     (performance.now() - addWebsiteBookmarkStart).toFixed(2),
