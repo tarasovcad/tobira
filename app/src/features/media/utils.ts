@@ -24,13 +24,11 @@ export async function buildWebsiteImages(url: string): Promise<WebsiteImages> {
     },
     og: {
       key: keys.og,
-      width: 1200,
-      height: 630,
     },
     preview: {
       key: keys.preview,
-      width: 1280,
-      height: 800,
+      width: 1920,
+      height: 1080,
     },
     selected: "preview",
   };

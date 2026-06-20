@@ -13,6 +13,7 @@ export type UrlMetadataResult = {
   finalUrl?: string;
   title?: string;
   description?: string;
+  screenshotAccessRestricted?: boolean;
 };
 
 export async function fetchUrlMetadata(
@@ -32,14 +33,15 @@ export async function fetchUrlMetadata(
 
   const contentType = res.headers.get("content-type") ?? "";
   if (!isHtmlContentType(contentType)) {
-    return result;
+    throw new Error("This URL doesn't point to a webpage");
   }
 
   let html = await res.text();
   let usedFirecrawl = false;
-
   if (looksLikeChallengeHtml(html)) {
+    result.screenshotAccessRestricted = true;
     try {
+      console.log("Looks like a challenge HTML; fetching via Firecrawl...");
       html = (await fetchHtmlViaFirecrawl(normalized.toString())).rawHtml;
       usedFirecrawl = true;
     } catch {

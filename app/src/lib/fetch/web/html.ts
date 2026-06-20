@@ -71,18 +71,56 @@ export function extractDescriptionFromHtml(html: string): string | undefined {
 }
 
 /**
- * Detects whether the fetched HTML is a Cloudflare (or similar) bot-challenge
- * page rather than the real site content.
+ * Detects whether the fetched HTML is a Cloudflare, AWS WAF, Imperva, Akamai,
+ * DataDome, PerimeterX/HUMAN, Sucuri, or similar bot-challenge page rather
+ * than the real site content.
  */
 export function looksLikeChallengeHtml(html: string): boolean {
   const lower = html.toLowerCase();
 
+  // Cloudflare
   if (lower.includes("just a moment") && lower.includes("cf-")) return true;
   if (lower.includes("cf-challenge-running") || lower.includes("cf_chl_opt")) return true;
   if (lower.includes("checking your browser") || lower.includes("security verification"))
     return true;
   if (lower.includes("challenges.cloudflare.com")) return true;
   if (lower.includes("enable javascript and cookies to continue")) return true;
+  if (lower.includes("sorry, you have been blocked")) return true;
+  if (lower.includes("cloudflare ray id")) return true;
+  if (lower.includes("/cdn-cgi/challenge-platform/")) return true;
+  if (lower.includes("please enable cookies") && lower.includes("cf-")) return true;
+
+  // AWS WAF
+  if (lower.includes("token.awswaf.com")) return true;
+  if (lower.includes("awswafintegration")) return true;
+  if (lower.includes("awswafcookiedomainlist")) return true;
+  if (lower.includes("window.gokuprops")) return true;
+  if (lower.includes("challenge-container") && lower.includes("awswaf")) return true;
+
+  // Imperva / Incapsula
+  if (lower.includes("reese84")) return true;
+  if (lower.includes("incap_ses") || lower.includes("incap_visid")) return true;
+  if (lower.includes("visid_incap")) return true;
+  if (lower.includes("protected by incapsula")) return true;
+  if (lower.includes("/_incapsula_resource")) return true;
+
+  // Akamai Bot Manager
+  if (lower.includes("_abck") || lower.includes("bm_sz")) return true;
+  if (lower.includes("akamaibot")) return true;
+
+  // DataDome
+  if (lower.includes("datadome") || lower.includes("dd_key")) return true;
+  if (lower.includes("captcha-delivery.com")) return true;
+  if (lower.includes("protected by datadome")) return true;
+
+  // PerimeterX / HUMAN
+  if (lower.includes("px-captcha")) return true;
+  if (lower.includes("x-perimeterx")) return true;
+  if (lower.includes("press & hold")) return true;
+
+  // Sucuri
+  if (lower.includes("sucuri_cloudproxy")) return true;
+  if (lower.includes("x-sucuri-id")) return true;
 
   return false;
 }

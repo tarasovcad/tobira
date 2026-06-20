@@ -18,11 +18,21 @@ function arrayBufferToBase64(ab: ArrayBuffer) {
   return btoaFn(binary);
 }
 
-type ScreenshotDataUrl = {
+export type ScreenshotDataUrl = {
   dataUrl: string;
   contentType: string;
   bytes: number;
 };
+
+class CloudflareScreenshotError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "CloudflareScreenshotError";
+  }
+}
 
 type FirecrawlScrapeMetadata = {
   ogImage?: string;
@@ -92,7 +102,7 @@ export async function fetchHtmlViaFirecrawl(url: string): Promise<FirecrawlHtmlD
   }
 }
 
-export async function fetchScreenshotDataUrl(url: string): Promise<ScreenshotDataUrl> {
+export async function fetchScreenshotDataUrlViaFirecrawl(url: string): Promise<ScreenshotDataUrl> {
   const token = process.env.FIRECRAWL_API_KEY;
   if (!token) throw new Error("Missing FIRECRAWL_API_KEY");
 
@@ -160,5 +170,93 @@ export async function fetchScreenshotDataUrl(url: string): Promise<ScreenshotDat
     };
   } finally {
     clearTimeout(t);
+  }
+}
+
+export async function fetchScreenshotDataUrlViaCloudflare(url: string): Promise<ScreenshotDataUrl> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN?.trim();
+
+  if (!accountId || !apiToken) {
+    throw new Error("Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN");
+  }
+
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 40_000);
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/browser-rendering/screenshot`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url,
+          bestAttempt: true,
+          gotoOptions: {waitUntil: "networkidle2", timeout: 10_000},
+          viewport: {width: 1920, height: 1080, deviceScaleFactor: 2},
+          screenshotOptions: {type: "png", fullPage: false},
+        }),
+        signal: controller.signal,
+      },
+    );
+
+    if (!response.ok) {
+      throw new CloudflareScreenshotError(
+        `Cloudflare screenshot request failed: ${response.status} ${response.statusText}${await getCloudflareErrorSuffix(response)}`,
+        response.status,
+      );
+    }
+
+    const contentTypeRaw = response.headers.get("content-type") ?? "image/png";
+    const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
+    const imageBuffer = await response.arrayBuffer();
+    const base64 = arrayBufferToBase64(imageBuffer);
+
+    return {
+      dataUrl: `data:${contentType};base64,${base64}`,
+      contentType,
+      bytes: imageBuffer.byteLength,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new CloudflareScreenshotError("Cloudflare screenshot request timed out");
+    }
+    throw error;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+export function isScreenshotAccessRestrictionError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+
+  const message = error.message.toLowerCase();
+  if (error instanceof CloudflareScreenshotError && error.status === 401) return false;
+  if (error instanceof CloudflareScreenshotError && error.status === 429) return false;
+  if (error instanceof CloudflareScreenshotError && error.status && error.status >= 500)
+    return false;
+
+  return /access denied|blocked|bot|captcha|challenge|forbidden|timed out|timeout/.test(message);
+}
+
+export async function fetchScreenshotDataUrl(url: string): Promise<ScreenshotDataUrl> {
+  return fetchScreenshotDataUrlViaFirecrawl(url);
+}
+
+async function getCloudflareErrorSuffix(response: Response) {
+  const text = await response.text().catch(() => "");
+  if (!text) return "";
+
+  try {
+    const data = JSON.parse(text) as {errors?: Array<{message?: string}>};
+    const message = data.errors?.find((error) => error.message)?.message;
+    return message ? ` - ${message}` : ` - ${text}`;
+  } catch {
+    return ` - ${text}`;
   }
 }

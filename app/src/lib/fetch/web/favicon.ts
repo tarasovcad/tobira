@@ -229,6 +229,7 @@ export async function fetchFaviconCandidates(
 
     if (html && looksLikeChallengeHtml(html)) {
       try {
+        console.log("fetching html via firecrawl");
         html = (await fetchHtmlViaFirecrawl(url)).rawHtml;
         finalUrl = url;
       } catch {

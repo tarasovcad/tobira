@@ -2,12 +2,15 @@ import {NextRequest, NextResponse} from "next/server";
 import {fetchBestFaviconOne} from "@/lib/fetch/web/favicon";
 import {isRecord} from "@/lib/fetch/web/http";
 import {fetchResolvedOgImageUrl} from "@/lib/fetch/web/og";
-import {fetchScreenshotDataUrl} from "@/lib/fetch/web/screenshot";
+import {fetchScreenshotDataUrlViaCloudflare} from "@/lib/fetch/web/screenshot";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {uploadToR2, existsInR2} from "@/lib/storage/r2-storage";
 import {Receiver} from "@upstash/qstash";
 import DOMPurify from "isomorphic-dompurify";
+import {db} from "@/db";
+import {bookmarks} from "@/db/schema";
+import {eq, sql} from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text().catch(() => "");
@@ -18,12 +21,12 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await readJobPayload(request, rawBody);
-  if (!payload.url) {
-    return NextResponse.json({error: "Missing url"}, {status: 400});
+  if (!payload.id) {
+    return NextResponse.json({error: "Missing id"}, {status: 400});
   }
 
   try {
-    await runEnrichment(payload.url);
+    await runEnrichment(payload.id);
   } catch (e) {
     console.error("enrich-bookmark failed", e);
   }
@@ -40,6 +43,12 @@ export async function POST(request: NextRequest) {
 FUNCTIONS AND HELPERS
 */
 export const runtime = "nodejs";
+
+type WebsiteBookmarkProcessingInfo = {
+  id: string;
+  url: string;
+  metadata: unknown;
+};
 
 function getQstashReceiver() {
   const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
@@ -70,19 +79,15 @@ async function verifyQstashRequest(request: NextRequest, rawBody: string) {
   }
 }
 
-async function readJobPayload(
-  request: NextRequest,
-  rawBody: string,
-): Promise<{url?: string; id?: unknown}> {
-  const urlFromQuery = request.nextUrl.searchParams.get("url") ?? undefined;
+async function readJobPayload(request: NextRequest, rawBody: string): Promise<{id?: string}> {
   const idFromQuery = request.nextUrl.searchParams.get("id") ?? undefined;
-  if (urlFromQuery) return {url: urlFromQuery, id: idFromQuery};
+  if (idFromQuery) return {id: idFromQuery};
 
   if (!rawBody) return {};
   try {
     const parsed: unknown = JSON.parse(rawBody);
     if (!isRecord(parsed)) return {};
-    return {url: typeof parsed.url === "string" ? parsed.url : undefined, id: parsed.id};
+    return {id: typeof parsed.id === "string" ? parsed.id : undefined};
   } catch {
     return {};
   }
@@ -173,12 +178,69 @@ async function uploadPreviewToR2(
   });
 }
 
-async function runEnrichment(inputUrl: string) {
-  const normalized = normalizeInputUrl(inputUrl).toString();
+async function getWebsiteBookmarkProcessingInfo(
+  bookmarkId: string,
+): Promise<WebsiteBookmarkProcessingInfo | null> {
+  const [bookmark] = await db
+    .select({
+      id: bookmarks.id,
+      url: bookmarks.url,
+      kind: bookmarks.kind,
+      metadata: bookmarks.metadata,
+    })
+    .from(bookmarks)
+    .where(eq(bookmarks.id, bookmarkId))
+    .limit(1);
+
+  if (!bookmark || bookmark.kind !== "website") return null;
+  return {id: bookmark.id, url: bookmark.url, metadata: bookmark.metadata};
+}
+
+function hasScreenshotAccessRestricted(metadata: unknown) {
+  return isRecord(metadata) && metadata.screenshotAccessRestricted === true;
+}
+
+async function markScreenshotAccessRestricted(bookmarkId: string) {
+  await db
+    .update(bookmarks)
+    .set({
+      metadata: sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{screenshotAccessRestricted}', 'true'::jsonb, true)`,
+    })
+    .where(eq(bookmarks.id, bookmarkId));
+}
+
+async function fetchPreviewScreenshot(url: string, bookmark: WebsiteBookmarkProcessingInfo | null) {
+  return fetchScreenshotDataUrlViaCloudflare(url);
+
+  // if (hasScreenshotAccessRestricted(bookmark?.metadata)) {
+  //   return fetchScreenshotDataUrlViaFirecrawl(url);
+  // }
+
+  // try {
+  //   return await fetchScreenshotDataUrlViaCloudflare(url);
+  // } catch (error) {
+  //   if (!isScreenshotAccessRestrictionError(error)) {
+  //     throw error;
+  //   }
+
+  //   if (bookmark) {
+  //     await markScreenshotAccessRestricted(bookmark.id);
+  //   }
+
+  //   return fetchScreenshotDataUrlViaFirecrawl(url);
+  // }
+}
+
+async function runEnrichment(bookmarkId: string) {
+  const bookmark = await getWebsiteBookmarkProcessingInfo(bookmarkId);
+  if (!bookmark) return;
+
+  const normalized = normalizeInputUrl(bookmark.url).toString();
 
   const keys = await buildWebsiteImageKeys(normalized);
 
   const fetchAndUpload = async <T>(
+    label: string,
     key: string,
     fetchFn: () => Promise<T>,
     uploadFn: (data: T) => Promise<void>,
@@ -191,13 +253,19 @@ async function runEnrichment(inputUrl: string) {
       if (data) {
         await uploadFn(data);
       }
-    } catch {
+    } catch (error) {
+      console.error(`website enrichment failed for ${label}`, {
+        bookmarkId: bookmark.id,
+        url: normalized,
+        error,
+      });
       return;
     }
   };
 
   await Promise.allSettled([
     fetchAndUpload(
+      "favicon",
       keys.favicon,
       () => fetchBestFaviconOne(normalized),
       async (best) => {
@@ -207,6 +275,7 @@ async function runEnrichment(inputUrl: string) {
       },
     ),
     fetchAndUpload(
+      "og",
       keys.og,
       () => fetchResolvedOgImageUrl(normalized),
       async (ogUrl) => {
@@ -216,8 +285,9 @@ async function runEnrichment(inputUrl: string) {
       },
     ),
     fetchAndUpload(
+      "preview",
       keys.preview,
-      () => fetchScreenshotDataUrl(normalized),
+      () => fetchPreviewScreenshot(normalized, bookmark),
       async (preview) => {
         if (
           preview &&

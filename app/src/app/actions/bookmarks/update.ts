@@ -117,15 +117,18 @@ export async function resetBookmark(bookmarkId: string): Promise<{
     .set({
       title: metadata.title ?? null,
       description: metadata.description ?? null,
+      metadata: metadata.screenshotAccessRestricted
+        ? sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{screenshotAccessRestricted}', 'true'::jsonb, true)`
+        : sql`COALESCE(metadata, '{}'::jsonb) - 'screenshotAccessRestricted'`,
       updatedAt,
     })
     .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId)));
 
   await qstash.publishJSON({
-    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/enrich-bookmark`,
-    body: {url: normalized.toString(), id: bookmark.id},
+    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
+    body: {id: bookmark.id},
     headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
-    timeout: 30,
+    timeout: 120,
   });
 
   return {

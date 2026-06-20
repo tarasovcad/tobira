@@ -24,6 +24,7 @@ export type WebsiteOrMediaMetadata = {
   user_name?: string;
   thumbnail_url?: string;
   user_screen_name?: string;
+  screenshotAccessRestricted?: boolean;
 };
 
 export type PostBookmarkMetadata = FreebirdXPostData;

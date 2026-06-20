@@ -81,6 +81,7 @@ export async function addWebsiteBookmark(input: {
     description: metadata.description ?? null,
     kind: "website",
     images,
+    metadata: metadata.screenshotAccessRestricted ? {screenshotAccessRestricted: true} : {},
   });
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
@@ -118,10 +119,10 @@ export async function addWebsiteBookmark(input: {
   const qstashPublishStart = performance.now();
   qstash.publishJSON({
     url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
-    body: {url: normalized.toString(), id: bookmarkId},
+    body: {id: bookmarkId},
     idempotencyKey: `bookmark-${bookmarkId}`,
     headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
-    timeout: 30,
+    timeout: 120,
   });
   timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
   timingsMs.totalAddWebsiteBookmark = Number(
