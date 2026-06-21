@@ -1,5 +1,25 @@
 import {z} from "zod";
+import {assertAllowedWebUrl, UnsafeFetchUrlError} from "@/lib/fetch/web/url";
 import {ALLOWED_MEDIA_DOMAINS, ALLOWED_POST_DOMAINS} from "./add-bookmark-constants";
+
+function getPublicUrlValidationError(url: string) {
+  try {
+    assertAllowedWebUrl(url);
+    return null;
+  } catch (error) {
+    if (!(error instanceof UnsafeFetchUrlError)) return "Please enter a valid URL";
+    if (error.message === "Hostname is not allowed") {
+      return "URL must use a public hostname";
+    }
+    if (error.message === "Only default http/https ports are supported") {
+      return "URL must use the default HTTP/HTTPS port";
+    }
+    if (error.message === "URL credentials are not allowed") {
+      return "URL cannot contain a username or password";
+    }
+    return error.message;
+  }
+}
 
 export const addBookmarkSchema = z
   .object({
@@ -25,6 +45,15 @@ export const addBookmarkSchema = z
     try {
       const u = new URL(data.url);
       const hostname = u.hostname.replace(/^www\./, "");
+      const publicUrlError = getPublicUrlValidationError(data.url);
+
+      if (publicUrlError) {
+        ctx.addIssue({
+          code: "custom",
+          message: publicUrlError,
+          path: ["url"],
+        });
+      }
 
       if (data.type === "media" && !ALLOWED_MEDIA_DOMAINS.includes(hostname)) {
         ctx.addIssue({

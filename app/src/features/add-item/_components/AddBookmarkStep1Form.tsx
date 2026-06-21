@@ -54,7 +54,7 @@ export function AddBookmarkStep1Form({
 
   return (
     <DialogPanel>
-      <form id="add-item-form" className="flex flex-col gap-5" onSubmit={onValidSubmit}>
+      <form id="add-item-form" className="flex flex-col gap-5" onSubmit={onValidSubmit} noValidate>
         <div className="flex flex-col gap-2">
           <Label htmlFor="url">URL</Label>
           <Input
