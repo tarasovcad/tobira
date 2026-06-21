@@ -1,7 +1,40 @@
+import ipaddr from "ipaddr.js";
+
+export class UnsafeFetchUrlError extends Error {
+  constructor(message = "URL is not allowed") {
+    super(message);
+    this.name = "UnsafeFetchUrlError";
+  }
+}
+
+function normalizeHostname(hostname: string) {
+  return hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[(.*)]$/, "$1")
+    .replace(/\.+$/, "");
+}
+
+export function isRestrictedIpAddress(address: string) {
+  const normalized = normalizeHostname(address);
+  if (!ipaddr.isValid(normalized)) return false;
+
+  const parsed = ipaddr.parse(normalized);
+  if (parsed instanceof ipaddr.IPv6 && parsed.isIPv4MappedAddress()) {
+    return isRestrictedIpAddress(parsed.toIPv4Address().toString());
+  }
+
+  return parsed.range() !== "unicast";
+}
+
 export function looksLikePrivateHostname(hostname: string) {
-  const h = hostname.toLowerCase();
-  if (h === "localhost" || h === "0.0.0.0" || h === "127.0.0.1" || h === "::1") return true;
-  if (h.endsWith(".local")) return true;
+  const h = normalizeHostname(hostname);
+  if (!h) return true;
+  if (h === "localhost" || h.endsWith(".local")) return true;
+  if (ipaddr.isValid(h)) return isRestrictedIpAddress(h);
+
+  // Single-label names usually resolve inside a private DNS/search domain.
+  if (!h.includes(".")) return true;
 
   const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
   if (!ipv4) return false;
@@ -11,9 +44,32 @@ export function looksLikePrivateHostname(hostname: string) {
   const [a, b] = parts;
   if (a === 10) return true;
   if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
   if (a === 192 && b === 168) return true;
   if (a === 172 && b >= 16 && b <= 31) return true;
   return false;
+}
+
+export function assertAllowedWebUrl(url: URL | string) {
+  const parsed = typeof url === "string" ? new URL(url) : url;
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new UnsafeFetchUrlError("Only http/https URLs are supported");
+  }
+  if (!parsed.hostname) throw new UnsafeFetchUrlError("Invalid URL hostname");
+  const usesDefaultPort =
+    !parsed.port ||
+    (parsed.protocol === "http:" && parsed.port === "80") ||
+    (parsed.protocol === "https:" && parsed.port === "443");
+  if (!usesDefaultPort) {
+    throw new UnsafeFetchUrlError("Only default http/https ports are supported");
+  }
+  if (parsed.username || parsed.password) {
+    throw new UnsafeFetchUrlError("URL credentials are not allowed");
+  }
+  if (looksLikePrivateHostname(parsed.hostname)) {
+    throw new UnsafeFetchUrlError("Hostname is not allowed");
+  }
 }
 
 export function normalizeInputUrl(input: string) {
@@ -26,6 +82,6 @@ export function normalizeInputUrl(input: string) {
     throw new Error("Only http/https URLs are supported");
   }
   if (!u.hostname) throw new Error("Invalid URL hostname");
-  if (looksLikePrivateHostname(u.hostname)) throw new Error("Hostname is not allowed");
+  assertAllowedWebUrl(u);
   return u;
 }

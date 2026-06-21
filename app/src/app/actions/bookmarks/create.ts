@@ -10,6 +10,7 @@ import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
 import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
 import {createWebsiteBookmark} from "@/lib/bookmarks/website/create";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import {assertWebsiteUrl} from "@/lib/fetch/web/website-url";
 import {logger} from "@/lib/shared/logger";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 
@@ -49,6 +50,7 @@ export async function addWebsiteBookmark(input: {
   let normalized: URL;
   try {
     normalized = normalizeInputUrl(input.url);
+    assertWebsiteUrl(normalized);
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : "Invalid url");
   }

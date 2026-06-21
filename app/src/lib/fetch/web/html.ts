@@ -9,7 +9,8 @@ export function stripWrappingQuotes(value: string) {
 }
 
 export function isHtmlContentType(contentType: string) {
-  return contentType.includes("text/html") || contentType.includes("application/xhtml");
+  const normalized = contentType.trim().toLowerCase();
+  return normalized.includes("text/html") || normalized.includes("application/xhtml");
 }
 
 export function decodeHtmlEntitiesMinimal(s: string) {

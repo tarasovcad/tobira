@@ -6,7 +6,9 @@ import {
 } from "@/lib/fetch/web/html";
 import {fetchHtmlViaFirecrawl} from "@/lib/fetch/web/screenshot";
 import {readTextWithLimit} from "@/lib/fetch/web/bounded-reader";
+import {assertWebsiteUrl, NonWebsiteUrlError} from "@/lib/fetch/web/website-url";
 import type {WebsiteMetadataOutcome} from "@/lib/bookmarks/website/metadata-outcome";
+import {assertPublicFetchUrl, safeWebFetch} from "@/lib/fetch/web/safe-fetch";
 
 export type UrlMetadataResult = {
   inputUrl: string;
@@ -23,13 +25,6 @@ export type WebsiteHtmlPage = {
   websiteProtected: boolean;
   firecrawlOgImageUrl?: string;
 };
-
-class NonHtmlUrlError extends Error {
-  constructor() {
-    super("This URL doesn't point to a webpage");
-    this.name = "NonHtmlUrlError";
-  }
-}
 
 class MetadataEnrichmentRequiredError extends Error {
   constructor(readonly websiteProtected: boolean) {
@@ -49,6 +44,7 @@ async function fetchWebsiteHtmlViaFirecrawl(
 ): Promise<WebsiteHtmlPage> {
   const firecrawl = await fetchHtmlViaFirecrawl(url);
   const finalUrl = firecrawl.metadata?.sourceURL ?? firecrawl.metadata?.url ?? url;
+  await assertPublicFetchUrl(finalUrl);
 
   return {
     html: firecrawl.rawHtml,
@@ -63,6 +59,7 @@ export async function fetchWebsiteHtmlPage(
   options: {allowFirecrawl?: boolean; skipDirectFetch?: boolean} = {},
 ): Promise<WebsiteHtmlPage> {
   const allowFirecrawl = options.allowFirecrawl ?? true;
+  assertWebsiteUrl(url);
 
   if (options.skipDirectFetch) {
     if (!allowFirecrawl) {
@@ -77,9 +74,8 @@ export async function fetchWebsiteHtmlPage(
   let html: string;
 
   try {
-    res = await fetch(url, {
+    res = await safeWebFetch(url, {
       method: "GET",
-      redirect: "follow",
       cache: "no-store",
       headers: {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -87,6 +83,14 @@ export async function fetchWebsiteHtmlPage(
       },
       signal: controller.signal,
     });
+
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      if (!allowFirecrawl) {
+        throw new MetadataEnrichmentRequiredError(false);
+      }
+      throw new Error(`Website request failed: ${res.status} ${res.statusText}`);
+    }
 
     const contentType = res.headers.get("content-type") ?? "";
     html = isHtmlContentType(contentType) ? await readTextWithLimit(res, HTML_MAX_BYTES) : "";
@@ -102,6 +106,7 @@ export async function fetchWebsiteHtmlPage(
   const contentType = res.headers.get("content-type") ?? "";
   const isHtml = isHtmlContentType(contentType);
   const finalUrl = res.url || url;
+  assertWebsiteUrl(finalUrl);
   const challengeDetected = isHtml && looksLikeChallengeHtml(html);
 
   if (challengeDetected) {
@@ -111,15 +116,8 @@ export async function fetchWebsiteHtmlPage(
     return fetchWebsiteHtmlViaFirecrawl(url, true);
   }
 
-  if (!res.ok) {
-    if (!allowFirecrawl) {
-      throw new MetadataEnrichmentRequiredError(false);
-    }
-    throw new Error(`Website request failed: ${res.status} ${res.statusText}`);
-  }
-
   if (!isHtml) {
-    throw new NonHtmlUrlError();
+    throw new NonWebsiteUrlError();
   }
 
   return {
@@ -147,7 +145,7 @@ export async function fetchDirectUrlMetadata(normalized: URL): Promise<WebsiteMe
       websiteProtected: false,
     };
   } catch (error) {
-    if (error instanceof NonHtmlUrlError) {
+    if (error instanceof NonWebsiteUrlError) {
       throw error;
     }
 

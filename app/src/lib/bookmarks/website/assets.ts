@@ -2,6 +2,7 @@ import type {WebsiteHtmlPage} from "@/lib/bookmarks/metadata";
 import {readBufferWithLimit} from "@/lib/fetch/web/bounded-reader";
 import {fetchBestFaviconFromHtml} from "@/lib/fetch/web/favicon";
 import {fetchResolvedOgImageUrlFromHtml} from "@/lib/fetch/web/og";
+import {safeWebFetch} from "@/lib/fetch/web/safe-fetch";
 import {
   fetchScreenshotViaCloudflare,
   fetchScreenshotViaFirecrawl,
@@ -164,9 +165,8 @@ async function fetchRemoteAsset({
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(url, {
+    const response = await safeWebFetch(url, {
       method: "GET",
-      redirect: "follow",
       cache: "no-store",
       headers: {"user-agent": REMOTE_ASSET_USER_AGENT},
       signal: controller.signal,

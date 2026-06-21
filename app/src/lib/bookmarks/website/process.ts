@@ -1,4 +1,4 @@
-import {eq, sql} from "drizzle-orm";
+import {and, eq, isNull, sql} from "drizzle-orm";
 import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
@@ -9,6 +9,7 @@ import {
 } from "@/lib/bookmarks/metadata";
 import {isRecord} from "@/lib/fetch/web/http";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import {isWebsiteUrl, NonWebsiteUrlError} from "@/lib/fetch/web/website-url";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {processWebsiteAssets} from "./assets";
 import {collectWebsiteAssetFailures} from "./processing-results";
@@ -24,6 +25,7 @@ export async function processWebsiteBookmark(bookmarkId: string) {
   if (!bookmark) return;
 
   const normalizedUrl = normalizeInputUrl(bookmark.url).toString();
+  if (!isWebsiteUrl(normalizedUrl)) return;
   let page: WebsiteHtmlPage;
 
   try {
@@ -32,8 +34,11 @@ export async function processWebsiteBookmark(bookmarkId: string) {
     });
   } catch (error) {
     await markWebsiteProcessingFailed(bookmark.id);
+    if (error instanceof NonWebsiteUrlError) return;
     throw error;
   }
+
+  if (!(await isWebsiteBookmarkActive(bookmark.id))) return;
 
   const textUpdatePromise = updateWebsiteTextMetadata(bookmark.id, page);
   const keys = await buildWebsiteImageKeys(normalizedUrl);
@@ -77,11 +82,25 @@ async function getWebsiteBookmarkProcessingInfo(
       metadata: bookmarks.metadata,
     })
     .from(bookmarks)
-    .where(eq(bookmarks.id, bookmarkId))
+    .where(
+      and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "website"), isNull(bookmarks.deletedAt)),
+    )
     .limit(1);
 
-  if (!bookmark || bookmark.kind !== "website") return null;
+  if (!bookmark) return null;
   return {id: bookmark.id, url: bookmark.url, metadata: bookmark.metadata};
+}
+
+async function isWebsiteBookmarkActive(bookmarkId: string) {
+  const [bookmark] = await db
+    .select({id: bookmarks.id})
+    .from(bookmarks)
+    .where(
+      and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "website"), isNull(bookmarks.deletedAt)),
+    )
+    .limit(1);
+
+  return !!bookmark;
 }
 
 function hasWebsiteProtected(metadata: unknown) {
@@ -99,12 +118,12 @@ async function updateWebsiteTextMetadata(bookmarkId: string, page: WebsiteHtmlPa
   await db
     .update(bookmarks)
     .set({
-      title: metadataResult.title ?? null,
-      description: metadataResult.description ?? null,
+      title: sql`COALESCE(${bookmarks.title}, ${metadataResult.title ?? null})`,
+      description: sql`COALESCE(${bookmarks.description}, ${metadataResult.description ?? null})`,
       metadata,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(bookmarks.id, bookmarkId));
+    .where(and(eq(bookmarks.id, bookmarkId), isNull(bookmarks.deletedAt)));
 }
 
 async function markWebsiteProcessingFailed(bookmarkId: string) {
@@ -114,5 +133,5 @@ async function markWebsiteProcessingFailed(bookmarkId: string) {
       metadata: sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{textMetadataStatus}', '"failed"'::jsonb, true)`,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(bookmarks.id, bookmarkId));
+    .where(and(eq(bookmarks.id, bookmarkId), isNull(bookmarks.deletedAt)));
 }

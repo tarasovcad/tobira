@@ -1,6 +1,7 @@
 import {readTextWithLimit} from "./bounded-reader";
 import {isRecord} from "./http";
 import {stripWrappingQuotes} from "./html";
+import {safeWebFetch} from "./safe-fetch";
 
 const MANIFEST_MAX_BYTES = 1024 * 1024;
 const MANIFEST_FETCH_TIMEOUT_MS = 6000;
@@ -65,9 +66,8 @@ async function discoverFromManifest(manifestUrl: string): Promise<BestIcon[]> {
   let manifestJson: unknown;
 
   try {
-    const res = await fetch(manifestUrl, {
+    const res = await safeWebFetch(manifestUrl, {
       method: "GET",
-      redirect: "follow",
       cache: "no-store",
       headers: {
         accept: "application/json,text/json,*/*;q=0.8",

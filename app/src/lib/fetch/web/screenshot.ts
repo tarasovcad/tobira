@@ -1,4 +1,5 @@
 import {readBufferWithLimit, readTextWithLimit} from "./bounded-reader";
+import {safeWebFetch} from "./safe-fetch";
 
 const SCREENSHOT_MAX_BYTES = 25 * 1024 * 1024;
 const FIRECRAWL_HTML_RESPONSE_MAX_BYTES = 6 * 1024 * 1024;
@@ -103,6 +104,7 @@ export async function fetchScreenshotViaFirecrawl(url: string): Promise<Screensh
       },
       body: JSON.stringify({
         url,
+        parsers: [],
         formats: [
           {
             type: "screenshot",
@@ -129,7 +131,7 @@ export async function fetchScreenshotViaFirecrawl(url: string): Promise<Screensh
       throw new Error("Firecrawl screenshot response did not include a screenshot URL");
     }
 
-    const imageResponse = await fetch(screenshotUrl, {
+    const imageResponse = await safeWebFetch(screenshotUrl, {
       method: "GET",
       cache: "no-store",
       headers: {"user-agent": "void-enrich-bookmark/1.0"},
@@ -186,6 +188,7 @@ export async function fetchScreenshotViaCloudflare(url: string): Promise<Screens
           gotoOptions: {waitUntil: "networkidle2", timeout: 10_000},
           viewport: {width: 1920, height: 1080, deviceScaleFactor: 2},
           screenshotOptions: {type: "png", fullPage: false},
+          waitForTimeout: 1000,
         }),
         signal: controller.signal,
       },

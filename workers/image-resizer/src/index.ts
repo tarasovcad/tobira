@@ -56,7 +56,7 @@ function buildCacheKeyUrl(
   url: URL,
   size: SizeType,
   format: FormatType,
-  sourceEtag: string
+  sourceEtag: string,
 ) {
   const cacheUrl = new URL(url.origin);
   cacheUrl.pathname = url.pathname;
@@ -74,7 +74,7 @@ function buildDerivativeKey(
   originalPath: string,
   sourceEtag: string,
   size: ResizeSizeType,
-  format: FormatType
+  format: FormatType,
 ) {
   return `_cache/${originalPath}__${sourceEtag}__${size}__${format}`;
 }
@@ -93,7 +93,7 @@ export default {
   async fetch(
     request: Request,
     env: Env,
-    ctx: ExecutionContext
+    ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
 
@@ -128,7 +128,7 @@ export default {
       url,
       sizeParam,
       formatParam,
-      originalHead.etag
+      originalHead.etag,
     );
     const cacheKey = new Request(cacheKeyUrl.toString(), request);
     const cachedResponse = await cache.match(cacheKey);
@@ -148,8 +148,8 @@ export default {
               originalPath,
               originalHead.etag,
               sizeParam,
-              formatParam
-            )
+              formatParam,
+            ),
           );
     if (derivativeObj) {
       const headers = new Headers();
@@ -157,7 +157,7 @@ export default {
       headers.set("Cache-Control", CACHE_CONTROL);
       headers.set(
         "ETag",
-        `W/"${sizeParam}-${formatParam}-${originalHead.etag}"`
+        `W/"${sizeParam}-${formatParam}-${originalHead.etag}"`,
       );
       headers.set("cf-cache-status", "MISS-R2-HIT"); // Custom header for debugging
 
@@ -205,15 +205,15 @@ export default {
           const targetSize = targetWidth;
           const scale = Math.max(
             targetSize / originalWidth,
-            targetSize / originalHeight
+            targetSize / originalHeight,
           );
           const scaledWidth = Math.max(
             targetSize,
-            Math.round(originalWidth * scale)
+            Math.round(originalWidth * scale),
           );
           const scaledHeight = Math.max(
             targetSize,
-            Math.round(originalHeight * scale)
+            Math.round(originalHeight * scale),
           );
 
           let scaledImage = inputImage;
@@ -227,7 +227,7 @@ export default {
               inputImage,
               scaledWidth,
               scaledHeight,
-              SamplingFilter.Lanczos3
+              SamplingFilter.Lanczos3,
             );
             needsFree = true;
           }
@@ -240,7 +240,7 @@ export default {
             x1,
             y1,
             x1 + targetSize,
-            y1 + targetSize
+            y1 + targetSize,
           );
 
           if (needsFree) {
@@ -250,13 +250,13 @@ export default {
         } else if (originalWidth > targetWidth) {
           // Using Lanczos3 for better quality downscaling
           const targetHeight = Math.round(
-            (originalHeight / originalWidth) * targetWidth
+            (originalHeight / originalWidth) * targetWidth,
           );
           processedImage = resize(
             inputImage,
             targetWidth,
             targetHeight,
-            SamplingFilter.Lanczos3
+            SamplingFilter.Lanczos3,
           );
           resized = true;
         }
@@ -282,15 +282,17 @@ export default {
       inputImage.free();
     } catch (e) {
       console.error("Photon processing error:", e);
-      const headers = new Headers();
-      originalObj.writeHttpMetadata(headers);
-      headers.set("Cache-Control", "no-store");
-      headers.set("cf-cache-status", "MISS-R2-PASSTHROUGH-ERROR");
-      headers.set("ETag", `W/"original-${originalObj.etag}"`);
-      headers.set("x-image-derivative-error", "1");
-
-      const response = new Response(inputBytes, { headers });
-      return response;
+      return Response.json(
+        { error: "Unsupported image content" },
+        {
+          status: 415,
+          headers: {
+            "Cache-Control": "no-store",
+            "cf-cache-status": "MISS-IMAGE-DECODE-ERROR",
+            "x-image-derivative-error": "1",
+          },
+        },
+      );
     }
 
     // 5. Store derivative back to R2
@@ -299,14 +301,14 @@ export default {
         originalPath,
         originalHead.etag,
         sizeParam,
-        formatParam
+        formatParam,
       ),
       outputBytes,
       {
         httpMetadata: {
           contentType,
         },
-      }
+      },
     );
 
     // 6. Respond
@@ -315,7 +317,7 @@ export default {
     responseHeaders.set("Cache-Control", CACHE_CONTROL);
     responseHeaders.set(
       "ETag",
-      `W/"${sizeParam}-${formatParam}-${originalObj.etag}"`
+      `W/"${sizeParam}-${formatParam}-${originalObj.etag}"`,
     );
     responseHeaders.set("cf-cache-status", "MISS");
 
