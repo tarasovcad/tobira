@@ -1,7 +1,12 @@
 import {NextRequest, NextResponse} from "next/server";
-import {fetchBestFaviconOne} from "@/lib/fetch/web/favicon";
+import {fetchBestFaviconFromHtml} from "@/lib/fetch/web/favicon";
 import {isRecord} from "@/lib/fetch/web/http";
-import {fetchResolvedOgImageUrl} from "@/lib/fetch/web/og";
+import {fetchResolvedOgImageUrlFromHtml} from "@/lib/fetch/web/og";
+import {
+  extractUrlMetadataFromHtmlPage,
+  fetchWebsiteHtmlPage,
+  type WebsiteHtmlPage,
+} from "@/lib/bookmarks/metadata";
 import {
   fetchScreenshotDataUrlViaCloudflare,
   fetchScreenshotDataUrlViaFirecrawl,
@@ -220,6 +225,35 @@ async function markScreenshotAccessRestricted(bookmarkId: string) {
     .where(eq(bookmarks.id, bookmarkId));
 }
 
+async function updateWebsiteTextMetadata(bookmarkId: string, page: WebsiteHtmlPage) {
+  const metadataResult = extractUrlMetadataFromHtmlPage(page);
+  const title = metadataResult.title ?? null;
+  const description = metadataResult.description ?? null;
+
+  let metadata = sql`jsonb_set(COALESCE(metadata, '{}'::jsonb) - 'requiresMetadataEnrichment', '{textMetadataStatus}', '"completed"'::jsonb, true)`;
+  if (page.screenshotAccessRestricted) {
+    metadata = sql`jsonb_set(${metadata}, '{screenshotAccessRestricted}', 'true'::jsonb, true)`;
+  }
+
+  await db
+    .update(bookmarks)
+    .set({
+      title,
+      description,
+      metadata,
+    })
+    .where(eq(bookmarks.id, bookmarkId));
+}
+
+async function markWebsiteTextAndImagesFailed(bookmarkId: string) {
+  await db
+    .update(bookmarks)
+    .set({
+      metadata: sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{textMetadataStatus}', '"failed"'::jsonb, true)`,
+    })
+    .where(eq(bookmarks.id, bookmarkId));
+}
+
 async function fetchPreviewScreenshot(url: string, bookmark: WebsiteBookmarkProcessingInfo | null) {
   if (hasScreenshotAccessRestricted(bookmark?.metadata)) {
     return fetchScreenshotDataUrlViaFirecrawl(url);
@@ -246,12 +280,31 @@ async function runEnrichment(bookmarkId: string) {
 
   const normalized = normalizeInputUrl(bookmark.url).toString();
 
+  let page: WebsiteHtmlPage;
+  try {
+    page = await fetchWebsiteHtmlPage(normalized);
+  } catch (error) {
+    await markWebsiteTextAndImagesFailed(bookmark.id);
+    throw error;
+  }
+
+  const updateTextPromise = updateWebsiteTextMetadata(bookmark.id, page);
+
+  const bookmarkForPreview = page.screenshotAccessRestricted
+    ? {
+        ...bookmark,
+        metadata: {
+          ...(isRecord(bookmark.metadata) ? bookmark.metadata : {}),
+          screenshotAccessRestricted: true,
+        },
+      }
+    : bookmark;
+
   const keys = await buildWebsiteImageKeys(normalized);
 
   const fetchAndUpload = async <T>(
-    label: string,
     key: string,
-    fetchFn: () => Promise<T>,
+    fetchFn: () => Promise<T> | T,
     uploadFn: (data: T) => Promise<void>,
   ) => {
     if (await existsInR2(key)) {
@@ -263,11 +316,15 @@ async function runEnrichment(bookmarkId: string) {
     }
   };
 
-  const results = await Promise.allSettled([
+  const imageResultsPromise = Promise.allSettled([
     fetchAndUpload(
-      "favicon",
       keys.favicon,
-      () => fetchBestFaviconOne(normalized),
+      () =>
+        fetchBestFaviconFromHtml({
+          html: page.html,
+          baseUrl: page.finalUrl,
+          fallbackOriginUrl: normalized,
+        }),
       async (best) => {
         if (best?.url) {
           await uploadFaviconToR2(best.url, normalized);
@@ -275,9 +332,13 @@ async function runEnrichment(bookmarkId: string) {
       },
     ),
     fetchAndUpload(
-      "og",
       keys.og,
-      () => fetchResolvedOgImageUrl(normalized),
+      () =>
+        fetchResolvedOgImageUrlFromHtml({
+          html: page.html,
+          baseUrl: page.finalUrl,
+          metadataOgImageUrl: page.firecrawlOgImageUrl,
+        }),
       async (ogUrl) => {
         if (typeof ogUrl === "string" && ogUrl) {
           await uploadOgImageToR2(ogUrl, normalized);
@@ -285,9 +346,8 @@ async function runEnrichment(bookmarkId: string) {
       },
     ),
     fetchAndUpload(
-      "preview",
       keys.preview,
-      () => fetchPreviewScreenshot(normalized, bookmark),
+      () => fetchPreviewScreenshot(normalized, bookmarkForPreview),
       async (preview) => {
         if (
           preview &&
@@ -300,15 +360,25 @@ async function runEnrichment(bookmarkId: string) {
     ),
   ]);
 
-  const failures = results
-    .map((result, index) => ({
-      result,
-      label: ["favicon", "og", "preview"][index],
-    }))
-    .filter(
-      (item): item is {result: PromiseRejectedResult; label: string} =>
-        item.result.status === "rejected",
-    );
+  const textUpdateResult = await updateTextPromise.then(
+    () => null,
+    (error: unknown) => error,
+  );
+  const results = await imageResultsPromise;
+
+  if (textUpdateResult) {
+    await markWebsiteTextAndImagesFailed(bookmark.id);
+    throw textUpdateResult;
+  }
+
+  const failures = [
+    {result: results[0], label: "favicon"},
+    {result: results[1], label: "og"},
+    {result: results[2], label: "preview"},
+  ].filter(
+    (item): item is {result: PromiseRejectedResult; label: string} =>
+      item.result?.status === "rejected",
+  );
 
   if (failures.length > 0) {
     console.error("website enrichment failed", {

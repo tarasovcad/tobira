@@ -2,6 +2,21 @@ import {fetchTextWithTimeout} from "./http";
 import {extractOgImageUrlFromHtml, isHtmlContentType, looksLikeChallengeHtml} from "./html";
 import {fetchHtmlViaFirecrawl} from "./screenshot";
 
+export function fetchResolvedOgImageUrlFromHtml(opts: {
+  html: string;
+  baseUrl: string;
+  metadataOgImageUrl?: string;
+}) {
+  const og = opts.metadataOgImageUrl ?? extractOgImageUrlFromHtml(opts.html);
+  if (!og) return undefined;
+
+  try {
+    return new URL(og, opts.baseUrl).toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export async function fetchResolvedOgImageUrl(url: string) {
   const res = await fetchTextWithTimeout(url, 8000, {
     userAgent:
@@ -28,11 +43,5 @@ export async function fetchResolvedOgImageUrl(url: string) {
     }
   }
 
-  const og = extractOgImageUrlFromHtml(html);
-  if (!og) return undefined;
-  try {
-    return new URL(og, baseUrl).toString();
-  } catch {
-    return undefined;
-  }
+  return fetchResolvedOgImageUrlFromHtml({html, baseUrl});
 }

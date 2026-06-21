@@ -165,6 +165,7 @@ export function BookmarkWorkspaceClient({
     animatingItemCount,
     pendingMediaItems,
     resolvedBookmarks,
+    pendingRevealIds,
     handleTransitionDone,
     archiveMutation,
   } = useBookmarksMutations({
@@ -183,11 +184,12 @@ export function BookmarkWorkspaceClient({
 
     return allBookmarks.filter((item) => {
       const isBeingRemoved = removingIds.has(item.id);
+      const isPendingReveal = pendingRevealIds.has(item.id);
       const isDuplicateOfResolved = resolvedIds.has(item.id);
 
-      return !isBeingRemoved && !isDuplicateOfResolved;
+      return !isBeingRemoved && !isPendingReveal && !isDuplicateOfResolved;
     });
-  }, [allBookmarks, removingIds, resolvedBookmarks, sort]);
+  }, [allBookmarks, pendingRevealIds, removingIds, resolvedBookmarks, sort]);
   const selectionItems = useMemo(
     () => (isPostDetailOpen && detailBookmark ? [detailBookmark] : visibleItems),
     [detailBookmark, isPostDetailOpen, visibleItems],

@@ -6,7 +6,7 @@ import {eq} from "drizzle-orm";
 import {db} from "@/db";
 import {bookmarks, bookmarkCollections} from "@/db/schema";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
-import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
+import {fetchDirectUrlMetadata} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmark} from "./prepareMediaBookmark";
 import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
 import {buildWebsiteImages} from "@/features/media/utils";
@@ -14,7 +14,6 @@ import {attachTagsToBookmark} from "@/lib/bookmarks/tags";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {logger} from "@/lib/shared/logger";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
-export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 
 export type AddWebsiteBookmarkResult = {
   ok: true;
@@ -58,11 +57,31 @@ export async function addWebsiteBookmark(input: {
     throw new Error(error instanceof Error ? error.message : "Invalid url");
   }
 
-  let metadata: UrlMetadataResult;
+  let title: string | null = null;
+  let description: string | null = null;
+  let metadata: Record<string, unknown> = {
+    textMetadataStatus: "processing",
+    requiresMetadataEnrichment: true,
+  };
   try {
-    const fetchUrlMetadataStart = performance.now();
-    metadata = await fetchUrlMetadata(normalized, input.url);
-    timingsMs.fetchUrlMetadata = Number((performance.now() - fetchUrlMetadataStart).toFixed(2));
+    const fetchDirectUrlMetadataStart = performance.now();
+    const directMetadata = await fetchDirectUrlMetadata(normalized);
+    timingsMs.fetchDirectUrlMetadata = Number(
+      (performance.now() - fetchDirectUrlMetadataStart).toFixed(2),
+    );
+
+    if (directMetadata.status === "completed") {
+      title = directMetadata.title ?? null;
+      description = directMetadata.description ?? null;
+      metadata = {
+        textMetadataStatus: "completed",
+      };
+    } else {
+      metadata = {
+        textMetadataStatus: "processing",
+        requiresMetadataEnrichment: true,
+      };
+    }
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : "Failed to fetch metadata");
   }
@@ -76,12 +95,12 @@ export async function addWebsiteBookmark(input: {
   await db.insert(bookmarks).values({
     id: bookmarkId,
     url: normalized.toString(),
-    title: metadata.title ?? null,
+    title,
     userId,
-    description: metadata.description ?? null,
+    description,
     kind: "website",
     images,
-    metadata: metadata.screenshotAccessRestricted ? {screenshotAccessRestricted: true} : {},
+    metadata,
   });
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
