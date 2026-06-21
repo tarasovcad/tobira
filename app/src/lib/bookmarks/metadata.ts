@@ -4,8 +4,9 @@ import {
   isHtmlContentType,
   looksLikeChallengeHtml,
 } from "@/lib/fetch/web/html";
-import {fetchTextWithTimeout} from "@/lib/fetch/web/http";
 import {fetchHtmlViaFirecrawl} from "@/lib/fetch/web/screenshot";
+import {readTextWithLimit} from "@/lib/fetch/web/bounded-reader";
+import type {WebsiteMetadataOutcome} from "@/lib/bookmarks/website/metadata-outcome";
 
 export type UrlMetadataResult = {
   inputUrl: string;
@@ -13,25 +14,15 @@ export type UrlMetadataResult = {
   finalUrl?: string;
   title?: string;
   description?: string;
-  screenshotAccessRestricted?: boolean;
+  websiteProtected: boolean;
 };
 
 export type WebsiteHtmlPage = {
   html: string;
   finalUrl: string;
-  screenshotAccessRestricted: boolean;
+  websiteProtected: boolean;
   firecrawlOgImageUrl?: string;
 };
-
-export type DirectUrlMetadataResult =
-  | {
-      status: "completed";
-      title?: string;
-      description?: string;
-    }
-  | {
-      status: "deferred";
-    };
 
 class NonHtmlUrlError extends Error {
   constructor() {
@@ -41,7 +32,7 @@ class NonHtmlUrlError extends Error {
 }
 
 class MetadataEnrichmentRequiredError extends Error {
-  constructor() {
+  constructor(readonly websiteProtected: boolean) {
     super("Metadata requires background enrichment");
     this.name = "MetadataEnrichmentRequiredError";
   }
@@ -49,10 +40,12 @@ class MetadataEnrichmentRequiredError extends Error {
 
 const WEBSITE_FETCH_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const WEBSITE_FETCH_TIMEOUT_MS = 8000;
+const HTML_MAX_BYTES = 5 * 1024 * 1024;
 
 async function fetchWebsiteHtmlViaFirecrawl(
   url: string,
-  screenshotAccessRestricted: boolean,
+  websiteProtected: boolean,
 ): Promise<WebsiteHtmlPage> {
   const firecrawl = await fetchHtmlViaFirecrawl(url);
   const finalUrl = firecrawl.metadata?.sourceURL ?? firecrawl.metadata?.url ?? url;
@@ -60,50 +53,79 @@ async function fetchWebsiteHtmlViaFirecrawl(
   return {
     html: firecrawl.rawHtml,
     finalUrl,
-    screenshotAccessRestricted,
+    websiteProtected,
     firecrawlOgImageUrl: firecrawl.metadata?.ogImage ?? firecrawl.metadata?.["og:image"],
   };
 }
 
 export async function fetchWebsiteHtmlPage(
   url: string,
-  options: {allowFirecrawl?: boolean} = {},
+  options: {allowFirecrawl?: boolean; skipDirectFetch?: boolean} = {},
 ): Promise<WebsiteHtmlPage> {
   const allowFirecrawl = options.allowFirecrawl ?? true;
 
-  const res = await fetchTextWithTimeout(url, 8000, {
-    userAgent: WEBSITE_FETCH_USER_AGENT,
-  }).catch((error) => {
+  if (options.skipDirectFetch) {
     if (!allowFirecrawl) {
-      throw new MetadataEnrichmentRequiredError();
+      throw new MetadataEnrichmentRequiredError(true);
     }
-    return fetchWebsiteHtmlViaFirecrawl(url, false).catch(() => {
-      throw error;
-    });
-  });
-
-  if (!(res instanceof Response)) return res;
-
-  const contentType = res.headers.get("content-type") ?? "";
-  if (!isHtmlContentType(contentType)) {
-    throw new NonHtmlUrlError();
+    return fetchWebsiteHtmlViaFirecrawl(url, true);
   }
 
-  const html = await res.text();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), WEBSITE_FETCH_TIMEOUT_MS);
+  let res: Response;
+  let html: string;
+
+  try {
+    res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      cache: "no-store",
+      headers: {
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "user-agent": WEBSITE_FETCH_USER_AGENT,
+      },
+      signal: controller.signal,
+    });
+
+    const contentType = res.headers.get("content-type") ?? "";
+    html = isHtmlContentType(contentType) ? await readTextWithLimit(res, HTML_MAX_BYTES) : "";
+  } catch (error) {
+    if (!allowFirecrawl) {
+      throw new MetadataEnrichmentRequiredError(false);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const contentType = res.headers.get("content-type") ?? "";
+  const isHtml = isHtmlContentType(contentType);
   const finalUrl = res.url || url;
-  const challengeDetected = looksLikeChallengeHtml(html);
+  const challengeDetected = isHtml && looksLikeChallengeHtml(html);
 
   if (challengeDetected) {
     if (!allowFirecrawl) {
-      throw new MetadataEnrichmentRequiredError();
+      throw new MetadataEnrichmentRequiredError(true);
     }
     return fetchWebsiteHtmlViaFirecrawl(url, true);
+  }
+
+  if (!res.ok) {
+    if (!allowFirecrawl) {
+      throw new MetadataEnrichmentRequiredError(false);
+    }
+    throw new Error(`Website request failed: ${res.status} ${res.statusText}`);
+  }
+
+  if (!isHtml) {
+    throw new NonHtmlUrlError();
   }
 
   return {
     html,
     finalUrl,
-    screenshotAccessRestricted: challengeDetected,
+    websiteProtected: false,
   };
 }
 
@@ -114,23 +136,31 @@ export function extractUrlMetadataFromHtmlPage(page: Pick<WebsiteHtmlPage, "html
   };
 }
 
-export async function fetchDirectUrlMetadata(normalized: URL): Promise<DirectUrlMetadataResult> {
+export async function fetchDirectUrlMetadata(normalized: URL): Promise<WebsiteMetadataOutcome> {
   try {
     const page = await fetchWebsiteHtmlPage(normalized.toString(), {allowFirecrawl: false});
     const metadata = extractUrlMetadataFromHtmlPage(page);
-    // console.log(page, "page");
     return {
       status: "completed",
       title: metadata.title,
       description: metadata.description,
+      websiteProtected: false,
     };
   } catch (error) {
     if (error instanceof NonHtmlUrlError) {
       throw error;
     }
 
+    if (error instanceof MetadataEnrichmentRequiredError && error.websiteProtected) {
+      return {
+        status: "protected",
+        websiteProtected: true,
+      };
+    }
+
     return {
-      status: "deferred",
+      status: "unreachable",
+      websiteProtected: false,
     };
   }
 }
@@ -142,6 +172,7 @@ export async function fetchUrlMetadata(
   const result: UrlMetadataResult = {
     inputUrl,
     normalizedUrl: normalized.toString(),
+    websiteProtected: false,
   };
 
   const page = await fetchWebsiteHtmlPage(normalized.toString());
@@ -150,7 +181,7 @@ export async function fetchUrlMetadata(
   result.finalUrl = page.finalUrl;
   result.title = metadata.title;
   result.description = metadata.description;
-  result.screenshotAccessRestricted = page.screenshotAccessRestricted;
+  result.websiteProtected = page.websiteProtected;
 
   if (!result.title) {
     result.title = normalized.hostname.replace(/^www\./, "");

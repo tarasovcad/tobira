@@ -2,7 +2,7 @@
 
 import {useMemo, useState} from "react";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {useForm, useWatch} from "react-hook-form";
+import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {useRouter} from "next/navigation";
 import {
@@ -21,7 +21,23 @@ import {
   useTagsQuery,
 } from "@/features/home/hooks/use-home-metadata-query";
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
-import {addBookmarkSchema, type AddBookmarkFormValues} from "../add-bookmark-schema";
+import {
+  addBookmarkSchema,
+  createAddBookmarkDefaultValues,
+  type AddBookmarkFormValues,
+} from "../add-bookmark-schema";
+
+type AddBookmarkMutationInput =
+  | {url: string; tags: string[]; collectionId?: string; kind: "website"}
+  | {
+      url: string;
+      tags: string[];
+      collectionId?: string;
+      kind: "media";
+      selectedMediaUrls?: string[];
+      selectedMediaItems?: BookmarkMediaItem[];
+    }
+  | {url: string; tags: string[]; collectionId?: string; kind: "post"};
 
 export function useAddBookmarkFlow({
   userId,
@@ -54,57 +70,36 @@ export function useAddBookmarkFlow({
     enabled: open && !!userId,
   });
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    trigger,
-    formState: {errors, isValid},
-    getValues,
-  } = useForm<AddBookmarkFormValues>({
+  const form = useForm<AddBookmarkFormValues>({
     resolver: zodResolver(addBookmarkSchema),
-    defaultValues: {
-      url: "",
-      tags: [...defaultTagNames],
-      collectionId: defaultCollectionId,
+    defaultValues: createAddBookmarkDefaultValues({
       type: defaultType,
-    },
+      collectionId: defaultCollectionId,
+      tagNames: defaultTagNames,
+    }),
     mode: "onChange",
   });
-  const watchedUrl = useWatch({control, name: "url"});
-  const watchedType = useWatch({control, name: "type"});
 
   const addItemMutation = useMutation<
     AddWebsiteBookmarkResult | AddMediaBookmarkResult | AddPostBookmarkResult,
     Error,
-    | {url: string; tags: string[]; collectionId?: string; kind: "website"}
-    | {
-        url: string;
-        tags: string[];
-        collectionId?: string;
-        kind: "media";
-        selectedMediaUrls?: string[];
-        selectedMediaItems?: BookmarkMediaItem[];
-      }
-    | {url: string; tags: string[]; collectionId?: string; kind: "post"}
+    AddBookmarkMutationInput
   >({
     mutationKey: ["add-bookmark"],
     mutationFn: async (input) => {
       if (input.kind === "website") {
-        return await addWebsiteBookmark(input);
-      } else if (input.kind === "media") {
-        return await addMediaBookmark({
+        return addWebsiteBookmark(input);
+      }
+      if (input.kind === "media") {
+        return addMediaBookmark({
           url: input.url,
           tags: input.tags,
           collectionId: input.collectionId,
           kind: input.kind,
           selectedMediaUrls: input.selectedMediaUrls,
         });
-      } else if (input.kind === "post") {
-        return await addPostBookmark(input);
       }
-      throw new Error("Invalid kind");
+      return addPostBookmark(input);
     },
     onSuccess: (res, variables) => {
       if (
@@ -131,12 +126,7 @@ export function useAddBookmarkFlow({
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       setTimeout(() => {
-        reset({
-          url: "",
-          tags: [...defaultTagNames],
-          collectionId: defaultCollectionId,
-          type: defaultType,
-        });
+        form.reset(getDefaultValues());
         setStep(1);
         setMediaItems([]);
         setSelectedMediaUrls([]);
@@ -199,12 +189,7 @@ export function useAddBookmarkFlow({
   );
 
   const resetLocalState = () => {
-    reset({
-      url: "",
-      tags: [...defaultTagNames],
-      collectionId: defaultCollectionId,
-      type: defaultType,
-    });
+    form.reset(getDefaultValues());
     setStep(1);
     setMediaItems([]);
     setSelectedMediaUrls([]);
@@ -239,7 +224,7 @@ export function useAddBookmarkFlow({
   };
 
   const confirmMediaSelection = () => {
-    const data = getValues();
+    const data = form.getValues();
     addItemMutation.mutate({
       url: data.url,
       tags: data.tags,
@@ -263,19 +248,21 @@ export function useAddBookmarkFlow({
     mediaItems,
     selectedMediaUrls,
     toggleMediaUrl,
-    register,
-    control,
-    errors,
-    isValid,
-    trigger,
-    watchedUrl,
-    watchedType,
+    form,
     addItemMutation,
     collectionItems,
     tags,
     handleOpenChange,
     handleOpenDialogClick,
-    handleSubmitForm: handleSubmit(onSubmit),
+    handleSubmitForm: form.handleSubmit(onSubmit),
     confirmMediaSelection,
   };
+
+  function getDefaultValues() {
+    return createAddBookmarkDefaultValues({
+      type: defaultType,
+      collectionId: defaultCollectionId,
+      tagNames: defaultTagNames,
+    });
+  }
 }

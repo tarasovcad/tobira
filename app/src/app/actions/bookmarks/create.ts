@@ -1,16 +1,14 @@
 "use server";
 
 import {Client} from "@upstash/qstash";
-import {randomUUID} from "crypto";
 import {eq} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks, bookmarkCollections} from "@/db/schema";
+import {bookmarks} from "@/db/schema";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
-import {fetchDirectUrlMetadata} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmark} from "./prepareMediaBookmark";
 import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
-import {buildWebsiteImages} from "@/features/media/utils";
-import {attachTagsToBookmark} from "@/lib/bookmarks/tags";
+import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
+import {createWebsiteBookmark} from "@/lib/bookmarks/website/create";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {logger} from "@/lib/shared/logger";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
@@ -46,8 +44,6 @@ export async function addWebsiteBookmark(input: {
   collectionId?: string;
   kind: "website";
 }): Promise<AddWebsiteBookmarkResult> {
-  const addWebsiteBookmarkStart = performance.now();
-  const timingsMs: Record<string, number> = {};
   const userId = await requireAuthenticatedUserId();
 
   let normalized: URL;
@@ -57,115 +53,14 @@ export async function addWebsiteBookmark(input: {
     throw new Error(error instanceof Error ? error.message : "Invalid url");
   }
 
-  let title: string | null = null;
-  let description: string | null = null;
-  let metadata: Record<string, unknown> = {
-    textMetadataStatus: "processing",
-    requiresMetadataEnrichment: true,
-  };
-  try {
-    const fetchDirectUrlMetadataStart = performance.now();
-    const directMetadata = await fetchDirectUrlMetadata(normalized);
-    timingsMs.fetchDirectUrlMetadata = Number(
-      (performance.now() - fetchDirectUrlMetadataStart).toFixed(2),
-    );
-
-    if (directMetadata.status === "completed") {
-      title = directMetadata.title ?? null;
-      description = directMetadata.description ?? null;
-      metadata = {
-        textMetadataStatus: "completed",
-      };
-    } else {
-      metadata = {
-        textMetadataStatus: "processing",
-        requiresMetadataEnrichment: true,
-      };
-    }
-  } catch (error) {
-    throw new Error(error instanceof Error ? error.message : "Failed to fetch metadata");
-  }
-
-  const bookmarkId = randomUUID();
-  const buildWebsiteImagesStart = performance.now();
-  const images = await buildWebsiteImages(normalized.toString());
-  timingsMs.buildWebsiteImages = Number((performance.now() - buildWebsiteImagesStart).toFixed(2));
-
-  const dbInsertStart = performance.now();
-  await db.insert(bookmarks).values({
-    id: bookmarkId,
-    url: normalized.toString(),
-    title,
+  const bookmark = await createWebsiteBookmark({
+    normalizedUrl: normalized,
     userId,
-    description,
-    kind: "website",
-    images,
-    metadata,
-  });
-  timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
-
-  const attachments: Promise<unknown>[] = [];
-
-  if (input.tags && input.tags.length > 0) {
-    attachments.push(
-      (async () => {
-        try {
-          await attachTagsToBookmark(bookmarkId, userId, input.tags!);
-        } catch (error) {
-          console.error("Failed to attach tags to bookmark:", error);
-        }
-      })(),
-    );
-  }
-
-  if (input.collectionId) {
-    attachments.push(
-      (async () => {
-        try {
-          await db.insert(bookmarkCollections).values({
-            bookmarkId,
-            collectionId: input.collectionId!,
-          });
-        } catch (error) {
-          console.error("Failed to attach bookmark to collection:", error);
-        }
-      })(),
-    );
-  }
-
-  await Promise.all(attachments);
-
-  const qstashPublishStart = performance.now();
-  try {
-    await qstash.publishJSON({
-      url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
-      body: {id: bookmarkId},
-      idempotencyKey: `bookmark-${bookmarkId}`,
-      headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
-      timeout: 120,
-      retries: 2,
-    });
-  } catch (error) {
-    console.error("Failed to queue website bookmark processing job:", error);
-    try {
-      await db.delete(bookmarks).where(eq(bookmarks.id, bookmarkId));
-    } catch (cleanupError) {
-      console.error("Failed to delete website bookmark after queue failure:", cleanupError);
-    }
-    throw new Error("Failed to queue website bookmark processing job");
-  }
-  timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
-  timingsMs.totalAddWebsiteBookmark = Number(
-    (performance.now() - addWebsiteBookmarkStart).toFixed(2),
-  );
-
-  logger.info("addWebsiteBookmark timings", {
-    bookmarkId,
-    url: normalized.toString(),
-    timingsMs,
+    tags: input.tags,
+    collectionId: input.collectionId,
   });
 
-  return {ok: true, url: normalized.toString(), id: bookmarkId};
+  return {ok: true, ...bookmark};
 }
 
 export async function addMediaBookmark(input: {
@@ -214,39 +109,13 @@ export async function addMediaBookmark(input: {
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
-  const attachments: Promise<unknown>[] = [];
-
-  if (input.collectionId) {
-    attachments.push(
-      (async () => {
-        try {
-          await db
-            .insert(bookmarkCollections)
-            .values({
-              bookmarkId: prepared.bookmarkId,
-              collectionId: input.collectionId!,
-            })
-            .onConflictDoNothing();
-        } catch (error) {
-          console.error("Failed to attach media bookmark to collection:", error);
-        }
-      })(),
-    );
-  }
-
-  if (input.tags && input.tags.length > 0) {
-    attachments.push(
-      (async () => {
-        try {
-          await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags!);
-        } catch (error) {
-          console.error("Failed to attach tags to media bookmark:", error);
-        }
-      })(),
-    );
-  }
-
-  await Promise.all(attachments);
+  await attachBookmarkRelations({
+    bookmarkId: prepared.bookmarkId,
+    userId,
+    tags: input.tags,
+    collectionId: input.collectionId,
+    kind: "media",
+  });
 
   const qstashPublishStart = performance.now();
   try {
@@ -309,39 +178,13 @@ export async function addPostBookmark(input: {
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
-  const attachments: Promise<unknown>[] = [];
-
-  if (input.tags && input.tags.length > 0) {
-    attachments.push(
-      (async () => {
-        try {
-          await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags!);
-        } catch (error) {
-          console.error("Failed to attach tags to post bookmark:", error);
-        }
-      })(),
-    );
-  }
-
-  if (input.collectionId) {
-    attachments.push(
-      (async () => {
-        try {
-          await db
-            .insert(bookmarkCollections)
-            .values({
-              bookmarkId: prepared.bookmarkId,
-              collectionId: input.collectionId!,
-            })
-            .onConflictDoNothing();
-        } catch (error) {
-          console.error("Failed to attach post bookmark to collection:", error);
-        }
-      })(),
-    );
-  }
-
-  await Promise.all(attachments);
+  await attachBookmarkRelations({
+    bookmarkId: prepared.bookmarkId,
+    userId,
+    tags: input.tags,
+    collectionId: input.collectionId,
+    kind: "post",
+  });
 
   if (prepared.bookmarkToInsert.images.processing) {
     const qstashPublishStart = performance.now();

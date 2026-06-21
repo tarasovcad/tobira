@@ -57,3 +57,20 @@ export const addBookmarkSchema = z
   });
 
 export type AddBookmarkFormValues = z.infer<typeof addBookmarkSchema>;
+
+export function createAddBookmarkDefaultValues({
+  type = "website",
+  collectionId = null,
+  tagNames = [],
+}: {
+  type?: AddBookmarkFormValues["type"];
+  collectionId?: string | null;
+  tagNames?: string[];
+} = {}): AddBookmarkFormValues {
+  return {
+    url: "",
+    tags: [...tagNames],
+    collectionId,
+    type,
+  };
+}

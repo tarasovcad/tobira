@@ -1,14 +1,15 @@
 "use server";
 
-import {Client} from "@upstash/qstash";
 import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
 import {and, eq, inArray, isNotNull, sql} from "drizzle-orm";
 
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
-import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
+import {fetchDirectUrlMetadata} from "@/lib/bookmarks/metadata";
 import {syncBookmarkCollection} from "@/lib/bookmarks/collections";
 import {syncBookmarkTags} from "@/lib/bookmarks/tags";
+import {resolveWebsiteMetadataState} from "@/lib/bookmarks/website/metadata-outcome";
+import {queueWebsiteBookmarkEnrichment} from "@/lib/bookmarks/website/queue";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 export type UpdateBookmarkData = {
@@ -19,11 +20,6 @@ export type UpdateBookmarkData = {
   tags?: string[];
   collectionId?: string | null;
 };
-
-const qstash = new Client({
-  token: process.env.QSTASH_TOKEN!,
-  baseUrl: process.env.QSTASH_URL,
-});
 
 export async function updateBookmark(
   bookmarkId: string,
@@ -108,33 +104,28 @@ export async function resetBookmark(bookmarkId: string): Promise<{
   if (!bookmark) throw new Error("Bookmark not found");
 
   const normalized = normalizeInputUrl(bookmark.url);
-  const metadata = await fetchUrlMetadata(normalized, bookmark.url);
+  const metadataState = resolveWebsiteMetadataState(await fetchDirectUrlMetadata(normalized));
 
   const updatedAt = new Date().toISOString();
 
   await db
     .update(bookmarks)
     .set({
-      title: metadata.title ?? null,
-      description: metadata.description ?? null,
-      metadata: metadata.screenshotAccessRestricted
-        ? sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{screenshotAccessRestricted}', 'true'::jsonb, true)`
-        : sql`COALESCE(metadata, '{}'::jsonb) - 'screenshotAccessRestricted'`,
+      title: metadataState.title,
+      description: metadataState.description,
+      metadata: sql`jsonb_set(jsonb_set(COALESCE(metadata, '{}'::jsonb), '{websiteProtected}', to_jsonb(${metadataState.websiteProtected}::boolean), true), '{textMetadataStatus}', to_jsonb(${metadataState.textMetadataStatus}::text), true)`,
       updatedAt,
     })
     .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId)));
 
-  await qstash.publishJSON({
-    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
-    body: {id: bookmark.id},
-    headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
-    timeout: 120,
-  });
+  if (metadataState.shouldQueueEnrichment) {
+    await queueWebsiteBookmarkEnrichment(bookmark.id);
+  }
 
   return {
     ok: true,
-    title: metadata.title ?? "",
-    description: metadata.description ?? "",
+    title: metadataState.title ?? "",
+    description: metadataState.description ?? "",
     updatedAt,
   };
 }

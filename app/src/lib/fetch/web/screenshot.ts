@@ -1,30 +1,15 @@
-function arrayBufferToBase64(ab: ArrayBuffer) {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(ab).toString("base64");
-  }
-  const btoaFn: ((s: string) => string) | undefined =
-    typeof globalThis.btoa === "function" ? globalThis.btoa.bind(globalThis) : undefined;
-  if (!btoaFn) {
-    throw new Error("Base64 encoding is not available in this runtime");
-  }
+import {readBufferWithLimit, readTextWithLimit} from "./bounded-reader";
 
-  const bytes = new Uint8Array(ab);
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return btoaFn(binary);
-}
+const SCREENSHOT_MAX_BYTES = 25 * 1024 * 1024;
+const FIRECRAWL_HTML_RESPONSE_MAX_BYTES = 6 * 1024 * 1024;
+const FIRECRAWL_SCREENSHOT_RESPONSE_MAX_BYTES = 1024 * 1024;
 
-export type ScreenshotDataUrl = {
-  dataUrl: string;
+export type ScreenshotData = {
+  buffer: Buffer;
   contentType: string;
-  bytes: number;
 };
 
-class CloudflareScreenshotError extends Error {
+export class CloudflareScreenshotError extends Error {
   constructor(
     message: string,
     readonly status?: number,
@@ -81,13 +66,12 @@ export async function fetchHtmlViaFirecrawl(url: string): Promise<FirecrawlHtmlD
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(
-        `Firecrawl HTML request failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ""}`,
-      );
+      throw new Error(`Firecrawl HTML request failed: ${response.status} ${response.statusText}`);
     }
 
-    const payload = (await response.json()) as FirecrawlScrapeResponse;
+    const payload = JSON.parse(
+      await readTextWithLimit(response, FIRECRAWL_HTML_RESPONSE_MAX_BYTES),
+    ) as FirecrawlScrapeResponse;
     const rawHtml = payload.data?.rawHtml;
     if (!payload.success || typeof rawHtml !== "string" || !rawHtml) {
       throw new Error("Firecrawl HTML response did not include HTML content");
@@ -102,7 +86,7 @@ export async function fetchHtmlViaFirecrawl(url: string): Promise<FirecrawlHtmlD
   }
 }
 
-export async function fetchScreenshotDataUrlViaFirecrawl(url: string): Promise<ScreenshotDataUrl> {
+export async function fetchScreenshotViaFirecrawl(url: string): Promise<ScreenshotData> {
   const token = process.env.FIRECRAWL_API_KEY;
   if (!token) throw new Error("Missing FIRECRAWL_API_KEY");
 
@@ -132,13 +116,14 @@ export async function fetchScreenshotDataUrlViaFirecrawl(url: string): Promise<S
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
       throw new Error(
-        `Firecrawl screenshot request failed: ${response.status} ${response.statusText}${text ? ` - ${text}` : ""}`,
+        `Firecrawl screenshot request failed: ${response.status} ${response.statusText}`,
       );
     }
 
-    const payload = (await response.json()) as FirecrawlScrapeResponse;
+    const payload = JSON.parse(
+      await readTextWithLimit(response, FIRECRAWL_SCREENSHOT_RESPONSE_MAX_BYTES),
+    ) as FirecrawlScrapeResponse;
     const screenshotUrl = payload.data?.screenshot;
     if (!payload.success || typeof screenshotUrl !== "string" || !screenshotUrl) {
       throw new Error("Firecrawl screenshot response did not include a screenshot URL");
@@ -152,28 +137,29 @@ export async function fetchScreenshotDataUrlViaFirecrawl(url: string): Promise<S
     });
 
     if (!imageResponse.ok) {
-      const text = await imageResponse.text().catch(() => "");
       throw new Error(
-        `Firecrawl screenshot download failed: ${imageResponse.status} ${imageResponse.statusText}${text ? ` - ${text}` : ""}`,
+        `Firecrawl screenshot download failed: ${imageResponse.status} ${imageResponse.statusText}`,
       );
     }
 
     const contentTypeRaw = imageResponse.headers.get("content-type") ?? "image/png";
     const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const base64 = arrayBufferToBase64(imageBuffer);
-
+    const buffer = await readBufferWithLimit(imageResponse, SCREENSHOT_MAX_BYTES, [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "image/avif",
+    ]);
     return {
-      dataUrl: `data:${contentType};base64,${base64}`,
+      buffer,
       contentType,
-      bytes: imageBuffer.byteLength,
     };
   } finally {
     clearTimeout(t);
   }
 }
 
-export async function fetchScreenshotDataUrlViaCloudflare(url: string): Promise<ScreenshotDataUrl> {
+export async function fetchScreenshotViaCloudflare(url: string): Promise<ScreenshotData> {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const apiToken = process.env.CLOUDFLARE_API_TOKEN?.trim();
 
@@ -207,20 +193,22 @@ export async function fetchScreenshotDataUrlViaCloudflare(url: string): Promise<
 
     if (!response.ok) {
       throw new CloudflareScreenshotError(
-        `Cloudflare screenshot request failed: ${response.status} ${response.statusText}${await getCloudflareErrorSuffix(response)}`,
+        `Cloudflare screenshot request failed: ${response.status} ${response.statusText}`,
         response.status,
       );
     }
 
     const contentTypeRaw = response.headers.get("content-type") ?? "image/png";
     const contentType = contentTypeRaw.split(";")[0] ?? "image/png";
-    const imageBuffer = await response.arrayBuffer();
-    const base64 = arrayBufferToBase64(imageBuffer);
-
+    const buffer = await readBufferWithLimit(response, SCREENSHOT_MAX_BYTES, [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "image/avif",
+    ]);
     return {
-      dataUrl: `data:${contentType};base64,${base64}`,
+      buffer,
       contentType,
-      bytes: imageBuffer.byteLength,
     };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
@@ -232,31 +220,28 @@ export async function fetchScreenshotDataUrlViaCloudflare(url: string): Promise<
   }
 }
 
-export function isScreenshotAccessRestrictionError(error: unknown) {
+export function shouldFallbackToFirecrawlScreenshot(
+  error: unknown,
+  options: {websiteProtected: boolean},
+) {
   if (!(error instanceof Error)) return false;
 
   const message = error.message.toLowerCase();
-  if (error instanceof CloudflareScreenshotError && error.status === 401) return false;
-  if (error instanceof CloudflareScreenshotError && error.status === 429) return false;
-  if (error instanceof CloudflareScreenshotError && error.status && error.status >= 500)
+
+  if (
+    message.includes("missing cloudflare_account_id") ||
+    message.includes("missing cloudflare_api_token") ||
+    message.includes("timed out") ||
+    message.includes("timeout")
+  ) {
     return false;
-
-  return /access denied|blocked|bot|captcha|challenge|forbidden|timed out|timeout/.test(message);
-}
-
-export async function fetchScreenshotDataUrl(url: string): Promise<ScreenshotDataUrl> {
-  return fetchScreenshotDataUrlViaFirecrawl(url);
-}
-
-async function getCloudflareErrorSuffix(response: Response) {
-  const text = await response.text().catch(() => "");
-  if (!text) return "";
-
-  try {
-    const data = JSON.parse(text) as {errors?: Array<{message?: string}>};
-    const message = data.errors?.find((error) => error.message)?.message;
-    return message ? ` - ${message}` : ` - ${text}`;
-  } catch {
-    return ` - ${text}`;
   }
+
+  if (error instanceof CloudflareScreenshotError) {
+    if (error.status === 401 || error.status === 429) return false;
+    if (error.status === 403) return options.websiteProtected;
+    if (error.status && error.status >= 500) return false;
+  }
+
+  return /access denied|blocked|bot|captcha|challenge|forbidden/.test(message);
 }

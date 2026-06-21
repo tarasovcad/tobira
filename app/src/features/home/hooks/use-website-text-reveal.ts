@@ -17,7 +17,14 @@ type LatestAdd =
 
 function getToastForStatus(textStatus: string | undefined, timedOut: boolean) {
   if (textStatus === "completed") return {title: "Bookmark added", type: "success" as const};
-  if (textStatus === "failed" || timedOut) {
+  if (textStatus === "failed") {
+    return {
+      title: "Bookmark saved",
+      description: "Website details could not be fetched.",
+      type: "info" as const,
+    };
+  }
+  if (timedOut) {
     return {
       title: "Bookmark saved",
       description: "Website details are still processing.",
