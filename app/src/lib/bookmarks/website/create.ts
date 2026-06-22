@@ -61,7 +61,7 @@ export async function createWebsiteBookmark({
     const queueStartedAt = performance.now();
     try {
       await queueWebsiteBookmarkEnrichment(bookmarkId, {
-        idempotencyKey: `bookmark-${bookmarkId}`,
+        deduplicationId: `bookmark-${bookmarkId}`,
         retries: 2,
       });
       timingsMs.qstashPublishJSON = elapsedMs(queueStartedAt);

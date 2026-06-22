@@ -6,7 +6,7 @@ const qstash = new Client({
 });
 
 type QueueWebsiteBookmarkEnrichmentOptions = {
-  idempotencyKey?: string;
+  deduplicationId?: string;
   retries?: number;
 };
 
@@ -17,7 +17,7 @@ export async function queueWebsiteBookmarkEnrichment(
   await qstash.publishJSON({
     url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
     body: {id: bookmarkId},
-    idempotencyKey: options.idempotencyKey,
+    deduplicationId: options.deduplicationId,
     headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
     timeout: 120,
     retries: options.retries,

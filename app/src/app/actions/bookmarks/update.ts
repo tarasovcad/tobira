@@ -97,11 +97,14 @@ export async function resetBookmark(bookmarkId: string): Promise<{
   const userId = await requireAuthenticatedUserId();
 
   const [bookmark] = await db
-    .select({id: bookmarks.id, url: bookmarks.url})
+    .select({id: bookmarks.id, url: bookmarks.url, kind: bookmarks.kind})
     .from(bookmarks)
     .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId)));
 
   if (!bookmark) throw new Error("Bookmark not found");
+  if (bookmark.kind !== "website") {
+    throw new Error("Only website bookmarks can reset website metadata");
+  }
 
   const normalized = normalizeInputUrl(bookmark.url);
   const metadataState = resolveWebsiteMetadataState(await fetchDirectUrlMetadata(normalized));

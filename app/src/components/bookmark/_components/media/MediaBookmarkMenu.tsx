@@ -97,7 +97,6 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
   const onDelete = useBookmarkMenuStore((state) => state.onDelete);
   const onArchive = useBookmarkMenuStore((state) => state.onArchive);
   const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
-  const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
   const mediaItem = item?.kind === "media" ? item : undefined;
   const isOpen = open && !!mediaItem;
   const canClickMediaPreview = useBookmarkMenuPreviewClick(isOpen, mediaItem?.id);
@@ -141,24 +140,14 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
     [collections],
   );
 
-  const {updateMutation, archiveMutation, resetMutation} = useBookmarkMutations({
+  const {updateMutation, archiveMutation} = useBookmarkMutations({
     onOpenChange: setMenuOpen,
     originalValues,
     setOriginalValues,
     form,
-    onItemReset: ({title, description, updatedAt}) => {
-      if (!mediaItem) return;
-      setMenuItem({
-        ...mediaItem,
-        title,
-        description,
-        updated_at: updatedAt,
-      });
-    },
   });
   const {mutate: updateBookmark, isPending: isUpdating} = updateMutation;
   const {mutate: archiveBookmark, isPending: isArchiving} = archiveMutation;
-  const {mutate: resetBookmark, isPending: isResetting} = resetMutation;
 
   const onSubmit = useCallback(
     (values: BookmarkFormValues) => {
@@ -191,12 +180,6 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
     [mediaItem, originalValues, updateBookmark],
   );
 
-  const handleReset = useCallback(() => {
-    if (mediaItem) {
-      resetBookmark(mediaItem.id);
-    }
-  }, [mediaItem, resetBookmark]);
-
   const handleClearChanges = useCallback(() => {
     reset(originalValues);
   }, [originalValues, reset]);
@@ -228,14 +211,12 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
       isArchiving,
       kind: "media" as const,
       onPreviewClick: () => {},
-      onReset: handleReset,
-      isResetting,
       onDelete: handleDelete,
     }),
-    [handleArchive, isArchiving, handleReset, isResetting, handleDelete],
+    [handleArchive, isArchiving, handleDelete],
   );
 
-  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isResetting;
+  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving;
 
   return (
     <Sheet open={isOpen} onOpenChange={setMenuOpen}>
@@ -406,10 +387,10 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
                 variant="ghost"
                 type="button"
                 onClick={handleClearChanges}
-                disabled={isResetting || !hasChanges}>
+                disabled={!hasChanges}>
                 Cancel
               </Button>
-              <Button variant="default" type="submit" disabled={disableSubmit || isResetting}>
+              <Button variant="default" type="submit" disabled={disableSubmit}>
                 {isUpdating && <Spinner className="size-4" />}
                 Save
               </Button>
