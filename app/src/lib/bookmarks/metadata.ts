@@ -7,7 +7,6 @@ import {
 import {fetchHtmlViaFirecrawl} from "@/lib/fetch/web/screenshot";
 import {readTextWithLimit} from "@/lib/fetch/web/bounded-reader";
 import {assertWebsiteUrl, NonWebsiteUrlError} from "@/lib/fetch/web/website-url";
-import type {WebsiteMetadataOutcome} from "@/lib/bookmarks/website/metadata-outcome";
 import {assertPublicFetchUrl, safeWebFetch} from "@/lib/fetch/web/safe-fetch";
 
 export type UrlMetadataResult = {
@@ -132,35 +131,6 @@ export function extractUrlMetadataFromHtmlPage(page: Pick<WebsiteHtmlPage, "html
     title: extractTitleFromHtml(page.html),
     description: extractDescriptionFromHtml(page.html),
   };
-}
-
-export async function fetchDirectUrlMetadata(normalized: URL): Promise<WebsiteMetadataOutcome> {
-  try {
-    const page = await fetchWebsiteHtmlPage(normalized.toString(), {allowFirecrawl: false});
-    const metadata = extractUrlMetadataFromHtmlPage(page);
-    return {
-      status: "completed",
-      title: metadata.title,
-      description: metadata.description,
-      websiteProtected: false,
-    };
-  } catch (error) {
-    if (error instanceof NonWebsiteUrlError) {
-      throw error;
-    }
-
-    if (error instanceof MetadataEnrichmentRequiredError && error.websiteProtected) {
-      return {
-        status: "protected",
-        websiteProtected: true,
-      };
-    }
-
-    return {
-      status: "unreachable",
-      websiteProtected: false,
-    };
-  }
 }
 
 export async function fetchUrlMetadata(

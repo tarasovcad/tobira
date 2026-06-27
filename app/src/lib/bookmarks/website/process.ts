@@ -7,7 +7,6 @@ import {
   fetchWebsiteHtmlPage,
   type WebsiteHtmlPage,
 } from "@/lib/bookmarks/metadata";
-import {isRecord} from "@/lib/fetch/web/http";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {isWebsiteUrl, NonWebsiteUrlError} from "@/lib/fetch/web/website-url";
 import {logger, toLogError} from "@/lib/shared/logger";
@@ -17,7 +16,6 @@ import {collectWebsiteAssetFailures} from "./processing-results";
 type WebsiteBookmarkProcessingInfo = {
   id: string;
   url: string;
-  metadata: unknown;
 };
 
 export async function processWebsiteBookmark(bookmarkId: string) {
@@ -29,11 +27,8 @@ export async function processWebsiteBookmark(bookmarkId: string) {
   let page: WebsiteHtmlPage;
 
   try {
-    page = await fetchWebsiteHtmlPage(normalizedUrl, {
-      skipDirectFetch: hasWebsiteProtected(bookmark.metadata),
-    });
+    page = await fetchWebsiteHtmlPage(normalizedUrl);
   } catch (error) {
-    await markWebsiteProcessingFailed(bookmark.id);
     if (error instanceof NonWebsiteUrlError) return;
     throw error;
   }
@@ -51,7 +46,6 @@ export async function processWebsiteBookmark(bookmarkId: string) {
   const assetResults = await assetResultsPromise;
 
   if (textUpdateError) {
-    await markWebsiteProcessingFailed(bookmark.id);
     throw textUpdateError;
   }
 
@@ -79,7 +73,6 @@ async function getWebsiteBookmarkProcessingInfo(
       id: bookmarks.id,
       url: bookmarks.url,
       kind: bookmarks.kind,
-      metadata: bookmarks.metadata,
     })
     .from(bookmarks)
     .where(
@@ -88,7 +81,7 @@ async function getWebsiteBookmarkProcessingInfo(
     .limit(1);
 
   if (!bookmark) return null;
-  return {id: bookmark.id, url: bookmark.url, metadata: bookmark.metadata};
+  return {id: bookmark.id, url: bookmark.url};
 }
 
 async function isWebsiteBookmarkActive(bookmarkId: string) {
@@ -103,34 +96,14 @@ async function isWebsiteBookmarkActive(bookmarkId: string) {
   return !!bookmark;
 }
 
-function hasWebsiteProtected(metadata: unknown) {
-  return isRecord(metadata) && metadata.websiteProtected === true;
-}
-
 async function updateWebsiteTextMetadata(bookmarkId: string, page: WebsiteHtmlPage) {
   const metadataResult = extractUrlMetadataFromHtmlPage(page);
-  let metadata = sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{textMetadataStatus}', '"completed"'::jsonb, true)`;
-
-  if (page.websiteProtected) {
-    metadata = sql`jsonb_set(${metadata}, '{websiteProtected}', 'true'::jsonb, true)`;
-  }
 
   await db
     .update(bookmarks)
     .set({
       title: sql`COALESCE(${bookmarks.title}, ${metadataResult.title ?? null})`,
       description: sql`COALESCE(${bookmarks.description}, ${metadataResult.description ?? null})`,
-      metadata,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(and(eq(bookmarks.id, bookmarkId), isNull(bookmarks.deletedAt)));
-}
-
-async function markWebsiteProcessingFailed(bookmarkId: string) {
-  await db
-    .update(bookmarks)
-    .set({
-      metadata: sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{textMetadataStatus}', '"failed"'::jsonb, true)`,
       updatedAt: new Date().toISOString(),
     })
     .where(and(eq(bookmarks.id, bookmarkId), isNull(bookmarks.deletedAt)));

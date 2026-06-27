@@ -24,8 +24,6 @@ export type WebsiteOrMediaMetadata = {
   user_name?: string;
   thumbnail_url?: string;
   user_screen_name?: string;
-  websiteProtected?: boolean;
-  textMetadataStatus?: "processing" | "completed" | "failed";
 };
 
 export type PostBookmarkMetadata = FreebirdXPostData;
