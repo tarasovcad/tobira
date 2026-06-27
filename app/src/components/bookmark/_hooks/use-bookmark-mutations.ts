@@ -1,10 +1,5 @@
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {
-  updateBookmark,
-  archiveBookmarks,
-  resetBookmark,
-  UpdateBookmarkData,
-} from "@/app/actions/bookmarks/update";
+import {updateBookmark, archiveBookmarks, UpdateBookmarkData} from "@/app/actions/bookmarks/update";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 import {toastManager} from "@/components/ui/coss/toast";
 import {UseFormReturn} from "react-hook-form";
@@ -16,13 +11,11 @@ export function useBookmarkMutations({
   originalValues,
   setOriginalValues,
   form,
-  onItemReset,
 }: {
   onOpenChange: (open: boolean) => void;
   originalValues: BookmarkFormValues;
   setOriginalValues?: (values: BookmarkFormValues) => void;
   form: UseFormReturn<BookmarkFormValues>;
-  onItemReset?: (next: {title: string; description: string; updatedAt: string}) => void;
 }) {
   const queryClient = useQueryClient();
 
@@ -36,7 +29,7 @@ export function useBookmarkMutations({
     mutationFn: (input: {bookmarkId: string; updates: UpdateBookmarkData}) =>
       updateBookmark(input.bookmarkId, input.updates),
     onMutate: async () => {
-      //  lock in the latest form values so close/reset doesn't revert them
+      // Lock in the latest form values so close/cancel doesn't revert them.
       const prev = originalValues;
       const nextValues = form.getValues();
       if (setOriginalValues) {
@@ -95,41 +88,5 @@ export function useBookmarkMutations({
     },
   });
 
-  const resetMutation = useMutation({
-    mutationFn: (id: string) => resetBookmark(id),
-    onSuccess: (result) => {
-      const nextValues = {
-        ...form.getValues(),
-        title: result.title,
-        description: result.description,
-      };
-
-      if (setOriginalValues) {
-        setOriginalValues(nextValues);
-      }
-      form.reset(nextValues);
-      onItemReset?.({
-        title: result.title,
-        description: result.description,
-        updatedAt: result.updatedAt,
-      });
-
-      queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-      toastManager.add({
-        title: "Bookmark reset",
-        description: "Metadata and images are being refreshed.",
-        type: "success",
-      });
-    },
-    onError: (error, id) => {
-      console.error("[useBookmarkMutations] resetBookmark failed", {id, error});
-      toastManager.add({
-        title: "Reset failed",
-        description: getErrorMessage(error, "Failed to reset bookmark"),
-        type: "error",
-      });
-    },
-  });
-
-  return {updateMutation, archiveMutation, resetMutation};
+  return {updateMutation, archiveMutation};
 }

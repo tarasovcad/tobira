@@ -6,7 +6,6 @@ import {toastManager} from "@/components/ui/coss/toast";
 import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import type {TypeFilter} from "@/features/home/types";
-import {useWebsiteTextReveal} from "@/features/home/hooks/use-website-text-reveal";
 
 /**
  * Manages mutation tracking (add/delete/archive)
@@ -134,16 +133,7 @@ export function useBookmarksMutations({
     return allBookmarks.filter((b) => ids.includes(b.id)).slice(0, animatingItemCount);
   }, [animatingUrl, latestAdd?.resultIds, allBookmarks, animatingItemCount]);
 
-  const websiteTextReveal = useWebsiteTextReveal({
-    latestAdd,
-    appliesToCurrentFilter: latestAddAppliesToCurrentFilter,
-    resolvedBookmarks: rawResolvedBookmarks,
-  });
-
-  const resolvedBookmarks = useMemo(() => {
-    if (websiteTextReveal.isWaiting) return [];
-    return rawResolvedBookmarks;
-  }, [websiteTextReveal.isWaiting, rawResolvedBookmarks]);
+  const resolvedBookmarks = rawResolvedBookmarks;
 
   const pendingMediaItems =
     animatingUrl === inputUrl && latestAdd?.kind === "media"
@@ -153,15 +143,11 @@ export function useBookmarksMutations({
   useEffect(() => {
     if (!animatingUrl) return;
 
-    if (
-      latestAdd?.status === "success" &&
-      !websiteTextReveal.isWaiting &&
-      resolvedBookmarks.length === 0
-    ) {
+    if (latestAdd?.status === "success" && resolvedBookmarks.length === 0) {
       const t = window.setTimeout(() => setAnimatingUrl(null), 5000);
       return () => window.clearTimeout(t);
     }
-  }, [animatingUrl, latestAdd?.status, resolvedBookmarks, websiteTextReveal.isWaiting]);
+  }, [animatingUrl, latestAdd?.status, resolvedBookmarks]);
 
   const submittedAt = latestAdd?.submittedAt;
   const handleTransitionDone = useCallback(() => {
@@ -198,7 +184,6 @@ export function useBookmarksMutations({
     inputUrl,
     latestAddAppliesToCurrentFilter,
     removingIds,
-    pendingRevealIds: websiteTextReveal.pendingRevealIds,
     animatingUrl,
     animatingItemCount,
     pendingMediaItems,

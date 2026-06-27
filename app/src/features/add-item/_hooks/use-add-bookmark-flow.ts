@@ -117,12 +117,10 @@ export function useAddBookmarkFlow({
       }
 
       closeDialog();
-      if (variables.kind !== "website") {
-        toastManager.add({
-          title: "Bookmark added",
-          type: "success",
-        });
-      }
+      toastManager.add({
+        title: "Bookmark added",
+        type: "success",
+      });
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       setTimeout(() => {

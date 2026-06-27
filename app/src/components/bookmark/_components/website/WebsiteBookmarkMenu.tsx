@@ -99,7 +99,6 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
   const onDelete = useBookmarkMenuStore((state) => state.onDelete);
   const onArchive = useBookmarkMenuStore((state) => state.onArchive);
   const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
-  const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
   const websiteItem = item?.kind === "website" ? item : undefined;
   const isOpen = open && !!websiteItem;
   const canClickMediaPreview = useBookmarkMenuPreviewClick(isOpen, websiteItem?.id);
@@ -164,24 +163,14 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
     }
   }, [isOpen]);
 
-  const {updateMutation, archiveMutation, resetMutation} = useBookmarkMutations({
+  const {updateMutation, archiveMutation} = useBookmarkMutations({
     onOpenChange: setMenuOpen,
     originalValues,
     setOriginalValues,
     form,
-    onItemReset: ({title, description, updatedAt}) => {
-      if (!websiteItem) return;
-      setMenuItem({
-        ...websiteItem,
-        title,
-        description,
-        updated_at: updatedAt,
-      });
-    },
   });
   const {mutate: updateBookmark, isPending: isUpdating} = updateMutation;
   const {mutate: archiveBookmark, isPending: isArchiving} = archiveMutation;
-  const {mutate: resetBookmark, isPending: isResetting} = resetMutation;
 
   const onSubmit = useCallback(
     (values: BookmarkFormValues) => {
@@ -221,12 +210,6 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
     },
     [originalValues, updateBookmark, websiteItem],
   );
-
-  const handleReset = useCallback(() => {
-    if (websiteItem) {
-      resetBookmark(websiteItem.id);
-    }
-  }, [resetBookmark, websiteItem]);
 
   const handleClearChanges = useCallback(() => {
     reset(originalValues);
@@ -274,14 +257,12 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
       isArchiving,
       kind: "website" as const,
       onPreviewClick: handlePreviewClick,
-      onReset: handleReset,
-      isResetting,
       onDelete: handleDelete,
     }),
-    [handleArchive, isArchiving, handlePreviewClick, handleReset, isResetting, handleDelete],
+    [handleArchive, isArchiving, handlePreviewClick, handleDelete],
   );
 
-  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isResetting;
+  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving;
 
   return (
     <>
@@ -465,10 +446,10 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                   variant="ghost"
                   type="button"
                   onClick={handleClearChanges}
-                  disabled={isResetting || !hasChanges}>
+                  disabled={!hasChanges}>
                   Cancel
                 </Button>
-                <Button variant="default" type="submit" disabled={disableSubmit || isResetting}>
+                <Button variant="default" type="submit" disabled={disableSubmit}>
                   {isUpdating && <Spinner className="size-4" />}
                   Save
                 </Button>
