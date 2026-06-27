@@ -337,7 +337,7 @@ function SettingsNavItem({
       </span>
       <span
         className={cn(
-          "truncate overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-25 ease-linear",
+          "truncate overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-200 ease-in-out",
           collapsed ? "ml-0 max-w-0 opacity-0" : "ml-2 opacity-100",
         )}>
         {label}
@@ -348,7 +348,7 @@ function SettingsNavItem({
   const baseStyles = cn(
     "flex w-full items-center rounded-md py-[7.5px] text-sm font-medium",
     collapsed ? "justify-start px-[7.5px]" : "justify-start px-3",
-    "transition-[padding] duration-50 ease-linear",
+    "transition-[padding] duration-200 ease-in-out",
     "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
     isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
     disabled
@@ -414,70 +414,73 @@ export function SidebarSettings({
   }, [isCollapsed, navTooltipHandle]);
 
   return (
-    <TooltipProvider>
-      <div className="flex h-full min-h-0 flex-col px-3 py-3">
-        {isCollapsed ? (
-          <TooltipTrigger
-            className="after:absolute after:left-full after:h-full after:w-2"
-            handle={navTooltipHandle}
-            payload={BackTooltipContent}
-            render={
-              <button
-                type="button"
-                onClick={onBack}
-                aria-label="Back to app"
-                className={cn(
-                  "mb-2 flex w-full cursor-pointer items-center rounded-md py-[7.5px] text-sm font-medium",
-                  "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
-                  "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-                  "justify-start px-[7.5px] transition-[padding] duration-50 ease-linear",
-                )}
-              />
-            }>
-            <span className="inline-flex size-5 shrink-0 items-center justify-center">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 18 18"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M10.3447 3.96967C10.6376 3.67678 11.1123 3.67678 11.4052 3.96967C11.6981 4.26257 11.6981 4.73732 11.4052 5.03022L7.43549 8.99993L11.4052 12.9697C11.6981 13.2626 11.6981 13.7373 11.4052 14.0303C11.1123 14.3231 10.6376 14.3231 10.3447 14.0303L5.84467 9.53025C5.55178 9.2373 5.55178 8.76255 5.84467 8.46968L10.3447 3.96967Z"
-                  fill="currentColor"
+    <TooltipProvider delay={0}>
+      <div className="flex h-full min-h-0 flex-col py-3">
+        <div className="px-3">
+          {isCollapsed ? (
+            <TooltipTrigger
+              className="after:absolute after:left-full after:h-full after:w-2"
+              handle={navTooltipHandle}
+              payload={BackTooltipContent}
+              render={
+                <button
+                  type="button"
+                  onClick={onBack}
+                  aria-label="Back to app"
+                  className={cn(
+                    "mb-2 flex w-full cursor-pointer items-center rounded-md py-[7.5px] text-sm font-medium",
+                    "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
+                    "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                    "justify-start px-[7.5px] transition-[padding] duration-200 ease-in-out",
+                  )}
                 />
-              </svg>
-            </span>
-          </TooltipTrigger>
-        ) : (
-          <button
-            type="button"
-            onClick={onBack}
-            className={cn(
-              "mb-2 flex w-full cursor-pointer items-center rounded-md px-3 py-[7.5px] text-sm font-medium",
-              "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
-              "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-            )}>
-            <span className="inline-flex size-5 shrink-0 items-center justify-center">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 18 18"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M10.3447 3.96967C10.6376 3.67678 11.1123 3.67678 11.4052 3.96967C11.6981 4.26257 11.6981 4.73732 11.4052 5.03022L7.43549 8.99993L11.4052 12.9697C11.6981 13.2626 11.6981 13.7373 11.4052 14.0303C11.1123 14.3231 10.6376 14.3231 10.3447 14.0303L5.84467 9.53025C5.55178 9.2373 5.55178 8.76255 5.84467 8.46968L10.3447 3.96967Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="ml-2">Settings</span>
-          </button>
-        )}
+              }>
+              <span className="inline-flex size-5 shrink-0 items-center justify-center">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M10.3447 3.96967C10.6376 3.67678 11.1123 3.67678 11.4052 3.96967C11.6981 4.26257 11.6981 4.73732 11.4052 5.03022L7.43549 8.99993L11.4052 12.9697C11.6981 13.2626 11.6981 13.7373 11.4052 14.0303C11.1123 14.3231 10.6376 14.3231 10.3447 14.0303L5.84467 9.53025C5.55178 9.2373 5.55178 8.76255 5.84467 8.46968L10.3447 3.96967Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+            </TooltipTrigger>
+          ) : (
+            <button
+              type="button"
+              onClick={onBack}
+              className={cn(
+                "mb-2 flex w-full cursor-pointer items-center rounded-md px-3 py-[7.5px] text-sm font-medium",
+                "text-secondary hover:bg-muted hover:text-foreground bg-transparent",
+                "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+              )}>
+              <span className="inline-flex size-5 shrink-0 items-center justify-center">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M10.3447 3.96967C10.6376 3.67678 11.1123 3.67678 11.4052 3.96967C11.6981 4.26257 11.6981 4.73732 11.4052 5.03022L7.43549 8.99993L11.4052 12.9697C11.6981 13.2626 11.6981 13.7373 11.4052 14.0303C11.1123 14.3231 10.6376 14.3231 10.3447 14.0303L5.84467 9.53025C5.55178 9.2373 5.55178 8.76255 5.84467 8.46968L10.3447 3.96967Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <span className="ml-2">Settings</span>
+            </button>
+          )}
+        </div>
 
         <div className="min-h-0 flex-1">
           <ScrollArea
             className="**:data-[slot=scroll-area-scrollbar]:m-0.5 [&_[data-orientation=horizontal]]:hidden"
-            viewportProps={{className: "overflow-x-hidden", tabIndex: -1}}>
+            viewportProps={{className: "overflow-x-hidden px-3", tabIndex: -1}}
+            hideFocusRing>
             <div className="pb-4">
               {!isCollapsed && (
                 <div className="text-muted-foreground flex h-[37px] items-center px-3 py-[7.5px] text-[12px] font-medium">
@@ -523,7 +526,7 @@ export function SidebarSettings({
             </div>
           </ScrollArea>
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 px-3">
           <SidebarToggleButton isCollapsed={isCollapsed} />
         </div>
       </div>

@@ -43,7 +43,7 @@ export function SidebarToggleButton({
   );
 
   const buttonClassName = cn(
-    "flex w-fit items-center rounded-md text-sm font-medium transition-[padding] duration-50 ease-linear",
+    "flex w-fit items-center rounded-md text-sm font-medium transition-[padding] duration-200 ease-in-out",
     "hover:bg-muted hover:text-foreground cursor-pointer bg-transparent",
     "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
     "justify-start px-[7.5px] py-[7.5px]",

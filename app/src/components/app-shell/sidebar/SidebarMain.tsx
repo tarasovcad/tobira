@@ -49,7 +49,7 @@ export function SidebarMain({
   }, [isCollapsed, navTooltipHandle]);
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delay={0}>
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className={cn("px-3 pt-3")}>
@@ -79,7 +79,8 @@ export function SidebarMain({
             <div className="min-h-0 flex-1">
               <ScrollArea
                 className="**:data-[slot=scroll-area-scrollbar]:m-0.5 [&_[data-orientation=horizontal]]:hidden"
-                viewportProps={{className: "overflow-x-hidden", tabIndex: -1}}>
+                viewportProps={{className: "overflow-x-hidden", tabIndex: -1}}
+                hideFocusRing>
                 {preferences.sections.map(([section, limit], index) => {
                   const canMoveUp = index > 0;
                   const canMoveDown = index < preferences.sections.length - 1;
