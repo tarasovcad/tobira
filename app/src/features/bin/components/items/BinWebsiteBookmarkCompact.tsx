@@ -48,6 +48,7 @@ export default function BinWebsiteBookmarkCompact({
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         isSelected && "bg-muted",
+        item.metadata?.textMetadataStatus === "failed" && "opacity-70",
         className,
         "transition-none!",
       )}>
@@ -77,6 +78,7 @@ export default function BinWebsiteBookmarkCompact({
         title={item.title}
         url={item.url}
         createdAt={item.created_at}
+        textMetadataStatus={item.metadata?.textMetadataStatus}
         titleClassName="text-foreground min-w-0 flex-1 truncate text-[13.5px]"
       />
 

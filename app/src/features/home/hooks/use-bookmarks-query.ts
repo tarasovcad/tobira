@@ -7,6 +7,7 @@ import type {Bookmark} from "@/components/bookmark/types";
 import {getBookmarkWorkspaceFilters, type UseBookmarksQueryProps} from "@/features/home/types";
 import {useMemo} from "react";
 import fetchBookmarksPageAction from "@/features/home/queries/fetchBookmarksPageAction";
+import {usePendingBookmarksRefetchInterval} from "./use-pending-bookmarks-refetch-interval";
 
 /**
  * Manages fetching, filtering, and pagination for the bookmarks list.
@@ -24,6 +25,7 @@ export function useBookmarksQuery({
   isServerDataMatching = true,
 }: UseBookmarksQueryProps) {
   const {tagFilter, collectionFilter} = getBookmarkWorkspaceFilters(scope);
+  const getPendingRefetchInterval = usePendingBookmarksRefetchInterval();
 
   const bookmarksQuery = useInfiniteQuery({
     queryKey: [
@@ -64,6 +66,10 @@ export function useBookmarksQuery({
       return {items, nextOffset};
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset,
+    refetchInterval: (query) => {
+      const bookmarks = query.state.data?.pages.flatMap((page) => page.items) ?? [];
+      return getPendingRefetchInterval(bookmarks);
+    },
     initialData: isServerDataMatching
       ? {
           pageParams: [0],

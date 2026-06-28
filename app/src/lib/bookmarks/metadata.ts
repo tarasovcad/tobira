@@ -25,13 +25,6 @@ export type WebsiteHtmlPage = {
   firecrawlOgImageUrl?: string;
 };
 
-class MetadataEnrichmentRequiredError extends Error {
-  constructor(readonly websiteProtected: boolean) {
-    super("Metadata requires background enrichment");
-    this.name = "MetadataEnrichmentRequiredError";
-  }
-}
-
 const WEBSITE_FETCH_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 const WEBSITE_FETCH_TIMEOUT_MS = 8000;
@@ -53,19 +46,8 @@ async function fetchWebsiteHtmlViaFirecrawl(
   };
 }
 
-export async function fetchWebsiteHtmlPage(
-  url: string,
-  options: {allowFirecrawl?: boolean; skipDirectFetch?: boolean} = {},
-): Promise<WebsiteHtmlPage> {
-  const allowFirecrawl = options.allowFirecrawl ?? true;
+export async function fetchWebsiteHtmlPage(url: string): Promise<WebsiteHtmlPage> {
   assertWebsiteUrl(url);
-
-  if (options.skipDirectFetch) {
-    if (!allowFirecrawl) {
-      throw new MetadataEnrichmentRequiredError(true);
-    }
-    return fetchWebsiteHtmlViaFirecrawl(url, true);
-  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), WEBSITE_FETCH_TIMEOUT_MS);
@@ -85,19 +67,14 @@ export async function fetchWebsiteHtmlPage(
 
     if (!res.ok) {
       await res.body?.cancel().catch(() => {});
-      if (!allowFirecrawl) {
-        throw new MetadataEnrichmentRequiredError(false);
+      if (shouldFetchViaFirecrawlAfterHttpStatus(res.status)) {
+        return fetchWebsiteHtmlViaFirecrawl(url, true);
       }
       throw new Error(`Website request failed: ${res.status} ${res.statusText}`);
     }
 
     const contentType = res.headers.get("content-type") ?? "";
     html = isHtmlContentType(contentType) ? await readTextWithLimit(res, HTML_MAX_BYTES) : "";
-  } catch (error) {
-    if (!allowFirecrawl) {
-      throw new MetadataEnrichmentRequiredError(false);
-    }
-    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -109,9 +86,6 @@ export async function fetchWebsiteHtmlPage(
   const challengeDetected = isHtml && looksLikeChallengeHtml(html);
 
   if (challengeDetected) {
-    if (!allowFirecrawl) {
-      throw new MetadataEnrichmentRequiredError(true);
-    }
     return fetchWebsiteHtmlViaFirecrawl(url, true);
   }
 
@@ -124,6 +98,10 @@ export async function fetchWebsiteHtmlPage(
     finalUrl,
     websiteProtected: false,
   };
+}
+
+function shouldFetchViaFirecrawlAfterHttpStatus(status: number) {
+  return status === 401 || status === 403 || status === 429;
 }
 
 export function extractUrlMetadataFromHtmlPage(page: Pick<WebsiteHtmlPage, "html">) {

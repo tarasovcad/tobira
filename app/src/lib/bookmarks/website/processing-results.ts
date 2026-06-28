@@ -1,17 +1,17 @@
 export type WebsiteAssetLabel = "favicon" | "og" | "preview";
+export type WebsiteAssetProcessingStatus = "ready" | "missing" | "failed";
 
-export function collectWebsiteAssetFailures(results: PromiseSettledResult<void>[]) {
-  const [favicon, og, preview] = results;
-  const labelledResults: Array<{
-    label: WebsiteAssetLabel;
-    result: PromiseSettledResult<void> | undefined;
-  }> = [
-    {label: "favicon", result: favicon},
-    {label: "og", result: og},
-    {label: "preview", result: preview},
-  ];
+export type WebsiteAssetProcessingResult = {
+  label: WebsiteAssetLabel;
+  status: WebsiteAssetProcessingStatus;
+  key?: string;
+  width?: number;
+  height?: number;
+  reason?: unknown;
+};
 
-  return labelledResults.flatMap(({label, result}) =>
-    result?.status === "rejected" ? [{label, reason: result.reason}] : [],
+export function collectWebsiteAssetFailures(results: WebsiteAssetProcessingResult[]) {
+  return results.flatMap((result) =>
+    result.status === "failed" ? [{label: result.label, reason: result.reason}] : [],
   );
 }

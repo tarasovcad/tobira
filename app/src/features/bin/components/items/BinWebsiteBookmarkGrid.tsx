@@ -64,6 +64,7 @@ export default function BinWebsiteBookmarkGrid({
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         isSelected && "bg-muted",
+        item.metadata?.textMetadataStatus === "failed" && "opacity-70",
         radiusClass,
         "transition-none!",
       )}>
@@ -98,6 +99,7 @@ export default function BinWebsiteBookmarkGrid({
           url={item.url}
           createdAt={item.created_at}
           description={item.description}
+          textMetadataStatus={item.metadata?.textMetadataStatus}
           tags={item.tags}
           showSource={contentToggles.source}
           showSavedDate={contentToggles.savedDate}

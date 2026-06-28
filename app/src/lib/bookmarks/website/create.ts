@@ -36,6 +36,9 @@ export async function createWebsiteBookmark({
     userId,
     kind: "website",
     images,
+    metadata: {
+      textMetadataStatus: "pending",
+    },
   });
   timingsMs.insertBookmark = elapsedMs(insertStartedAt);
 

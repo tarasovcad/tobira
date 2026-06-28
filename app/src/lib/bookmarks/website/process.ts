@@ -8,10 +8,15 @@ import {
   type WebsiteHtmlPage,
 } from "@/lib/bookmarks/metadata";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
-import {isWebsiteUrl, NonWebsiteUrlError} from "@/lib/fetch/web/website-url";
+import {isWebsiteUrl} from "@/lib/fetch/web/website-url";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {processWebsiteAssets} from "./assets";
 import {collectWebsiteAssetFailures} from "./processing-results";
+import {
+  markWebsiteEnrichmentFailed,
+  updateWebsiteImageStatuses,
+  updateWebsiteTextMetadataStatus,
+} from "./status-updates";
 
 type WebsiteBookmarkProcessingInfo = {
   id: string;
@@ -29,7 +34,7 @@ export async function processWebsiteBookmark(bookmarkId: string) {
   try {
     page = await fetchWebsiteHtmlPage(normalizedUrl);
   } catch (error) {
-    if (error instanceof NonWebsiteUrlError) return;
+    await markWebsiteEnrichmentFailed(bookmark.id, normalizedUrl, error);
     throw error;
   }
 
@@ -44,6 +49,7 @@ export async function processWebsiteBookmark(bookmarkId: string) {
     (error: unknown) => error,
   );
   const assetResults = await assetResultsPromise;
+  await updateWebsiteImageStatuses(bookmark.id, assetResults);
 
   if (textUpdateError) {
     throw textUpdateError;
@@ -52,7 +58,7 @@ export async function processWebsiteBookmark(bookmarkId: string) {
   const failures = collectWebsiteAssetFailures(assetResults);
   if (failures.length === 0) return;
 
-  logger.error("Website enrichment failed", {
+  logger.warn("Website enrichment completed with asset failures", {
     bookmarkId: bookmark.id,
     url: normalizedUrl,
     failures: failures.map((failure) => ({
@@ -60,9 +66,6 @@ export async function processWebsiteBookmark(bookmarkId: string) {
       reason: toLogError(failure.reason),
     })),
   });
-  throw new Error(
-    `Website enrichment failed for ${failures.map((failure) => failure.label).join(", ")}`,
-  );
 }
 
 async function getWebsiteBookmarkProcessingInfo(
@@ -97,14 +100,35 @@ async function isWebsiteBookmarkActive(bookmarkId: string) {
 }
 
 async function updateWebsiteTextMetadata(bookmarkId: string, page: WebsiteHtmlPage) {
-  const metadataResult = extractUrlMetadataFromHtmlPage(page);
+  try {
+    const metadataResult = extractUrlMetadataFromHtmlPage(page);
+    const textMetadataStatus =
+      metadataResult.title || metadataResult.description ? "ready" : "missing";
 
-  await db
-    .update(bookmarks)
-    .set({
-      title: sql`COALESCE(${bookmarks.title}, ${metadataResult.title ?? null})`,
-      description: sql`COALESCE(${bookmarks.description}, ${metadataResult.description ?? null})`,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(and(eq(bookmarks.id, bookmarkId), isNull(bookmarks.deletedAt)));
+    await db
+      .update(bookmarks)
+      .set({
+        title: sql`COALESCE(${bookmarks.title}, ${metadataResult.title ?? null})`,
+        description: sql`COALESCE(${bookmarks.description}, ${metadataResult.description ?? null})`,
+        metadata: sql`jsonb_set(COALESCE(${bookmarks.metadata}, '{}'::jsonb), '{textMetadataStatus}', to_jsonb(${textMetadataStatus}::text), true)`,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(bookmarks.id, bookmarkId),
+          eq(bookmarks.kind, "website"),
+          isNull(bookmarks.deletedAt),
+        ),
+      );
+  } catch (error) {
+    try {
+      await updateWebsiteTextMetadataStatus(bookmarkId, "failed");
+    } catch (statusError) {
+      logger.error("Failed to update website text metadata status", {
+        bookmarkId,
+        error: toLogError(statusError),
+      });
+    }
+    throw error;
+  }
 }

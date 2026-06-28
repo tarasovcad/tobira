@@ -45,10 +45,19 @@ export type PostCardImageItem = ImageItem & {
   tweetId: string;
 };
 
+export type WebsiteImageStatus = "pending" | "ready" | "failed" | "missing";
+
+export type WebsiteImageAsset = {
+  status?: WebsiteImageStatus;
+  key?: string;
+  width?: number;
+  height?: number;
+};
+
 export type WebsiteImages = {
-  favicon?: {key: string};
-  og?: {key: string; width?: number; height?: number};
-  preview?: {key: string; width?: number; height?: number};
+  favicon?: WebsiteImageAsset;
+  og?: WebsiteImageAsset;
+  preview?: WebsiteImageAsset;
   selected?: "preview" | "og";
 };
 

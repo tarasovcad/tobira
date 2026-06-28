@@ -39,6 +39,7 @@ export default function BookmarkWebsiteList({
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         isSelected && "bg-muted",
+        item.metadata?.textMetadataStatus === "failed" && "opacity-70",
         className,
         "transition-none!",
       )}>
@@ -70,6 +71,7 @@ export default function BookmarkWebsiteList({
             url={item.url}
             createdAt={item.created_at}
             description={item.description}
+            textMetadataStatus={item.metadata?.textMetadataStatus}
             tags={item.tags}
             showSource={contentToggles.source}
             showSavedDate={contentToggles.savedDate}

@@ -50,6 +50,7 @@ export default function BinWebsiteBookmarkList({
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         isSelected && "bg-muted",
+        item.metadata?.textMetadataStatus === "failed" && "opacity-70",
         className,
         "transition-none!",
       )}>
@@ -78,6 +79,7 @@ export default function BinWebsiteBookmarkList({
             url={item.url}
             createdAt={item.created_at}
             description={item.description}
+            textMetadataStatus={item.metadata?.textMetadataStatus}
             showSource={contentToggles.source}
             showDescription={contentToggles.description}
             showTags={false}

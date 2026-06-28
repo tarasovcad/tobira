@@ -12,7 +12,7 @@ import {
 import {sanitizeSvgBuffer} from "@/lib/fetch/web/svg";
 import {existsInR2, uploadToR2} from "@/lib/storage/r2-storage";
 import {logger, toLogError} from "@/lib/shared/logger";
-import {processWebsiteAssetIfMissing} from "./asset-task";
+import type {WebsiteAssetLabel, WebsiteAssetProcessingResult} from "./processing-results";
 
 const REMOTE_ASSET_USER_AGENT = "void-enrich-bookmark/1.0";
 const FAVICON_MAX_BYTES = 2 * 1024 * 1024;
@@ -56,83 +56,153 @@ export async function processWebsiteAssets({
   page: WebsiteHtmlPage;
   keys: WebsiteImageKeys;
 }) {
-  return Promise.allSettled([
-    processWebsiteAssetIfMissing({
+  return Promise.all([
+    processWebsiteAsset({
+      label: "favicon",
       key: keys.favicon,
-      exists: existsInR2,
       process: async () => {
         const bestIcon = await fetchBestFaviconFromHtml({
           html: page.html,
           baseUrl: page.finalUrl,
           fallbackOriginUrl: normalizedUrl,
         });
-        if (bestIcon?.url) {
-          await uploadWebsiteFavicon(bestIcon.url, keys.favicon);
+        if (!bestIcon?.url) {
+          return {status: "missing"};
         }
+
+        await uploadWebsiteFavicon(bestIcon.url, keys.favicon);
+        return {status: "ready"};
       },
     }),
-    processWebsiteAssetIfMissing({
+    processWebsiteAsset({
+      label: "og",
       key: keys.og,
-      exists: existsInR2,
+      width: 1200,
+      height: 630,
       process: async () => {
         const ogImageUrl = fetchResolvedOgImageUrlFromHtml({
           html: page.html,
           baseUrl: page.finalUrl,
           metadataOgImageUrl: page.firecrawlOgImageUrl,
         });
-        if (ogImageUrl) {
-          await uploadWebsiteOgImage(ogImageUrl, keys.og);
+        if (!ogImageUrl) {
+          return {status: "missing"};
         }
+
+        await uploadWebsiteOgImage(ogImageUrl, keys.og);
+        return {status: "ready"};
       },
     }),
-    processWebsiteAssetIfMissing({
+    processWebsiteAsset({
+      label: "preview",
       key: keys.preview,
-      exists: existsInR2,
+      width: 1920,
+      height: 1080,
       process: async () => {
         const screenshot = await fetchPreviewScreenshot(normalizedUrl, page.websiteProtected);
-        if (screenshot.buffer.length > 0) {
-          await uploadWebsitePreview(screenshot, keys.preview);
+        if (screenshot.buffer.length === 0) {
+          return {status: "missing"};
         }
+
+        await uploadWebsitePreview(screenshot, keys.preview);
+        return {status: "ready"};
       },
     }),
   ]);
 }
 
-async function uploadWebsiteFavicon(iconUrl: string, objectKey: string) {
-  try {
-    const asset = await fetchRemoteAsset({
-      url: iconUrl,
-      timeoutMs: FAVICON_FETCH_TIMEOUT_MS,
-      maxBytes: FAVICON_MAX_BYTES,
-      allowedContentTypes: (response) =>
-        response.headers.get("content-type")?.includes("svg") || looksLikeSvgUrl(iconUrl)
-          ? SVG_CONTENT_TYPES
-          : FAVICON_CONTENT_TYPES,
-    });
-    if (!asset) return;
+type WebsiteAssetProcessResult = {status: "ready"} | {status: "missing"};
 
-    const isSvg = asset.contentType.includes("svg") || looksLikeSvgUrl(iconUrl);
-    const bytes = isSvg ? sanitizeSvgBuffer(asset.bytes) : asset.bytes;
-    await uploadAsset(objectKey, bytes, asset.contentType);
+async function processWebsiteAsset({
+  label,
+  key,
+  width,
+  height,
+  process,
+}: {
+  label: WebsiteAssetLabel;
+  key: string;
+  width?: number;
+  height?: number;
+  process: () => Promise<WebsiteAssetProcessResult>;
+}): Promise<WebsiteAssetProcessingResult> {
+  try {
+    if (await existsInR2(key)) {
+      return websiteAssetResult({label, status: "ready", key, width, height});
+    }
+
+    const result = await process();
+    if (result.status === "ready") {
+      return websiteAssetResult({label, status: "ready", key, width, height});
+    }
+
+    return {label, status: "missing"};
   } catch (error) {
-    logger.error("Favicon download failed", {url: iconUrl, error: toLogError(error)});
+    logger.warn("Website asset processing failed", {
+      label,
+      key,
+      error: toLogError(error),
+    });
+    return websiteAssetResult({label, status: "failed", key, width, height, reason: error});
   }
 }
 
-async function uploadWebsiteOgImage(imageUrl: string, objectKey: string) {
-  try {
-    const asset = await fetchRemoteAsset({
-      url: imageUrl,
-      timeoutMs: OG_IMAGE_FETCH_TIMEOUT_MS,
-      maxBytes: OG_IMAGE_MAX_BYTES,
-      allowedContentTypes: OG_IMAGE_CONTENT_TYPES,
-    });
-    if (!asset) return;
+function websiteAssetResult({
+  label,
+  status,
+  key,
+  width,
+  height,
+  reason,
+}: {
+  label: WebsiteAssetLabel;
+  status: "ready" | "failed";
+  key: string;
+  width?: number;
+  height?: number;
+  reason?: unknown;
+}): WebsiteAssetProcessingResult {
+  return {
+    label,
+    status,
+    key,
+    ...(width !== undefined ? {width} : {}),
+    ...(height !== undefined ? {height} : {}),
+    ...(reason !== undefined ? {reason} : {}),
+  };
+}
 
-    await uploadAsset(objectKey, asset.bytes, asset.contentType);
-  } catch (error) {
-    logger.error("OG image download failed", {url: imageUrl, error: toLogError(error)});
+async function uploadWebsiteFavicon(iconUrl: string, objectKey: string) {
+  const asset = await fetchRemoteAsset({
+    url: iconUrl,
+    timeoutMs: FAVICON_FETCH_TIMEOUT_MS,
+    maxBytes: FAVICON_MAX_BYTES,
+    allowedContentTypes: (response) =>
+      response.headers.get("content-type")?.includes("svg") || looksLikeSvgUrl(iconUrl)
+        ? SVG_CONTENT_TYPES
+        : FAVICON_CONTENT_TYPES,
+  });
+  if (!asset) {
+    throw new Error("Favicon asset could not be downloaded");
   }
+
+  const isSvg = asset.contentType.includes("svg") || looksLikeSvgUrl(iconUrl);
+  const bytes = isSvg ? sanitizeSvgBuffer(asset.bytes) : asset.bytes;
+  await uploadAsset(objectKey, bytes, asset.contentType);
+}
+
+async function uploadWebsiteOgImage(imageUrl: string, objectKey: string) {
+  const asset = await fetchRemoteAsset({
+    url: imageUrl,
+    timeoutMs: OG_IMAGE_FETCH_TIMEOUT_MS,
+    maxBytes: OG_IMAGE_MAX_BYTES,
+    allowedContentTypes: OG_IMAGE_CONTENT_TYPES,
+  });
+  if (!asset) {
+    throw new Error("OG image asset could not be downloaded");
+  }
+
+  await uploadAsset(objectKey, asset.bytes, asset.contentType);
 }
 
 async function uploadWebsitePreview(screenshot: ScreenshotData, objectKey: string) {

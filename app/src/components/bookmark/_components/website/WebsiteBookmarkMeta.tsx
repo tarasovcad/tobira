@@ -4,20 +4,17 @@ import * as React from "react";
 import {formatDateAbsolute} from "@/lib/utils/dates";
 import {cn} from "@/lib/utils";
 import {Tag} from "@/components/ui/app/tag";
+import type {WebsiteTextMetadataStatus} from "@/components/bookmark/types/metadata";
+import WebsiteBookmarkTitle, {getDomainName} from "./WebsiteBookmarkTitle";
 
-export function getDomainName(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
+export {getDomainName};
 
 interface BookmarkMetaProps {
-  title: string;
+  title?: string | null;
   url: string;
   createdAt: string;
   description?: string;
+  textMetadataStatus?: WebsiteTextMetadataStatus;
   tags?: string[];
   showSource?: boolean;
   showSavedDate?: boolean;
@@ -40,6 +37,7 @@ export default function WebsiteBookmarkMeta({
   url,
   createdAt,
   description,
+  textMetadataStatus,
   tags,
   showSource = false,
   showSavedDate = false,
@@ -62,7 +60,14 @@ export default function WebsiteBookmarkMeta({
 
   return (
     <>
-      {title ? <div className={titleClassName}>{title}</div> : null}
+      {title || textMetadataStatus ? (
+        <WebsiteBookmarkTitle
+          title={title}
+          url={url}
+          textMetadataStatus={textMetadataStatus}
+          className={titleClassName}
+        />
+      ) : null}
 
       {hasMetaRow ? (
         <div className={sourceRowClassName}>
