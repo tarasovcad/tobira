@@ -4,6 +4,7 @@ import * as React from "react";
 import {formatDateAbsolute} from "@/lib/utils/dates";
 import {cn} from "@/lib/utils";
 import {Tag} from "@/components/ui/app/tag";
+import {TextShimmer} from "@/components/ui/app/text-shimmer";
 import type {WebsiteTextMetadataStatus} from "@/components/bookmark/types/metadata";
 import WebsiteBookmarkTitle, {getDomainName} from "./WebsiteBookmarkTitle";
 
@@ -57,6 +58,7 @@ export default function WebsiteBookmarkMeta({
   const hasMetaRow = showSource || showSavedDate;
   const visibleTags = maxTags ? tags?.slice(0, maxTags) : tags;
   const sourceText = sourceMode === "domain" ? getDomainName(url) : url;
+  const showPendingDescription = textMetadataStatus === "pending" && !description;
 
   return (
     <>
@@ -83,13 +85,13 @@ export default function WebsiteBookmarkMeta({
         </div>
       ) : null}
 
-      {showDescription && description ? (
+      {showDescription && (description || showPendingDescription) ? (
         <div
           className={cn(
             hasMetaRow ? descriptionMarginWhenMetaVisible : descriptionMarginWhenMetaHidden,
             descriptionClassName,
           )}>
-          {description}
+          {showPendingDescription ? <TextShimmer>Loading...</TextShimmer> : description}
         </div>
       ) : null}
 

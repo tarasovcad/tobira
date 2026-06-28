@@ -71,6 +71,7 @@ export default function BinWebsiteBookmarkCompact({
           url={item?.images?.favicon?.key ?? ""}
           bookmarkUrl={item.url}
           variant="compact"
+          status={item?.images?.favicon?.status}
         />
       </div>
 
@@ -180,7 +181,7 @@ function BinWebsiteCompactActions({
   };
 
   return (
-    <div className="pointer-events-auto absolute top-1/2 right-2 z-10 flex -translate-y-1/2 items-center gap-1.5">
+    <div className="pointer-events-auto absolute inset-y-0 right-2 z-10 flex items-center gap-1.5">
       <Button type="button" size="xs" variant="outline" onClick={handleRestore}>
         Restore
       </Button>

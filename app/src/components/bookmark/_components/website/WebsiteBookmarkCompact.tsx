@@ -48,6 +48,7 @@ export default function WebsiteBookmarkCompact({
       <BookmarkHoverActions
         className={cn("top-1.5 right-2", selectionModeHoverActionsClass)}
         onOptions={() => onOpenMenu?.(item)}
+        size="compact"
       />
 
       <div className="bg- flex shrink-0 items-center self-stretch">
@@ -63,6 +64,7 @@ export default function WebsiteBookmarkCompact({
           url={item?.images?.favicon?.key ?? ""}
           bookmarkUrl={item.url}
           variant="compact"
+          status={item?.images?.favicon?.status}
         />
       </div>
 

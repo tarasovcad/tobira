@@ -41,12 +41,12 @@ function useRetryingImage(baseSrc: string) {
   };
 }
 
-function FaviconPlaceholder({isCompact}: {isCompact: boolean}) {
+function FaviconPlaceholder() {
   return (
     <div className="text-muted-foreground/30 z-10 flex items-center justify-center">
       <svg
-        width={isCompact ? 16 : 20}
-        height={isCompact ? 16 : 20}
+        width={20}
+        height={20}
         viewBox="0 0 20 20"
         fill="none"
         xmlns="http://www.w3.org/2000/svg">
@@ -65,10 +65,12 @@ const BookmarkFavicon = ({
   url,
   bookmarkUrl,
   variant,
+  status,
 }: {
   url: string;
   bookmarkUrl: string;
   variant: "compact" | "list";
+  status?: "pending" | "ready" | "failed" | "missing";
 }) => {
   const {contentToggles} = useViewOptionsStore();
   const showImage = contentToggles.avatar;
@@ -76,6 +78,24 @@ const BookmarkFavicon = ({
   const {letter, domain} = getDomainLetter(bookmarkUrl);
   const baseSrc = buildR2PublicUrl(url);
   const image = useRetryingImage(baseSrc);
+
+  const containerClassName = cn(
+    "flex shrink-0 items-center justify-center",
+    isCompact ? "size-[18px] border-none bg-transparent" : "bg-background size-9 rounded-md border",
+  );
+
+  if (status === "failed" || status === "missing") {
+    return (
+      <span
+        className={cn(
+          "text-foreground/85 font-semibold",
+          isCompact ? "text-[13px]" : "text-sm",
+          containerClassName,
+        )}>
+        {letter}
+      </span>
+    );
+  }
 
   if (showImage) {
     return (
@@ -87,7 +107,7 @@ const BookmarkFavicon = ({
             : "bg-background size-9 rounded-md border",
           "flex items-center justify-center",
         )}>
-        {image.status !== "loaded" ? <FaviconPlaceholder isCompact={isCompact} /> : null}
+        {image.status !== "loaded" ? <FaviconPlaceholder /> : null}
 
         {baseSrc ? (
           <div className={cn("absolute inset-0 flex items-center justify-center")}>

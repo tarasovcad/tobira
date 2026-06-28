@@ -70,6 +70,7 @@ export default function BinWebsiteBookmarkList({
             url={item?.images?.favicon?.key ?? ""}
             bookmarkUrl={item.url}
             variant="list"
+            status={item?.images?.favicon?.status}
           />
         </div>
 
