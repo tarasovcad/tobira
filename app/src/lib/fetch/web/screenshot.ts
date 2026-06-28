@@ -1,4 +1,5 @@
 import {readBufferWithLimit, readTextWithLimit} from "./bounded-reader";
+import {browserImageFetchHeaders} from "./http";
 import {safeWebFetch} from "./safe-fetch";
 
 const SCREENSHOT_MAX_BYTES = 25 * 1024 * 1024;
@@ -134,7 +135,7 @@ export async function fetchScreenshotViaFirecrawl(url: string): Promise<Screensh
     const imageResponse = await safeWebFetch(screenshotUrl, {
       method: "GET",
       cache: "no-store",
-      headers: {"user-agent": "void-enrich-bookmark/1.0"},
+      headers: browserImageFetchHeaders(screenshotUrl),
       signal: controller.signal,
     });
 

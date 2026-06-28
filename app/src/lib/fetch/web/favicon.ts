@@ -1,5 +1,5 @@
 import {readTextWithLimit} from "./bounded-reader";
-import {isRecord} from "./http";
+import {browserManifestFetchHeaders, isRecord} from "./http";
 import {stripWrappingQuotes} from "./html";
 import {safeWebFetch} from "./safe-fetch";
 
@@ -60,7 +60,7 @@ export function parseManifestIcons(manifest: unknown): ManifestIcon[] {
   return out;
 }
 
-async function discoverFromManifest(manifestUrl: string): Promise<BestIcon[]> {
+async function discoverFromManifest(manifestUrl: string, refererUrl?: string): Promise<BestIcon[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), MANIFEST_FETCH_TIMEOUT_MS);
   let manifestJson: unknown;
@@ -69,10 +69,7 @@ async function discoverFromManifest(manifestUrl: string): Promise<BestIcon[]> {
     const res = await safeWebFetch(manifestUrl, {
       method: "GET",
       cache: "no-store",
-      headers: {
-        accept: "application/json,text/json,*/*;q=0.8",
-        "user-agent": "void-enrich-bookmark/1.0",
-      },
+      headers: browserManifestFetchHeaders(manifestUrl, refererUrl),
       signal: controller.signal,
     });
     if (!res.ok) return [];
@@ -218,7 +215,10 @@ export async function fetchBestFaviconFromHtml({
   icons.push(...discovered.icons);
 
   if (discovered.manifestUrl) {
-    const manifestIcons = await discoverFromManifest(discovered.manifestUrl).catch(() => []);
+    const manifestIcons = await discoverFromManifest(
+      discovered.manifestUrl,
+      discovered.effectiveBase,
+    ).catch(() => []);
     icons.push(...manifestIcons);
   }
 

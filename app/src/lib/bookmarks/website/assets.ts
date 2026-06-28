@@ -1,6 +1,11 @@
 import type {WebsiteHtmlPage} from "@/lib/bookmarks/metadata";
 import {readBufferWithLimit} from "@/lib/fetch/web/bounded-reader";
 import {fetchBestFaviconFromHtml} from "@/lib/fetch/web/favicon";
+import {
+  fetchFaviconFromProviders,
+  type DownloadedFaviconAsset,
+} from "@/lib/fetch/web/favicon-providers";
+import {browserImageFetchHeaders} from "@/lib/fetch/web/http";
 import {fetchResolvedOgImageUrlFromHtml} from "@/lib/fetch/web/og";
 import {safeWebFetch} from "@/lib/fetch/web/safe-fetch";
 import {
@@ -14,7 +19,6 @@ import {existsInR2, uploadToR2} from "@/lib/storage/r2-storage";
 import {logger, toLogError} from "@/lib/shared/logger";
 import type {WebsiteAssetLabel, WebsiteAssetProcessingResult} from "./processing-results";
 
-const REMOTE_ASSET_USER_AGENT = "void-enrich-bookmark/1.0";
 const FAVICON_MAX_BYTES = 2 * 1024 * 1024;
 const FAVICON_FETCH_TIMEOUT_MS = 10_000;
 const OG_IMAGE_MAX_BYTES = 15 * 1024 * 1024;
@@ -56,6 +60,8 @@ export async function processWebsiteAssets({
   page: WebsiteHtmlPage;
   keys: WebsiteImageKeys;
 }) {
+  const fallbackFaviconDomain = new URL(normalizedUrl).hostname;
+
   return Promise.all([
     processWebsiteAsset({
       label: "favicon",
@@ -66,11 +72,16 @@ export async function processWebsiteAssets({
           baseUrl: page.finalUrl,
           fallbackOriginUrl: normalizedUrl,
         });
-        if (!bestIcon?.url) {
+        const uploaded = await uploadWebsiteFavicon(
+          bestIcon?.url ?? null,
+          keys.favicon,
+          page.finalUrl,
+          fallbackFaviconDomain,
+        );
+        if (!uploaded) {
           return {status: "missing"};
         }
 
-        await uploadWebsiteFavicon(bestIcon.url, keys.favicon);
         return {status: "ready"};
       },
     }),
@@ -89,7 +100,7 @@ export async function processWebsiteAssets({
           return {status: "missing"};
         }
 
-        await uploadWebsiteOgImage(ogImageUrl, keys.og);
+        await uploadWebsiteOgImage(ogImageUrl, keys.og, page.finalUrl);
         return {status: "ready"};
       },
     }),
@@ -172,28 +183,50 @@ function websiteAssetResult({
   };
 }
 
-async function uploadWebsiteFavicon(iconUrl: string, objectKey: string) {
-  const asset = await fetchRemoteAsset({
-    url: iconUrl,
-    timeoutMs: FAVICON_FETCH_TIMEOUT_MS,
-    maxBytes: FAVICON_MAX_BYTES,
-    allowedContentTypes: (response) =>
-      response.headers.get("content-type")?.includes("svg") || looksLikeSvgUrl(iconUrl)
-        ? SVG_CONTENT_TYPES
-        : FAVICON_CONTENT_TYPES,
-  });
-  if (!asset) {
-    throw new Error("Favicon asset could not be downloaded");
-  }
+async function uploadWebsiteFavicon(
+  iconUrl: string | null,
+  objectKey: string,
+  refererUrl: string,
+  fallbackDomain: string,
+) {
+  const asset =
+    (iconUrl ? await fetchDirectFaviconAsset(iconUrl, refererUrl) : null) ??
+    (await fetchFaviconFromProviders(fallbackDomain));
+  if (!asset) return false;
 
-  const isSvg = asset.contentType.includes("svg") || looksLikeSvgUrl(iconUrl);
-  const bytes = isSvg ? sanitizeSvgBuffer(asset.bytes) : asset.bytes;
-  await uploadAsset(objectKey, bytes, asset.contentType);
+  await uploadAsset(objectKey, asset.bytes, asset.contentType);
+  return true;
 }
 
-async function uploadWebsiteOgImage(imageUrl: string, objectKey: string) {
+async function fetchDirectFaviconAsset(
+  iconUrl: string,
+  refererUrl: string,
+): Promise<DownloadedFaviconAsset | null> {
+  try {
+    const asset = await fetchRemoteAsset({
+      url: iconUrl,
+      refererUrl,
+      timeoutMs: FAVICON_FETCH_TIMEOUT_MS,
+      maxBytes: FAVICON_MAX_BYTES,
+      allowedContentTypes: (response) =>
+        response.headers.get("content-type")?.includes("svg") || looksLikeSvgUrl(iconUrl)
+          ? SVG_CONTENT_TYPES
+          : FAVICON_CONTENT_TYPES,
+    });
+    if (!asset) return null;
+
+    const isSvg = asset.contentType.includes("svg") || looksLikeSvgUrl(iconUrl);
+    const bytes = isSvg ? sanitizeSvgBuffer(asset.bytes) : asset.bytes;
+    return {bytes, contentType: asset.contentType};
+  } catch {
+    return null;
+  }
+}
+
+async function uploadWebsiteOgImage(imageUrl: string, objectKey: string, refererUrl: string) {
   const asset = await fetchRemoteAsset({
     url: imageUrl,
+    refererUrl,
     timeoutMs: OG_IMAGE_FETCH_TIMEOUT_MS,
     maxBytes: OG_IMAGE_MAX_BYTES,
     allowedContentTypes: OG_IMAGE_CONTENT_TYPES,
@@ -222,11 +255,13 @@ async function fetchPreviewScreenshot(url: string, websiteProtected: boolean) {
 
 async function fetchRemoteAsset({
   url,
+  refererUrl,
   timeoutMs,
   maxBytes,
   allowedContentTypes,
 }: {
   url: string;
+  refererUrl?: string;
   timeoutMs: number;
   maxBytes: number;
   allowedContentTypes: string[] | ((response: Response) => string[]);
@@ -238,7 +273,7 @@ async function fetchRemoteAsset({
     const response = await safeWebFetch(url, {
       method: "GET",
       cache: "no-store",
-      headers: {"user-agent": REMOTE_ASSET_USER_AGENT},
+      headers: browserImageFetchHeaders(url, refererUrl),
       signal: controller.signal,
     });
     if (!response.ok) return null;

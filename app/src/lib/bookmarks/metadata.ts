@@ -6,6 +6,7 @@ import {
 } from "@/lib/fetch/web/html";
 import {fetchHtmlViaFirecrawl} from "@/lib/fetch/web/screenshot";
 import {readTextWithLimit} from "@/lib/fetch/web/bounded-reader";
+import {browserDocumentFetchHeaders} from "@/lib/fetch/web/http";
 import {assertWebsiteUrl, NonWebsiteUrlError} from "@/lib/fetch/web/website-url";
 import {assertPublicFetchUrl, safeWebFetch} from "@/lib/fetch/web/safe-fetch";
 
@@ -25,8 +26,6 @@ export type WebsiteHtmlPage = {
   firecrawlOgImageUrl?: string;
 };
 
-const WEBSITE_FETCH_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 const WEBSITE_FETCH_TIMEOUT_MS = 8000;
 const HTML_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -58,10 +57,7 @@ export async function fetchWebsiteHtmlPage(url: string): Promise<WebsiteHtmlPage
     res = await safeWebFetch(url, {
       method: "GET",
       cache: "no-store",
-      headers: {
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "user-agent": WEBSITE_FETCH_USER_AGENT,
-      },
+      headers: browserDocumentFetchHeaders(),
       signal: controller.signal,
     });
 
