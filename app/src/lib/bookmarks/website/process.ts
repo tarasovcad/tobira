@@ -1,6 +1,6 @@
-import {and, eq, isNull, sql} from "drizzle-orm";
+import {and, eq, isNull} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks} from "@/db/schema";
+import {bookmarks, type WebsiteRecordStatus} from "@/db/schema";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {
   extractUrlMetadataFromHtmlPage,
@@ -12,11 +12,14 @@ import {isWebsiteUrl} from "@/lib/fetch/web/website-url";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {processWebsiteAssets} from "./assets";
 import {collectWebsiteAssetFailures} from "./processing-results";
+import {markWebsiteEnrichmentFailed} from "./status-updates";
 import {
-  markWebsiteEnrichmentFailed,
-  updateWebsiteImageStatuses,
-  updateWebsiteTextMetadataStatus,
-} from "./status-updates";
+  buildWebsiteRecordImagesFromAssetResults,
+  getWebsiteRecordKey,
+  getWebsiteRecordPreviewStatus,
+  updateBookmarkFromWebsiteRecord,
+  upsertWebsiteRecord,
+} from "./records";
 
 type WebsiteBookmarkProcessingInfo = {
   id: string;
@@ -29,6 +32,7 @@ export async function processWebsiteBookmark(bookmarkId: string) {
 
   const normalizedUrl = normalizeInputUrl(bookmark.url).toString();
   if (!isWebsiteUrl(normalizedUrl)) return;
+  const websiteRecordKey = await getWebsiteRecordKey(normalizedUrl);
   let page: WebsiteHtmlPage;
 
   try {
@@ -40,20 +44,23 @@ export async function processWebsiteBookmark(bookmarkId: string) {
 
   if (!(await isWebsiteBookmarkActive(bookmark.id))) return;
 
-  const textUpdatePromise = updateWebsiteTextMetadata(bookmark.id, page);
+  const metadataResult = extractUrlMetadataFromHtmlPage(page);
+  const htmlStatus: WebsiteRecordStatus =
+    metadataResult.title || metadataResult.description ? "ready" : "missing";
   const keys = await buildWebsiteImageKeys(normalizedUrl);
-  const assetResultsPromise = processWebsiteAssets({normalizedUrl, page, keys});
+  const assetResults = await processWebsiteAssets({normalizedUrl, page, keys});
+  const websiteRecord = await upsertWebsiteRecord({
+    key: websiteRecordKey,
+    normalizedUrl,
+    hostname: new URL(normalizedUrl).hostname,
+    title: metadataResult.title ?? null,
+    description: metadataResult.description ?? null,
+    images: buildWebsiteRecordImagesFromAssetResults(assetResults),
+    htmlStatus,
+    previewStatus: getWebsiteRecordPreviewStatus(assetResults),
+  });
 
-  const textUpdateError = await textUpdatePromise.then(
-    () => null,
-    (error: unknown) => error,
-  );
-  const assetResults = await assetResultsPromise;
-  await updateWebsiteImageStatuses(bookmark.id, assetResults);
-
-  if (textUpdateError) {
-    throw textUpdateError;
-  }
+  await updateBookmarkFromWebsiteRecord(bookmark.id, websiteRecord);
 
   const failures = collectWebsiteAssetFailures(assetResults);
   if (failures.length === 0) return;
@@ -97,38 +104,4 @@ async function isWebsiteBookmarkActive(bookmarkId: string) {
     .limit(1);
 
   return !!bookmark;
-}
-
-async function updateWebsiteTextMetadata(bookmarkId: string, page: WebsiteHtmlPage) {
-  try {
-    const metadataResult = extractUrlMetadataFromHtmlPage(page);
-    const textMetadataStatus =
-      metadataResult.title || metadataResult.description ? "ready" : "missing";
-
-    await db
-      .update(bookmarks)
-      .set({
-        title: sql`COALESCE(${bookmarks.title}, ${metadataResult.title ?? null})`,
-        description: sql`COALESCE(${bookmarks.description}, ${metadataResult.description ?? null})`,
-        metadata: sql`jsonb_set(COALESCE(${bookmarks.metadata}, '{}'::jsonb), '{textMetadataStatus}', to_jsonb(${textMetadataStatus}::text), true)`,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(bookmarks.id, bookmarkId),
-          eq(bookmarks.kind, "website"),
-          isNull(bookmarks.deletedAt),
-        ),
-      );
-  } catch (error) {
-    try {
-      await updateWebsiteTextMetadataStatus(bookmarkId, "failed");
-    } catch (statusError) {
-      logger.error("Failed to update website text metadata status", {
-        bookmarkId,
-        error: toLogError(statusError),
-      });
-    }
-    throw error;
-  }
 }

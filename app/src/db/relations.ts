@@ -8,6 +8,7 @@ import {
   tags,
   bookmarkCollections,
   bookmarkTags,
+  websiteRecords,
   syncConnections,
   syncItems,
   syncRuns,
@@ -51,6 +52,14 @@ export const bookmarksRelations = relations(bookmarks, ({one, many}) => ({
   bookmarkCollections: many(bookmarkCollections),
   bookmarkTags: many(bookmarkTags),
   syncItemBookmarkLink: one(syncItemBookmarkLinks),
+  websiteRecord: one(websiteRecords, {
+    fields: [bookmarks.websiteRecordKey],
+    references: [websiteRecords.key],
+  }),
+}));
+
+export const websiteRecordsRelations = relations(websiteRecords, ({many}) => ({
+  bookmarks: many(bookmarks),
 }));
 
 export const accountRelations = relations(account, ({one}) => ({
