@@ -1,9 +1,9 @@
 import {and, eq, isNull, sql} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks, type WebsiteImageAsset, type WebsiteImages} from "@/db/schema";
+import {bookmarks, type WebsiteImages} from "@/db/schema";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {logger, toLogError} from "@/lib/shared/logger";
-import type {WebsiteAssetLabel, WebsiteAssetProcessingResult} from "./processing-results";
+import {toWebsiteImageAsset, type WebsiteAssetProcessingResult} from "./processing-results";
 
 export async function updateWebsiteTextMetadataStatus(
   bookmarkId: string,
@@ -73,35 +73,9 @@ function buildWebsiteImagesFromAssetResults(
   assetResults: WebsiteAssetProcessingResult[],
 ): WebsiteImages {
   return {
-    favicon: buildWebsiteImageAsset(assetResults, "favicon"),
-    og: buildWebsiteImageAsset(assetResults, "og"),
-    preview: buildWebsiteImageAsset(assetResults, "preview"),
+    favicon: toWebsiteImageAsset(assetResults, "favicon"),
+    og: toWebsiteImageAsset(assetResults, "og"),
+    preview: toWebsiteImageAsset(assetResults, "preview"),
     selected: "preview",
-  };
-}
-
-function buildWebsiteImageAsset(
-  assetResults: WebsiteAssetProcessingResult[],
-  label: WebsiteAssetLabel,
-): WebsiteImageAsset {
-  const result = assetResults.find((assetResult) => assetResult.label === label);
-  if (!result) return {status: "failed"};
-
-  if (result.status !== "ready") {
-    return {
-      status: result.status,
-      ...(result.key !== undefined ? {key: result.key} : {}),
-      ...(result.width !== undefined ? {width: result.width} : {}),
-      ...(result.height !== undefined ? {height: result.height} : {}),
-    };
-  }
-
-  if (!result.key) return {status: "failed"};
-
-  return {
-    status: "ready",
-    key: result.key,
-    ...(result.width !== undefined ? {width: result.width} : {}),
-    ...(result.height !== undefined ? {height: result.height} : {}),
   };
 }

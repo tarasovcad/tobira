@@ -9,7 +9,7 @@ import {
   type WebsiteRecordStatus,
 } from "@/db/schema";
 import {hashUrlToKey} from "@/lib/utils/hash";
-import type {WebsiteAssetLabel, WebsiteAssetProcessingResult} from "./processing-results";
+import {toWebsiteImageAsset, type WebsiteAssetProcessingResult} from "./processing-results";
 
 export type WebsiteRecord = typeof websiteRecords.$inferSelect;
 
@@ -86,9 +86,9 @@ export function buildWebsiteRecordImagesFromAssetResults(
   assetResults: WebsiteAssetProcessingResult[],
 ): WebsiteRecordImages {
   return {
-    favicon: buildWebsiteImageAsset(assetResults, "favicon"),
-    og: buildWebsiteImageAsset(assetResults, "og"),
-    preview: buildWebsiteImageAsset(assetResults, "preview"),
+    favicon: toWebsiteImageAsset(assetResults, "favicon"),
+    og: toWebsiteImageAsset(assetResults, "og"),
+    preview: toWebsiteImageAsset(assetResults, "preview"),
   };
 }
 
@@ -215,32 +215,6 @@ export async function updateBookmarkFromWebsiteRecord(bookmarkId: string, record
     .where(
       and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "website"), isNull(bookmarks.deletedAt)),
     );
-}
-
-function buildWebsiteImageAsset(
-  assetResults: WebsiteAssetProcessingResult[],
-  label: WebsiteAssetLabel,
-): WebsiteImageAsset {
-  const result = assetResults.find((assetResult) => assetResult.label === label);
-  if (!result) return {status: "failed"};
-
-  if (result.status !== "ready") {
-    return {
-      status: result.status,
-      ...(result.key !== undefined ? {key: result.key} : {}),
-      ...(result.width !== undefined ? {width: result.width} : {}),
-      ...(result.height !== undefined ? {height: result.height} : {}),
-    };
-  }
-
-  if (!result.key) return {status: "failed"};
-
-  return {
-    status: "ready",
-    key: result.key,
-    ...(result.width !== undefined ? {width: result.width} : {}),
-    ...(result.height !== undefined ? {height: result.height} : {}),
-  };
 }
 
 function refreshDaysForStatus(status: WebsiteRecordStatus) {

@@ -1,12 +1,16 @@
 import {randomUUID} from "crypto";
 import {eq} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks} from "@/db/schema";
+import {bookmarks, type WebsiteImages} from "@/db/schema";
 import {buildWebsiteImages} from "@/features/media/utils";
 import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {queueWebsiteBookmarkEnrichment} from "./queue";
-import {buildBookmarkImagesFromWebsiteRecord, getReusableWebsiteRecord} from "./records";
+import {
+  buildBookmarkImagesFromWebsiteRecord,
+  getReusableWebsiteRecord,
+  type WebsiteRecord,
+} from "./records";
 
 export type CreateWebsiteBookmarkInput = {
   normalizedUrl: URL;
@@ -24,8 +28,8 @@ export async function createWebsiteBookmark({
   const startedAt = performance.now();
   const timingsMs: Record<string, number> = {};
   const url = normalizedUrl.toString();
-
   const bookmarkId = randomUUID();
+
   const recordStartedAt = performance.now();
   const {
     key: websiteRecordKey,
@@ -37,27 +41,23 @@ export async function createWebsiteBookmark({
   timingsMs.getReusableWebsiteRecord = elapsedMs(recordStartedAt);
 
   const imagesStartedAt = performance.now();
-  const images = websiteRecord
-    ? buildBookmarkImagesFromWebsiteRecord(websiteRecord.images)
-    : await buildWebsiteImages(url);
+  const images = await resolveWebsiteBookmarkImages(websiteRecord, url);
   timingsMs.buildWebsiteImages = elapsedMs(imagesStartedAt);
 
-  const usesWebsiteRecord = !!websiteRecord;
-
   const insertStartedAt = performance.now();
-  await db.insert(bookmarks).values({
-    id: bookmarkId,
-    url,
-    userId,
-    websiteRecordKey: websiteRecord ? websiteRecordKey : null,
-    kind: "website",
-    title: htmlFresh ? websiteRecord?.title : undefined,
-    description: htmlFresh ? websiteRecord?.description : undefined,
-    images,
-    metadata: {
-      textMetadataStatus: htmlFresh ? (websiteRecord?.htmlStatus ?? "pending") : "pending",
-    },
-  });
+  await db
+    .insert(bookmarks)
+    .values(
+      buildWebsiteBookmarkValues({
+        bookmarkId,
+        url,
+        userId,
+        websiteRecordKey,
+        websiteRecord,
+        htmlFresh,
+        images,
+      }),
+    );
   timingsMs.insertBookmark = elapsedMs(insertStartedAt);
 
   await attachBookmarkRelations({
@@ -70,21 +70,8 @@ export async function createWebsiteBookmark({
 
   if (!websiteRecordFresh) {
     const queueStartedAt = performance.now();
-    try {
-      await queueWebsiteBookmarkEnrichment(bookmarkId, {
-        deduplicationId: `bookmark-${bookmarkId}`,
-        retries: 2,
-      });
-      timingsMs.qstashPublishJSON = elapsedMs(queueStartedAt);
-    } catch (error) {
-      logger.error("Failed to queue website bookmark processing job", {
-        bookmarkId,
-        url,
-        error: toLogError(error),
-      });
-      await deleteBookmarkAfterQueueFailure(bookmarkId);
-      throw new Error("Failed to queue website bookmark processing job");
-    }
+    await enqueueWebsiteEnrichmentOrRollback(bookmarkId, url);
+    timingsMs.qstashPublishJSON = elapsedMs(queueStartedAt);
   }
 
   timingsMs.totalAddWebsiteBookmark = elapsedMs(startedAt);
@@ -92,7 +79,7 @@ export async function createWebsiteBookmark({
     bookmarkId,
     url,
     websiteRecordKey: websiteRecord ? websiteRecordKey : undefined,
-    usedWebsiteRecord: usesWebsiteRecord,
+    usedWebsiteRecord: !!websiteRecord,
     websiteRecordFresh,
     htmlFresh,
     previewFresh,
@@ -100,6 +87,64 @@ export async function createWebsiteBookmark({
   });
 
   return {id: bookmarkId, url};
+}
+
+async function resolveWebsiteBookmarkImages(
+  websiteRecord: WebsiteRecord | null,
+  url: string,
+): Promise<WebsiteImages | undefined> {
+  return websiteRecord
+    ? buildBookmarkImagesFromWebsiteRecord(websiteRecord.images)
+    : await buildWebsiteImages(url);
+}
+
+function buildWebsiteBookmarkValues({
+  bookmarkId,
+  url,
+  userId,
+  websiteRecordKey,
+  websiteRecord,
+  htmlFresh,
+  images,
+}: {
+  bookmarkId: string;
+  url: string;
+  userId: string;
+  websiteRecordKey: string;
+  websiteRecord: WebsiteRecord | null;
+  htmlFresh: boolean;
+  images: WebsiteImages | undefined;
+}) {
+  return {
+    id: bookmarkId,
+    url,
+    userId,
+    websiteRecordKey: websiteRecord ? websiteRecordKey : null,
+    kind: "website" as const,
+    title: htmlFresh ? websiteRecord?.title : undefined,
+    description: htmlFresh ? websiteRecord?.description : undefined,
+    images,
+    metadata: {
+      textMetadataStatus: htmlFresh ? (websiteRecord?.htmlStatus ?? "pending") : "pending",
+    },
+  };
+}
+
+async function enqueueWebsiteEnrichmentOrRollback(bookmarkId: string, url: string) {
+  try {
+    await queueWebsiteBookmarkEnrichment(bookmarkId, {
+      deduplicationId: `bookmark-${bookmarkId}`,
+      retries: 2,
+    });
+  } catch (error) {
+    logger.error("Failed to queue website bookmark processing job", {
+      bookmarkId,
+      url,
+      error: toLogError(error),
+    });
+    await deleteBookmarkAfterQueueFailure(bookmarkId);
+    throw new Error("Failed to queue website bookmark processing job");
+  }
 }
 
 async function deleteBookmarkAfterQueueFailure(bookmarkId: string) {
