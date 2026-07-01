@@ -7,6 +7,7 @@ import {AnchoredToastProvider, ToastProvider} from "@/components/ui/coss/toast";
 import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/next";
 import {NuqsAdapter} from "nuqs/adapters/next/app";
+import Script from "next/script";
 
 const inter = Inter({subsets: ["latin"], variable: "--font-sans"});
 
@@ -26,9 +27,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} antialiased`} suppressHydrationWarning>
-      <Analytics />
-      <SpeedInsights />
       <body>
+        <Script src="http://localhost:3001/api/script.js" data-site-id="24e4864af7f4" defer />
+        <Analytics />
+        <SpeedInsights />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

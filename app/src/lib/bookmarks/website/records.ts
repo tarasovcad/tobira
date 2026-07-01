@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import {hashUrlToKey} from "@/lib/utils/hash";
 import {toWebsiteImageAsset, type WebsiteAssetProcessingResult} from "./processing-results";
+import {buildWebsiteRecordUpsertSql} from "./upsert-sql";
 
 export type WebsiteRecord = typeof websiteRecords.$inferSelect;
 
@@ -101,6 +102,7 @@ export async function upsertWebsiteRecord({
   images,
   htmlStatus,
   previewStatus,
+  timingsMs,
 }: {
   key: string;
   normalizedUrl: string;
@@ -110,46 +112,68 @@ export async function upsertWebsiteRecord({
   images: WebsiteRecordImages;
   htmlStatus: WebsiteRecordStatus;
   previewStatus: WebsiteRecordStatus;
+  timingsMs?: Record<string, number>;
 }) {
   const now = new Date();
   const nowIso = now.toISOString();
+  const refreshAfterReady = addDays(now, DEFAULT_REFRESH_DAYS).toISOString();
+  const refreshAfterFailed = addDays(now, FAILED_REFRESH_DAYS).toISOString();
 
-  const [existingRecord] = await db
-    .select({images: websiteRecords.images})
-    .from(websiteRecords)
-    .where(eq(websiteRecords.key, key))
-    .limit(1);
+  // INSERT path (no existing record): compute statuses from the incoming images alone.
+  const insertHtmlStatus = pickBestStatus(htmlStatus, images.favicon ?? images.og);
+  const insertPreviewStatus = pickBestStatus(previewStatus, images.preview);
+  const insertPreviewRefreshStatus =
+    previewStatus === "failed" ? previewStatus : insertPreviewStatus;
 
-  const existingImages = existingRecord?.images as WebsiteRecordImages | null | undefined;
-  const mergedImages = mergeWebsiteRecordImages(existingImages, images);
+  const {mergeAsset, htmlStatusSql, previewStatusSql, htmlRefreshAfterSql, previewRefreshAfterSql} =
+    buildWebsiteRecordUpsertSql({htmlStatus, previewStatus, refreshAfterReady, refreshAfterFailed});
 
-  const resolvedHtmlStatus = pickBestStatus(htmlStatus, mergedImages.favicon ?? mergedImages.og);
-  const resolvedPreviewStatus = pickBestStatus(previewStatus, mergedImages.preview);
-  const previewRefreshStatus = previewStatus === "failed" ? previewStatus : resolvedPreviewStatus;
-
-  const recordValues = {
-    normalizedUrl,
-    hostname,
-    title,
-    description,
-    images: mergedImages,
-    htmlStatus: resolvedHtmlStatus,
-    previewStatus: resolvedPreviewStatus,
-    htmlFetchedAt: nowIso,
-    previewFetchedAt: nowIso,
-    htmlRefreshAfter: addDays(now, refreshDaysForStatus(resolvedHtmlStatus)).toISOString(),
-    previewRefreshAfter: addDays(now, refreshDaysForStatus(previewRefreshStatus)).toISOString(),
-    updatedAt: nowIso,
-  };
-
+  const upsertStartedAt = performance.now();
   const [record] = await db
     .insert(websiteRecords)
-    .values({key, ...recordValues})
+    .values({
+      key,
+      normalizedUrl,
+      hostname,
+      title,
+      description,
+      images,
+      htmlStatus: insertHtmlStatus,
+      previewStatus: insertPreviewStatus,
+      htmlFetchedAt: nowIso,
+      previewFetchedAt: nowIso,
+      htmlRefreshAfter: addDays(now, refreshDaysForStatus(insertHtmlStatus)).toISOString(),
+      previewRefreshAfter: addDays(
+        now,
+        refreshDaysForStatus(insertPreviewRefreshStatus),
+      ).toISOString(),
+      updatedAt: nowIso,
+    })
     .onConflictDoUpdate({
       target: websiteRecords.key,
-      set: recordValues,
+      set: {
+        normalizedUrl,
+        hostname,
+        title,
+        description,
+        images: sql`jsonb_build_object(
+          'favicon', ${mergeAsset("favicon")},
+          'og', ${mergeAsset("og")},
+          'preview', ${mergeAsset("preview")}
+        )`,
+        htmlStatus: htmlStatusSql,
+        previewStatus: previewStatusSql,
+        htmlFetchedAt: nowIso,
+        previewFetchedAt: nowIso,
+        htmlRefreshAfter: htmlRefreshAfterSql,
+        previewRefreshAfter: previewRefreshAfterSql,
+        updatedAt: nowIso,
+      },
     })
     .returning();
+  if (timingsMs) {
+    timingsMs["upsertWebsiteRecord"] = elapsedMs(upsertStartedAt);
+  }
 
   return record;
 }
@@ -158,29 +182,6 @@ export function getWebsiteRecordPreviewStatus(
   assetResults: WebsiteAssetProcessingResult[],
 ): WebsiteRecordStatus {
   return assetResults.find((assetResult) => assetResult.label === "preview")?.status ?? "failed";
-}
-
-function mergeWebsiteRecordImages(
-  existingImages: WebsiteRecordImages | null | undefined,
-  incomingImages: WebsiteRecordImages,
-): WebsiteRecordImages {
-  if (!existingImages) return incomingImages;
-
-  return {
-    favicon: preserveReadyImageAsset(existingImages.favicon, incomingImages.favicon),
-    og: preserveReadyImageAsset(existingImages.og, incomingImages.og),
-    preview: preserveReadyImageAsset(existingImages.preview, incomingImages.preview),
-  };
-}
-
-function preserveReadyImageAsset(
-  existing: WebsiteImageAsset | undefined,
-  incoming: WebsiteImageAsset | undefined,
-): WebsiteImageAsset | undefined {
-  if (existing?.status === "ready") {
-    return incoming?.status === "ready" ? incoming : existing;
-  }
-  return incoming ?? existing;
 }
 
 function pickBestStatus(
@@ -230,4 +231,8 @@ function addDays(date: Date, days: number) {
 function isFutureTimestamp(value: string, now: Date) {
   const time = Date.parse(value);
   return Number.isFinite(time) && time > now.getTime();
+}
+
+function elapsedMs(startedAt: number) {
+  return Number((performance.now() - startedAt).toFixed(2));
 }

@@ -15,7 +15,7 @@ import {
   type ScreenshotData,
 } from "@/lib/fetch/web/screenshot";
 import {sanitizeSvgBuffer} from "@/lib/fetch/web/svg";
-import {existsInR2, uploadToR2} from "@/lib/storage/r2-storage";
+import {uploadToR2} from "@/lib/storage/r2-storage";
 import {logger, toLogError} from "@/lib/shared/logger";
 import type {WebsiteAssetLabel, WebsiteAssetProcessingResult} from "./processing-results";
 
@@ -55,71 +55,100 @@ export async function processWebsiteAssets({
   normalizedUrl,
   page,
   keys,
+  r2Exists,
+  timingsMs,
 }: {
   normalizedUrl: string;
   page: WebsiteHtmlPage;
   keys: WebsiteImageKeys;
+  r2Exists: {favicon: boolean; og: boolean; preview: boolean};
+  timingsMs?: Record<string, number>;
 }) {
   const fallbackFaviconDomain = new URL(normalizedUrl).hostname;
 
-  return Promise.all([
-    processWebsiteAsset({
-      label: "favicon",
-      key: keys.favicon,
-      process: async () => {
-        const bestIcon = await fetchBestFaviconFromHtml({
-          html: page.html,
-          baseUrl: page.finalUrl,
-          fallbackOriginUrl: normalizedUrl,
-        });
-        const uploaded = await uploadWebsiteFavicon(
-          bestIcon?.url ?? null,
-          keys.favicon,
-          page.finalUrl,
-          fallbackFaviconDomain,
-        );
-        if (!uploaded) {
-          return {status: "missing"};
-        }
+  const faviconStartedAt = performance.now();
+  let faviconDurationMs = 0;
+  const faviconPromise = processWebsiteAsset({
+    label: "favicon",
+    key: keys.favicon,
+    alreadyExists: r2Exists.favicon,
+    process: async () => {
+      const bestIcon = await fetchBestFaviconFromHtml({
+        html: page.html,
+        baseUrl: page.finalUrl,
+        fallbackOriginUrl: normalizedUrl,
+      });
+      const uploaded = await uploadWebsiteFavicon(
+        bestIcon?.url ?? null,
+        keys.favicon,
+        page.finalUrl,
+        fallbackFaviconDomain,
+      );
+      if (!uploaded) {
+        return {status: "missing"};
+      }
 
-        return {status: "ready"};
-      },
-    }),
-    processWebsiteAsset({
-      label: "og",
-      key: keys.og,
-      width: 1200,
-      height: 630,
-      process: async () => {
-        const ogImageUrl = fetchResolvedOgImageUrlFromHtml({
-          html: page.html,
-          baseUrl: page.finalUrl,
-          metadataOgImageUrl: page.firecrawlOgImageUrl,
-        });
-        if (!ogImageUrl) {
-          return {status: "missing"};
-        }
+      return {status: "ready"};
+    },
+  }).finally(() => {
+    faviconDurationMs = elapsedMs(faviconStartedAt);
+  });
 
-        await uploadWebsiteOgImage(ogImageUrl, keys.og, page.finalUrl);
-        return {status: "ready"};
-      },
-    }),
-    processWebsiteAsset({
-      label: "preview",
-      key: keys.preview,
-      width: 1920,
-      height: 1080,
-      process: async () => {
-        const screenshot = await fetchPreviewScreenshot(normalizedUrl, page.websiteProtected);
-        if (screenshot.buffer.length === 0) {
-          return {status: "missing"};
-        }
+  const ogStartedAt = performance.now();
+  let ogDurationMs = 0;
+  const ogPromise = processWebsiteAsset({
+    label: "og",
+    key: keys.og,
+    width: 1200,
+    height: 630,
+    alreadyExists: r2Exists.og,
+    process: async () => {
+      const ogImageUrl = fetchResolvedOgImageUrlFromHtml({
+        html: page.html,
+        baseUrl: page.finalUrl,
+        metadataOgImageUrl: page.firecrawlOgImageUrl,
+      });
+      if (!ogImageUrl) {
+        return {status: "missing"};
+      }
 
-        await uploadWebsitePreview(screenshot, keys.preview);
-        return {status: "ready"};
-      },
-    }),
-  ]);
+      await uploadWebsiteOgImage(ogImageUrl, keys.og, page.finalUrl);
+      return {status: "ready"};
+    },
+  }).finally(() => {
+    ogDurationMs = elapsedMs(ogStartedAt);
+  });
+
+  const previewStartedAt = performance.now();
+  let previewDurationMs = 0;
+  const previewPromise = processWebsiteAsset({
+    label: "preview",
+    key: keys.preview,
+    width: 1920,
+    height: 1080,
+    alreadyExists: r2Exists.preview,
+    process: async () => {
+      const screenshot = await fetchPreviewScreenshot(normalizedUrl, page.websiteProtected);
+      if (screenshot.buffer.length === 0) {
+        return {status: "missing"};
+      }
+
+      await uploadWebsitePreview(screenshot, keys.preview);
+      return {status: "ready"};
+    },
+  }).finally(() => {
+    previewDurationMs = elapsedMs(previewStartedAt);
+  });
+
+  const [favicon, og, preview] = await Promise.all([faviconPromise, ogPromise, previewPromise]);
+
+  if (timingsMs) {
+    timingsMs["1) processWebsiteAssets.favicon"] = faviconDurationMs;
+    timingsMs["2) processWebsiteAssets.ogImage"] = ogDurationMs;
+    timingsMs["3) processWebsiteAssets.preview"] = previewDurationMs;
+  }
+
+  return [favicon, og, preview];
 }
 
 type WebsiteAssetProcessResult = {status: "ready"} | {status: "missing"};
@@ -129,16 +158,18 @@ async function processWebsiteAsset({
   key,
   width,
   height,
+  alreadyExists,
   process,
 }: {
   label: WebsiteAssetLabel;
   key: string;
   width?: number;
   height?: number;
+  alreadyExists: boolean;
   process: () => Promise<WebsiteAssetProcessResult>;
 }): Promise<WebsiteAssetProcessingResult> {
   try {
-    if (await existsInR2(key)) {
+    if (alreadyExists) {
       return websiteAssetResult({label, status: "ready", key, width, height});
     }
 
@@ -301,4 +332,8 @@ function looksLikeSvgUrl(url: string) {
 
 async function uploadAsset(key: string, body: Buffer, contentType: string) {
   await uploadToR2({key, body, contentType});
+}
+
+function elapsedMs(startedAt: number) {
+  return Number((performance.now() - startedAt).toFixed(2));
 }
