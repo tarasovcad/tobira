@@ -1,5 +1,6 @@
 import {randomUUID} from "crypto";
 import {eq} from "drizzle-orm";
+import {after} from "next/server";
 import {db} from "@/db";
 import {bookmarks, type WebsiteImages} from "@/db/schema";
 import {buildWebsiteImages} from "@/features/media/utils";
@@ -45,19 +46,17 @@ export async function createWebsiteBookmark({
   timingsMs.buildWebsiteImages = elapsedMs(imagesStartedAt);
 
   const insertStartedAt = performance.now();
-  await db
-    .insert(bookmarks)
-    .values(
-      buildWebsiteBookmarkValues({
-        bookmarkId,
-        url,
-        userId,
-        websiteRecordKey,
-        websiteRecord,
-        htmlFresh,
-        images,
-      }),
-    );
+  await db.insert(bookmarks).values(
+    buildWebsiteBookmarkValues({
+      bookmarkId,
+      url,
+      userId,
+      websiteRecordKey,
+      websiteRecord,
+      htmlFresh,
+      images,
+    }),
+  );
   timingsMs.insertBookmark = elapsedMs(insertStartedAt);
 
   await attachBookmarkRelations({
@@ -69,9 +68,9 @@ export async function createWebsiteBookmark({
   });
 
   if (!websiteRecordFresh) {
-    const queueStartedAt = performance.now();
-    await enqueueWebsiteEnrichmentOrRollback(bookmarkId, url);
-    timingsMs.qstashPublishJSON = elapsedMs(queueStartedAt);
+    const scheduleStartedAt = performance.now();
+    scheduleWebsiteEnrichmentAfterResponse(bookmarkId, url);
+    timingsMs.scheduleWebsiteEnrichment = elapsedMs(scheduleStartedAt);
   }
 
   timingsMs.totalAddWebsiteBookmark = elapsedMs(startedAt);
@@ -87,6 +86,25 @@ export async function createWebsiteBookmark({
   });
 
   return {id: bookmarkId, url};
+}
+
+function scheduleWebsiteEnrichmentAfterResponse(bookmarkId: string, url: string) {
+  after(async () => {
+    const queueStartedAt = performance.now();
+
+    try {
+      await enqueueWebsiteEnrichmentOrRollback(bookmarkId, url);
+      logger.info("Queued website bookmark enrichment after response", {
+        bookmarkId,
+        url,
+        timingsMs: {
+          qstashPublishJSON: elapsedMs(queueStartedAt),
+        },
+      });
+    } catch {
+      // enqueueWebsiteEnrichmentOrRollback logs the queue failure and deletes the bookmark.
+    }
+  });
 }
 
 async function resolveWebsiteBookmarkImages(

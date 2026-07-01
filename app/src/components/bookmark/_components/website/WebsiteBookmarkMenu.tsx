@@ -23,27 +23,31 @@ import {
 } from "@/components/ui/coss/combobox";
 import {SelectButton, Select} from "@/components/ui/coss/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks/update";
-import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import WebsiteBookmarkPreviewDialog from "./WebsiteBookmarkPreviewDialog";
 import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
 import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
+import {useWebsiteBookmarkMenu} from "../../_hooks/use-website-bookmark-menu";
 import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark-schema";
 import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
 import WebsiteBookmarkMenuImage from "./WebsiteBookmarkMenuImage";
+import WebsiteBookmarkTitle from "./WebsiteBookmarkTitle";
+import {TextShimmer} from "@/components/ui/app/text-shimmer";
 
 const MAX_DESCRIPTION_LENGTH = 280;
 
 function BookmarkDescriptionField({
   control,
   error,
+  readOnly,
 }: {
   control: ReturnType<typeof useBookmarkForm>["form"]["control"];
   error?: string;
+  readOnly?: boolean;
 }) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
@@ -82,6 +86,7 @@ function BookmarkDescriptionField({
             {...field}
             unstyled
             spellCheck={false}
+            readOnly={readOnly}
             value={description}
             onChange={(e) => field.onChange(e.target.value)}
             error={error}
@@ -94,13 +99,16 @@ function BookmarkDescriptionField({
 }
 
 export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
-  const item = useBookmarkMenuStore((state) => state.item);
-  const open = useBookmarkMenuStore((state) => state.isOpen);
-  const onDelete = useBookmarkMenuStore((state) => state.onDelete);
-  const onArchive = useBookmarkMenuStore((state) => state.onArchive);
-  const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
-  const websiteItem = item?.kind === "website" ? item : undefined;
-  const isOpen = open && !!websiteItem;
+  const {
+    websiteItem,
+    isOpen,
+    isSaving,
+    metadataLoading,
+    fieldsLocked,
+    onDelete,
+    onArchive,
+    setMenuOpen,
+  } = useWebsiteBookmarkMenu();
   const canClickMediaPreview = useBookmarkMenuPreviewClick(isOpen, websiteItem?.id);
 
   const data = useMemo(() => {
@@ -174,7 +182,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
   const onSubmit = useCallback(
     (values: BookmarkFormValues) => {
-      if (!websiteItem) return;
+      if (!websiteItem || isSaving) return;
 
       const updates: UpdateBookmarkData = {};
 
@@ -208,7 +216,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
       updateBookmark({bookmarkId: websiteItem.id, updates});
     },
-    [originalValues, updateBookmark, websiteItem],
+    [isSaving, originalValues, updateBookmark, websiteItem],
   );
 
   const handleClearChanges = useCallback(() => {
@@ -216,20 +224,19 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
   }, [originalValues, reset]);
 
   const handleArchive = useCallback(() => {
-    if (websiteItem) {
-      if (onArchive) {
-        onArchive(websiteItem);
-      } else {
-        archiveBookmark(websiteItem.id);
-      }
+    if (!websiteItem || isSaving) return;
+
+    if (onArchive) {
+      onArchive(websiteItem);
+    } else {
+      archiveBookmark(websiteItem.id);
     }
-  }, [archiveBookmark, onArchive, websiteItem]);
+  }, [archiveBookmark, isSaving, onArchive, websiteItem]);
 
   const handleDelete = useCallback(() => {
-    if (websiteItem && onDelete) {
-      onDelete(websiteItem);
-    }
-  }, [onDelete, websiteItem]);
+    if (!websiteItem || isSaving || !onDelete) return;
+    onDelete(websiteItem);
+  }, [isSaving, onDelete, websiteItem]);
 
   const websiteImages = isWebsiteImages(websiteItem?.images) ? websiteItem.images : undefined;
 
@@ -262,7 +269,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
     [handleArchive, isArchiving, handlePreviewClick, handleDelete],
   );
 
-  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving;
+  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isSaving;
 
   return (
     <>
@@ -298,21 +305,31 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                 <div className="p-6">
                   <SheetHeader className="p-0">
                     <SheetTitle className="contents">
-                      <Controller
-                        name="title"
-                        control={control}
-                        render={({field}) => (
-                          <Textarea
-                            {...field}
-                            unstyled
-                            spellCheck={false}
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            error={errors.title?.message}
-                            className="text-foreground flex w-full bg-transparent p-0 text-lg font-[550] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
-                          />
-                        )}
-                      />
+                      {metadataLoading && !websiteItem?.title?.trim() ? (
+                        <WebsiteBookmarkTitle
+                          title={websiteItem?.title}
+                          url={websiteItem?.url ?? ""}
+                          textMetadataStatus={websiteItem?.metadata?.textMetadataStatus}
+                          className="text-foreground text-lg font-[550]"
+                        />
+                      ) : (
+                        <Controller
+                          name="title"
+                          control={control}
+                          render={({field}) => (
+                            <Textarea
+                              {...field}
+                              unstyled
+                              spellCheck={false}
+                              readOnly={fieldsLocked}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              error={errors.title?.message}
+                              className="text-foreground flex w-full bg-transparent p-0 text-lg font-[550] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
+                            />
+                          )}
+                        />
+                      )}
                     </SheetTitle>
                   </SheetHeader>
 
@@ -322,11 +339,18 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                 <Separator />
 
                 <div className="p-6">
-                  <BookmarkDescriptionField
-                    key={`${websiteItem?.id ?? "none"}:${isOpen ? "open" : "closed"}`}
-                    control={control}
-                    error={errors.description?.message}
-                  />
+                  {metadataLoading && !websiteItem?.description ? (
+                    <div className="text-muted-foreground text-[15px]">
+                      <TextShimmer>Loading...</TextShimmer>
+                    </div>
+                  ) : (
+                    <BookmarkDescriptionField
+                      key={`${websiteItem?.id ?? "none"}:${isOpen ? "open" : "closed"}`}
+                      control={control}
+                      error={errors.description?.message}
+                      readOnly={fieldsLocked}
+                    />
+                  )}
                 </div>
 
                 <Separator />

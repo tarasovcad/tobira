@@ -1,8 +1,66 @@
 "use client";
 
 import {memo, type CSSProperties} from "react";
-import {motion} from "motion/react";
 import {cn} from "@/lib/utils";
+
+const TRANSITION_STYLES = `
+:root {
+  --shimmer-dur: 2000ms;
+  --shimmer-base: #7c7c7c;
+  --shimmer-highlight: #0d0d0d;
+  --shimmer-band: 400%;
+  --shimmer-ease: linear;
+}
+
+.dark {
+  --shimmer-base: #b0b0b0;
+  --shimmer-highlight: #f2f2f2;
+}
+
+.t-shimmer {
+  position: relative;
+  display: inline-block;
+  color: var(--shimmer-base);
+}
+
+.t-shimmer::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 40%,
+    var(--shimmer-highlight) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: var(--shimmer-band) 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: t-shimmer var(--shimmer-dur) var(--shimmer-ease) infinite;
+}
+
+@keyframes t-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-shimmer::before { animation: none !important; }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("transitions-p15")) {
+  const style = document.createElement("style");
+  style.id = "transitions-p15";
+  style.textContent = TRANSITION_STYLES;
+  document.head.appendChild(style);
+}
 
 export type TextShimmerProps = {
   children: string;
@@ -12,42 +70,22 @@ export type TextShimmerProps = {
   spread?: number;
 };
 
-const motionComponents = {
-  span: motion.span,
-  p: motion.p,
-  div: motion.div,
-};
-
 function TextShimmerComponent({
   children,
   as: Component = "span",
   className,
-  duration = 1.5,
-  spread = 3,
+  duration,
+  spread,
 }: TextShimmerProps) {
-  const MotionComponent = motionComponents[Component];
-  const dynamicSpread = children.length * spread;
+  const style = {
+    ...(duration ? {"--shimmer-dur": `${duration}s`} : null),
+    ...(spread ? {"--shimmer-band": `${Math.max(spread, 1) * 100}%`} : null),
+  } as CSSProperties;
 
   return (
-    <MotionComponent
-      className={cn(
-        "relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent",
-        "[--base-color:var(--foreground)] [--base-gradient-color:#878787]",
-        "[background-repeat:no-repeat,padding-box] [--bg:linear-gradient(90deg,#0000_calc(50%_-_var(--spread)),var(--base-gradient-color),#0000_calc(50%_+_var(--spread)))]",
-        "dark:[--base-gradient-color:#8C8C8C]",
-        className,
-      )}
-      initial={{backgroundPosition: "100% center"}}
-      animate={{backgroundPosition: "0% center"}}
-      transition={{repeat: Infinity, duration, ease: "linear"}}
-      style={
-        {
-          "--spread": `${dynamicSpread}px`,
-          backgroundImage: "var(--bg), linear-gradient(var(--base-color), var(--base-color))",
-        } as CSSProperties
-      }>
+    <Component className={cn("t-shimmer", className)} data-text={children} style={style}>
       {children}
-    </MotionComponent>
+    </Component>
   );
 }
 

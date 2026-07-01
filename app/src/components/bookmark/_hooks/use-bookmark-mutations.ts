@@ -4,6 +4,7 @@ import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 import {toastManager} from "@/components/ui/coss/toast";
 import {UseFormReturn} from "react-hook-form";
 import {BookmarkFormValues} from "../_utils/bookmark-schema";
+import {isOptimisticBookmarkId} from "@/features/add-item/_utils/optimistic-bookmark-cache";
 import {getErrorMessage} from "@/lib/shared/errors";
 
 export function useBookmarkMutations({
@@ -26,8 +27,13 @@ export function useBookmarkMutations({
   };
 
   const updateMutation = useMutation({
-    mutationFn: (input: {bookmarkId: string; updates: UpdateBookmarkData}) =>
-      updateBookmark(input.bookmarkId, input.updates),
+    mutationFn: (input: {bookmarkId: string; updates: UpdateBookmarkData}) => {
+      if (isOptimisticBookmarkId(input.bookmarkId)) {
+        throw new Error("Bookmark is still being saved. Try again in a moment.");
+      }
+
+      return updateBookmark(input.bookmarkId, input.updates);
+    },
     onMutate: async () => {
       // Lock in the latest form values so close/cancel doesn't revert them.
       const prev = originalValues;
@@ -69,7 +75,13 @@ export function useBookmarkMutations({
   });
 
   const archiveMutation = useMutation({
-    mutationFn: (id: string) => archiveBookmarks(id),
+    mutationFn: (id: string) => {
+      if (isOptimisticBookmarkId(id)) {
+        throw new Error("Bookmark is still being saved. Try again in a moment.");
+      }
+
+      return archiveBookmarks(id);
+    },
     onSuccess: () => {
       invalidateBookmarkQueries();
       onOpenChange(false);

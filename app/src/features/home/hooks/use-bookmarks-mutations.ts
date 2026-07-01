@@ -45,6 +45,9 @@ export function useBookmarksMutations({
       )?.selectedMediaItems,
       resultMediaItems: (m.state.data as {mediaItems?: BookmarkMediaItem[]} | undefined)
         ?.mediaItems,
+      renderedOptimistically: Boolean(
+        (m.state.context as {optimisticBookmarkId?: string} | undefined)?.optimisticBookmarkId,
+      ),
       hasMultipleMediaOptions:
         Array.isArray((m.state.data as {media?: string[]} | undefined)?.media) &&
         ((m.state.data as {media?: string[]} | undefined)?.media?.length ?? 0) > 1,
@@ -110,13 +113,17 @@ export function useBookmarksMutations({
 
   if (
     animatingUrl !== null &&
-    (!latestAddAppliesToCurrentFilter || isError || wasMediaPhase1Aborted)
+    (!latestAddAppliesToCurrentFilter ||
+      isError ||
+      wasMediaPhase1Aborted ||
+      latestAdd?.renderedOptimistically)
   ) {
     setAnimatingUrl(null);
   } else if (
     inputUrl &&
     shouldAnimateLatestAdd &&
     animatingUrl !== inputUrl &&
+    !latestAdd?.renderedOptimistically &&
     ((isPending && !isMediaPhase1Pending) || isSingleMediaSuccess)
   ) {
     setAnimatingUrl(inputUrl);

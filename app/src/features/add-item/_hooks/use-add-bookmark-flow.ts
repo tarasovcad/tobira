@@ -1,7 +1,7 @@
 "use client";
 
 import {useMemo, useState} from "react";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {type QueryKey, useMutation, useQueryClient} from "@tanstack/react-query";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {useRouter} from "next/navigation";
@@ -26,18 +26,17 @@ import {
   createAddBookmarkDefaultValues,
   type AddBookmarkFormValues,
 } from "../add-bookmark-schema";
-
-type AddBookmarkMutationInput =
-  | {url: string; tags: string[]; collectionId?: string; kind: "website"}
-  | {
-      url: string;
-      tags: string[];
-      collectionId?: string;
-      kind: "media";
-      selectedMediaUrls?: string[];
-      selectedMediaItems?: BookmarkMediaItem[];
-    }
-  | {url: string; tags: string[]; collectionId?: string; kind: "post"};
+import {
+  bookmarkCountQueryMatchesInput,
+  bookmarkListQueryMatchesInput,
+  createOptimisticBookmark,
+  getAddBookmarkResultIds,
+  insertOptimisticBookmark,
+  replaceOptimisticBookmarkId,
+  type AddBookmarkMutationContext,
+  type AddBookmarkMutationInput,
+  type BookmarksInfiniteData,
+} from "../_utils/optimistic-bookmark-cache";
 
 export function useAddBookmarkFlow({
   userId,
@@ -80,12 +79,83 @@ export function useAddBookmarkFlow({
     mode: "onChange",
   });
 
+  const collectionItems = useMemo(
+    () =>
+      collections.map((c) => ({
+        label: c.name,
+        value: c.id,
+      })),
+    [collections],
+  );
+
   const addItemMutation = useMutation<
     AddWebsiteBookmarkResult | AddMediaBookmarkResult | AddPostBookmarkResult,
     Error,
-    AddBookmarkMutationInput
+    AddBookmarkMutationInput,
+    AddBookmarkMutationContext
   >({
     mutationKey: ["add-bookmark"],
+    onMutate: async (input) => {
+      const optimisticBookmark = createOptimisticBookmark({
+        input,
+        userId,
+        collectionItems,
+      });
+
+      if (!optimisticBookmark) {
+        return {previousBookmarkQueries: [], previousCountQueries: []};
+      }
+
+      await queryClient.cancelQueries({queryKey: ["bookmarks"]});
+
+      const matchesListQuery = (queryKey: QueryKey) =>
+        bookmarkListQueryMatchesInput({
+          queryKey,
+          input,
+          userId,
+          defaultTagNames,
+        });
+      const matchesCountQuery = (queryKey: QueryKey) =>
+        bookmarkCountQueryMatchesInput({
+          queryKey,
+          input,
+          userId,
+          defaultTagNames,
+        });
+      const previousBookmarkQueries = queryClient.getQueriesData<BookmarksInfiniteData>({
+        queryKey: ["bookmarks", "all-items"],
+        type: "active",
+        predicate: (query) => matchesListQuery(query.queryKey),
+      });
+      const previousCountQueries = queryClient.getQueriesData<number>({
+        queryKey: ["bookmarks", "count"],
+        type: "active",
+        predicate: (query) => matchesCountQuery(query.queryKey),
+      });
+
+      queryClient.setQueriesData<BookmarksInfiniteData>(
+        {
+          queryKey: ["bookmarks", "all-items"],
+          type: "active",
+          predicate: (query) => matchesListQuery(query.queryKey),
+        },
+        (current) => insertOptimisticBookmark(current, optimisticBookmark),
+      );
+      queryClient.setQueriesData<number>(
+        {
+          queryKey: ["bookmarks", "count"],
+          type: "active",
+          predicate: (query) => matchesCountQuery(query.queryKey),
+        },
+        (current) => (typeof current === "number" ? current + 1 : current),
+      );
+
+      return {
+        optimisticBookmarkId: optimisticBookmark.id,
+        previousBookmarkQueries,
+        previousCountQueries,
+      };
+    },
     mutationFn: async (input) => {
       if (input.kind === "website") {
         return addWebsiteBookmark(input);
@@ -101,7 +171,13 @@ export function useAddBookmarkFlow({
       }
       return addPostBookmark(input);
     },
-    onSuccess: (res, variables) => {
+    onSuccess: (res, variables, context) => {
+      replaceOptimisticBookmarkId({
+        queryClient,
+        optimisticBookmarkId: context?.optimisticBookmarkId,
+        resultIds: getAddBookmarkResultIds(res),
+      });
+
       if (
         variables.kind === "media" &&
         "media" in res &&
@@ -130,7 +206,14 @@ export function useAddBookmarkFlow({
         setSelectedMediaUrls([]);
       }, 500);
     },
-    onError: (err) => {
+    onError: (err, _variables, context) => {
+      context?.previousBookmarkQueries.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      context?.previousCountQueries.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+
       toastManager.add({
         title: "Submit failed",
         description:
@@ -176,15 +259,6 @@ export function useAddBookmarkFlow({
         throw new Error("Invalid item type");
     }
   };
-
-  const collectionItems = useMemo(
-    () =>
-      collections.map((c) => ({
-        label: c.name,
-        value: c.id,
-      })),
-    [collections],
-  );
 
   const resetLocalState = () => {
     form.reset(getDefaultValues());
