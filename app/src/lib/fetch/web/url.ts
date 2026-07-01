@@ -15,6 +15,40 @@ function normalizeHostname(hostname: string) {
     .replace(/\.+$/, "");
 }
 
+const TRACKING_QUERY_PARAMS = new Set([
+  "dclid",
+  "fbclid",
+  "gbraid",
+  "gclid",
+  "igshid",
+  "msclkid",
+  "ttclid",
+  "twclid",
+  "wbraid",
+]);
+
+function isTrackingQueryParam(name: string) {
+  return name.startsWith("utm_") || TRACKING_QUERY_PARAMS.has(name);
+}
+
+function compareStrings(a: string, b: string) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
+function canonicalizeSearchParams(params: URLSearchParams) {
+  const entries = [...params]
+    .map(([name, value]): [string, string] => [name.toLowerCase(), value])
+    .filter(([name]) => !isTrackingQueryParam(name))
+    .sort(([nameA, valueA], [nameB, valueB]) => {
+      const nameOrder = compareStrings(nameA, nameB);
+      return nameOrder === 0 ? compareStrings(valueA, valueB) : nameOrder;
+    });
+
+  return new URLSearchParams(entries);
+}
+
 export function isRestrictedIpAddress(address: string) {
   const normalized = normalizeHostname(address);
   if (!ipaddr.isValid(normalized)) return false;
@@ -83,5 +117,8 @@ export function normalizeInputUrl(input: string) {
   }
   if (!u.hostname) throw new Error("Invalid URL hostname");
   assertAllowedWebUrl(u);
+  u.hash = "";
+  u.pathname = u.pathname.replace(/\/+$/, "") || "/";
+  u.search = canonicalizeSearchParams(u.searchParams).toString();
   return u;
 }

@@ -13,6 +13,12 @@ import type {WebsiteAssetLabel, WebsiteAssetProcessingResult} from "./processing
 
 export type WebsiteRecord = typeof websiteRecords.$inferSelect;
 
+type WebsiteRecordFreshness = {
+  fresh: boolean;
+  htmlFresh: boolean;
+  previewFresh: boolean;
+};
+
 const DEFAULT_REFRESH_DAYS = 90;
 const FAILED_REFRESH_DAYS = 10;
 
@@ -28,14 +34,33 @@ export async function getReusableWebsiteRecord(normalizedUrl: URL | string) {
     .where(eq(websiteRecords.key, key))
     .limit(1);
 
+  const freshness = record
+    ? getWebsiteRecordFreshness(record)
+    : {fresh: false, htmlFresh: false, previewFresh: false};
+
   return {
     key,
-    record: record && isWebsiteRecordFresh(record) ? record : null,
+    record: record && (freshness.htmlFresh || freshness.previewFresh) ? record : null,
+    ...freshness,
   };
 }
 
 export function isWebsiteRecordFresh(record: WebsiteRecord, now = new Date()) {
-  return isWebsiteRecordHtmlFresh(record, now) && isWebsiteRecordPreviewFresh(record, now);
+  return getWebsiteRecordFreshness(record, now).fresh;
+}
+
+export function getWebsiteRecordFreshness(
+  record: WebsiteRecord,
+  now = new Date(),
+): WebsiteRecordFreshness {
+  const htmlFresh = isWebsiteRecordHtmlFresh(record, now);
+  const previewFresh = isWebsiteRecordPreviewFresh(record, now);
+
+  return {
+    fresh: htmlFresh && previewFresh,
+    htmlFresh,
+    previewFresh,
+  };
 }
 
 export function isWebsiteRecordHtmlFresh(record: WebsiteRecord, now = new Date()) {
@@ -88,18 +113,32 @@ export async function upsertWebsiteRecord({
 }) {
   const now = new Date();
   const nowIso = now.toISOString();
+
+  const [existingRecord] = await db
+    .select({images: websiteRecords.images})
+    .from(websiteRecords)
+    .where(eq(websiteRecords.key, key))
+    .limit(1);
+
+  const existingImages = existingRecord?.images as WebsiteRecordImages | null | undefined;
+  const mergedImages = mergeWebsiteRecordImages(existingImages, images);
+
+  const resolvedHtmlStatus = pickBestStatus(htmlStatus, mergedImages.favicon ?? mergedImages.og);
+  const resolvedPreviewStatus = pickBestStatus(previewStatus, mergedImages.preview);
+  const previewRefreshStatus = previewStatus === "failed" ? previewStatus : resolvedPreviewStatus;
+
   const recordValues = {
     normalizedUrl,
     hostname,
     title,
     description,
-    images,
-    htmlStatus,
-    previewStatus,
+    images: mergedImages,
+    htmlStatus: resolvedHtmlStatus,
+    previewStatus: resolvedPreviewStatus,
     htmlFetchedAt: nowIso,
     previewFetchedAt: nowIso,
-    htmlRefreshAfter: addDays(now, refreshDaysForStatus(htmlStatus)).toISOString(),
-    previewRefreshAfter: addDays(now, refreshDaysForStatus(previewStatus)).toISOString(),
+    htmlRefreshAfter: addDays(now, refreshDaysForStatus(resolvedHtmlStatus)).toISOString(),
+    previewRefreshAfter: addDays(now, refreshDaysForStatus(previewRefreshStatus)).toISOString(),
     updatedAt: nowIso,
   };
 
@@ -119,6 +158,38 @@ export function getWebsiteRecordPreviewStatus(
   assetResults: WebsiteAssetProcessingResult[],
 ): WebsiteRecordStatus {
   return assetResults.find((assetResult) => assetResult.label === "preview")?.status ?? "failed";
+}
+
+function mergeWebsiteRecordImages(
+  existingImages: WebsiteRecordImages | null | undefined,
+  incomingImages: WebsiteRecordImages,
+): WebsiteRecordImages {
+  if (!existingImages) return incomingImages;
+
+  return {
+    favicon: preserveReadyImageAsset(existingImages.favicon, incomingImages.favicon),
+    og: preserveReadyImageAsset(existingImages.og, incomingImages.og),
+    preview: preserveReadyImageAsset(existingImages.preview, incomingImages.preview),
+  };
+}
+
+function preserveReadyImageAsset(
+  existing: WebsiteImageAsset | undefined,
+  incoming: WebsiteImageAsset | undefined,
+): WebsiteImageAsset | undefined {
+  if (existing?.status === "ready") {
+    return incoming?.status === "ready" ? incoming : existing;
+  }
+  return incoming ?? existing;
+}
+
+function pickBestStatus(
+  fetchStatus: WebsiteRecordStatus,
+  mergedImage: WebsiteImageAsset | undefined,
+): WebsiteRecordStatus {
+  if (fetchStatus === "ready") return "ready";
+  if (mergedImage?.status === "ready") return "ready";
+  return fetchStatus;
 }
 
 export async function updateBookmarkFromWebsiteRecord(bookmarkId: string, record: WebsiteRecord) {

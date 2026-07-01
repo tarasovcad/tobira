@@ -27,8 +27,13 @@ export async function createWebsiteBookmark({
 
   const bookmarkId = randomUUID();
   const recordStartedAt = performance.now();
-  const {key: websiteRecordKey, record: websiteRecord} =
-    await getReusableWebsiteRecord(normalizedUrl);
+  const {
+    key: websiteRecordKey,
+    record: websiteRecord,
+    fresh: websiteRecordFresh,
+    htmlFresh,
+    previewFresh,
+  } = await getReusableWebsiteRecord(normalizedUrl);
   timingsMs.getReusableWebsiteRecord = elapsedMs(recordStartedAt);
 
   const imagesStartedAt = performance.now();
@@ -46,11 +51,11 @@ export async function createWebsiteBookmark({
     userId,
     websiteRecordKey: websiteRecord ? websiteRecordKey : null,
     kind: "website",
-    title: websiteRecord?.title,
-    description: websiteRecord?.description,
+    title: htmlFresh ? websiteRecord?.title : undefined,
+    description: htmlFresh ? websiteRecord?.description : undefined,
     images,
     metadata: {
-      textMetadataStatus: websiteRecord?.htmlStatus ?? "pending",
+      textMetadataStatus: htmlFresh ? (websiteRecord?.htmlStatus ?? "pending") : "pending",
     },
   });
   timingsMs.insertBookmark = elapsedMs(insertStartedAt);
@@ -63,7 +68,7 @@ export async function createWebsiteBookmark({
     kind: "website",
   });
 
-  if (!usesWebsiteRecord) {
+  if (!websiteRecordFresh) {
     const queueStartedAt = performance.now();
     try {
       await queueWebsiteBookmarkEnrichment(bookmarkId, {
@@ -88,6 +93,9 @@ export async function createWebsiteBookmark({
     url,
     websiteRecordKey: websiteRecord ? websiteRecordKey : undefined,
     usedWebsiteRecord: usesWebsiteRecord,
+    websiteRecordFresh,
+    htmlFresh,
+    previewFresh,
     timingsMs,
   });
 
