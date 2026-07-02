@@ -35,7 +35,7 @@ export const NavItem = ({
       )}
       <span
         className={cn(
-          "truncate overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-25 ease-linear",
+          "truncate overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-200 ease-in-out",
           collapsed ? "ml-0 max-w-0 opacity-0" : "ml-2 opacity-100",
         )}>
         {label}
@@ -52,7 +52,7 @@ export const NavItem = ({
     isActive ? "text-foreground bg-muted-strong" : "text-secondary bg-transparent",
     "flex w-full items-center rounded-md py-[7.5px] text-sm font-medium",
     collapsed ? "justify-start px-[7.5px]" : "justify-start px-3",
-    "transition-[padding] duration-50 ease-linear",
+    "transition-[padding] duration-200 ease-in-out",
     "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
     disabled
       ? "opacity-70 cursor-not-allowed select-none"
