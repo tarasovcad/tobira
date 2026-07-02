@@ -32,6 +32,7 @@ type UsePreviewOverlayControllerParams = {
   onEscape?: () => void;
   type?: "image" | "video";
   addZoom?: boolean;
+  closeAnimation?: "default" | "none";
 };
 
 export type UsePreviewOverlayControllerResult = {
@@ -62,6 +63,7 @@ export function usePreviewOverlayController({
   onEscape,
   type = "image",
   addZoom = true,
+  closeAnimation = "default",
 }: UsePreviewOverlayControllerParams): UsePreviewOverlayControllerResult {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -155,6 +157,15 @@ export function usePreviewOverlayController({
   const closePreview = useCallback(() => {
     if (!open || closeRequested) return;
 
+    if (closeAnimation === "none") {
+      resetInteractionState();
+      setExpanded(false);
+      setOpen(false);
+      setCloseRequested(false);
+      onOpenChange?.(false);
+      return;
+    }
+
     setCloseRequested(true);
     resetInteractionState();
     setExpanded(false);
@@ -165,7 +176,7 @@ export function usePreviewOverlayController({
       setCloseRequested(false);
       closeTimeoutRef.current = null;
     }, OVERLAY_TRANSITION_MS);
-  }, [closeRequested, onOpenChange, open, resetInteractionState]);
+  }, [closeAnimation, closeRequested, onOpenChange, open, resetInteractionState]);
 
   const setPreviewSize = useCallback(
     (width: number, height: number, options?: {entryKey?: string | null}) => {

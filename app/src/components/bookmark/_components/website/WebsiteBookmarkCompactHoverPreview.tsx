@@ -6,6 +6,7 @@ import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-u
 import type {WebsiteBookmark} from "@/components/bookmark/types";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {cn} from "@/lib/utils";
+import {getCompactPreviewWidthPx, type CompactPreviewSize} from "@/store/use-view-options";
 
 function getSelectedWebsitePreviewImage(images: WebsiteBookmark["images"]) {
   if (!images) return undefined;
@@ -25,7 +26,15 @@ export function hasWebsiteBookmarkPreviewImage(item: WebsiteBookmark) {
   return Boolean(getSelectedWebsitePreviewImage(item.images)?.key);
 }
 
-export default function WebsiteBookmarkCompactHoverPreviewContent({item}: {item: WebsiteBookmark}) {
+export default function WebsiteBookmarkCompactHoverPreviewContent({
+  item,
+  previewSize,
+  onOpenFullscreen,
+}: {
+  item: WebsiteBookmark;
+  previewSize: CompactPreviewSize;
+  onOpenFullscreen: () => void;
+}) {
   const previewImage = getSelectedWebsitePreviewImage(item.images);
   const baseSrc = previewImage?.key ? buildR2PublicUrl(previewImage.key) : "";
   const image = useWebsiteImageLoading({
@@ -60,10 +69,11 @@ export default function WebsiteBookmarkCompactHoverPreviewContent({item}: {item:
         alt={`${item.title || item.url} preview`}
         width={image.imageWidth}
         height={image.imageHeight}
-        sizes="176px"
+        sizes={`${getCompactPreviewWidthPx(previewSize)}px`}
         quality={60}
         loading="lazy"
-        disableClickToOpen={true}
+        disableClickToOpen={false}
+        closeAnimation="none"
         showFallback={!image.hasValidImage}
         className={cn(
           image.status === "loaded" ? "opacity-100" : "opacity-0",
@@ -72,6 +82,9 @@ export default function WebsiteBookmarkCompactHoverPreviewContent({item}: {item:
         buttonClassName="h-full w-full"
         onLoad={image.markLoaded}
         onError={image.markFailed}
+        onOpenChange={(open) => {
+          if (open) onOpenFullscreen();
+        }}
       />
     </div>
   );

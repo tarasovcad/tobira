@@ -12,6 +12,7 @@ type UseMediaPreviewParams = {
   onOpenChange?: (open: boolean) => void;
   type?: "image" | "video";
   addZoom?: boolean;
+  closeAnimation?: "default" | "none";
 };
 
 type UseMediaPreviewResult = {
@@ -42,6 +43,7 @@ export function useMediaPreview({
   onOpenChange,
   type = "image",
   addZoom = true,
+  closeAnimation = "default",
 }: UseMediaPreviewParams): UseMediaPreviewResult {
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const previewInstanceRef = useRef(Symbol("media-preview"));
@@ -49,6 +51,7 @@ export function useMediaPreview({
     onOpenChange,
     type,
     addZoom,
+    closeAnimation,
   });
 
   const openPreview = useCallback(() => {

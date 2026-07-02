@@ -26,11 +26,27 @@ export const COMPACT_PREVIEW_DELAY_MS = {
   long: 300,
 } as const satisfies Record<CompactPreviewDelay, number>;
 
-export const COMPACT_PREVIEW_WIDTH_CLASS = {
-  sm: "w-32",
-  md: "w-44",
-  lg: "w-56",
-} as const satisfies Record<CompactPreviewSize, string>;
+export function getCompactPreviewWidthClass(size: CompactPreviewSize) {
+  switch (size) {
+    case "sm":
+      return "w-32";
+    case "md":
+      return "w-44";
+    case "lg":
+      return "w-56";
+  }
+}
+
+export function getCompactPreviewWidthPx(size: CompactPreviewSize) {
+  switch (size) {
+    case "sm":
+      return 128;
+    case "md":
+      return 176;
+    case "lg":
+      return 224;
+  }
+}
 
 export const DEFAULT_COMPACT_INTERACTIONS: CompactInteractions = {
   hoverPreview: true,

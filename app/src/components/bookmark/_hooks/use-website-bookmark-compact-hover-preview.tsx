@@ -14,6 +14,12 @@ import {useFloatingHoverTooltip} from "@/lib/hooks/use-floating-hover-tooltip";
 import WebsiteBookmarkCompactHoverPreviewContent, {
   hasWebsiteBookmarkPreviewImage,
 } from "@/components/bookmark/_components/website/WebsiteBookmarkCompactHoverPreview";
+import {cn} from "@/lib/utils";
+import {
+  getCompactPreviewWidthClass,
+  getCompactPreviewWidthPx,
+  useViewOptionsStore,
+} from "@/store/use-view-options";
 
 type TriggerProps = {
   onMouseEnter: (event: MouseEvent<HTMLElement>) => void;
@@ -52,15 +58,26 @@ export function WebsiteBookmarkCompactHoverPreviewProvider({
   selectionMode?: boolean;
 }) {
   const [activeItem, setActiveItem] = useState<WebsiteBookmark | null>(null);
+  const compactInteractions = useViewOptionsStore((state) => state.compactInteractions);
+  const previewSize = compactInteractions.previewSize;
+  const previewWidth = getCompactPreviewWidthPx(previewSize);
   const {
     getTriggerProps: getBaseTriggerProps,
+    getTooltipProps,
+    hideImmediately,
     tooltipRef,
     tooltipStyle,
     visible,
   } = useFloatingHoverTooltip({
-    side: "left",
+    side: compactInteractions.previewPosition,
     offsetX: 12,
     offsetY: 0,
+    horizontalFallback: "center",
+    verticalAlign: "center",
+    tooltipFallbackWidth: previewWidth,
+    tooltipFallbackHeight: previewWidth * (9 / 16),
+    getCollisionRect: (trigger) =>
+      trigger.closest('[data-slot="scroll-area-viewport"]')?.getBoundingClientRect() ?? null,
   });
 
   const contextValue = useMemo<WebsiteBookmarkCompactHoverPreviewContextValue>(() => {
@@ -90,21 +107,31 @@ export function WebsiteBookmarkCompactHoverPreviewProvider({
     return {getTriggerProps};
   }, [getBaseTriggerProps]);
 
-  const showPreview = enabled && !selectionMode && visible && activeItem !== null;
+  const showPreview =
+    enabled && compactInteractions.hoverPreview && !selectionMode && visible && activeItem !== null;
 
   return (
     <WebsiteBookmarkCompactHoverPreviewContext.Provider value={contextValue}>
       {children}
       <div
         ref={tooltipRef}
-        aria-hidden
-        className="border-border/80 bg-background pointer-events-none fixed top-0 left-0 z-[9999] hidden w-44 overflow-hidden rounded-lg border lg:block"
+        {...getTooltipProps()}
+        className={cn(
+          "border-border/80 bg-background pointer-events-auto fixed top-0 left-0 z-[9999] hidden overflow-hidden rounded-lg border lg:block",
+          getCompactPreviewWidthClass(previewSize),
+        )}
         style={{
           ...tooltipStyle,
           transform: `translateY(-50%) scale(${visible && showPreview ? 1 : 0.98})`,
           visibility: showPreview ? "visible" : "hidden",
         }}>
-        {activeItem ? <WebsiteBookmarkCompactHoverPreviewContent item={activeItem} /> : null}
+        {activeItem ? (
+          <WebsiteBookmarkCompactHoverPreviewContent
+            item={activeItem}
+            previewSize={previewSize}
+            onOpenFullscreen={hideImmediately}
+          />
+        ) : null}
       </div>
     </WebsiteBookmarkCompactHoverPreviewContext.Provider>
   );
