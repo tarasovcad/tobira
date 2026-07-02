@@ -1,6 +1,10 @@
-import {fetchJsonWithTimeout, fetchTextWithTimeout, isRecord} from "./http";
-import {isHtmlContentType, looksLikeChallengeHtml, stripWrappingQuotes} from "./html";
-import {fetchHtmlViaFirecrawl} from "./screenshot";
+import {readTextWithLimit} from "./bounded-reader";
+import {browserManifestFetchHeaders, isRecord} from "./http";
+import {stripWrappingQuotes} from "./html";
+import {safeWebFetch} from "./safe-fetch";
+
+const MANIFEST_MAX_BYTES = 1024 * 1024;
+const MANIFEST_FETCH_TIMEOUT_MS = 6000;
 
 export type IconSource = "html" | "manifest" | "fallback";
 
@@ -27,7 +31,7 @@ function parseAttributes(tag: string) {
   return attrs;
 }
 
-function uniqByUrl<T extends {url: string}>(items: T[]) {
+export function dedupeFaviconCandidates<T extends {url: string}>(items: T[]) {
   const seen = new Set<string>();
   const out: T[] = [];
   for (const item of items) {
@@ -40,7 +44,7 @@ function uniqByUrl<T extends {url: string}>(items: T[]) {
 
 type ManifestIcon = {src: string; sizes?: string; type?: string};
 
-function parseManifestIcons(manifest: unknown): ManifestIcon[] {
+export function parseManifestIcons(manifest: unknown): ManifestIcon[] {
   if (!isRecord(manifest)) return [];
   if (!Array.isArray(manifest.icons)) return [];
 
@@ -56,13 +60,25 @@ function parseManifestIcons(manifest: unknown): ManifestIcon[] {
   return out;
 }
 
-async function discoverFromManifest(manifestUrl: string): Promise<BestIcon[]> {
-  const res = await fetchJsonWithTimeout(manifestUrl, 6000, {
-    userAgent: "void-enrich-bookmark/1.0",
-  });
-  if (!res.ok) return [];
+async function discoverFromManifest(manifestUrl: string, refererUrl?: string): Promise<BestIcon[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MANIFEST_FETCH_TIMEOUT_MS);
+  let manifestJson: unknown;
 
-  const manifestJson: unknown = await res.json();
+  try {
+    const res = await safeWebFetch(manifestUrl, {
+      method: "GET",
+      cache: "no-store",
+      headers: browserManifestFetchHeaders(manifestUrl, refererUrl),
+      signal: controller.signal,
+    });
+    if (!res.ok) return [];
+
+    manifestJson = JSON.parse(await readTextWithLimit(res, MANIFEST_MAX_BYTES));
+  } finally {
+    clearTimeout(timeout);
+  }
+
   const icons = parseManifestIcons(manifestJson);
 
   return icons
@@ -81,7 +97,7 @@ async function discoverFromManifest(manifestUrl: string): Promise<BestIcon[]> {
     .filter((icon): icon is NonNullable<typeof icon> => icon !== null);
 }
 
-function discoverFromHtml(html: string, baseUrl: string) {
+export function discoverFaviconCandidatesFromHtml(html: string, baseUrl: string) {
   // remove comments from html to prevent <link> tags from being ignored
   const cleanHtml = html.replace(/<!--[\s\S]*?-->/g, "");
   const icons: BestIcon[] = [];
@@ -140,7 +156,7 @@ function discoverFromHtml(html: string, baseUrl: string) {
   return {icons, manifestUrl, effectiveBase};
 }
 
-function fallbackCandidates(origin: string): BestIcon[] {
+export function buildFallbackFaviconCandidates(origin: string): BestIcon[] {
   return [
     "/apple-touch-icon-precomposed.png",
     "/apple-touch-icon.png",
@@ -183,79 +199,29 @@ export function selectBestFaviconIcon(icons: BestIcon[]) {
   );
 }
 
-export async function fetchFaviconCandidates(
-  url: string,
-  options?: {userAgent?: string; timeoutMs?: number},
-): Promise<{finalUrl?: string; baseUrl?: string; icons: BestIcon[]}> {
-  const timeoutMs = options?.timeoutMs ?? 8000;
-  const userAgent =
-    options?.userAgent ??
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
-
-  const origin = new URL(url).origin;
+export async function fetchBestFaviconFromHtml({
+  html,
+  baseUrl,
+  fallbackOriginUrl = baseUrl,
+}: {
+  html: string;
+  baseUrl: string;
+  fallbackOriginUrl?: string;
+}): Promise<BestIcon | null> {
+  const origin = new URL(fallbackOriginUrl).origin;
   const icons: BestIcon[] = [];
-  let finalUrl: string | undefined;
-  let baseUrl: string | undefined;
 
-  try {
-    const htmlRes = await fetchTextWithTimeout(url, timeoutMs, {userAgent});
-    finalUrl = htmlRes.url;
+  const discovered = discoverFaviconCandidatesFromHtml(html, baseUrl);
+  icons.push(...discovered.icons);
 
-    const contentType = htmlRes.headers.get("content-type") ?? "";
-    let html = "";
-    if (isHtmlContentType(contentType)) {
-      //  check if the response size is greater than 150kb and close the connection if so
-      if (htmlRes.body) {
-        const reader = htmlRes.body.getReader();
-        const decoder = new TextDecoder();
-        let bytesRead = 0;
-        const MAX_BYTES = 150 * 1024; // 150KB cap
-        while (true) {
-          const {done, value} = await reader.read();
-          if (value) {
-            html += decoder.decode(value, {stream: true});
-            bytesRead += value.length;
-          }
-          if (done || bytesRead >= MAX_BYTES) {
-            html += decoder.decode();
-            reader.cancel().catch(() => {});
-            break;
-          }
-        }
-      } else {
-        html = await htmlRes.text();
-      }
-    }
-
-    if (html && looksLikeChallengeHtml(html)) {
-      try {
-        html = (await fetchHtmlViaFirecrawl(url)).rawHtml;
-        finalUrl = url;
-      } catch {
-        // Firecrawl fallback failed; continue with whatever we got.
-      }
-    }
-
-    const discovered = discoverFromHtml(html, finalUrl || url);
-    baseUrl = discovered.effectiveBase;
-    icons.push(...discovered.icons);
-
-    if (discovered.manifestUrl) {
-      const manifestIcons = await discoverFromManifest(discovered.manifestUrl).catch(() => []);
-      icons.push(...manifestIcons);
-    }
-  } catch {
-    // ignore favicon fetch failures, fallbacks still apply
+  if (discovered.manifestUrl) {
+    const manifestIcons = await discoverFromManifest(
+      discovered.manifestUrl,
+      discovered.effectiveBase,
+    ).catch(() => []);
+    icons.push(...manifestIcons);
   }
 
-  icons.push(...fallbackCandidates(origin));
-  return {finalUrl, baseUrl, icons: uniqByUrl(icons)};
-}
-
-export async function fetchBestFaviconOne(
-  url: string,
-  options?: {userAgent?: string; timeoutMs?: number},
-): Promise<BestIcon | null> {
-  const {icons} = await fetchFaviconCandidates(url, options);
-  return selectBestFaviconIcon(icons);
+  icons.push(...buildFallbackFaviconCandidates(origin));
+  return selectBestFaviconIcon(dedupeFaviconCandidates(icons));
 }

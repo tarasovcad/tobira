@@ -3,6 +3,7 @@ import Spinner from "@/components/ui/app/spinner";
 import {Button} from "@/components/ui/coss/button";
 import {Button as ShadcnButton} from "@/components/ui/legacy-shadcn/button";
 import {parseAsStringLiteral, useQueryState} from "nuqs";
+import {FormProvider} from "react-hook-form";
 import {
   Dialog,
   DialogClose,
@@ -46,13 +47,7 @@ export function AddBookmarkDialog({
     mediaItems,
     selectedMediaUrls,
     toggleMediaUrl,
-    register,
-    control,
-    errors,
-    isValid,
-    trigger,
-    watchedUrl,
-    watchedType,
+    form,
     addItemMutation,
     collectionItems,
     tags,
@@ -102,51 +97,51 @@ export function AddBookmarkDialog({
             <DialogTitle>{step === 1 ? "Add Bookmark" : "Select Media"}</DialogTitle>
           </DialogHeader>
 
-          {step === 1 ? (
-            <div key="step1">
-              <AddBookmarkStep1Form
-                register={register}
-                control={control}
-                errors={errors}
-                trigger={trigger}
-                collectionItems={collectionItems}
-                tagNames={tagNames}
-                userAiContext={userAiContext ?? null}
-                watchedUrl={watchedUrl ?? ""}
-                watchedType={watchedType}
-                onValidSubmit={handleSubmitForm}
-              />
-            </div>
-          ) : (
-            <div key="step2">
-              <AddBookmarkStep2MediaGrid
-                mediaItems={mediaItems}
-                selectedMediaUrls={selectedMediaUrls}
-                onToggleMediaUrl={toggleMediaUrl}
-              />
-            </div>
-          )}
-
-          <DialogFooter>
-            <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
+          <FormProvider {...form}>
             {step === 1 ? (
-              <Button
-                type="submit"
-                form="add-item-form"
-                disabled={addItemMutation.isPending || !isValid}>
-                {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
-                Submit
-              </Button>
+              <div key="step1">
+                <AddBookmarkStep1Form
+                  collectionItems={collectionItems}
+                  tagNames={tagNames}
+                  userAiContext={userAiContext ?? null}
+                  onValidSubmit={handleSubmitForm}
+                />
+              </div>
             ) : (
-              <Button
-                type="button"
-                disabled={selectedMediaUrls.length === 0 || addItemMutation.isPending}
-                onClick={confirmMediaSelection}>
-                {addItemMutation.isPending && <Spinner className="mx-auto size-4 animate-spin" />}
-                Confirm
-              </Button>
+              <div key="step2">
+                <AddBookmarkStep2MediaGrid
+                  mediaItems={mediaItems}
+                  selectedMediaUrls={selectedMediaUrls}
+                  onToggleMediaUrl={toggleMediaUrl}
+                />
+              </div>
             )}
-          </DialogFooter>
+
+            <DialogFooter>
+              <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
+              {step === 1 ? (
+                <Button
+                  type="submit"
+                  form="add-item-form"
+                  disabled={addItemMutation.isPending || !form.formState.isValid}>
+                  {addItemMutation.isPending ? (
+                    <Spinner className="mx-auto size-4 animate-spin" />
+                  ) : null}
+                  Submit
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={selectedMediaUrls.length === 0 || addItemMutation.isPending}
+                  onClick={confirmMediaSelection}>
+                  {addItemMutation.isPending ? (
+                    <Spinner className="mx-auto size-4 animate-spin" />
+                  ) : null}
+                  Confirm
+                </Button>
+              )}
+            </DialogFooter>
+          </FormProvider>
         </DialogPopup>
       </Dialog>
     </div>

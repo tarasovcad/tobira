@@ -15,7 +15,10 @@ import {
 } from "@/features/all-items/components/all-items-list-view-options";
 import {AllItemsAnimatingPlaceholders} from "@/features/all-items/components/AllItemsAnimatingPlaceholders";
 import {AllItemsBookmarkRow} from "@/features/all-items/components/AllItemsBookmarkRow";
-import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
+import {
+  getAllItemsListLayoutConfig,
+  type AllItemsSurface,
+} from "@/features/all-items/components/all-items-list-layout";
 import {buildMediaGalleryEntries} from "@/components/bookmark/_utils/media-grid-render";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {getBookmarkMediaPreviewSizeForColumnSize} from "@/components/bookmark/_utils/media-grid-image-config";
@@ -44,7 +47,6 @@ interface AllItemsListProps {
   onOpenDetail?: (item: Bookmark) => void;
   animatingUrl: string | null;
   animatingItemCount: number;
-  animatingTags?: string[];
   pendingMediaItems?: BookmarkMediaItem[];
   resolvedBookmarks: Bookmark[];
   isInitialLoad: boolean;
@@ -52,17 +54,19 @@ interface AllItemsListProps {
   isFetchingNextPage: boolean;
   selectionMode: boolean;
   selectedIds: Set<string>;
-  removingIds: Map<string, "delete" | "archive">;
   scrollAreaRootRef: React.RefObject<HTMLDivElement | null>;
   bottomSentinelRef: React.RefObject<HTMLDivElement | null>;
   fetchNextPage: () => void;
   onTransitionDone: () => void;
-  onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
   onMenuArchive: (item: Bookmark) => void;
   onMenuDelete: (item: Bookmark) => void;
+  onRestore?: (item: Bookmark) => void;
+  onDeleteForever?: (item: Bookmark) => void;
   scrollTopPadding?: boolean;
+  actionsEnabled?: boolean;
+  itemSurface?: AllItemsSurface;
 }
 
 export function AllItemsList({
@@ -73,32 +77,34 @@ export function AllItemsList({
   onOpenDetail,
   animatingUrl,
   animatingItemCount,
-  animatingTags,
   pendingMediaItems,
   resolvedBookmarks,
   isFetchingNextPage,
   hasNextPage,
   selectionMode,
   selectedIds,
-  removingIds,
   scrollAreaRootRef,
   bottomSentinelRef,
   fetchNextPage,
   onTransitionDone,
-  onItemRemoved,
   toggleSelected,
   setSelected,
   onMenuArchive,
   onMenuDelete,
+  onRestore,
+  onDeleteForever,
   isInitialLoad,
   scrollTopPadding,
+  actionsEnabled = true,
+  itemSurface = "library",
 }: AllItemsListProps) {
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
   const applyScrollTopPadding =
     scrollTopPadding &&
     currentView !== "compact" &&
-    !(currentView === "list" && typeFilter === "website");
+    !(currentView === "list" && typeFilter === "website") &&
+    typeFilter !== "post";
 
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const columnSize = useViewOptionsStore((state) => state.columnSize);
@@ -127,6 +133,7 @@ export function AllItemsList({
         isMediaGrid,
         bookmarkWidth,
         typeFilter,
+        itemSurface,
       }),
     [
       borderRadiusClass,
@@ -137,6 +144,7 @@ export function AllItemsList({
       isMediaGrid,
       bookmarkWidth,
       typeFilter,
+      itemSurface,
     ],
   );
 
@@ -249,8 +257,6 @@ export function AllItemsList({
             : undefined
         }
         selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
-        isRemoving={removingIds.has(entry.item.id)}
-        removalKind={removingIds.get(entry.item.id) ?? "delete"}
         selectionMode={selectionMode}
         isSelected={selectedIds.has(entry.item.id)}
         animatedVariant={animatedVariant}
@@ -264,11 +270,13 @@ export function AllItemsList({
             ? "pt-6"
             : undefined
         }
-        onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
         onMenuArchive={onMenuArchive}
         onMenuDelete={onMenuDelete}
+        onRestore={onRestore}
+        onDeleteForever={onDeleteForever}
+        actionsEnabled={actionsEnabled}
       />
     ));
   }, [
@@ -282,11 +290,12 @@ export function AllItemsList({
     mediaGalleryEntries,
     mediaGalleryController,
     onOpenDetail,
-    onItemRemoved,
     onMenuArchive,
     onMenuDelete,
+    onRestore,
+    onDeleteForever,
+    actionsEnabled,
     applyScrollTopPadding,
-    removingIds,
     selectedIds,
     selectionMode,
     setSelected,
@@ -299,12 +308,11 @@ export function AllItemsList({
     <AllItemsAnimatingPlaceholders
       animatingUrl={animatingUrl}
       animatingItemCount={animatingItemCount}
-      animatingTags={animatingTags}
       pendingMediaItems={pendingMediaItems}
       resolvedBookmarks={resolvedBookmarks}
       flattenMediaBookmarks={isMediaGrid}
       onTransitionDone={onTransitionDone}
-      PlaceholderComponent={layoutConfig.NewBookmarkPlaceholder}
+      renderSkeletonItem={layoutConfig.renderSkeletonItem}
     />
   );
 

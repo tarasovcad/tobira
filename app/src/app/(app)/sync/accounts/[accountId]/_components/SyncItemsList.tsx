@@ -33,10 +33,8 @@ interface SyncItemsListProps {
   isFetchingNextPage: boolean;
   selectionMode: boolean;
   selectedIds: Set<string>;
-  removingIds: Map<string, "delete" | "archive">;
   scrollAreaRootRef: React.RefObject<HTMLDivElement | null>;
   bottomSentinelRef: React.RefObject<HTMLDivElement | null>;
-  onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
   onMenuExclude: (item: SyncItem) => void;
@@ -52,10 +50,8 @@ export function SyncItemsList({
   isFetchingNextPage,
   selectionMode,
   selectedIds,
-  removingIds,
   scrollAreaRootRef,
   bottomSentinelRef,
-  onItemRemoved,
   toggleSelected,
   setSelected,
   onMenuExclude,
@@ -133,17 +129,13 @@ export function SyncItemsList({
       <SyncItemRow
         key={entry.renderId}
         item={entry.item}
-        renderId={entry.renderId}
         mediaIndex={entry.mediaIndex}
         selectionIndex={getItemSelectionIndex(entry.bookmarkIndex)}
-        isRemoving={removingIds.has(entry.item.id)}
-        removalKind={removingIds.get(entry.item.id) ?? "delete"}
         selectionMode={selectionMode}
         isSelected={selectedIds.has(entry.item.id)}
         animatedVariant={animatedVariant}
         isMasonry={layoutConfig.isMasonry}
         BookmarkItem={bookmarkItemComponent}
-        onItemRemoved={onItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
         onMenuExclude={onMenuExclude}
@@ -158,11 +150,9 @@ export function SyncItemsList({
     bookmarkItemComponent,
     animatedVariant,
     getItemSelectionIndex,
-    onItemRemoved,
     onMenuExclude,
     onItemSave,
     onItemDismiss,
-    removingIds,
     selectedIds,
     selectionMode,
     setSelected,

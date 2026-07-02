@@ -9,6 +9,7 @@ export default function BookmarkHoverActions({
   onOptions,
   onSave,
   onDismiss,
+  size = "default",
 }: {
   className?: string;
   variant?: "default" | "glass";
@@ -17,6 +18,7 @@ export default function BookmarkHoverActions({
   onDelete?: () => void;
   onSave?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onDismiss?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  size?: "default" | "compact";
 }) {
   const stopNav = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -36,6 +38,7 @@ export default function BookmarkHoverActions({
       "bg-background text-foreground/90",
       "hover:bg-muted cursor-pointer",
       "outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0",
+      size === "compact" ? "size-7" : "size-8",
     );
   };
 

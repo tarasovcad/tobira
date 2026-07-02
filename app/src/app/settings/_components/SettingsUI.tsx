@@ -26,14 +26,21 @@ export const SettingsLabel = ({
   title,
   description,
   className,
+  inDevelopment,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   className?: string;
+  inDevelopment?: boolean;
 }) => {
   return (
     <div className={cn("space-y-0.5", className)}>
-      <Label>{title}</Label>
+      <div className="flex w-fit items-center gap-2">
+        <Label>{title}</Label>{" "}
+        {inDevelopment && (
+          <p className="text-muted-foreground text-base sm:text-sm">(Coming Soon)</p>
+        )}
+      </div>
       {description && <p className="text-muted-foreground max-w-[440px] text-sm">{description}</p>}
     </div>
   );

@@ -10,6 +10,12 @@ import type {SidebarTag} from "@/features/home/types";
 import {Skeleton} from "@/components/ui/app/skeleton";
 import {useHasMounted} from "@/lib/hooks/use-has-mounted";
 
+export const sidebarCollapseExitTransition = {
+  height: {duration: 0.24, ease: "easeOut"},
+  opacity: {duration: 0.18, ease: "easeOut"},
+  filter: {duration: 0.18, ease: "easeOut"},
+} as const;
+
 export function SidebarCollectionSkeleton({width}: {width?: string}) {
   return (
     <div className="flex w-full items-center gap-1 rounded-md px-3 py-[7.5px]">
@@ -54,7 +60,12 @@ export function SidebarCollectionItem({
       className={cn("relative focus-within:z-20", isActive ? "z-10" : "z-0")}
       initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-      exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+      exit={{
+        opacity: 0,
+        height: 0,
+        filter: "blur(8px)",
+        transition: sidebarCollapseExitTransition,
+      }}
       transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
       <ContextMenu>
         <ContextMenuTrigger
@@ -138,7 +149,12 @@ export function SidebarTagItem({tag, isActive, onCopy, onContextMenuDelete}: Sid
       layout="position"
       initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
       animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-      exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+      exit={{
+        opacity: 0,
+        height: 0,
+        filter: "blur(8px)",
+        transition: sidebarCollapseExitTransition,
+      }}
       transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
       <ContextMenu>
         <ContextMenuTrigger

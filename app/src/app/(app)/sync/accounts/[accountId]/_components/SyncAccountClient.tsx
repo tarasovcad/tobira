@@ -220,16 +220,15 @@ export function SyncAccountClient({typeFilter}: SyncAccountClientProps) {
   const [statusFilter, setStatusFilter] = useState<SyncStatusFilter>("all");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [removingIds] = useState<Map<string, "delete" | "archive">>(new Map());
 
   const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
   const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
 
   const visibleItems = useMemo(() => {
-    const items = [...FAKE_SYNC_ITEMS].filter((item) => !removingIds.has(item.id));
+    const items = [...FAKE_SYNC_ITEMS];
     if (sort === "oldest") return items.reverse();
     return items;
-  }, [sort, removingIds]);
+  }, [sort]);
 
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -251,14 +250,6 @@ export function SyncAccountClient({typeFilter}: SyncAccountClientProps) {
       } else {
         next.delete(id);
       }
-      return next;
-    });
-  }, []);
-
-  const handleItemRemoved = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
       return next;
     });
   }, []);
@@ -330,10 +321,8 @@ export function SyncAccountClient({typeFilter}: SyncAccountClientProps) {
         isFetchingNextPage={false}
         selectionMode={selectionMode}
         selectedIds={selectedIds}
-        removingIds={removingIds}
         scrollAreaRootRef={scrollAreaRootRef}
         bottomSentinelRef={bottomSentinelRef}
-        onItemRemoved={handleItemRemoved}
         toggleSelected={toggleSelected}
         setSelected={setSelected}
         onMenuExclude={handleMenuExclude}

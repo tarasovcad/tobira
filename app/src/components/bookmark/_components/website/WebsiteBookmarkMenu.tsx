@@ -23,27 +23,32 @@ import {
 } from "@/components/ui/coss/combobox";
 import {SelectButton, Select} from "@/components/ui/coss/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks/update";
-import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
+import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-url";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import WebsiteBookmarkPreviewDialog from "./WebsiteBookmarkPreviewDialog";
 import Spinner from "@/components/ui/app/spinner";
 import {useBookmarkForm} from "../../_hooks/use-bookmark-form";
 import {useBookmarkMenuPreviewClick} from "../../_hooks/use-bookmark-menu-preview-click";
+import {useWebsiteBookmarkMenu} from "../../_hooks/use-website-bookmark-menu";
 import {BookmarkFormValues, normalizeTagsForCompare} from "../../_utils/bookmark-schema";
 import {useBookmarkMutations} from "../../_hooks/use-bookmark-mutations";
 import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
 import WebsiteBookmarkMenuImage from "./WebsiteBookmarkMenuImage";
+import WebsiteBookmarkTitle from "./WebsiteBookmarkTitle";
+import {TextShimmer} from "@/components/ui/app/text-shimmer";
 
 const MAX_DESCRIPTION_LENGTH = 280;
 
 function BookmarkDescriptionField({
   control,
   error,
+  readOnly,
 }: {
   control: ReturnType<typeof useBookmarkForm>["form"]["control"];
   error?: string;
+  readOnly?: boolean;
 }) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
@@ -82,6 +87,7 @@ function BookmarkDescriptionField({
             {...field}
             unstyled
             spellCheck={false}
+            readOnly={readOnly}
             value={description}
             onChange={(e) => field.onChange(e.target.value)}
             error={error}
@@ -94,14 +100,16 @@ function BookmarkDescriptionField({
 }
 
 export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
-  const item = useBookmarkMenuStore((state) => state.item);
-  const open = useBookmarkMenuStore((state) => state.isOpen);
-  const onDelete = useBookmarkMenuStore((state) => state.onDelete);
-  const onArchive = useBookmarkMenuStore((state) => state.onArchive);
-  const setMenuOpen = useBookmarkMenuStore((state) => state.setMenuOpen);
-  const setMenuItem = useBookmarkMenuStore((state) => state.setItem);
-  const websiteItem = item?.kind === "website" ? item : undefined;
-  const isOpen = open && !!websiteItem;
+  const {
+    websiteItem,
+    isOpen,
+    isSaving,
+    metadataLoading,
+    fieldsLocked,
+    onDelete,
+    onArchive,
+    setMenuOpen,
+  } = useWebsiteBookmarkMenu();
   const canClickMediaPreview = useBookmarkMenuPreviewClick(isOpen, websiteItem?.id);
 
   const data = useMemo(() => {
@@ -164,28 +172,18 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
     }
   }, [isOpen]);
 
-  const {updateMutation, archiveMutation, resetMutation} = useBookmarkMutations({
+  const {updateMutation, archiveMutation} = useBookmarkMutations({
     onOpenChange: setMenuOpen,
     originalValues,
     setOriginalValues,
     form,
-    onItemReset: ({title, description, updatedAt}) => {
-      if (!websiteItem) return;
-      setMenuItem({
-        ...websiteItem,
-        title,
-        description,
-        updated_at: updatedAt,
-      });
-    },
   });
   const {mutate: updateBookmark, isPending: isUpdating} = updateMutation;
   const {mutate: archiveBookmark, isPending: isArchiving} = archiveMutation;
-  const {mutate: resetBookmark, isPending: isResetting} = resetMutation;
 
   const onSubmit = useCallback(
     (values: BookmarkFormValues) => {
-      if (!websiteItem) return;
+      if (!websiteItem || isSaving) return;
 
       const updates: UpdateBookmarkData = {};
 
@@ -219,43 +217,42 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
       updateBookmark({bookmarkId: websiteItem.id, updates});
     },
-    [originalValues, updateBookmark, websiteItem],
+    [isSaving, originalValues, updateBookmark, websiteItem],
   );
-
-  const handleReset = useCallback(() => {
-    if (websiteItem) {
-      resetBookmark(websiteItem.id);
-    }
-  }, [resetBookmark, websiteItem]);
 
   const handleClearChanges = useCallback(() => {
     reset(originalValues);
   }, [originalValues, reset]);
 
   const handleArchive = useCallback(() => {
-    if (websiteItem) {
-      if (onArchive) {
-        onArchive(websiteItem);
-      } else {
-        archiveBookmark(websiteItem.id);
-      }
+    if (!websiteItem || isSaving) return;
+
+    if (onArchive) {
+      onArchive(websiteItem);
+    } else {
+      archiveBookmark(websiteItem.id);
     }
-  }, [archiveBookmark, onArchive, websiteItem]);
+  }, [archiveBookmark, isSaving, onArchive, websiteItem]);
 
   const handleDelete = useCallback(() => {
-    if (websiteItem && onDelete) {
-      onDelete(websiteItem);
-    }
-  }, [onDelete, websiteItem]);
+    if (!websiteItem || isSaving || !onDelete) return;
+    onDelete(websiteItem);
+  }, [isSaving, onDelete, websiteItem]);
 
   const websiteImages = isWebsiteImages(websiteItem?.images) ? websiteItem.images : undefined;
 
   const ogImageUrl = websiteImages?.og?.key
-    ? `${buildR2PublicUrl(websiteImages.og.key)}?size=medium`
+    ? buildWebsiteAssetUrl(buildR2PublicUrl(websiteImages.og.key), {
+        size: "medium",
+        fetchedAt: websiteImages.og.fetchedAt,
+      })
     : "";
 
   const previewImageUrl = websiteImages?.preview?.key
-    ? `${buildR2PublicUrl(websiteImages.preview.key)}?size=medium`
+    ? buildWebsiteAssetUrl(buildR2PublicUrl(websiteImages.preview.key), {
+        size: "medium",
+        fetchedAt: websiteImages.preview.fetchedAt,
+      })
     : "";
 
   const handlePreviewClick = useCallback(() => {
@@ -274,14 +271,12 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
       isArchiving,
       kind: "website" as const,
       onPreviewClick: handlePreviewClick,
-      onReset: handleReset,
-      isResetting,
       onDelete: handleDelete,
     }),
-    [handleArchive, isArchiving, handlePreviewClick, handleReset, isResetting, handleDelete],
+    [handleArchive, isArchiving, handlePreviewClick, handleDelete],
   );
 
-  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isResetting;
+  const disableSubmit = !hasChanges || !isValid || isUpdating || isArchiving || isSaving;
 
   return (
     <>
@@ -317,21 +312,31 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                 <div className="p-6">
                   <SheetHeader className="p-0">
                     <SheetTitle className="contents">
-                      <Controller
-                        name="title"
-                        control={control}
-                        render={({field}) => (
-                          <Textarea
-                            {...field}
-                            unstyled
-                            spellCheck={false}
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            error={errors.title?.message}
-                            className="text-foreground flex w-full bg-transparent p-0 text-lg font-[550] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
-                          />
-                        )}
-                      />
+                      {metadataLoading && !websiteItem?.title?.trim() ? (
+                        <WebsiteBookmarkTitle
+                          title={websiteItem?.title}
+                          url={websiteItem?.url ?? ""}
+                          textMetadataStatus={websiteItem?.metadata?.textMetadataStatus}
+                          className="text-foreground text-lg font-[550]"
+                        />
+                      ) : (
+                        <Controller
+                          name="title"
+                          control={control}
+                          render={({field}) => (
+                            <Textarea
+                              {...field}
+                              unstyled
+                              spellCheck={false}
+                              readOnly={fieldsLocked}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              error={errors.title?.message}
+                              className="text-foreground flex w-full bg-transparent p-0 text-lg font-[550] outline-none [&_textarea]:min-h-0 [&_textarea]:resize-none [&_textarea]:p-0"
+                            />
+                          )}
+                        />
+                      )}
                     </SheetTitle>
                   </SheetHeader>
 
@@ -341,11 +346,18 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                 <Separator />
 
                 <div className="p-6">
-                  <BookmarkDescriptionField
-                    key={`${websiteItem?.id ?? "none"}:${isOpen ? "open" : "closed"}`}
-                    control={control}
-                    error={errors.description?.message}
-                  />
+                  {metadataLoading && !websiteItem?.description ? (
+                    <div className="text-muted-foreground text-[15px]">
+                      <TextShimmer>Loading...</TextShimmer>
+                    </div>
+                  ) : (
+                    <BookmarkDescriptionField
+                      key={`${websiteItem?.id ?? "none"}:${isOpen ? "open" : "closed"}`}
+                      control={control}
+                      error={errors.description?.message}
+                      readOnly={fieldsLocked}
+                    />
+                  )}
                 </div>
 
                 <Separator />
@@ -465,10 +477,10 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
                   variant="ghost"
                   type="button"
                   onClick={handleClearChanges}
-                  disabled={isResetting || !hasChanges}>
+                  disabled={!hasChanges}>
                   Cancel
                 </Button>
-                <Button variant="default" type="submit" disabled={disableSubmit || isResetting}>
+                <Button variant="default" type="submit" disabled={disableSubmit}>
                   {isUpdating && <Spinner className="size-4" />}
                   Save
                 </Button>

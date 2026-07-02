@@ -45,6 +45,9 @@ export function useBookmarksMutations({
       )?.selectedMediaItems,
       resultMediaItems: (m.state.data as {mediaItems?: BookmarkMediaItem[]} | undefined)
         ?.mediaItems,
+      renderedOptimistically: Boolean(
+        (m.state.context as {optimisticBookmarkId?: string} | undefined)?.optimisticBookmarkId,
+      ),
       hasMultipleMediaOptions:
         Array.isArray((m.state.data as {media?: string[]} | undefined)?.media) &&
         ((m.state.data as {media?: string[]} | undefined)?.media?.length ?? 0) > 1,
@@ -80,23 +83,12 @@ export function useBookmarksMutations({
     .filter((v): v is string | string[] => !!v)
     .flat();
 
-  // ── Exit-animation state ──
-  const [animatedOutIds, setAnimatedOutIds] = useState<Set<string>>(new Set());
-
   const removingIds = useMemo(() => {
-    const archives = archivingIds
-      .filter((id) => !animatedOutIds.has(id))
-      .map((id) => [id, "archive"] as const);
-    const deletes = deletingIds
-      .filter((id) => !animatedOutIds.has(id))
-      .map((id) => [id, "delete"] as const);
+    const archives = archivingIds.map((id) => [id, "archive"] as const);
+    const deletes = deletingIds.map((id) => [id, "delete"] as const);
 
     return new Map([...archives, ...deletes]);
-  }, [animatedOutIds, archivingIds, deletingIds]);
-
-  const handleItemRemoved = useCallback((id: string) => {
-    setAnimatedOutIds((prev) => new Set(prev).add(id));
-  }, []);
+  }, [archivingIds, deletingIds]);
 
   // ── New-bookmark animation state ──
   const [animatingUrl, setAnimatingUrl] = useState<string | null>(null);
@@ -121,13 +113,17 @@ export function useBookmarksMutations({
 
   if (
     animatingUrl !== null &&
-    (!latestAddAppliesToCurrentFilter || isError || wasMediaPhase1Aborted)
+    (!latestAddAppliesToCurrentFilter ||
+      isError ||
+      wasMediaPhase1Aborted ||
+      latestAdd?.renderedOptimistically)
   ) {
     setAnimatingUrl(null);
   } else if (
     inputUrl &&
     shouldAnimateLatestAdd &&
     animatingUrl !== inputUrl &&
+    !latestAdd?.renderedOptimistically &&
     ((isPending && !isMediaPhase1Pending) || isSingleMediaSuccess)
   ) {
     setAnimatingUrl(inputUrl);
@@ -138,11 +134,13 @@ export function useBookmarksMutations({
       ? latestAdd?.selectedMediaUrls?.length || 1
       : 1;
 
-  const resolvedBookmarks = useMemo(() => {
+  const rawResolvedBookmarks = useMemo(() => {
     const ids = latestAdd?.resultIds ?? [];
     if (!animatingUrl || !ids.length) return [];
     return allBookmarks.filter((b) => ids.includes(b.id)).slice(0, animatingItemCount);
   }, [animatingUrl, latestAdd?.resultIds, allBookmarks, animatingItemCount]);
+
+  const resolvedBookmarks = rawResolvedBookmarks;
 
   const pendingMediaItems =
     animatingUrl === inputUrl && latestAdd?.kind === "media"
@@ -186,9 +184,6 @@ export function useBookmarksMutations({
     },
   });
 
-  const animatingTags =
-    animatingUrl && animatingUrl === inputUrl ? latestAdd?.inputTags : undefined;
-
   return {
     latestAdd,
     isPending,
@@ -196,11 +191,8 @@ export function useBookmarksMutations({
     inputUrl,
     latestAddAppliesToCurrentFilter,
     removingIds,
-    animatedOutIds,
-    handleItemRemoved,
     animatingUrl,
     animatingItemCount,
-    animatingTags,
     pendingMediaItems,
     resolvedBookmarks,
     handleTransitionDone,

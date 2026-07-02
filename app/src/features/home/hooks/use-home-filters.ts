@@ -5,14 +5,15 @@ import {usePathname} from "next/navigation";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {getBookmarkWorkspaceScope, type SortMode, type TypeFilter} from "@/features/home/types";
 import {getDefaultAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
-import {homeFilterParsers} from "@/lib/query-params";
+import {binFilterParsers, homeFilterParsers} from "@/lib/query-params";
 
-export function useHomeFilters() {
+export function useHomeFilters({bin = false}: {bin?: boolean} = {}) {
   const pathname = usePathname();
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
+  const parsers = bin ? binFilterParsers : homeFilterParsers;
   const [{type, sort}, setHomeFilters] = useQueryStates({
-    type: homeFilterParsers.type,
-    sort: homeFilterParsers.sort,
+    type: parsers.type,
+    sort: parsers.sort,
   });
 
   const pathCollectionId = pathname.startsWith("/collections/")

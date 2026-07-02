@@ -42,10 +42,15 @@ export function WebsiteSkeletonTable() {
 }
 
 export function WebsiteSkeletonCompact() {
-  const {contentToggles} = useViewOptionsStore();
+  const contentToggles = useViewOptionsStore((state) => state.contentToggles);
+  const isFullWidth = useViewOptionsStore((state) => state.bookmarkWidthByType.website === "full");
 
   return (
-    <div className="flex w-full items-center gap-3 border-b px-5 py-2.5 pr-12">
+    <div
+      className={cn(
+        "flex w-full items-center gap-3 border-b px-5 py-2.5",
+        isFullWidth ? "pr-14" : "pr-12",
+      )}>
       <div className="flex shrink-0 items-center">
         <Skeleton className="size-[18px] rounded-none" />
       </div>

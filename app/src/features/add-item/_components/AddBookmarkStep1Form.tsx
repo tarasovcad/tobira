@@ -1,13 +1,7 @@
 "use client";
 
 import type {BaseSyntheticEvent} from "react";
-import {
-  Controller,
-  type Control,
-  type FieldErrors,
-  type UseFormRegister,
-  type UseFormTrigger,
-} from "react-hook-form";
+import {Controller, useFormContext, useWatch} from "react-hook-form";
 import {SearchIcon} from "lucide-react";
 import TagsInput from "@/components/ui/app/tags-input";
 import {Input} from "@/components/ui/coss/input";
@@ -37,33 +31,30 @@ import type {AddBookmarkFormValues} from "../add-bookmark-schema";
 type CollectionOption = {label: string; value: string};
 
 type AddBookmarkStep1FormProps = {
-  register: UseFormRegister<AddBookmarkFormValues>;
-  control: Control<AddBookmarkFormValues>;
-  errors: FieldErrors<AddBookmarkFormValues>;
-  trigger: UseFormTrigger<AddBookmarkFormValues>;
   collectionItems: CollectionOption[];
   tagNames: string[];
   userAiContext: string | null;
-  watchedUrl: string;
-  watchedType: AddBookmarkFormValues["type"];
   onValidSubmit: (e?: BaseSyntheticEvent) => Promise<void>;
 };
 
 export function AddBookmarkStep1Form({
-  register,
-  control,
-  errors,
-  trigger,
   collectionItems,
   tagNames,
   userAiContext,
-  watchedUrl,
-  watchedType,
   onValidSubmit,
 }: AddBookmarkStep1FormProps) {
+  const {
+    register,
+    control,
+    trigger,
+    formState: {errors},
+  } = useFormContext<AddBookmarkFormValues>();
+  const watchedUrl = useWatch({control, name: "url"});
+  const watchedType = useWatch({control, name: "type"});
+
   return (
     <DialogPanel>
-      <form id="add-item-form" className="flex flex-col gap-5" onSubmit={onValidSubmit}>
+      <form id="add-item-form" className="flex flex-col gap-5" onSubmit={onValidSubmit} noValidate>
         <div className="flex flex-col gap-2">
           <Label htmlFor="url">URL</Label>
           <Input
@@ -162,7 +153,7 @@ export function AddBookmarkStep1Form({
               availableTags={tagNames}
               userTags={tagNames}
               userAiContext={userAiContext}
-              sourceUrl={watchedUrl}
+              sourceUrl={watchedUrl ?? ""}
               itemType={watchedType}
             />
           )}

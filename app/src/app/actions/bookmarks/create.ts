@@ -1,20 +1,19 @@
 "use server";
 
 import {Client} from "@upstash/qstash";
-import {randomUUID} from "crypto";
 import {eq} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks, bookmarkCollections} from "@/db/schema";
+import {bookmarks} from "@/db/schema";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
-import {fetchUrlMetadata, type UrlMetadataResult} from "@/lib/bookmarks/metadata";
 import {prepareMediaBookmark} from "./prepareMediaBookmark";
 import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
-import {buildWebsiteImages} from "@/features/media/utils";
-import {attachTagsToBookmark} from "@/lib/bookmarks/tags";
+import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
+import {createWebsiteBookmark} from "@/lib/bookmarks/website/create";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import {assertWebsiteUrl} from "@/lib/fetch/web/website-url";
+import {enforceWebsiteBookmarkCreateRateLimit} from "@/lib/rate-limit/website-bookmarks";
 import {logger} from "@/lib/shared/logger";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
-export type {UrlMetadataResult} from "@/lib/bookmarks/metadata";
 
 export type AddWebsiteBookmarkResult = {
   ok: true;
@@ -47,94 +46,26 @@ export async function addWebsiteBookmark(input: {
   collectionId?: string;
   kind: "website";
 }): Promise<AddWebsiteBookmarkResult> {
-  const addWebsiteBookmarkStart = performance.now();
-  const timingsMs: Record<string, number> = {};
   const userId = await requireAuthenticatedUserId();
 
   let normalized: URL;
   try {
     normalized = normalizeInputUrl(input.url);
+    assertWebsiteUrl(normalized);
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : "Invalid url");
   }
 
-  let metadata: UrlMetadataResult;
-  try {
-    const fetchUrlMetadataStart = performance.now();
-    metadata = await fetchUrlMetadata(normalized, input.url);
-    timingsMs.fetchUrlMetadata = Number((performance.now() - fetchUrlMetadataStart).toFixed(2));
-  } catch (error) {
-    throw new Error(error instanceof Error ? error.message : "Failed to fetch metadata");
-  }
+  await enforceWebsiteBookmarkCreateRateLimit(userId);
 
-  const bookmarkId = randomUUID();
-  const buildWebsiteImagesStart = performance.now();
-  const images = await buildWebsiteImages(normalized.toString());
-  timingsMs.buildWebsiteImages = Number((performance.now() - buildWebsiteImagesStart).toFixed(2));
-
-  const dbInsertStart = performance.now();
-  await db.insert(bookmarks).values({
-    id: bookmarkId,
-    url: normalized.toString(),
-    title: metadata.title ?? null,
+  const bookmark = await createWebsiteBookmark({
+    normalizedUrl: normalized,
     userId,
-    description: metadata.description ?? null,
-    kind: "website",
-    images,
-  });
-  timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
-
-  const attachments: Promise<unknown>[] = [];
-
-  if (input.tags && input.tags.length > 0) {
-    attachments.push(
-      (async () => {
-        try {
-          await attachTagsToBookmark(bookmarkId, userId, input.tags!);
-        } catch (error) {
-          console.error("Failed to attach tags to bookmark:", error);
-        }
-      })(),
-    );
-  }
-
-  if (input.collectionId) {
-    attachments.push(
-      (async () => {
-        try {
-          await db.insert(bookmarkCollections).values({
-            bookmarkId,
-            collectionId: input.collectionId!,
-          });
-        } catch (error) {
-          console.error("Failed to attach bookmark to collection:", error);
-        }
-      })(),
-    );
-  }
-
-  await Promise.all(attachments);
-
-  const qstashPublishStart = performance.now();
-  qstash.publishJSON({
-    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark`,
-    body: {url: normalized.toString(), id: bookmarkId},
-    idempotencyKey: `bookmark-${bookmarkId}`,
-    headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
-    timeout: 30,
-  });
-  timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
-  timingsMs.totalAddWebsiteBookmark = Number(
-    (performance.now() - addWebsiteBookmarkStart).toFixed(2),
-  );
-
-  logger.info("addWebsiteBookmark timings", {
-    bookmarkId,
-    url: normalized.toString(),
-    timingsMs,
+    tags: input.tags,
+    collectionId: input.collectionId,
   });
 
-  return {ok: true, url: normalized.toString(), id: bookmarkId};
+  return {ok: true, ...bookmark};
 }
 
 export async function addMediaBookmark(input: {
@@ -183,46 +114,20 @@ export async function addMediaBookmark(input: {
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
-  const attachments: Promise<unknown>[] = [];
-
-  if (input.collectionId) {
-    attachments.push(
-      (async () => {
-        try {
-          await db
-            .insert(bookmarkCollections)
-            .values({
-              bookmarkId: prepared.bookmarkId,
-              collectionId: input.collectionId!,
-            })
-            .onConflictDoNothing();
-        } catch (error) {
-          console.error("Failed to attach media bookmark to collection:", error);
-        }
-      })(),
-    );
-  }
-
-  if (input.tags && input.tags.length > 0) {
-    attachments.push(
-      (async () => {
-        try {
-          await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags!);
-        } catch (error) {
-          console.error("Failed to attach tags to media bookmark:", error);
-        }
-      })(),
-    );
-  }
-
-  await Promise.all(attachments);
+  await attachBookmarkRelations({
+    bookmarkId: prepared.bookmarkId,
+    userId,
+    tags: input.tags,
+    collectionId: input.collectionId,
+    kind: "media",
+  });
 
   const qstashPublishStart = performance.now();
   try {
     await qstash.publishJSON({
       url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-media-bookmark`,
       body: {id: prepared.bookmarkId},
-      idempotencyKey: `media-bookmark-${prepared.bookmarkId}`,
+      deduplicationId: `media-bookmark-${prepared.bookmarkId}`,
       headers: {"x-job-type": "process-media-bookmark"},
       timeout: 120,
     });
@@ -278,39 +183,13 @@ export async function addPostBookmark(input: {
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
   timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
-  const attachments: Promise<unknown>[] = [];
-
-  if (input.tags && input.tags.length > 0) {
-    attachments.push(
-      (async () => {
-        try {
-          await attachTagsToBookmark(prepared.bookmarkId, userId, input.tags!);
-        } catch (error) {
-          console.error("Failed to attach tags to post bookmark:", error);
-        }
-      })(),
-    );
-  }
-
-  if (input.collectionId) {
-    attachments.push(
-      (async () => {
-        try {
-          await db
-            .insert(bookmarkCollections)
-            .values({
-              bookmarkId: prepared.bookmarkId,
-              collectionId: input.collectionId!,
-            })
-            .onConflictDoNothing();
-        } catch (error) {
-          console.error("Failed to attach post bookmark to collection:", error);
-        }
-      })(),
-    );
-  }
-
-  await Promise.all(attachments);
+  await attachBookmarkRelations({
+    bookmarkId: prepared.bookmarkId,
+    userId,
+    tags: input.tags,
+    collectionId: input.collectionId,
+    kind: "post",
+  });
 
   if (prepared.bookmarkToInsert.images.processing) {
     const qstashPublishStart = performance.now();
@@ -318,7 +197,7 @@ export async function addPostBookmark(input: {
       await qstash.publishJSON({
         url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-post-media`,
         body: {id: prepared.bookmarkId},
-        idempotencyKey: `post-media-${prepared.bookmarkId}`,
+        deduplicationId: `post-media-${prepared.bookmarkId}`,
         headers: {"x-job-type": "process-post-media"},
         timeout: 120,
       });

@@ -30,26 +30,34 @@ export default function WebsiteBookmarkCompact({
   isSelected = false,
   setSelected,
 }: BookmarkItemProps) {
-  const {contentToggles} = useViewOptionsStore();
+  const contentToggles = useViewOptionsStore((state) => state.contentToggles);
+  const isFullWidth = useViewOptionsStore((state) => state.bookmarkWidthByType.website === "full");
 
   return (
     <Link
       href={item.url}
       target="_blank"
       className={cn(
-        "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 pr-12 text-left",
+        "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 text-left",
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         isSelected && "bg-muted",
+        item.metadata?.textMetadataStatus === "failed" && "opacity-70",
         className,
+        isFullWidth ? "pr-14" : "pr-12",
         "transition-none!",
       )}>
       <BookmarkHoverActions
-        className={cn("top-1.5 right-2", selectionModeHoverActionsClass)}
+        className={cn(
+          "top-1.5",
+          isFullWidth ? "right-4" : "right-2",
+          selectionModeHoverActionsClass,
+        )}
         onOptions={() => onOpenMenu?.(item)}
+        size="compact"
       />
 
-      <div className="bg- flex shrink-0 items-center self-stretch">
+      <div className="flex shrink-0 items-center self-stretch">
         <BookmarkSelectionCheckbox
           itemId={item.id}
           title={item.title}
@@ -62,6 +70,8 @@ export default function WebsiteBookmarkCompact({
           url={item?.images?.favicon?.key ?? ""}
           bookmarkUrl={item.url}
           variant="compact"
+          status={item?.images?.favicon?.status}
+          fetchedAt={item?.images?.favicon?.fetchedAt}
         />
       </div>
 
@@ -69,6 +79,7 @@ export default function WebsiteBookmarkCompact({
         title={item.title}
         url={item.url}
         createdAt={item.created_at}
+        textMetadataStatus={item.metadata?.textMetadataStatus}
         titleClassName="text-foreground min-w-0 flex-1 truncate text-[13.5px]"
       />
 

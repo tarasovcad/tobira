@@ -91,7 +91,12 @@ export async function generateAiSuggestions(
   }
 
   const metadataStartedAt = performance.now();
-  const metadata = await fetchUrlMetadata(normalizedUrl, input.url);
+  let metadata;
+  try {
+    metadata = await fetchUrlMetadata(normalizedUrl, input.url);
+  } catch {
+    return {suggestions: []};
+  }
   const metadataDurationMs = performance.now() - metadataStartedAt;
   const title = metadata.title?.trim();
   const description = metadata.description?.trim();

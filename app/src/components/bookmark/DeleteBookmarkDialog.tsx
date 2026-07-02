@@ -59,16 +59,17 @@ export function DeleteBookmarkDialog() {
     if (items.length === 0) return;
 
     const ids = items.map((item) => item.id);
+    const deletedCount = count;
+
+    closeDialog();
+    onDeleted?.();
 
     deleteMutation.mutate(ids, {
       onSuccess: () => {
         toastManager.add({
-          title: count === 1 ? "Bookmark deleted" : `${count} bookmarks deleted`,
+          title: deletedCount === 1 ? "Bookmark deleted" : `${deletedCount} bookmarks deleted`,
           type: "success",
         });
-
-        closeDialog();
-        onDeleted?.();
       },
     });
   };

@@ -7,10 +7,9 @@ import type {Bookmark} from "@/components/bookmark/types";
 import type {AllItemsView} from "./all-items-list-view-options";
 import type {BookmarkWidth} from "@/store/use-view-options";
 import type {TypeFilter} from "@/features/home/types";
-import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
+import BinMediaBookmarkGrid from "@/features/bin/components/items/BinMediaBookmarkGrid";
+import BinPostBookmarkList from "@/features/bin/components/items/BinPostBookmarkList";
 import MediaBookmarkGrid from "@/components/bookmark/_components/media/MediaBookmarkGrid";
-import MediaBookmarkPlaceholderGrid from "@/components/bookmark/_components/media/MediaBookmarkPlaceholderGrid";
-import WebsiteBookmarkPlaceholderGrid from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderGrid";
 import WebsiteBookmarkGrid from "@/components/bookmark/_components/website/WebsiteBookmarkGrid";
 import {
   MediaSkeletonGrid,
@@ -21,22 +20,24 @@ import {
   WebsiteSkeletonTable,
 } from "@/components/bookmark/_components/shared/BookmarkSkeletons";
 import WebsiteBookmarkTable from "@/components/bookmark/_components/website/WebsiteBookmarkTable";
-import WebsiteBookmarkPlaceholderTable from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderTable";
 import WebsiteBookmarkCompact from "@/components/bookmark/_components/website/WebsiteBookmarkCompact";
-import WebsiteBookmarkPlaceholderCompact from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderCompact";
 import WebsiteBookmarkList from "@/components/bookmark/_components/website/WebsiteBookmarkList";
-import WebsiteBookmarkPlaceholderList from "@/components/bookmark/_components/website/WebsiteBookmarkPlaceholderList";
 import PostBookmarkList from "@/components/bookmark/_components/post/PostBookmarkList";
-import PostBookmarkPlaceholderList from "@/components/bookmark/_components/post/PostBookmarkPlaceholderList";
+import BinWebsiteBookmarkCompact from "@/features/bin/components/items/BinWebsiteBookmarkCompact";
+import BinWebsiteBookmarkGrid from "@/features/bin/components/items/BinWebsiteBookmarkGrid";
+import BinWebsiteBookmarkList from "@/features/bin/components/items/BinWebsiteBookmarkList";
 import type {MediaGalleryController} from "@/features/media/hooks/useMediaGalleryController";
 
 export type AllItemsAnimatedVariant = "list" | "grid";
+export type AllItemsSurface = "library" | "bin";
 
 export interface AllItemsBookmarkComponentProps {
   item: Bookmark;
   onOpenDetail?: (item: Bookmark) => void;
   onOpenMenu?: (item: Bookmark) => void;
   onDelete?: (item: Bookmark) => void;
+  onRestore?: (item: Bookmark) => void;
+  onDeleteForever?: (item: Bookmark) => void;
   onSave?: (item: Bookmark) => void;
   onDismiss?: (item: Bookmark) => void;
   className?: string;
@@ -54,15 +55,6 @@ export interface AllItemsBookmarkComponentProps {
 
 export type AllItemsBookmarkComponent = React.ComponentType<AllItemsBookmarkComponentProps>;
 
-export interface AllItemsNewBookmarkPlaceholderProps {
-  url: string;
-  bookmark: Bookmark | null;
-  mediaIndex?: number;
-  pendingMediaItem?: BookmarkMediaItem;
-  onDone: () => void;
-  tags?: string[];
-}
-
 export interface AllItemsListLayoutConfig {
   wrapperClassName: string;
   containerClassName: string;
@@ -72,7 +64,6 @@ export interface AllItemsListLayoutConfig {
   isTable: boolean;
   isMasonry: boolean;
   BookmarkItem: AllItemsBookmarkComponent;
-  NewBookmarkPlaceholder: React.ComponentType<AllItemsNewBookmarkPlaceholderProps>;
   renderSkeletonItem: (index: number) => React.ReactNode;
 }
 
@@ -85,6 +76,7 @@ interface GetAllItemsListLayoutConfigArgs {
   isMediaGrid: boolean;
   bookmarkWidth: BookmarkWidth;
   typeFilter: TypeFilter;
+  itemSurface?: AllItemsSurface;
 }
 
 function getMasonryChildSpacingClass(gapClass: string) {
@@ -128,6 +120,7 @@ export function getAllItemsListLayoutConfig({
   isMediaGrid,
   bookmarkWidth,
   typeFilter,
+  itemSurface = "library",
 }: GetAllItemsListLayoutConfigArgs): AllItemsListLayoutConfig {
   const widthClass = getAllItemsBookmarkWidthClass(bookmarkWidth);
 
@@ -147,8 +140,10 @@ export function getAllItemsListLayoutConfig({
           animatedVariant: "grid",
           isTable: false,
           isMasonry: true,
-          BookmarkItem: MediaBookmarkGrid as AllItemsBookmarkComponent,
-          NewBookmarkPlaceholder: MediaBookmarkPlaceholderGrid,
+          BookmarkItem:
+            itemSurface === "bin"
+              ? (BinMediaBookmarkGrid as AllItemsBookmarkComponent)
+              : (MediaBookmarkGrid as AllItemsBookmarkComponent),
           renderSkeletonItem: (index) => (
             <MediaSkeletonGrid key={index} index={index} borderRadiusClass={borderRadiusClass} />
           ),
@@ -167,8 +162,10 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "grid",
         isTable: false,
         isMasonry: false,
-        BookmarkItem: WebsiteBookmarkGrid as AllItemsBookmarkComponent,
-        NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderGrid,
+        BookmarkItem:
+          itemSurface === "bin" && typeFilter === "website"
+            ? (BinWebsiteBookmarkGrid as AllItemsBookmarkComponent)
+            : (WebsiteBookmarkGrid as AllItemsBookmarkComponent),
         renderSkeletonItem: (index) => (
           <WebsiteSkeletonGrid key={index} borderRadiusClass={borderRadiusClass} />
         ),
@@ -183,7 +180,6 @@ export function getAllItemsListLayoutConfig({
         isTable: true,
         isMasonry: false,
         BookmarkItem: WebsiteBookmarkTable as AllItemsBookmarkComponent,
-        NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderTable,
         renderSkeletonItem: (index) => <WebsiteSkeletonTable key={index} />,
       };
     case "compact":
@@ -195,8 +191,10 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "list",
         isTable: false,
         isMasonry: false,
-        BookmarkItem: WebsiteBookmarkCompact as AllItemsBookmarkComponent,
-        NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderCompact,
+        BookmarkItem:
+          itemSurface === "bin" && typeFilter === "website"
+            ? (BinWebsiteBookmarkCompact as AllItemsBookmarkComponent)
+            : (WebsiteBookmarkCompact as AllItemsBookmarkComponent),
         renderSkeletonItem: (index) => <WebsiteSkeletonCompact key={index} />,
       };
     case "list":
@@ -209,8 +207,10 @@ export function getAllItemsListLayoutConfig({
           animatedVariant: "list",
           isTable: false,
           isMasonry: false,
-          BookmarkItem: PostBookmarkList as AllItemsBookmarkComponent,
-          NewBookmarkPlaceholder: PostBookmarkPlaceholderList,
+          BookmarkItem:
+            itemSurface === "bin"
+              ? (BinPostBookmarkList as AllItemsBookmarkComponent)
+              : (PostBookmarkList as AllItemsBookmarkComponent),
           renderSkeletonItem: (index) => <PostSkeletonList key={index} />,
         };
       }
@@ -222,8 +222,10 @@ export function getAllItemsListLayoutConfig({
         animatedVariant: "list",
         isTable: false,
         isMasonry: false,
-        BookmarkItem: WebsiteBookmarkList as AllItemsBookmarkComponent,
-        NewBookmarkPlaceholder: WebsiteBookmarkPlaceholderList,
+        BookmarkItem:
+          itemSurface === "bin" && typeFilter === "website"
+            ? (BinWebsiteBookmarkList as AllItemsBookmarkComponent)
+            : (WebsiteBookmarkList as AllItemsBookmarkComponent),
         renderSkeletonItem: (index) => <WebsiteSkeletonList key={index} />,
       };
   }

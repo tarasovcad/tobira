@@ -9,6 +9,7 @@ import {formatDateAbsolute} from "@/lib/utils/dates";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import {getDomainName} from "./WebsiteBookmarkMeta";
+import WebsiteBookmarkTitle from "./WebsiteBookmarkTitle";
 import {WebsiteBookmark} from "../../types";
 
 const selectionModeHoverActionsClass =
@@ -61,6 +62,7 @@ export default function WebsiteBookmarkTable({
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         isSelected && "bg-muted",
+        item.metadata?.textMetadataStatus === "failed" && "opacity-70",
         className,
         "transition-none!",
       )}>
@@ -82,11 +84,18 @@ export default function WebsiteBookmarkTable({
           url={item?.images?.favicon?.key ?? ""}
           bookmarkUrl={item.url}
           variant="compact"
+          status={item?.images?.favicon?.status}
+          fetchedAt={item?.images?.favicon?.fetchedAt}
         />
       </div>
 
       <div className="min-w-0">
-        <div className="text-foreground truncate text-sm font-medium">{item.title}</div>
+        <WebsiteBookmarkTitle
+          title={item.title}
+          url={item.url}
+          textMetadataStatus={item.metadata?.textMetadataStatus}
+          className="text-foreground truncate text-sm font-medium"
+        />
         <div className="text-muted-foreground mt-0.5 truncate text-xs md:hidden">
           {getDomainName(item.url)}
         </div>

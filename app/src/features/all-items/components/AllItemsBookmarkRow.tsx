@@ -1,7 +1,6 @@
 "use client";
 
 import {memo, useCallback, type MouseEvent} from "react";
-import {AnimatedItem} from "@/components/bookmark/AnimatedItem";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {
   AllItemsAnimatedVariant,
@@ -18,19 +17,19 @@ interface AllItemsBookmarkRowProps {
   mediaIndex?: number;
   galleryItem?: AllItemsBookmarkComponentProps["galleryItem"];
   selectionIndex: number;
-  isRemoving: boolean;
-  removalKind: "delete" | "archive";
   selectionMode: boolean;
   isSelected: boolean;
   animatedVariant: AllItemsAnimatedVariant;
   isMasonry: boolean;
   BookmarkItem: AllItemsBookmarkComponent;
   className?: string;
-  onItemRemoved: (id: string) => void;
   toggleSelected: (id: string) => void;
   setSelected: (id: string, checked: boolean) => void;
   onMenuArchive: (item: Bookmark) => void;
   onMenuDelete: (item: Bookmark) => void;
+  onRestore?: (item: Bookmark) => void;
+  onDeleteForever?: (item: Bookmark) => void;
+  actionsEnabled?: boolean;
 }
 
 function AllItemsBookmarkRowImpl({
@@ -40,19 +39,19 @@ function AllItemsBookmarkRowImpl({
   mediaIndex,
   galleryItem,
   selectionIndex,
-  isRemoving,
-  removalKind,
   selectionMode,
   isSelected,
   animatedVariant,
   isMasonry,
   BookmarkItem,
   className,
-  onItemRemoved,
   toggleSelected,
   setSelected,
   onMenuArchive,
   onMenuDelete,
+  onRestore,
+  onDeleteForever,
+  actionsEnabled = true,
 }: AllItemsBookmarkRowProps) {
   const openMenu = useBookmarkMenuStore((state) => state.openMenu);
   const openDeleteDialog = useDeleteBookmarkDialogStore((state) => state.openDialog);
@@ -79,37 +78,30 @@ function AllItemsBookmarkRowImpl({
   );
 
   return (
-    <AnimatedItem
-      id={renderId ?? item.id}
-      isRemoving={isRemoving}
-      onRemoved={onItemRemoved}
-      variant={animatedVariant}
-      kind={removalKind}
-      stretchContent={!isMasonry && animatedVariant === "grid"}
-      className={!isMasonry && animatedVariant === "grid" ? "flex h-full flex-col" : undefined}>
-      <div
-        data-selection-mode={selectionMode}
-        className={
-          !isMasonry && animatedVariant === "grid"
-            ? "group/bookmark-row relative flex min-h-0 flex-1 flex-col"
-            : "group/bookmark-row relative"
-        }
-        onClickCapture={handleRowClickCapture}>
-        <BookmarkItem
-          item={item}
-          onOpenDetail={onOpenDetail}
-          onOpenMenu={handleOpenMenu}
-          onDelete={handleDelete}
-          renderId={renderId}
-          mediaIndex={mediaIndex}
-          galleryItem={galleryItem}
-          selectionIndex={selectionIndex}
-          isSelected={isSelected}
-          setSelected={setSelected}
-          className={className}
-        />
-      </div>
-    </AnimatedItem>
+    <div
+      data-selection-mode={selectionMode}
+      className={
+        !isMasonry && animatedVariant === "grid"
+          ? "group/bookmark-row relative flex h-full min-h-0 flex-1 flex-col"
+          : "group/bookmark-row relative"
+      }
+      onClickCapture={handleRowClickCapture}>
+      <BookmarkItem
+        item={item}
+        onOpenDetail={onOpenDetail}
+        onOpenMenu={actionsEnabled ? handleOpenMenu : undefined}
+        onDelete={actionsEnabled ? handleDelete : undefined}
+        onRestore={onRestore}
+        onDeleteForever={onDeleteForever}
+        renderId={renderId}
+        mediaIndex={mediaIndex}
+        galleryItem={galleryItem}
+        selectionIndex={selectionIndex}
+        isSelected={isSelected}
+        setSelected={setSelected}
+        className={className}
+      />
+    </div>
   );
 }
 
@@ -124,17 +116,17 @@ export const AllItemsBookmarkRow = memo(
     prev.galleryItem?.renderId === next.galleryItem?.renderId &&
     prev.galleryItem?.controller === next.galleryItem?.controller &&
     prev.selectionIndex === next.selectionIndex &&
-    prev.isRemoving === next.isRemoving &&
-    prev.removalKind === next.removalKind &&
     prev.selectionMode === next.selectionMode &&
     prev.isSelected === next.isSelected &&
     prev.animatedVariant === next.animatedVariant &&
     prev.isMasonry === next.isMasonry &&
     prev.BookmarkItem === next.BookmarkItem &&
     prev.className === next.className &&
-    prev.onItemRemoved === next.onItemRemoved &&
     prev.toggleSelected === next.toggleSelected &&
     prev.setSelected === next.setSelected &&
     prev.onMenuArchive === next.onMenuArchive &&
-    prev.onMenuDelete === next.onMenuDelete,
+    prev.onMenuDelete === next.onMenuDelete &&
+    prev.onRestore === next.onRestore &&
+    prev.onDeleteForever === next.onDeleteForever &&
+    prev.actionsEnabled === next.actionsEnabled,
 );

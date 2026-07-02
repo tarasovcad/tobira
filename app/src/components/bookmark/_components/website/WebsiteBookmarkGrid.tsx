@@ -24,6 +24,8 @@ export default function WebsiteBookmarkGrid({
   const {borderRadius, contentToggles, gridGap} = useViewOptionsStore();
   const [previewOpenSignal, setPreviewOpenSignal] = useState(0);
   const zeroGap = gridGap === "none";
+  const textMetadataStatus =
+    item.kind === "website" ? item.metadata?.textMetadataStatus : undefined;
 
   const onlyTitle =
     !contentToggles.source &&
@@ -55,6 +57,7 @@ export default function WebsiteBookmarkGrid({
         "hover:bg-muted/80",
         "focus-visible:bg-muted! outline-none",
         isSelected && "bg-muted",
+        textMetadataStatus === "failed" && "opacity-70",
         radiusClass,
         "transition-none!",
       )}>
@@ -89,6 +92,7 @@ export default function WebsiteBookmarkGrid({
           url={item.url}
           createdAt={item.created_at}
           description={item.description}
+          textMetadataStatus={textMetadataStatus}
           tags={item.tags}
           showSource={contentToggles.source}
           showSavedDate={contentToggles.savedDate}
