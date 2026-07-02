@@ -4,20 +4,18 @@ import * as React from "react";
 import {formatDateAbsolute} from "@/lib/utils/dates";
 import {cn} from "@/lib/utils";
 import {Tag} from "@/components/ui/app/tag";
+import {TextShimmer} from "@/components/ui/app/text-shimmer";
+import type {WebsiteTextMetadataStatus} from "@/components/bookmark/types/metadata";
+import WebsiteBookmarkTitle, {getDomainName} from "./WebsiteBookmarkTitle";
 
-export function getDomainName(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
+export {getDomainName};
 
 interface BookmarkMetaProps {
-  title: string;
+  title?: string | null;
   url: string;
   createdAt: string;
   description?: string;
+  textMetadataStatus?: WebsiteTextMetadataStatus;
   tags?: string[];
   showSource?: boolean;
   showSavedDate?: boolean;
@@ -40,6 +38,7 @@ export default function WebsiteBookmarkMeta({
   url,
   createdAt,
   description,
+  textMetadataStatus,
   tags,
   showSource = false,
   showSavedDate = false,
@@ -59,10 +58,18 @@ export default function WebsiteBookmarkMeta({
   const hasMetaRow = showSource || showSavedDate;
   const visibleTags = maxTags ? tags?.slice(0, maxTags) : tags;
   const sourceText = sourceMode === "domain" ? getDomainName(url) : url;
+  const showPendingDescription = textMetadataStatus === "pending" && !description;
 
   return (
     <>
-      {title ? <div className={titleClassName}>{title}</div> : null}
+      {title || textMetadataStatus ? (
+        <WebsiteBookmarkTitle
+          title={title}
+          url={url}
+          textMetadataStatus={textMetadataStatus}
+          className={titleClassName}
+        />
+      ) : null}
 
       {hasMetaRow ? (
         <div className={sourceRowClassName}>
@@ -78,13 +85,13 @@ export default function WebsiteBookmarkMeta({
         </div>
       ) : null}
 
-      {showDescription && description ? (
+      {showDescription && (description || showPendingDescription) ? (
         <div
           className={cn(
             hasMetaRow ? descriptionMarginWhenMetaVisible : descriptionMarginWhenMetaHidden,
             descriptionClassName,
           )}>
-          {description}
+          {showPendingDescription ? <TextShimmer>Loading...</TextShimmer> : description}
         </div>
       ) : null}
 

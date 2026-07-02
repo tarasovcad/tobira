@@ -1,15 +1,12 @@
 "use server";
 
-import {Client} from "@upstash/qstash";
 import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
-import {and, eq, inArray, sql} from "drizzle-orm";
+import {and, eq, inArray, isNotNull, sql} from "drizzle-orm";
 
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
-import {fetchUrlMetadata} from "@/lib/bookmarks/metadata";
 import {syncBookmarkCollection} from "@/lib/bookmarks/collections";
 import {syncBookmarkTags} from "@/lib/bookmarks/tags";
-import {normalizeInputUrl} from "@/lib/fetch/web/url";
 
 export type UpdateBookmarkData = {
   title?: string;
@@ -19,11 +16,6 @@ export type UpdateBookmarkData = {
   tags?: string[];
   collectionId?: string | null;
 };
-
-const qstash = new Client({
-  token: process.env.QSTASH_TOKEN!,
-  baseUrl: process.env.QSTASH_URL,
-});
 
 export async function updateBookmark(
   bookmarkId: string,
@@ -77,46 +69,17 @@ export async function archiveBookmarks(bookmarkIds: string | string[]): Promise<
   return {ok: true};
 }
 
-export async function resetBookmark(bookmarkId: string): Promise<{
-  ok: true;
-  title: string;
-  description: string;
-  updatedAt: string;
-}> {
+export async function restoreBookmarks(bookmarkIds: string | string[]): Promise<{ok: true}> {
   const userId = await requireAuthenticatedUserId();
-
-  const [bookmark] = await db
-    .select({id: bookmarks.id, url: bookmarks.url})
-    .from(bookmarks)
-    .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId)));
-
-  if (!bookmark) throw new Error("Bookmark not found");
-
-  const normalized = normalizeInputUrl(bookmark.url);
-  const metadata = await fetchUrlMetadata(normalized, bookmark.url);
-
-  const updatedAt = new Date().toISOString();
+  const ids = Array.isArray(bookmarkIds) ? bookmarkIds : [bookmarkIds];
+  const now = new Date().toISOString();
 
   await db
     .update(bookmarks)
-    .set({
-      title: metadata.title ?? null,
-      description: metadata.description ?? null,
-      updatedAt,
-    })
-    .where(and(eq(bookmarks.id, bookmarkId), eq(bookmarks.userId, userId)));
+    .set({deletedAt: null, updatedAt: now})
+    .where(
+      and(eq(bookmarks.userId, userId), inArray(bookmarks.id, ids), isNotNull(bookmarks.deletedAt)),
+    );
 
-  await qstash.publishJSON({
-    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/enrich-bookmark`,
-    body: {url: normalized.toString(), id: bookmark.id},
-    headers: {"x-job-type": "enrich-bookmark", "x-version": "v1"},
-    timeout: 30,
-  });
-
-  return {
-    ok: true,
-    title: metadata.title ?? "",
-    description: metadata.description ?? "",
-    updatedAt,
-  };
+  return {ok: true};
 }

@@ -14,7 +14,10 @@ export type BookmarkMediaItem = {
   altText?: string | null;
 };
 
+export type WebsiteTextMetadataStatus = "pending" | "ready" | "failed" | "missing";
+
 export type WebsiteOrMediaMetadata = {
+  textMetadataStatus?: WebsiteTextMetadataStatus;
   date?: string;
   text?: string;
   width?: number;

@@ -45,12 +45,26 @@ export type PostCardImageItem = ImageItem & {
   tweetId: string;
 };
 
+export type WebsiteImageStatus = "pending" | "ready" | "failed" | "missing";
+
+export type WebsiteImageAsset = {
+  status?: WebsiteImageStatus;
+  key?: string;
+  width?: number;
+  height?: number;
+  fetchedAt?: string;
+};
+
 export type WebsiteImages = {
-  favicon?: {key: string};
-  og?: {key: string; width?: number; height?: number};
-  preview?: {key: string; width?: number; height?: number};
+  favicon?: WebsiteImageAsset;
+  og?: WebsiteImageAsset;
+  preview?: WebsiteImageAsset;
   selected?: "preview" | "og";
 };
+
+export type WebsiteRecordImages = Omit<WebsiteImages, "selected">;
+
+export type WebsiteRecordStatus = "ready" | "failed" | "missing";
 
 export type PostImages = {
   processing?: boolean;
@@ -130,6 +144,40 @@ export const syncRunStatus = pgEnum("sync_run_status", [
   "cancelled",
 ]);
 export const syncEventLevel = pgEnum("sync_event_level", ["info", "success", "warning", "error"]);
+
+export const websiteRecords = pgTable(
+  "website_records",
+  {
+    key: text().primaryKey().notNull(),
+    normalizedUrl: text("normalized_url").notNull(),
+    hostname: text().notNull(),
+    title: text(),
+    description: text(),
+    images: jsonb().$type<WebsiteRecordImages>(),
+    htmlStatus: text("html_status").$type<WebsiteRecordStatus>().notNull(),
+    previewStatus: text("preview_status").$type<WebsiteRecordStatus>().notNull(),
+    htmlFetchedAt: timestamp("html_fetched_at", {withTimezone: true, mode: "string"}).notNull(),
+    previewFetchedAt: timestamp("preview_fetched_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    htmlRefreshAfter: timestamp("html_refresh_after", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    previewRefreshAfter: timestamp("preview_refresh_after", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    createdAt: timestamp("created_at", {withTimezone: true, mode: "string"}).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", {withTimezone: true, mode: "string"}).defaultNow().notNull(),
+  },
+  (table) => [
+    index("website_records_hostname_idx").on(table.hostname),
+    index("website_records_html_refresh_after_idx").on(table.htmlRefreshAfter),
+    index("website_records_preview_refresh_after_idx").on(table.previewRefreshAfter),
+  ],
+);
 
 export const collections = pgTable(
   "collections",
@@ -216,6 +264,7 @@ export const bookmarks = pgTable(
     description: text(),
     url: text().notNull(),
     userId: text("user_id").notNull(),
+    websiteRecordKey: text("website_record_key"),
     kind: bookmarkKind(),
     images: jsonb().$type<BookmarkImages>(),
     archivedAt: timestamp("archived_at", {withTimezone: true, mode: "string"}),
@@ -235,6 +284,12 @@ export const bookmarks = pgTable(
       table.deletedAt.asc().nullsLast().op("text_ops"),
       table.id.asc().nullsLast().op("text_ops"),
     ),
+    index("bookmarks_website_record_key_idx").on(table.websiteRecordKey),
+    foreignKey({
+      columns: [table.websiteRecordKey],
+      foreignColumns: [websiteRecords.key],
+      name: "bookmarks_website_record_key_fkey",
+    }).onDelete("set null"),
     foreignKey({
       columns: [table.userId],
       foreignColumns: [user.id],

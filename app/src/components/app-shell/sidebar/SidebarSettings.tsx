@@ -11,6 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/coss/tooltip";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import {serializeSettingsParams, settingsTabParser, type SettingsTab} from "@/lib/query-params";
 import {SidebarToggleButton} from "./SidebarToggleButton";
 
@@ -414,7 +415,7 @@ export function SidebarSettings({
 
   return (
     <TooltipProvider>
-      <div className="flex h-full flex-col px-3 py-3">
+      <div className="flex h-full min-h-0 flex-col px-3 py-3">
         {isCollapsed ? (
           <TooltipTrigger
             className="after:absolute after:left-full after:h-full after:w-2"
@@ -473,48 +474,54 @@ export function SidebarSettings({
           </button>
         )}
 
-        <div className="flex-1 overflow-y-auto pb-4">
-          {!isCollapsed && (
-            <div className="text-muted-foreground flex h-[37px] items-center px-3 py-[7.5px] text-[12px] font-medium">
-              Account
+        <div className="min-h-0 flex-1">
+          <ScrollArea
+            className="**:data-[slot=scroll-area-scrollbar]:m-0.5 [&_[data-orientation=horizontal]]:hidden"
+            viewportProps={{className: "overflow-x-hidden", tabIndex: -1}}>
+            <div className="pb-4">
+              {!isCollapsed && (
+                <div className="text-muted-foreground flex h-[37px] items-center px-3 py-[7.5px] text-[12px] font-medium">
+                  Account
+                </div>
+              )}
+              <div className="flex flex-col gap-0.5">
+                {ACCOUNT_ITEMS.map((item) => (
+                  <SettingsNavItem
+                    key={item.slug}
+                    href={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    isActive={currentTab === item.slug}
+                    disabled={item.disabled}
+                    collapsed={isCollapsed}
+                    tooltipHandle={isCollapsed ? navTooltipHandle : undefined}
+                  />
+                ))}
+              </div>
+              <div className="px-3">
+                <div className="bg-border my-3 h-px w-full" />
+              </div>
+              {!isCollapsed && (
+                <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
+                  Workspace
+                </div>
+              )}
+              <div className="flex flex-col gap-0.5">
+                {WORKSPACE_ITEMS.map((item) => (
+                  <SettingsNavItem
+                    key={item.slug}
+                    href={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    isActive={currentTab === item.slug}
+                    disabled={item.disabled}
+                    collapsed={isCollapsed}
+                    tooltipHandle={isCollapsed ? navTooltipHandle : undefined}
+                  />
+                ))}
+              </div>
             </div>
-          )}
-          <div className="flex flex-col gap-0.5">
-            {ACCOUNT_ITEMS.map((item) => (
-              <SettingsNavItem
-                key={item.slug}
-                href={item.href}
-                label={item.label}
-                icon={item.icon}
-                isActive={currentTab === item.slug}
-                disabled={item.disabled}
-                collapsed={isCollapsed}
-                tooltipHandle={isCollapsed ? navTooltipHandle : undefined}
-              />
-            ))}
-          </div>
-          <div className="px-3">
-            <div className="bg-border my-3 h-px w-full" />
-          </div>
-          {!isCollapsed && (
-            <div className="text-muted-foreground flex h-[37px] items-center px-3 py-2 text-[12px] font-medium">
-              Workspace
-            </div>
-          )}
-          <div className="flex flex-col gap-0.5">
-            {WORKSPACE_ITEMS.map((item) => (
-              <SettingsNavItem
-                key={item.slug}
-                href={item.href}
-                label={item.label}
-                icon={item.icon}
-                isActive={currentTab === item.slug}
-                disabled={item.disabled}
-                collapsed={isCollapsed}
-                tooltipHandle={isCollapsed ? navTooltipHandle : undefined}
-              />
-            ))}
-          </div>
+          </ScrollArea>
         </div>
         <div className="shrink-0">
           <SidebarToggleButton isCollapsed={isCollapsed} />

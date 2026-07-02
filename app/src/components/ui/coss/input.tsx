@@ -59,12 +59,13 @@ function Input({
         )}
       </span>
       {error ? (
-        <div className="text-destructive flex items-center gap-1.5 text-sm" role="alert">
+        <div className="text-destructive flex shrink-0 items-center gap-1.5 text-sm" role="alert">
           <svg
             width="16"
             height="16"
             viewBox="0 0 16 16"
             fill="none"
+            className="shrink-0"
             xmlns="http://www.w3.org/2000/svg">
             <path
               fillRule="evenodd"

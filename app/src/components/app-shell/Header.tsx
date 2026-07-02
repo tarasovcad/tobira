@@ -58,7 +58,10 @@ export function Header({session}: {session: AppShellSession}) {
         Coming soon
       </div>
       <div className="text-foreground flex flex-1">
-        <Link href="/home" aria-label="Go to home" className="hit-area-2! cursor-pointer">
+        <Link
+          href="/home"
+          aria-label="Go to home"
+          className="hit-area-1.5! cursor-pointer rounded-md">
           <svg
             width="24"
             height="24"

@@ -1,8 +1,8 @@
 "use client";
 
 import {useMemo, useState} from "react";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {useForm, useWatch} from "react-hook-form";
+import {type QueryKey, useMutation, useQueryClient} from "@tanstack/react-query";
+import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {useRouter} from "next/navigation";
 import {
@@ -21,7 +21,22 @@ import {
   useTagsQuery,
 } from "@/features/home/hooks/use-home-metadata-query";
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
-import {addBookmarkSchema, type AddBookmarkFormValues} from "../add-bookmark-schema";
+import {
+  addBookmarkSchema,
+  createAddBookmarkDefaultValues,
+  type AddBookmarkFormValues,
+} from "../add-bookmark-schema";
+import {
+  bookmarkCountQueryMatchesInput,
+  bookmarkListQueryMatchesInput,
+  createOptimisticBookmark,
+  getAddBookmarkResultIds,
+  insertOptimisticBookmark,
+  replaceOptimisticBookmarkId,
+  type AddBookmarkMutationContext,
+  type AddBookmarkMutationInput,
+  type BookmarksInfiniteData,
+} from "../_utils/optimistic-bookmark-cache";
 
 export function useAddBookmarkFlow({
   userId,
@@ -54,59 +69,115 @@ export function useAddBookmarkFlow({
     enabled: open && !!userId,
   });
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    trigger,
-    formState: {errors, isValid},
-    getValues,
-  } = useForm<AddBookmarkFormValues>({
+  const form = useForm<AddBookmarkFormValues>({
     resolver: zodResolver(addBookmarkSchema),
-    defaultValues: {
-      url: "",
-      tags: [...defaultTagNames],
-      collectionId: defaultCollectionId,
+    defaultValues: createAddBookmarkDefaultValues({
       type: defaultType,
-    },
+      collectionId: defaultCollectionId,
+      tagNames: defaultTagNames,
+    }),
     mode: "onChange",
   });
-  const watchedUrl = useWatch({control, name: "url"});
-  const watchedType = useWatch({control, name: "type"});
+
+  const collectionItems = useMemo(
+    () =>
+      collections.map((c) => ({
+        label: c.name,
+        value: c.id,
+      })),
+    [collections],
+  );
 
   const addItemMutation = useMutation<
     AddWebsiteBookmarkResult | AddMediaBookmarkResult | AddPostBookmarkResult,
     Error,
-    | {url: string; tags: string[]; collectionId?: string; kind: "website"}
-    | {
-        url: string;
-        tags: string[];
-        collectionId?: string;
-        kind: "media";
-        selectedMediaUrls?: string[];
-        selectedMediaItems?: BookmarkMediaItem[];
-      }
-    | {url: string; tags: string[]; collectionId?: string; kind: "post"}
+    AddBookmarkMutationInput,
+    AddBookmarkMutationContext
   >({
     mutationKey: ["add-bookmark"],
+    onMutate: async (input) => {
+      const optimisticBookmark = createOptimisticBookmark({
+        input,
+        userId,
+        collectionItems,
+      });
+
+      if (!optimisticBookmark) {
+        return {previousBookmarkQueries: [], previousCountQueries: []};
+      }
+
+      await queryClient.cancelQueries({queryKey: ["bookmarks"]});
+
+      const matchesListQuery = (queryKey: QueryKey) =>
+        bookmarkListQueryMatchesInput({
+          queryKey,
+          input,
+          userId,
+          defaultTagNames,
+        });
+      const matchesCountQuery = (queryKey: QueryKey) =>
+        bookmarkCountQueryMatchesInput({
+          queryKey,
+          input,
+          userId,
+          defaultTagNames,
+        });
+      const previousBookmarkQueries = queryClient.getQueriesData<BookmarksInfiniteData>({
+        queryKey: ["bookmarks", "all-items"],
+        type: "active",
+        predicate: (query) => matchesListQuery(query.queryKey),
+      });
+      const previousCountQueries = queryClient.getQueriesData<number>({
+        queryKey: ["bookmarks", "count"],
+        type: "active",
+        predicate: (query) => matchesCountQuery(query.queryKey),
+      });
+
+      queryClient.setQueriesData<BookmarksInfiniteData>(
+        {
+          queryKey: ["bookmarks", "all-items"],
+          type: "active",
+          predicate: (query) => matchesListQuery(query.queryKey),
+        },
+        (current) => insertOptimisticBookmark(current, optimisticBookmark),
+      );
+      queryClient.setQueriesData<number>(
+        {
+          queryKey: ["bookmarks", "count"],
+          type: "active",
+          predicate: (query) => matchesCountQuery(query.queryKey),
+        },
+        (current) => (typeof current === "number" ? current + 1 : current),
+      );
+
+      return {
+        optimisticBookmarkId: optimisticBookmark.id,
+        previousBookmarkQueries,
+        previousCountQueries,
+      };
+    },
     mutationFn: async (input) => {
       if (input.kind === "website") {
-        return await addWebsiteBookmark(input);
-      } else if (input.kind === "media") {
-        return await addMediaBookmark({
+        return addWebsiteBookmark(input);
+      }
+      if (input.kind === "media") {
+        return addMediaBookmark({
           url: input.url,
           tags: input.tags,
           collectionId: input.collectionId,
           kind: input.kind,
           selectedMediaUrls: input.selectedMediaUrls,
         });
-      } else if (input.kind === "post") {
-        return await addPostBookmark(input);
       }
-      throw new Error("Invalid kind");
+      return addPostBookmark(input);
     },
-    onSuccess: (res, variables) => {
+    onSuccess: (res, variables, context) => {
+      replaceOptimisticBookmarkId({
+        queryClient,
+        optimisticBookmarkId: context?.optimisticBookmarkId,
+        resultIds: getAddBookmarkResultIds(res),
+      });
+
       if (
         variables.kind === "media" &&
         "media" in res &&
@@ -129,18 +200,20 @@ export function useAddBookmarkFlow({
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       setTimeout(() => {
-        reset({
-          url: "",
-          tags: [...defaultTagNames],
-          collectionId: defaultCollectionId,
-          type: defaultType,
-        });
+        form.reset(getDefaultValues());
         setStep(1);
         setMediaItems([]);
         setSelectedMediaUrls([]);
       }, 500);
     },
-    onError: (err) => {
+    onError: (err, _variables, context) => {
+      context?.previousBookmarkQueries.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      context?.previousCountQueries.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+
       toastManager.add({
         title: "Submit failed",
         description:
@@ -187,22 +260,8 @@ export function useAddBookmarkFlow({
     }
   };
 
-  const collectionItems = useMemo(
-    () =>
-      collections.map((c) => ({
-        label: c.name,
-        value: c.id,
-      })),
-    [collections],
-  );
-
   const resetLocalState = () => {
-    reset({
-      url: "",
-      tags: [...defaultTagNames],
-      collectionId: defaultCollectionId,
-      type: defaultType,
-    });
+    form.reset(getDefaultValues());
     setStep(1);
     setMediaItems([]);
     setSelectedMediaUrls([]);
@@ -237,7 +296,7 @@ export function useAddBookmarkFlow({
   };
 
   const confirmMediaSelection = () => {
-    const data = getValues();
+    const data = form.getValues();
     addItemMutation.mutate({
       url: data.url,
       tags: data.tags,
@@ -261,19 +320,21 @@ export function useAddBookmarkFlow({
     mediaItems,
     selectedMediaUrls,
     toggleMediaUrl,
-    register,
-    control,
-    errors,
-    isValid,
-    trigger,
-    watchedUrl,
-    watchedType,
+    form,
     addItemMutation,
     collectionItems,
     tags,
     handleOpenChange,
     handleOpenDialogClick,
-    handleSubmitForm: handleSubmit(onSubmit),
+    handleSubmitForm: form.handleSubmit(onSubmit),
     confirmMediaSelection,
   };
+
+  function getDefaultValues() {
+    return createAddBookmarkDefaultValues({
+      type: defaultType,
+      collectionId: defaultCollectionId,
+      tagNames: defaultTagNames,
+    });
+  }
 }

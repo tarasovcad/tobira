@@ -4,27 +4,78 @@ import React, {useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {cn} from "@/lib/utils";
 import {AnimatePresence, motion} from "framer-motion";
-import {SidebarTagItem, SidebarTagSkeleton} from "./SidebarItems";
+import {SidebarTagItem, SidebarTagSkeleton, sidebarCollapseExitTransition} from "./SidebarItems";
 import {useDeleteTagDialogStore} from "@/store/use-delete-tag-dialog-store";
 import {useClipboardCopy} from "@/lib/hooks/use-clipboard-copy";
 import type {SidebarTag} from "@/features/home/types";
 import {useTagsQuery} from "@/features/home/hooks/use-home-metadata-query";
 import {SidebarSectionMenu} from "./SidebarSectionMenu";
-
-const SIDEBAR_TAG_LIMIT = 5;
+import type {SidebarSectionLimit} from "@/lib/sidebar-preferences";
 
 export type SidebarTagsType = SidebarTag[];
 
-export function SidebarTags({allTags, userId}: {allTags?: SidebarTagsType; userId?: string}) {
+export function SidebarTags({
+  allTags,
+  userId,
+  limit,
+  onLimitChange,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+  className,
+}: {
+  allTags?: SidebarTagsType;
+  userId?: string;
+  limit: SidebarSectionLimit;
+  onLimitChange: (limit: SidebarSectionLimit) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  className?: string;
+}) {
   const {data: tags = [], isFetching} = useTagsQuery({
     userId,
     initialData: allTags,
   });
 
-  return <SidebarTagsContent tags={tags} isFetching={isFetching} />;
+  return (
+    <SidebarTagsContent
+      tags={tags}
+      isFetching={isFetching}
+      limit={limit}
+      onLimitChange={onLimitChange}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
+      className={className}
+    />
+  );
 }
 
-function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetching: boolean}) {
+function SidebarTagsContent({
+  tags,
+  isFetching,
+  limit,
+  onLimitChange,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+  className,
+}: {
+  tags: SidebarTagsType;
+  isFetching: boolean;
+  limit: SidebarSectionLimit;
+  onLimitChange: (limit: SidebarSectionLimit) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  className?: string;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const openDeleteDialog = useDeleteTagDialogStore((state) => state.openDialog);
@@ -32,16 +83,23 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
 
   const [tagsExpanded, setTagsExpanded] = useState(true);
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
-  const [tagsSelectValue, setTagsSelectValue] = useState("5");
 
   const pathTagId = pathname.startsWith("/tags/")
     ? decodeURIComponent(pathname.split("/")[2] ?? "")
     : null;
-  const visibleTags = tags.slice(0, SIDEBAR_TAG_LIMIT);
-  const hasMoreTags = tags.length > SIDEBAR_TAG_LIMIT;
+  const visibleTags = tags.slice(0, limit);
+  const hasMoreTags = tags.length > limit;
+
+  const handleLimitChange = (value: string) => {
+    const nextLimit = Number(value);
+
+    if (nextLimit === 5 || nextLimit === 10 || nextLimit === 100) {
+      onLimitChange(nextLimit);
+    }
+  };
 
   return (
-    <div className="px-3">
+    <div className={cn("px-3", className)}>
       <div
         tabIndex={0}
         role="button"
@@ -89,14 +147,18 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
           <SidebarSectionMenu
             open={tagMenuOpen}
             onOpenChange={setTagMenuOpen}
-            selectValue={tagsSelectValue}
-            onSelectValueChange={(v) => setTagsSelectValue(String(v))}
+            selectValue={String(limit)}
+            onSelectValueChange={handleLimitChange}
             ariaLabel="Tag options"
             triggerClassName="group-hover/tags:pointer-events-auto group-hover/tags:opacity-100 focus-visible:opacity-100 focus-visible:pointer-events-auto"
+            canMoveUp={canMoveUp}
+            canMoveDown={canMoveDown}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
           />
         </div>
       </div>
-      <div className="flex flex-col gap-0.5 pb-2">
+      <div className="flex flex-col gap-0.5">
         {isFetching &&
           tags.length === 0 &&
           [1, 2, 3, 4, 5].map((i, idx) => (
@@ -125,7 +187,12 @@ function SidebarTagsContent({tags, isFetching}: {tags: SidebarTagsType; isFetchi
             <motion.div
               initial={{opacity: 0, height: 0, filter: "blur(8px)"}}
               animate={{opacity: 1, height: "auto", filter: "blur(0px)"}}
-              exit={{opacity: 0, height: 0, filter: "blur(8px)"}}
+              exit={{
+                opacity: 0,
+                height: 0,
+                filter: "blur(8px)",
+                transition: sidebarCollapseExitTransition,
+              }}
               transition={{type: "spring", stiffness: 420, damping: 36, mass: 0.6}}>
               <button
                 type="button"

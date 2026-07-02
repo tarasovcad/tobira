@@ -21,6 +21,10 @@ interface SidebarSectionMenuProps {
   onSelectValueChange: (value: string) => void;
   ariaLabel: string;
   triggerClassName: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }
 
 export function SidebarSectionMenu({
@@ -30,6 +34,10 @@ export function SidebarSectionMenu({
   onSelectValueChange,
   ariaLabel,
   triggerClassName,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
 }: SidebarSectionMenuProps) {
   return (
     <Menu open={open} onOpenChange={onOpenChange}>
@@ -64,7 +72,7 @@ export function SidebarSectionMenu({
         </svg>
       </MenuTrigger>
       <MenuPopup align="center" className="w-40">
-        <MenuSub disabled>
+        <MenuSub>
           <MenuSubTrigger>
             <svg
               width="16"
@@ -85,15 +93,12 @@ export function SidebarSectionMenu({
             <MenuRadioGroup value={selectValue} onValueChange={onSelectValueChange}>
               <MenuRadioItem value="5">5 items</MenuRadioItem>
               <MenuRadioItem value="10">10 items</MenuRadioItem>
-              <MenuRadioItem value="15">15 items</MenuRadioItem>
-              <MenuRadioItem value="20">20 items</MenuRadioItem>
-              <MenuRadioItem value="50">50 items</MenuRadioItem>
-              <MenuRadioItem value="all">All items</MenuRadioItem>
+              <MenuRadioItem value="100">100 items</MenuRadioItem>
             </MenuRadioGroup>
           </MenuSubPopup>
         </MenuSub>
         <MenuSeparator />
-        <MenuItem disabled>
+        <MenuItem disabled={!canMoveUp} onClick={onMoveUp}>
           <svg
             width="16"
             height="16"
@@ -109,7 +114,7 @@ export function SidebarSectionMenu({
           </svg>
           Move Up
         </MenuItem>
-        <MenuItem disabled>
+        <MenuItem disabled={!canMoveDown} onClick={onMoveDown}>
           <svg
             width="16"
             height="16"

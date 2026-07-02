@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import {useEffect, useState} from "react";
 import {cn} from "@/lib/utils";
 import MediaPreview from "@/features/media/components/MediaPreview";
 import type {WebsiteBookmark} from "@/components/bookmark/types";
-import {WebsiteImages} from "@/db/schema";
+import type {WebsiteImageAsset, WebsiteImages} from "@/db/schema";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
+import {useWebsiteImageLoading} from "@/components/bookmark/_hooks/use-website-image-loading";
+import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-url";
 
 interface BookmarkImageProps {
   item: WebsiteBookmark;
@@ -22,24 +23,23 @@ interface BookmarkImageProps {
   skeletonClassName?: string;
   height?: number;
   width?: number;
-  fallbackClassName?: string;
   fill?: boolean;
   onPreviewOpenChange?: (open: boolean) => void;
 }
 
-function getWebsiteImageKey(
+function getWebsiteImageAsset(
   images: WebsiteImages | undefined,
   type: "preview" | "favicon" | "og",
-): string | undefined {
+): WebsiteImageAsset | undefined {
   if (!images) return undefined;
 
   switch (type) {
     case "preview":
-      return images.preview?.key;
+      return images.preview;
     case "favicon":
-      return images.favicon?.key;
+      return images.favicon;
     case "og":
-      return images.og?.key;
+      return images.og;
     default:
       return undefined;
   }
@@ -56,34 +56,22 @@ export default function WebsiteBookmarkMenuImage({
   skeletonClassName,
   height,
   width,
-  fallbackClassName,
   fill,
   onPreviewOpenChange,
 }: BookmarkImageProps) {
-  const imageKey = isWebsiteImages(item.images) ? getWebsiteImageKey(item.images, type) : undefined;
+  const imageAsset = isWebsiteImages(item.images)
+    ? getWebsiteImageAsset(item.images, type)
+    : undefined;
+  const imageKey = imageAsset?.key;
   const baseSrc = imageKey ? buildR2PublicUrl(imageKey) : "";
-
-  const maxRetries = 12;
-  const retryMs = 2000;
-  const imageWidth = width ?? 1200;
-  const imageHeight = height ?? 1200;
-  const imageLoading = loading ?? "lazy";
-
-  const [attempt, setAttempt] = useState(0);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
-  const hasValidImage = !!baseSrc && status === "loaded";
-
-  useEffect(() => {
-    if (status !== "error") return;
-    if (attempt >= maxRetries) return;
-
-    const timer = window.setTimeout(() => {
-      setAttempt((current) => current + 1);
-      setStatus("loading");
-    }, retryMs);
-
-    return () => window.clearTimeout(timer);
-  }, [attempt, status]);
+  const image = useWebsiteImageLoading({
+    baseSrc,
+    assetVersion: imageAsset?.fetchedAt,
+    assetStatus: imageAsset?.status,
+    width,
+    height,
+    loading,
+  });
 
   return (
     <div
@@ -93,61 +81,50 @@ export default function WebsiteBookmarkMenuImage({
         divClassName,
       )}
       style={
-        !fill && imageWidth > 0 && imageHeight > 0
-          ? {aspectRatio: `${imageWidth} / ${imageHeight}`}
+        !fill && image.imageWidth > 0 && image.imageHeight > 0
+          ? {aspectRatio: `${image.imageWidth} / ${image.imageHeight}`}
           : undefined
       }>
-      {status !== "loaded" ? (
-        <div
-          className={cn(
-            "text-muted-foreground/30 z-10 col-start-1 row-start-1",
-            fallbackClassName,
-          )}>
-          <svg
-            width={26}
-            height={26}
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M14.375 2.5C16.1009 2.5 17.5 3.89911 17.5 5.625V14.375C17.5 16.1009 16.1009 17.5 14.375 17.5H5.625C3.89911 17.5 2.5 16.1009 2.5 14.375V5.625C2.5 3.89911 3.89911 2.5 5.625 2.5H14.375ZM7.99235 11.3257C7.26015 10.5937 6.07318 10.5937 5.34098 11.3257L3.75 12.9167V14.375C3.75 15.4105 4.58947 16.25 5.625 16.25H12.9167L7.99235 11.3257ZM12.5 5.41667C11.3494 5.41667 10.4167 6.34941 10.4167 7.5C10.4167 8.65058 11.3494 9.58333 12.5 9.58333C13.6506 9.58333 14.5833 8.65058 14.5833 7.5C14.5833 6.34941 13.6506 5.41667 12.5 5.41667Z"
-              fill="currentColor"
-            />
-          </svg>
-        </div>
-      ) : null}
-
       <div
         className={cn(
           fill ? "absolute inset-0" : "relative h-full w-full",
           "col-start-1 row-start-1 flex items-center justify-center",
-          status !== "loaded" && "bg-muted animate-pulse",
+          image.showSkeleton && "bg-muted animate-pulse",
+          image.isFailed && "bg-muted",
           skeletonClassName,
         )}>
-        <MediaPreview
-          src={baseSrc ? `${baseSrc}?size=medium&v=${attempt}` : ""}
-          fullSizeSrc={baseSrc ? `${baseSrc}?size=orig&v=${attempt}` : ""}
-          alt={`${item.id} ${type}`}
-          width={imageWidth}
-          height={imageHeight}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw)"
-          quality={100}
-          loading={imageLoading}
-          openSignal={previewOpenSignal}
-          disableClickToOpen={disablePreviewOnClick}
-          showFallback={!hasValidImage}
-          className={cn(
-            status === "loaded" ? "opacity-100" : "opacity-0",
-            "transition-opacity duration-300 ease-in-out",
-            imageClassName,
-          )}
-          buttonClassName="flex h-full w-full items-center justify-center"
-          onOpenChange={onPreviewOpenChange}
-          onLoad={() => setStatus("loaded")}
-          onError={() => setStatus("error")}
-        />
+        {baseSrc ? (
+          <MediaPreview
+            src={buildWebsiteAssetUrl(baseSrc, {
+              size: "medium",
+              fetchedAt: imageAsset?.fetchedAt,
+              attempt: image.attempt,
+            })}
+            fullSizeSrc={buildWebsiteAssetUrl(baseSrc, {
+              size: "orig",
+              fetchedAt: imageAsset?.fetchedAt,
+              attempt: image.attempt,
+            })}
+            alt={`${item.id} ${type}`}
+            width={image.imageWidth}
+            height={image.imageHeight}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw)"
+            quality={100}
+            loading={image.imageLoading}
+            openSignal={previewOpenSignal}
+            disableClickToOpen={disablePreviewOnClick}
+            showFallback={!image.hasValidImage}
+            className={cn(
+              image.status === "loaded" ? "opacity-100" : "opacity-0",
+              "transition-opacity duration-300 ease-in-out",
+              imageClassName,
+            )}
+            buttonClassName="flex h-full w-full items-center justify-center"
+            onOpenChange={onPreviewOpenChange}
+            onLoad={image.markLoaded}
+            onError={image.markFailed}
+          />
+        ) : null}
       </div>
     </div>
   );

@@ -9,7 +9,6 @@ import {
   InputGroupText,
 } from "@/components/ui/coss/input-group";
 import {SettingsActionBar} from "../_components/SettingsActionBar";
-import {Label} from "@/components/ui/coss/label";
 import {Avatar} from "@/components/ui/app/avatar";
 import {Button} from "@/components/ui/coss/button";
 import {Switch} from "@/components/ui/app/switch";
@@ -33,7 +32,11 @@ const PersonalizationSettings = () => {
           <SettingsFrame title="Identity">
             {/* Avatar */}
             <div className="flex items-center justify-between">
-              <SettingsLabel title="Avatar" description="Your profile picture visible to others." />
+              <SettingsLabel
+                title="Avatar"
+                description="Your profile picture visible to others."
+                inDevelopment
+              />
               <div className="flex items-center gap-3">
                 <Avatar
                   email="simoness.yess@gmail.com"
@@ -43,7 +46,7 @@ const PersonalizationSettings = () => {
                   showFrame={false}
                   showUserIcon={true}
                 />
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" disabled>
                   Change
                 </Button>
               </div>
@@ -57,8 +60,9 @@ const PersonalizationSettings = () => {
                 className="min-w-0 flex-1"
                 title="Display Name"
                 description="What should we call you?"
+                inDevelopment
               />
-              <Input className="w-64" placeholder="Your name" size="default" />
+              <Input className="w-64" placeholder="Your name" size="default" disabled />
             </div>
 
             <div className="bg-border h-px w-full" />
@@ -69,11 +73,13 @@ const PersonalizationSettings = () => {
                 className="min-w-0 flex-1"
                 title="Short Bio"
                 description="A brief description for your public profile or sections."
+                inDevelopment
               />
               <Textarea
                 className="w-64"
                 placeholder="Tell us a bit about yourself…"
                 maxLength={160}
+                disabled
               />
             </div>
           </SettingsFrame>
@@ -137,7 +143,7 @@ const PersonalizationSettings = () => {
                     />
                   </svg>
                 </div>
-                <Label>GitHub</Label>
+                <SettingsLabel title="GitHub" inDevelopment />
               </div>
               <InputGroup className="w-56">
                 <InputGroupInput
@@ -145,6 +151,7 @@ const PersonalizationSettings = () => {
                   className="*:[input]:px-0!"
                   placeholder="username"
                   type="text"
+                  disabled
                 />
                 <InputGroupAddon>
                   <InputGroupText>https://github.com/</InputGroupText>
@@ -170,7 +177,7 @@ const PersonalizationSettings = () => {
                     />
                   </svg>
                 </div>
-                <Label>X (Twitter)</Label>
+                <SettingsLabel title="X (Twitter)" inDevelopment />
               </div>
               <InputGroup className="w-56">
                 <InputGroupInput
@@ -178,6 +185,7 @@ const PersonalizationSettings = () => {
                   className="*:[input]:px-0!"
                   placeholder="username"
                   type="text"
+                  disabled
                 />
                 <InputGroupAddon>
                   <InputGroupText>https://x.com/</InputGroupText>
@@ -217,9 +225,9 @@ const PersonalizationSettings = () => {
                     />
                   </svg>
                 </div>
-                <Label>Personal Website</Label>
+                <SettingsLabel title="Personal Website" inDevelopment />
               </div>
-              <Input className="w-56" placeholder="https://yoursite.com" />
+              <Input className="w-56" placeholder="https://yoursite.com" disabled />
             </div>
           </SettingsFrame>
 
@@ -229,9 +237,16 @@ const PersonalizationSettings = () => {
             <div className="flex items-center justify-between">
               <SettingsLabel
                 title="Make my profile public"
+                inDevelopment
                 description="Allow others to see your public sections and shared collections."
               />
-              <Switch checked={true} onToggle={() => {}} size="md" className="hit-area-6" />
+              <Switch
+                checked={true}
+                onToggle={() => {}}
+                size="md"
+                className="hit-area-6"
+                disabled
+              />
             </div>
 
             <div className="bg-border h-px w-full" />
@@ -241,8 +256,15 @@ const PersonalizationSettings = () => {
               <SettingsLabel
                 title="Display social links on public pages"
                 description="Show your GitHub, X, and website to visitors of your public profile."
+                inDevelopment
               />
-              <Switch checked={true} onToggle={() => {}} size="md" className="hit-area-6" />
+              <Switch
+                checked={true}
+                onToggle={() => {}}
+                size="md"
+                className="hit-area-6"
+                disabled
+              />
             </div>
           </SettingsFrame>
         </div>

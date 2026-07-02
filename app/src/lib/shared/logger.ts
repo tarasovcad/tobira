@@ -39,3 +39,14 @@ export const logger = {
   error: (msg: string, payload?: Payload) => log("error", msg, payload),
   debug: (msg: string, payload?: Payload) => log("debug", msg, payload),
 };
+
+export function toLogError(error: unknown): unknown {
+  if (!(error instanceof Error)) return error;
+
+  return {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    ...(error.cause !== undefined ? {cause: toLogError(error.cause)} : {}),
+  };
+}

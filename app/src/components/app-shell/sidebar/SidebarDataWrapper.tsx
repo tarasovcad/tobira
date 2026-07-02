@@ -2,8 +2,15 @@ import {getCollections} from "@/app/actions/collections";
 import {getSidebarTags} from "@/app/actions/tags";
 import {Sidebar} from "@/components/app-shell/sidebar/Sidebar";
 import {logger} from "@/lib/shared/logger";
+import type {SidebarPreferences} from "@/lib/sidebar-preferences";
 
-export async function SidebarDataWrapper({userId}: {userId: string}) {
+export async function SidebarDataWrapper({
+  userId,
+  initialSidebarPreferences,
+}: {
+  userId: string;
+  initialSidebarPreferences: SidebarPreferences;
+}) {
   let sidebarData = null;
 
   try {
@@ -27,6 +34,7 @@ export async function SidebarDataWrapper({userId}: {userId: string}) {
       allTags={sidebarData.allTags}
       isAuthenticated
       userId={userId}
+      initialPreferences={initialSidebarPreferences}
     />
   );
 }
