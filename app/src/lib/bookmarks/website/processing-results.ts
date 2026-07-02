@@ -9,6 +9,7 @@ export type WebsiteAssetProcessingResult = {
   key?: string;
   width?: number;
   height?: number;
+  reusedExisting?: boolean;
   reason?: unknown;
 };
 
@@ -21,6 +22,7 @@ export function collectWebsiteAssetFailures(results: WebsiteAssetProcessingResul
 export function toWebsiteImageAsset(
   assetResults: WebsiteAssetProcessingResult[],
   label: WebsiteAssetLabel,
+  fetchedAt?: string,
 ): WebsiteImageAsset {
   const result = assetResults.find((assetResult) => assetResult.label === label);
   if (!result) return {status: "failed"};
@@ -41,5 +43,6 @@ export function toWebsiteImageAsset(
     key: result.key,
     ...(result.width !== undefined ? {width: result.width} : {}),
     ...(result.height !== undefined ? {height: result.height} : {}),
+    ...(fetchedAt !== undefined ? {fetchedAt} : {}),
   };
 }

@@ -12,31 +12,58 @@ class WebsiteBookmarkRateLimitError extends Error {
 
 const websiteBookmarkUserCreateLimiter = new Ratelimit({
   redis,
-  limiter: Ratelimit.tokenBucket(120, "1 h", 200),
+  limiter: Ratelimit.tokenBucket(60, "1 h", 100),
   prefix: "rl:website-bookmark:create:user",
+});
+
+const websiteBookmarkUserCreateBurstLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.tokenBucket(10, "1 m", 10),
+  prefix: "rl:website-bookmark:create:user:burst",
 });
 
 const websiteBookmarkIpCreateLimiter = new Ratelimit({
   redis,
-  limiter: Ratelimit.tokenBucket(300, "1 h", 500),
+  limiter: Ratelimit.tokenBucket(180, "1 h", 250),
   prefix: "rl:website-bookmark:create:ip",
+});
+
+const websiteBookmarkIpCreateBurstLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.tokenBucket(30, "1 m", 30),
+  prefix: "rl:website-bookmark:create:ip:burst",
 });
 
 export async function enforceWebsiteBookmarkCreateRateLimit(userId: string) {
   try {
-    const userLimit = await websiteBookmarkUserCreateLimiter.limit(userId);
+    await enforceLimit(websiteBookmarkUserCreateBurstLimiter, userId, {
+      scope: "user",
+      window: "minute",
+      userId,
+    });
 
-    if (!userLimit.success) {
-      throwRateLimitError(userLimit.reset);
-    }
+    await enforceLimit(websiteBookmarkUserCreateLimiter, userId, {
+      scope: "user",
+      window: "hour",
+      userId,
+    });
 
     const ip = await getIp();
     if (ip === "unknown") return;
 
-    const ipLimit = await websiteBookmarkIpCreateLimiter.limit(ip);
-    if (!ipLimit.success) {
-      throwRateLimitError(ipLimit.reset);
-    }
+    await enforceLimit(websiteBookmarkIpCreateBurstLimiter, ip, {
+      scope: "ip",
+      window: "minute",
+      userId,
+      ip,
+    });
+
+    await enforceLimit(websiteBookmarkIpCreateLimiter, ip, {
+      scope: "ip",
+      window: "hour",
+      userId,
+      ip,
+    });
   } catch (error) {
     if (error instanceof WebsiteBookmarkRateLimitError) {
       throw error;
@@ -48,6 +75,27 @@ export async function enforceWebsiteBookmarkCreateRateLimit(userId: string) {
     });
 
     throw new Error("Website bookmark creation is temporarily unavailable. Please try again soon.");
+  }
+}
+
+async function enforceLimit(
+  limiter: Ratelimit,
+  identifier: string,
+  context: {
+    scope: "user" | "ip";
+    window: "minute" | "hour";
+    userId: string;
+    ip?: string;
+  },
+) {
+  const result = await limiter.limit(identifier);
+
+  if (!result.success) {
+    logger.warn("Website bookmark create rate limit exceeded", {
+      ...context,
+      reset: result.reset,
+    });
+    throwRateLimitError(result.reset);
   }
 }
 

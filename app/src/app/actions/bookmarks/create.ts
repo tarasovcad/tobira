@@ -47,7 +47,6 @@ export async function addWebsiteBookmark(input: {
   kind: "website";
 }): Promise<AddWebsiteBookmarkResult> {
   const userId = await requireAuthenticatedUserId();
-  await enforceWebsiteBookmarkCreateRateLimit(userId);
 
   let normalized: URL;
   try {
@@ -56,6 +55,8 @@ export async function addWebsiteBookmark(input: {
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : "Invalid url");
   }
+
+  await enforceWebsiteBookmarkCreateRateLimit(userId);
 
   const bookmark = await createWebsiteBookmark({
     normalizedUrl: normalized,

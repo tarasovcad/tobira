@@ -19,7 +19,12 @@ import {
   updateWebsiteTextMetadata,
 } from "./status-updates";
 import {
-  buildWebsiteRecordImagesFromAssetResults,
+  buildWebsiteRecordRefreshOutcome,
+  getWebsiteAssetR2Exists,
+  getWebsiteRecordRefreshPlans,
+} from "./refresh";
+import {
+  getWebsiteRecordByKey,
   getWebsiteRecordKey,
   getWebsiteRecordPreviewStatus,
   updateBookmarkFromWebsiteRecord,
@@ -37,6 +42,8 @@ export async function processWebsiteBookmark(bookmarkId: string) {
   let normalizedUrl: string | undefined;
   let websiteRecordKey: string | undefined;
   let status = "completed";
+  let previewRefreshForced = false;
+  let htmlRefreshForced = false;
 
   try {
     const bookmarkStartedAt = performance.now();
@@ -58,6 +65,7 @@ export async function processWebsiteBookmark(bookmarkId: string) {
     websiteRecordKey = await getWebsiteRecordKey(normalizedUrl);
 
     const keysPromise = buildWebsiteImageKeys(normalizedUrl);
+    const existingRecordPromise = getWebsiteRecordByKey(websiteRecordKey);
     const r2ChecksPromise = keysPromise.then((k) =>
       Promise.all([
         existsInR2(k.favicon).catch(() => false),
@@ -98,18 +106,33 @@ export async function processWebsiteBookmark(bookmarkId: string) {
 
     const r2WaitStartedAt = performance.now();
     const keys = await keysPromise;
-    const [faviconExists, ogExists, previewExists] = await r2ChecksPromise;
+    const [existingRecord, [faviconExists, ogExists, previewExists]] = await Promise.all([
+      existingRecordPromise,
+      r2ChecksPromise,
+    ]);
+    const refreshPlans = getWebsiteRecordRefreshPlans(existingRecord);
+    previewRefreshForced = refreshPlans.preview.shouldRefresh;
+    htmlRefreshForced = refreshPlans.html.shouldRefresh;
     timingsMs.r2ExistenceChecks = elapsedMs(r2WaitStartedAt);
 
     const assetResults = await processWebsiteAssets({
       normalizedUrl,
       page,
       keys,
-      r2Exists: {favicon: faviconExists, og: ogExists, preview: previewExists},
+      r2Exists: getWebsiteAssetR2Exists(refreshPlans, {
+        favicon: faviconExists,
+        og: ogExists,
+        preview: previewExists,
+      }),
       timingsMs,
     });
 
-    const images = buildWebsiteRecordImagesFromAssetResults(assetResults);
+    const nowIso = new Date().toISOString();
+    const {images, htmlRefreshed, previewRefreshed} = buildWebsiteRecordRefreshOutcome({
+      assetResults,
+      nowIso,
+      existingRecord,
+    });
     const previewStatus = getWebsiteRecordPreviewStatus(assetResults);
 
     let websiteRecord;
@@ -123,6 +146,9 @@ export async function processWebsiteBookmark(bookmarkId: string) {
         images,
         htmlStatus,
         previewStatus,
+        existingRecord,
+        htmlRefreshed,
+        previewRefreshed,
         timingsMs,
       });
     } catch (upsertError) {
@@ -155,6 +181,8 @@ export async function processWebsiteBookmark(bookmarkId: string) {
       bookmarkId,
       url: normalizedUrl,
       websiteRecordKey,
+      previewRefreshForced,
+      htmlRefreshForced,
       status,
       timingsMs,
     });

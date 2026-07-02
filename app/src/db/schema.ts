@@ -52,6 +52,7 @@ export type WebsiteImageAsset = {
   key?: string;
   width?: number;
   height?: number;
+  fetchedAt?: string;
 };
 
 export type WebsiteImages = {

@@ -7,11 +7,8 @@ import {buildWebsiteImages} from "@/features/media/utils";
 import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {queueWebsiteBookmarkEnrichment} from "./queue";
-import {
-  buildBookmarkImagesFromWebsiteRecord,
-  getReusableWebsiteRecord,
-  type WebsiteRecord,
-} from "./records";
+import {buildBookmarkImagesFromWebsiteRecord} from "./refresh";
+import {getReusableWebsiteRecord, type WebsiteRecord} from "./records";
 
 export type CreateWebsiteBookmarkInput = {
   normalizedUrl: URL;
@@ -42,7 +39,7 @@ export async function createWebsiteBookmark({
   timingsMs.getReusableWebsiteRecord = elapsedMs(recordStartedAt);
 
   const imagesStartedAt = performance.now();
-  const images = await resolveWebsiteBookmarkImages(websiteRecord, url);
+  const images = await resolveWebsiteBookmarkImages(websiteRecord, url, previewFresh, htmlFresh);
   timingsMs.buildWebsiteImages = elapsedMs(imagesStartedAt);
 
   const insertStartedAt = performance.now();
@@ -110,9 +107,11 @@ function scheduleWebsiteEnrichmentAfterResponse(bookmarkId: string, url: string)
 async function resolveWebsiteBookmarkImages(
   websiteRecord: WebsiteRecord | null,
   url: string,
+  previewFresh: boolean,
+  htmlFresh: boolean,
 ): Promise<WebsiteImages | undefined> {
   return websiteRecord
-    ? buildBookmarkImagesFromWebsiteRecord(websiteRecord.images)
+    ? buildBookmarkImagesFromWebsiteRecord(websiteRecord.images, {previewFresh, htmlFresh})
     : await buildWebsiteImages(url);
 }
 

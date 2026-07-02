@@ -170,12 +170,19 @@ async function processWebsiteAsset({
 }): Promise<WebsiteAssetProcessingResult> {
   try {
     if (alreadyExists) {
-      return websiteAssetResult({label, status: "ready", key, width, height});
+      return websiteAssetResult({label, status: "ready", key, width, height, reusedExisting: true});
     }
 
     const result = await process();
     if (result.status === "ready") {
-      return websiteAssetResult({label, status: "ready", key, width, height});
+      return websiteAssetResult({
+        label,
+        status: "ready",
+        key,
+        width,
+        height,
+        reusedExisting: false,
+      });
     }
 
     return {label, status: "missing"};
@@ -195,6 +202,7 @@ function websiteAssetResult({
   key,
   width,
   height,
+  reusedExisting,
   reason,
 }: {
   label: WebsiteAssetLabel;
@@ -202,6 +210,7 @@ function websiteAssetResult({
   key: string;
   width?: number;
   height?: number;
+  reusedExisting?: boolean;
   reason?: unknown;
 }): WebsiteAssetProcessingResult {
   return {
@@ -210,6 +219,7 @@ function websiteAssetResult({
     key,
     ...(width !== undefined ? {width} : {}),
     ...(height !== undefined ? {height} : {}),
+    ...(reusedExisting !== undefined ? {reusedExisting} : {}),
     ...(reason !== undefined ? {reason} : {}),
   };
 }

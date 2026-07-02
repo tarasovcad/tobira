@@ -24,12 +24,20 @@ export function buildWebsiteRecordUpsertSql({
   END`;
   };
 
-  // Implements pickBestStatus(htmlStatus, mergedFavicon).
-  // toWebsiteImageAsset always returns a defined asset so favicon ?? og = favicon.
+  const mergedAssetReady = (field: "favicon" | "og" | "preview") => {
+    const f = sql.raw(`'${field}'`);
+    return sql`(
+      ${websiteRecords.images}->${f}->>'status' = 'ready'
+      OR EXCLUDED.images->${f}->>'status' = 'ready'
+    )`;
+  };
+
+  const htmlAssetsReadySql = sql`${mergedAssetReady("favicon")} AND ${mergedAssetReady("og")}`;
+
+  // Implements pickBestHtmlStatus(htmlStatus, mergedImages).
   const htmlStatusSql = sql`CASE
     WHEN ${htmlStatus} = 'ready' THEN 'ready'
-    WHEN ${websiteRecords.images}->'favicon'->>'status' = 'ready' THEN 'ready'
-    WHEN EXCLUDED.images->'favicon'->>'status' = 'ready' THEN 'ready'
+    WHEN ${htmlAssetsReadySql} THEN 'ready'
     ELSE ${htmlStatus}
   END`;
 
@@ -41,14 +49,12 @@ export function buildWebsiteRecordUpsertSql({
     ELSE ${previewStatus}
   END`;
 
-  // 90 days when resolvedHtmlStatus = 'ready', 10 days otherwise.
+  // 90 days when both merged HTML-side assets are ready, 10 days otherwise.
   // ::timestamptz cast is required because Postgres infers CASE branches that hold
   // a $N parameter as type `text`, which it refuses to assign to a timestamptz
   // column without an explicit cast.
   const htmlRefreshAfterSql = sql`CASE
-    WHEN ${htmlStatus} = 'ready' THEN ${refreshAfterReady}::timestamptz
-    WHEN ${websiteRecords.images}->'favicon'->>'status' = 'ready' THEN ${refreshAfterReady}::timestamptz
-    WHEN EXCLUDED.images->'favicon'->>'status' = 'ready' THEN ${refreshAfterReady}::timestamptz
+    WHEN ${htmlAssetsReadySql} THEN ${refreshAfterReady}::timestamptz
     ELSE ${refreshAfterFailed}::timestamptz
   END`;
 

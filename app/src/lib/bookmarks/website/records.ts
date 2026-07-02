@@ -4,36 +4,51 @@ import {
   bookmarks,
   websiteRecords,
   type WebsiteImageAsset,
-  type WebsiteImages,
   type WebsiteRecordImages,
   type WebsiteRecordStatus,
 } from "@/db/schema";
 import {hashUrlToKey} from "@/lib/utils/hash";
-import {toWebsiteImageAsset, type WebsiteAssetProcessingResult} from "./processing-results";
+import {type WebsiteAssetProcessingResult} from "./processing-results";
+import {
+  addDays,
+  buildBookmarkImagesFromWebsiteRecord,
+  getWebsiteRecordFreshness,
+  refreshDaysForStatus,
+  resolveWebsiteRecordConflictFetchedAt,
+} from "./refresh";
 import {buildWebsiteRecordUpsertSql} from "./upsert-sql";
 
 export type WebsiteRecord = typeof websiteRecords.$inferSelect;
 
-type WebsiteRecordFreshness = {
-  fresh: boolean;
-  htmlFresh: boolean;
-  previewFresh: boolean;
-};
-
-const DEFAULT_REFRESH_DAYS = 90;
-const FAILED_REFRESH_DAYS = 10;
+export {
+  buildBookmarkImagesFromWebsiteRecord,
+  buildWebsiteRecordImagesFromAssetResults,
+  getWebsiteHtmlRefreshPlan,
+  getWebsitePreviewRefreshPlan,
+  getWebsiteRecordFreshness,
+  getWebsiteRecordRefreshPlans,
+  isWebsiteRecordFresh,
+  isWebsiteRecordHtmlFresh,
+  isWebsiteRecordPreviewFresh,
+} from "./refresh";
 
 export async function getWebsiteRecordKey(normalizedUrl: URL | string) {
   return hashUrlToKey(normalizedUrl.toString());
 }
 
-export async function getReusableWebsiteRecord(normalizedUrl: URL | string) {
-  const key = await getWebsiteRecordKey(normalizedUrl);
+export async function getWebsiteRecordByKey(key: string): Promise<WebsiteRecord | null> {
   const [record] = await db
     .select()
     .from(websiteRecords)
     .where(eq(websiteRecords.key, key))
     .limit(1);
+
+  return record ?? null;
+}
+
+export async function getReusableWebsiteRecord(normalizedUrl: URL | string) {
+  const key = await getWebsiteRecordKey(normalizedUrl);
+  const record = await getWebsiteRecordByKey(key);
 
   const freshness = record
     ? getWebsiteRecordFreshness(record)
@@ -46,53 +61,6 @@ export async function getReusableWebsiteRecord(normalizedUrl: URL | string) {
   };
 }
 
-export function isWebsiteRecordFresh(record: WebsiteRecord, now = new Date()) {
-  return getWebsiteRecordFreshness(record, now).fresh;
-}
-
-export function getWebsiteRecordFreshness(
-  record: WebsiteRecord,
-  now = new Date(),
-): WebsiteRecordFreshness {
-  const htmlFresh = isWebsiteRecordHtmlFresh(record, now);
-  const previewFresh = isWebsiteRecordPreviewFresh(record, now);
-
-  return {
-    fresh: htmlFresh && previewFresh,
-    htmlFresh,
-    previewFresh,
-  };
-}
-
-export function isWebsiteRecordHtmlFresh(record: WebsiteRecord, now = new Date()) {
-  return isFutureTimestamp(record.htmlRefreshAfter, now);
-}
-
-export function isWebsiteRecordPreviewFresh(record: WebsiteRecord, now = new Date()) {
-  return isFutureTimestamp(record.previewRefreshAfter, now);
-}
-
-export function buildBookmarkImagesFromWebsiteRecord(
-  images: WebsiteRecordImages | null | undefined,
-): WebsiteImages | undefined {
-  if (!images) return undefined;
-
-  return {
-    ...images,
-    selected: "preview",
-  };
-}
-
-export function buildWebsiteRecordImagesFromAssetResults(
-  assetResults: WebsiteAssetProcessingResult[],
-): WebsiteRecordImages {
-  return {
-    favicon: toWebsiteImageAsset(assetResults, "favicon"),
-    og: toWebsiteImageAsset(assetResults, "og"),
-    preview: toWebsiteImageAsset(assetResults, "preview"),
-  };
-}
-
 export async function upsertWebsiteRecord({
   key,
   normalizedUrl,
@@ -102,6 +70,9 @@ export async function upsertWebsiteRecord({
   images,
   htmlStatus,
   previewStatus,
+  existingRecord,
+  htmlRefreshed,
+  previewRefreshed,
   timingsMs,
 }: {
   key: string;
@@ -112,15 +83,26 @@ export async function upsertWebsiteRecord({
   images: WebsiteRecordImages;
   htmlStatus: WebsiteRecordStatus;
   previewStatus: WebsiteRecordStatus;
+  existingRecord?: WebsiteRecord | null;
+  htmlRefreshed: boolean;
+  previewRefreshed: boolean;
   timingsMs?: Record<string, number>;
 }) {
   const now = new Date();
   const nowIso = now.toISOString();
-  const refreshAfterReady = addDays(now, DEFAULT_REFRESH_DAYS).toISOString();
-  const refreshAfterFailed = addDays(now, FAILED_REFRESH_DAYS).toISOString();
+  const refreshAfterReady = addDays(now, refreshDaysForStatus("ready")).toISOString();
+  const refreshAfterFailed = addDays(now, refreshDaysForStatus("failed")).toISOString();
+  const {htmlFetchedAt: conflictHtmlFetchedAt, previewFetchedAt: conflictPreviewFetchedAt} =
+    resolveWebsiteRecordConflictFetchedAt({
+      existingRecord,
+      nowIso,
+      htmlRefreshed,
+      previewRefreshed,
+    });
 
   // INSERT path (no existing record): compute statuses from the incoming images alone.
-  const insertHtmlStatus = pickBestStatus(htmlStatus, images.favicon ?? images.og);
+  const insertHtmlStatus = pickBestHtmlStatus(htmlStatus, images);
+  const insertHtmlRefreshStatus = getHtmlAssetPairStatus(images);
   const insertPreviewStatus = pickBestStatus(previewStatus, images.preview);
   const insertPreviewRefreshStatus =
     previewStatus === "failed" ? previewStatus : insertPreviewStatus;
@@ -142,7 +124,7 @@ export async function upsertWebsiteRecord({
       previewStatus: insertPreviewStatus,
       htmlFetchedAt: nowIso,
       previewFetchedAt: nowIso,
-      htmlRefreshAfter: addDays(now, refreshDaysForStatus(insertHtmlStatus)).toISOString(),
+      htmlRefreshAfter: addDays(now, refreshDaysForStatus(insertHtmlRefreshStatus)).toISOString(),
       previewRefreshAfter: addDays(
         now,
         refreshDaysForStatus(insertPreviewRefreshStatus),
@@ -163,8 +145,8 @@ export async function upsertWebsiteRecord({
         )`,
         htmlStatus: htmlStatusSql,
         previewStatus: previewStatusSql,
-        htmlFetchedAt: nowIso,
-        previewFetchedAt: nowIso,
+        htmlFetchedAt: conflictHtmlFetchedAt,
+        previewFetchedAt: conflictPreviewFetchedAt,
         htmlRefreshAfter: htmlRefreshAfterSql,
         previewRefreshAfter: previewRefreshAfterSql,
         updatedAt: nowIso,
@@ -193,6 +175,18 @@ function pickBestStatus(
   return fetchStatus;
 }
 
+function pickBestHtmlStatus(
+  fetchStatus: WebsiteRecordStatus,
+  images: WebsiteRecordImages,
+): WebsiteRecordStatus {
+  if (fetchStatus === "ready") return "ready";
+  return getHtmlAssetPairStatus(images) === "ready" ? "ready" : fetchStatus;
+}
+
+function getHtmlAssetPairStatus(images: WebsiteRecordImages): WebsiteRecordStatus {
+  return images.favicon?.status === "ready" && images.og?.status === "ready" ? "ready" : "missing";
+}
+
 export async function updateBookmarkFromWebsiteRecord(bookmarkId: string, record: WebsiteRecord) {
   const recordImagesJson = JSON.stringify(record.images ?? {});
   const defaultBookmarkImagesJson = JSON.stringify(
@@ -216,21 +210,6 @@ export async function updateBookmarkFromWebsiteRecord(bookmarkId: string, record
     .where(
       and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "website"), isNull(bookmarks.deletedAt)),
     );
-}
-
-function refreshDaysForStatus(status: WebsiteRecordStatus) {
-  return status === "failed" ? FAILED_REFRESH_DAYS : DEFAULT_REFRESH_DAYS;
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setUTCDate(result.getUTCDate() + days);
-  return result;
-}
-
-function isFutureTimestamp(value: string, now: Date) {
-  const time = Date.parse(value);
-  return Number.isFinite(time) && time > now.getTime();
 }
 
 function elapsedMs(startedAt: number) {
