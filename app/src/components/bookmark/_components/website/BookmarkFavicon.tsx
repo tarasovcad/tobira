@@ -4,6 +4,7 @@ import {useViewOptionsStore} from "@/store/use-view-options";
 import {cn} from "@/lib/utils";
 import Image from "next/image";
 import {Avatar} from "@/components/ui/app/avatar";
+import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-url";
 
 function getDomainLetter(url: string): {letter: string; domain: string} {
   try {
@@ -17,27 +18,45 @@ function getDomainLetter(url: string): {letter: string; domain: string} {
 
 const MAX_RETRIES = 12;
 const RETRY_DELAY_MS = 2000;
+type RetryingImageState = {
+  identity: string;
+  attempt: number;
+  status: "loading" | "loaded" | "error";
+};
 
-function useRetryingImage(baseSrc: string) {
-  const [attempt, setAttempt] = useState(0);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+function useRetryingImage(baseSrc: string, assetVersion?: string) {
+  const imageIdentity = `${baseSrc}:${assetVersion ?? ""}`;
+  const [state, setState] = useState<RetryingImageState>({
+    identity: imageIdentity,
+    attempt: 0,
+    status: "loading",
+  });
+  const attempt = state.identity === imageIdentity ? state.attempt : 0;
+  const status = state.identity === imageIdentity ? state.status : "loading";
 
   useEffect(() => {
     if (!baseSrc || status !== "error" || attempt >= MAX_RETRIES) return;
 
     const timer = window.setTimeout(() => {
-      setAttempt((current) => current + 1);
-      setStatus("loading");
+      setState((current) => {
+        if (current.identity !== imageIdentity) return current;
+
+        return {
+          identity: imageIdentity,
+          attempt: current.attempt + 1,
+          status: "loading",
+        };
+      });
     }, RETRY_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [attempt, baseSrc, status]);
+  }, [attempt, baseSrc, imageIdentity, status]);
 
   return {
-    src: baseSrc ? `${baseSrc}?v=${attempt}` : "",
+    src: buildWebsiteAssetUrl(baseSrc, {fetchedAt: assetVersion, attempt}),
     status,
-    markLoaded: () => setStatus("loaded"),
-    markFailed: () => setStatus("error"),
+    markLoaded: () => setState({identity: imageIdentity, attempt, status: "loaded"}),
+    markFailed: () => setState({identity: imageIdentity, attempt, status: "error"}),
   };
 }
 
@@ -66,18 +85,20 @@ const BookmarkFavicon = ({
   bookmarkUrl,
   variant,
   status,
+  fetchedAt,
 }: {
   url: string;
   bookmarkUrl: string;
   variant: "compact" | "list";
   status?: "pending" | "ready" | "failed" | "missing";
+  fetchedAt?: string;
 }) => {
   const {contentToggles} = useViewOptionsStore();
   const showImage = contentToggles.avatar;
   const isCompact = variant === "compact";
   const {letter, domain} = getDomainLetter(bookmarkUrl);
-  const baseSrc = buildR2PublicUrl(url);
-  const image = useRetryingImage(baseSrc);
+  const baseSrc = url ? buildR2PublicUrl(url) : "";
+  const image = useRetryingImage(baseSrc, fetchedAt);
 
   const containerClassName = cn(
     "flex shrink-0 items-center justify-center",

@@ -85,6 +85,7 @@ export default function WebsiteBookmarkTable({
           bookmarkUrl={item.url}
           variant="compact"
           status={item?.images?.favicon?.status}
+          fetchedAt={item?.images?.favicon?.fetchedAt}
         />
       </div>
 

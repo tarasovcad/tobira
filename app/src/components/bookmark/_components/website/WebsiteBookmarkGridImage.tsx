@@ -9,6 +9,7 @@ import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
 import {useWebsiteImageLoading} from "@/components/bookmark/_hooks/use-website-image-loading";
+import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-url";
 
 interface WebsiteBookmarkGridImageProps {
   item: Bookmark;
@@ -18,9 +19,13 @@ interface WebsiteBookmarkGridImageProps {
   onPreviewOpenChange?: (open: boolean) => void;
 }
 
-function getPreferredGridImage(
-  images: WebsiteImages | undefined,
-): {key: string; width: number; height: number; status?: WebsiteImageStatus} | null {
+function getPreferredGridImage(images: WebsiteImages | undefined): {
+  key: string;
+  width: number;
+  height: number;
+  status?: WebsiteImageStatus;
+  fetchedAt?: string;
+} | null {
   if (!images) return null;
 
   const resolved = images.selected === "og" ? images.og : images.preview;
@@ -30,6 +35,7 @@ function getPreferredGridImage(
     width: resolved?.width ?? 1200,
     height: resolved?.height ?? 750,
     status: resolved?.status,
+    fetchedAt: resolved?.fetchedAt,
   };
 }
 
@@ -46,6 +52,7 @@ export default function WebsiteBookmarkGridImage({
   const columnSize = useViewOptionsStore((state) => state.columnSize);
   const image = useWebsiteImageLoading({
     baseSrc,
+    assetVersion: preferredImage?.fetchedAt,
     assetStatus: preferredImage?.status,
     width: preferredImage?.width ?? 1200,
     height: preferredImage?.height ?? 750,
@@ -70,8 +77,17 @@ export default function WebsiteBookmarkGridImage({
         )}>
         {baseSrc ? (
           <MediaPreview
-            src={`${baseSrc}?size=${previewSize}&format=webp&v=${image.attempt}`}
-            fullSizeSrc={`${baseSrc}?size=orig&v=${image.attempt}`}
+            src={buildWebsiteAssetUrl(baseSrc, {
+              size: previewSize,
+              format: "webp",
+              fetchedAt: preferredImage?.fetchedAt,
+              attempt: image.attempt,
+            })}
+            fullSizeSrc={buildWebsiteAssetUrl(baseSrc, {
+              size: "orig",
+              fetchedAt: preferredImage?.fetchedAt,
+              attempt: image.attempt,
+            })}
             alt={`${item.title || item.url} preview`}
             width={image.imageWidth}
             height={image.imageHeight}

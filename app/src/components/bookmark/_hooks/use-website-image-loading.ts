@@ -3,9 +3,15 @@ import type {WebsiteImageStatus} from "@/db/schema";
 
 const DEFAULT_MAX_RETRIES = 12;
 const DEFAULT_RETRY_MS = 2000;
+type ImageLoadingState = {
+  identity: string;
+  attempt: number;
+  status: "loading" | "loaded" | "error";
+};
 
 export function useWebsiteImageLoading({
   baseSrc,
+  assetVersion,
   assetStatus,
   width,
   height,
@@ -14,6 +20,7 @@ export function useWebsiteImageLoading({
   retryMs = DEFAULT_RETRY_MS,
 }: {
   baseSrc: string;
+  assetVersion?: string;
   assetStatus?: WebsiteImageStatus;
   width?: number;
   height?: number;
@@ -26,9 +33,15 @@ export function useWebsiteImageLoading({
   const imageLoading = loading ?? "lazy";
   const isPending = assetStatus === "pending";
   const isFailed = assetStatus === "failed" || assetStatus === "missing";
+  const imageIdentity = `${baseSrc}:${assetVersion ?? ""}`;
 
-  const [attempt, setAttempt] = useState(0);
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+  const [state, setState] = useState<ImageLoadingState>({
+    identity: imageIdentity,
+    attempt: 0,
+    status: "loading",
+  });
+  const attempt = state.identity === imageIdentity ? state.attempt : 0;
+  const status = state.identity === imageIdentity ? state.status : "loading";
   const hasValidImage = !!baseSrc && status === "loaded";
   const showSkeleton = !!baseSrc && !hasValidImage && (isPending || !assetStatus);
 
@@ -40,12 +53,19 @@ export function useWebsiteImageLoading({
     if (attempt >= maxRetries) return;
 
     const timer = window.setTimeout(() => {
-      setAttempt((current) => current + 1);
-      setStatus("loading");
+      setState((current) => {
+        if (current.identity !== imageIdentity) return current;
+
+        return {
+          identity: imageIdentity,
+          attempt: current.attempt + 1,
+          status: "loading",
+        };
+      });
     }, retryMs);
 
     return () => window.clearTimeout(timer);
-  }, [attempt, baseSrc, isFailed, isPending, maxRetries, retryMs, status]);
+  }, [attempt, baseSrc, imageIdentity, isFailed, isPending, maxRetries, retryMs, status]);
 
   return {
     attempt,
@@ -56,7 +76,7 @@ export function useWebsiteImageLoading({
     isFailed,
     hasValidImage,
     showSkeleton,
-    markLoaded: () => setStatus("loaded"),
-    markFailed: () => setStatus("error"),
+    markLoaded: () => setState({identity: imageIdentity, attempt, status: "loaded"}),
+    markFailed: () => setState({identity: imageIdentity, attempt, status: "error"}),
   };
 }

@@ -8,6 +8,7 @@ import type {WebsiteImageAsset, WebsiteImages} from "@/db/schema";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
 import {useWebsiteImageLoading} from "@/components/bookmark/_hooks/use-website-image-loading";
+import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-url";
 
 interface BookmarkImageProps {
   item: WebsiteBookmark;
@@ -65,6 +66,7 @@ export default function WebsiteBookmarkMenuImage({
   const baseSrc = imageKey ? buildR2PublicUrl(imageKey) : "";
   const image = useWebsiteImageLoading({
     baseSrc,
+    assetVersion: imageAsset?.fetchedAt,
     assetStatus: imageAsset?.status,
     width,
     height,
@@ -93,8 +95,16 @@ export default function WebsiteBookmarkMenuImage({
         )}>
         {baseSrc ? (
           <MediaPreview
-            src={`${baseSrc}?size=medium&v=${image.attempt}`}
-            fullSizeSrc={`${baseSrc}?size=orig&v=${image.attempt}`}
+            src={buildWebsiteAssetUrl(baseSrc, {
+              size: "medium",
+              fetchedAt: imageAsset?.fetchedAt,
+              attempt: image.attempt,
+            })}
+            fullSizeSrc={buildWebsiteAssetUrl(baseSrc, {
+              size: "orig",
+              fetchedAt: imageAsset?.fetchedAt,
+              attempt: image.attempt,
+            })}
             alt={`${item.id} ${type}`}
             width={image.imageWidth}
             height={image.imageHeight}

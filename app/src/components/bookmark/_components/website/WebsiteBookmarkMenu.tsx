@@ -24,6 +24,7 @@ import {
 import {SelectButton, Select} from "@/components/ui/coss/select";
 import {type UpdateBookmarkData} from "@/app/actions/bookmarks/update";
 import {isWebsiteImages} from "@/components/bookmark/_utils/bookmark-image-guards";
+import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-url";
 import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import WebsiteBookmarkPreviewDialog from "./WebsiteBookmarkPreviewDialog";
 import Spinner from "@/components/ui/app/spinner";
@@ -241,11 +242,17 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
   const websiteImages = isWebsiteImages(websiteItem?.images) ? websiteItem.images : undefined;
 
   const ogImageUrl = websiteImages?.og?.key
-    ? `${buildR2PublicUrl(websiteImages.og.key)}?size=medium`
+    ? buildWebsiteAssetUrl(buildR2PublicUrl(websiteImages.og.key), {
+        size: "medium",
+        fetchedAt: websiteImages.og.fetchedAt,
+      })
     : "";
 
   const previewImageUrl = websiteImages?.preview?.key
-    ? `${buildR2PublicUrl(websiteImages.preview.key)}?size=medium`
+    ? buildWebsiteAssetUrl(buildR2PublicUrl(websiteImages.preview.key), {
+        size: "medium",
+        fetchedAt: websiteImages.preview.fetchedAt,
+      })
     : "";
 
   const handlePreviewClick = useCallback(() => {
