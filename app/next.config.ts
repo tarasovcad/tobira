@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     // Fast Data Transfer quota). To opt a specific <Image> back into
     // optimization, pass unoptimized={false} explicitly on that component.
     unoptimized: true,
-    qualities: [60, 50, 75],
+    qualities: [100, 50, 60, 75],
     remotePatterns: [
       {
         protocol: "https",

@@ -56,6 +56,7 @@ export default function WebsiteBookmarkTable({
     <Link
       href={item.url}
       target="_blank"
+      draggable={false}
       className={cn(
         "group relative grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-4 py-3 pr-14 text-left",
         getTableBookmarkColumnsClass(showSource, showSavedDate),

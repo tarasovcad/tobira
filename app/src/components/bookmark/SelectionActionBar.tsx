@@ -39,7 +39,7 @@ export function SelectionActionBar({
   const content = (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center transition-all duration-200 ease-out",
+        "pointer-events-none fixed inset-x-0 bottom-6 z-30 mx-auto flex w-fit justify-center transition-all duration-200 ease-out",
         visible ? "pointer-events-auto translate-y-0 opacity-100" : "translate-y-3 opacity-0",
         className,
       )}>
@@ -127,23 +127,6 @@ export function SelectionActionBar({
             Archive
           </Button>
         )}
-        {displayFavorite && (
-          <Button variant="favorite" size="sm" disabled className="w-[92px]">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M7.92731 1.16523C7.55404 0.38936 6.44565 0.38936 6.07237 1.16523L4.80475 3.79976C4.78289 3.8452 4.73866 3.87784 4.68609 3.88471L1.77038 4.26589C0.914823 4.37774 0.565005 5.4319 1.19782 6.02764L3.32885 8.03389C3.36632 8.06919 3.38257 8.12005 3.37342 8.16905L2.83816 11.0358C2.67886 11.889 3.58283 12.532 4.33822 12.1255L6.92579 10.7327C6.97187 10.7078 7.02781 10.7078 7.0739 10.7327L9.66145 12.1255C10.4169 12.532 11.3209 11.889 11.1615 11.0358L10.6263 8.16905C10.6171 8.12005 10.6334 8.06919 10.6708 8.03389L12.8019 6.02764C13.4347 5.4319 13.0849 4.37774 12.2293 4.26589L9.3136 3.88471C9.26105 3.87784 9.21683 3.8452 9.19495 3.79976L7.92731 1.16523Z"
-                fill="currentColor"
-              />
-            </svg>
-            Favorite
-          </Button>
-        )}
-
         <Button variant="destructive" size="sm" className="w-[81px]" onClick={onDelete}>
           <svg
             width="14"

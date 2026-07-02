@@ -77,15 +77,15 @@ function CopyableExternalLink({
           copied ? "opacity-100" : "opacity-0 group-hover/copy-link:opacity-100 focus-visible:opacity-100",
         )}>*/}
 
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           {copied ? (
             <motion.span
               key="check"
               className="flex items-center justify-center"
-              initial={{opacity: 0, filter: "blur(2px)", scale: 0.9}}
-              animate={{opacity: 1, filter: "blur(0px)", scale: 1}}
-              exit={{opacity: 0, filter: "blur(4px)", scale: 0.85}}
-              transition={{duration: 0.05, ease: "easeOut"}}>
+              initial={{opacity: 0, scale: 0.25, filter: "blur(4px)"}}
+              animate={{opacity: 1, scale: 1, filter: "blur(0px)"}}
+              exit={{opacity: 0, scale: 0.25, filter: "blur(4px)"}}
+              transition={{type: "spring", duration: 0.3, bounce: 0}}>
               <svg
                 width="14"
                 height="14"
@@ -105,10 +105,10 @@ function CopyableExternalLink({
             <motion.span
               key="copy"
               className="flex items-center justify-center"
-              initial={{opacity: 0, filter: "blur(4px)", scale: 0.85}}
-              animate={{opacity: 1, filter: "blur(0px)", scale: 1}}
-              exit={{opacity: 0, filter: "blur(4px)", scale: 0.85}}
-              transition={{duration: 0.1, ease: "easeOut"}}>
+              initial={{opacity: 0, scale: 0.25, filter: "blur(4px)"}}
+              animate={{opacity: 1, scale: 1, filter: "blur(0px)"}}
+              exit={{opacity: 0, scale: 0.25, filter: "blur(4px)"}}
+              transition={{type: "spring", duration: 0.3, bounce: 0}}>
               <svg
                 width="14"
                 height="14"

@@ -397,6 +397,7 @@ function PostBookmarkExternalOverlayLink({
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
+      draggable={false}
       className="absolute inset-0 z-0"
       aria-label={`Open post by ${userName}`}
       tabIndex={-1}

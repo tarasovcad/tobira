@@ -44,6 +44,7 @@ export default function BinWebsiteBookmarkList({
     <Link
       href={item.url}
       target="_blank"
+      draggable={false}
       className={cn(
         "group relative flex w-full cursor-pointer flex-col gap-2 border-b px-6 py-5 text-left",
         "pr-44",

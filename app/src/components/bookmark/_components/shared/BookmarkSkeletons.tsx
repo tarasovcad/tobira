@@ -13,16 +13,15 @@ export function WebsiteSkeletonList() {
           <Skeleton className="size-9 rounded-md" />
         </div>
         <div className="min-w-0 flex-1 text-[13px]">
-          <Skeleton className="h-[22.5px] w-48 rounded" />
+          <Skeleton className="h-[20px] w-48 rounded" />
           {(contentToggles.source || contentToggles.savedDate) && (
-            <div className="mt-0.5">
-              <Skeleton className="h-[19.5px] w-64 rounded" />
+            <div className="mt-[6.5px]">
+              <Skeleton className="h-[16.5px] w-64 rounded" />
             </div>
           )}
           {contentToggles.description && (
-            <div
-              className={contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5"}>
-              <Skeleton className="h-[19.5px] w-40 rounded" />
+            <div className={contentToggles.source || contentToggles.savedDate ? "mt-2.5" : "mt-3"}>
+              <Skeleton className="h-[16.5px] w-40 rounded" />
             </div>
           )}
         </div>

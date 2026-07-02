@@ -1,14 +1,14 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import {cn} from "@/lib/utils";
 import {useViewOptionsStore} from "@/store/use-view-options";
+import {useWebsiteBookmarkCompactHoverPreviewTrigger} from "@/components/bookmark/_hooks/use-website-bookmark-compact-hover-preview";
 import BookmarkFavicon from "./BookmarkFavicon";
 import BookmarkHoverActions from "../shared/BookmarkHoverActions";
 import BookmarkSelectionCheckbox from "../shared/BookmarkSelectionCheckbox";
 import WebsiteBookmarkMeta from "./WebsiteBookmarkMeta";
-import {WebsiteBookmark} from "../../types";
+import type {WebsiteBookmark} from "../../types";
 
 const selectionModeHoverActionsClass =
   "group-data-[selection-mode=true]/bookmark-row:pointer-events-none group-data-[selection-mode=true]/bookmark-row:opacity-0";
@@ -32,11 +32,14 @@ export default function WebsiteBookmarkCompact({
 }: BookmarkItemProps) {
   const contentToggles = useViewOptionsStore((state) => state.contentToggles);
   const isFullWidth = useViewOptionsStore((state) => state.bookmarkWidthByType.website === "full");
+  const hoverPreviewTriggerProps = useWebsiteBookmarkCompactHoverPreviewTrigger(item);
 
   return (
     <Link
       href={item.url}
       target="_blank"
+      draggable={false}
+      {...hoverPreviewTriggerProps}
       className={cn(
         "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 text-left",
         "hover:bg-muted/80",

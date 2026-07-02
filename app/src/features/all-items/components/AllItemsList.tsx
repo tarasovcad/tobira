@@ -28,6 +28,7 @@ import {
   createMediaGalleryController,
   useMediaGalleryControllerSnapshot,
 } from "@/features/media/hooks/useMediaGalleryController";
+import {WebsiteBookmarkCompactHoverPreviewProvider} from "@/components/bookmark/_hooks/use-website-bookmark-compact-hover-preview";
 
 const GALLERY_PREFETCH_REMAINING_ITEMS = 4;
 
@@ -318,6 +319,8 @@ export function AllItemsList({
 
   const showPlaceholder = sort !== "az";
   const isNewestAtBottom = sort === "oldest";
+  const showWebsiteCompactHoverPreview =
+    currentView === "compact" && typeFilter === "website" && itemSurface !== "bin";
 
   const body = (
     <>
@@ -327,31 +330,17 @@ export function AllItemsList({
     </>
   );
 
-  return (
-    <>
-      <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
-        <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
-          <div className={cn(layoutConfig.wrapperClassName, applyScrollTopPadding && "pt-6")}>
-            <div className={layoutConfig.containerClassName}>
-              {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
-              {!layoutConfig.isMasonry ? (
-                <>
-                  {isFetchingNextPage && (
-                    <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
-                  )}
-                  <div
-                    ref={bottomSentinelRef}
-                    aria-hidden
-                    className={layoutConfig.sentinelClassName}
-                  />
-                </>
-              ) : null}
-            </div>
-            {layoutConfig.isMasonry ? (
+  const listBody = (
+    <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
+      <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
+        <div className={cn(layoutConfig.wrapperClassName, applyScrollTopPadding && "pt-6")}>
+          <div className={layoutConfig.containerClassName}>
+            {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
+            {!layoutConfig.isMasonry ? (
               <>
-                {isFetchingNextPage ? (
+                {isFetchingNextPage && (
                   <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
-                ) : null}
+                )}
                 <div
                   ref={bottomSentinelRef}
                   aria-hidden
@@ -360,8 +349,28 @@ export function AllItemsList({
               </>
             ) : null}
           </div>
-        </ScrollArea>
-      </div>
+          {layoutConfig.isMasonry ? (
+            <>
+              {isFetchingNextPage ? (
+                <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+              ) : null}
+              <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+            </>
+          ) : null}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  return (
+    <>
+      {showWebsiteCompactHoverPreview ? (
+        <WebsiteBookmarkCompactHoverPreviewProvider selectionMode={selectionMode}>
+          {listBody}
+        </WebsiteBookmarkCompactHoverPreviewProvider>
+      ) : (
+        listBody
+      )}
       <MediaGalleryOverlay
         entries={mediaGalleryEntries}
         controller={mediaGalleryController}

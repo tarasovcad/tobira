@@ -58,6 +58,7 @@ export default function BinWebsiteBookmarkGrid({
   return (
     <Link
       href={item.url}
+      draggable={false}
       className={cn(
         "group bg-background relative flex h-full w-full cursor-pointer flex-col overflow-hidden text-left",
         zeroGap ? "border-r border-b" : "border",

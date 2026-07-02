@@ -43,6 +43,7 @@ export default function BinWebsiteBookmarkCompact({
     <Link
       href={item.url}
       target="_blank"
+      draggable={false}
       className={cn(
         "group relative flex w-full cursor-pointer items-center gap-3 border-b px-5 py-2.5 pr-48 text-left",
         "hover:bg-muted/80",
