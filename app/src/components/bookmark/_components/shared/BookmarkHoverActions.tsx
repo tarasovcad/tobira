@@ -54,7 +54,8 @@ export default function BookmarkHoverActions({
         "group-focus-visible:pointer-events-auto group-focus-visible:opacity-100",
         "group-data-[selection-mode=true]/bookmark-row:pointer-events-none! group-data-[selection-mode=true]/bookmark-row:opacity-0!",
         className,
-      )}>
+      )}
+      data-slot="bookmark-hover-actions">
       {onExpand ? (
         <button
           type="button"

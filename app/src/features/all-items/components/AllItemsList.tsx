@@ -1,5 +1,5 @@
 "use client";
-import {useCallback, useEffect, useMemo} from "react";
+import {useCallback, useEffect, useMemo, type Ref} from "react";
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
@@ -32,10 +32,10 @@ import {WebsiteBookmarkCompactHoverPreviewProvider} from "@/components/bookmark/
 
 const GALLERY_PREFETCH_REMAINING_ITEMS = 4;
 
-function LoadingSpinner({className}: {className?: string}) {
+function LoadingSpinner({className, size = 4}: {className?: string; size?: number}) {
   return (
     <div className={className}>
-      <Spinner className="mx-auto size-4 animate-spin" />
+      <Spinner className={`mx-auto size-${size} animate-spin`} />
     </div>
   );
 }
@@ -55,8 +55,8 @@ interface AllItemsListProps {
   isFetchingNextPage: boolean;
   selectionMode: boolean;
   selectedIds: Set<string>;
-  scrollAreaRootRef: React.RefObject<HTMLDivElement | null>;
-  bottomSentinelRef: React.RefObject<HTMLDivElement | null>;
+  scrollAreaRootRef: Ref<HTMLDivElement>;
+  bottomSentinelRef: Ref<HTMLDivElement>;
   fetchNextPage: () => void;
   onTransitionDone: () => void;
   toggleSelected: (id: string) => void;
@@ -339,7 +339,7 @@ export function AllItemsList({
             {!layoutConfig.isMasonry ? (
               <>
                 {isFetchingNextPage && (
-                  <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+                  <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} size={4.5} />
                 )}
                 <div
                   ref={bottomSentinelRef}

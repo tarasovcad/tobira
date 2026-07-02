@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useMemo, useRef} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {
   useInfiniteQuery,
@@ -62,8 +62,8 @@ export function BinPageClient({
     handleSortChange: setHomeSort,
   } = useHomeFilters({bin: true});
   const view = useViewOptionsStore((state) => state.view);
-  const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
-  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
+  const [scrollAreaRoot, setScrollAreaRoot] = useState<HTMLDivElement | null>(null);
+  const [bottomSentinel, setBottomSentinel] = useState<HTMLDivElement | null>(null);
   const isInitialQuery = typeFilter === initialTypeFilter && sort === initialSort;
   const binActionIds = useMutationState({
     filters: {mutationKey: ["bin-bookmark-action"]},
@@ -208,8 +208,8 @@ export function BinPageClient({
     !isInitialLoad && !deletedBookmarksQuery.isError && allBookmarks.length === 0;
 
   useHomeInfiniteScroll({
-    scrollAreaRootRef,
-    bottomSentinelRef,
+    scrollAreaRoot,
+    bottomSentinel,
     hasNextPage: Boolean(hasNextPage),
     isFetchingNextPage,
     fetchNextPage,
@@ -296,8 +296,8 @@ export function BinPageClient({
           isFetchingNextPage={isFetchingNextPage}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
-          scrollAreaRootRef={scrollAreaRootRef}
-          bottomSentinelRef={bottomSentinelRef}
+          scrollAreaRootRef={setScrollAreaRoot}
+          bottomSentinelRef={setBottomSentinel}
           fetchNextPage={fetchNextPage}
           onTransitionDone={() => {}}
           toggleSelected={toggleSelected}

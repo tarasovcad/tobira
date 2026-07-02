@@ -1,30 +1,28 @@
 "use client";
 
 import {useEffect} from "react";
-import type {RefObject} from "react";
 
 interface UseHomeInfiniteScrollProps {
-  scrollAreaRootRef: RefObject<HTMLDivElement | null>;
-  bottomSentinelRef: RefObject<HTMLDivElement | null>;
+  scrollAreaRoot: HTMLDivElement | null;
+  bottomSentinel: HTMLDivElement | null;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
 }
 
 export function useHomeInfiniteScroll({
-  scrollAreaRootRef,
-  bottomSentinelRef,
+  scrollAreaRoot,
+  bottomSentinel,
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
 }: UseHomeInfiniteScrollProps) {
   useEffect(() => {
-    const sentinel = bottomSentinelRef.current;
-    const root = scrollAreaRootRef.current?.querySelector(
+    const root = scrollAreaRoot?.querySelector(
       '[data-slot="scroll-area-viewport"]',
     ) as Element | null;
 
-    if (!sentinel || !root) return;
+    if (!bottomSentinel || !root) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -35,7 +33,7 @@ export function useHomeInfiniteScroll({
       {root, rootMargin: "200px 0px"},
     );
 
-    observer.observe(sentinel);
+    observer.observe(bottomSentinel);
     return () => observer.disconnect();
-  }, [bottomSentinelRef, fetchNextPage, hasNextPage, isFetchingNextPage, scrollAreaRootRef]);
+  }, [bottomSentinel, fetchNextPage, hasNextPage, isFetchingNextPage, scrollAreaRoot]);
 }

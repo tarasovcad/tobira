@@ -171,6 +171,26 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  body:has(
+      [data-slot="menu-popup"],
+      [data-slot="sheet-popup"],
+      [data-slot="dialog-popup"],
+      [data-slot="alert-dialog-popup"]
+    )
+    [data-slot="bookmark-hover-actions"],
+  body:has(
+      [data-slot="menu-popup"],
+      [data-slot="sheet-popup"],
+      [data-slot="dialog-popup"],
+      [data-slot="alert-dialog-popup"]
+    )
+    [data-slot="bookmark-hover-actions"]
+    * {
+    pointer-events: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
 }
 
 @keyframes avatar-surface-flow {
