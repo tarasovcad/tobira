@@ -1,11 +1,16 @@
 import type {CSSProperties, MouseEventHandler} from "react";
-import {useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 
 type UseFloatingHoverTooltipOptions = {
-  side?: "left" | "right";
+  side?: "left" | "right" | "auto";
   offsetX?: number;
   offsetY?: number;
   collisionPadding?: number;
+  horizontalFallback?: "clamp" | "center";
+  verticalAlign?: "top" | "center";
+  tooltipFallbackWidth?: number;
+  tooltipFallbackHeight?: number;
+  getCollisionRect?: (trigger: HTMLElement) => DOMRect | null;
   hideDelay?: number;
   openTransition?: string;
   closeTransition?: string;
@@ -22,6 +27,11 @@ export function useFloatingHoverTooltip({
   offsetX = 8,
   offsetY = -13,
   collisionPadding = 8,
+  horizontalFallback = "clamp",
+  verticalAlign = "top",
+  tooltipFallbackWidth = 0,
+  tooltipFallbackHeight = 0,
+  getCollisionRect,
   hideDelay = 80,
   openTransition = defaultOpenTransition,
   closeTransition = defaultCloseTransition,
@@ -32,53 +42,139 @@ export function useFloatingHoverTooltip({
   const [animatePosition, setAnimatePosition] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const visibleRef = useRef(visible);
 
   useEffect(() => () => clearTimeout(hideTimer.current), []);
 
-  const show: MouseEventHandler<HTMLElement> = (event) => {
-    clearTimeout(hideTimer.current);
-    const rect = event.currentTarget.getBoundingClientRect();
-    const tooltipRect = tooltipRef.current?.getBoundingClientRect();
-    const tooltipWidth = tooltipRect?.width ?? 0;
-    const tooltipHeight = tooltipRect?.height ?? 0;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const rightX = rect.right + offsetX;
-    const leftX = rect.left - offsetX - tooltipWidth;
-    const fitsRight = rightX + tooltipWidth <= viewportWidth - collisionPadding;
-    const fitsLeft = leftX >= collisionPadding;
-    const availableRight = viewportWidth - collisionPadding - rightX;
-    const availableLeft = rect.left - offsetX - collisionPadding;
-    let resolvedSide = side;
+  useEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
 
-    if (side === "right" && !fitsRight) {
-      resolvedSide = fitsLeft || availableLeft > availableRight ? "left" : "right";
-    }
+  const show = useCallback<MouseEventHandler<HTMLElement>>(
+    (event) => {
+      clearTimeout(hideTimer.current);
+      const trigger = event.currentTarget;
+      const rect = trigger.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current?.getBoundingClientRect();
+      const tooltipWidth = Math.max(tooltipRect?.width ?? 0, tooltipFallbackWidth);
+      const tooltipHeight = Math.max(tooltipRect?.height ?? 0, tooltipFallbackHeight);
+      const collisionRect = getCollisionRect?.(trigger);
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const collisionLeft = collisionRect?.left ?? 0;
+      const collisionRight = collisionRect?.right ?? viewportWidth;
+      const collisionTop = collisionRect?.top ?? 0;
+      const collisionBottom = collisionRect?.bottom ?? viewportHeight;
+      const rightX = rect.right + offsetX;
+      const leftX = rect.left - offsetX - tooltipWidth;
+      const horizontalMinX = collisionLeft + collisionPadding;
+      const horizontalMaxX = Math.max(
+        horizontalMinX,
+        collisionRight - tooltipWidth - collisionPadding,
+      );
+      const fitsRight = rightX + tooltipWidth <= collisionRight - collisionPadding;
+      const fitsLeft = leftX >= horizontalMinX;
+      const availableRight = collisionRight - collisionPadding - rightX;
+      const availableLeft = rect.left - offsetX - horizontalMinX;
+      let resolvedSide = side;
 
-    if (side === "left" && !fitsLeft) {
-      resolvedSide = fitsRight || availableRight > availableLeft ? "right" : "left";
-    }
-    const preferredX = resolvedSide === "right" ? rightX : leftX;
-    const maxX = Math.max(collisionPadding, viewportWidth - tooltipWidth - collisionPadding);
-    const x = Math.min(Math.max(preferredX, collisionPadding), maxX);
-    const preferredY = rect.top + rect.height / 2 + offsetY;
-    const maxY = Math.max(collisionPadding, viewportHeight - tooltipHeight - collisionPadding);
-    const y = Math.min(Math.max(preferredY, collisionPadding), maxY);
+      if (side === "auto") {
+        if (fitsLeft && fitsRight) {
+          resolvedSide = availableLeft >= availableRight ? "left" : "right";
+        } else if (fitsLeft) {
+          resolvedSide = "left";
+        } else if (fitsRight) {
+          resolvedSide = "right";
+        } else {
+          resolvedSide = availableLeft >= availableRight ? "left" : "right";
+        }
+      }
 
-    setPosition({
-      x,
-      y,
-    });
-    setVisible(true);
-    setAnimatePosition(visible);
-  };
+      if (side === "right" && !fitsRight) {
+        resolvedSide = fitsLeft || availableLeft > availableRight ? "left" : "right";
+      }
 
-  const hide = () => {
+      if (side === "left" && !fitsLeft) {
+        resolvedSide = fitsRight || availableRight > availableLeft ? "right" : "left";
+      }
+      const resolvedFits = resolvedSide === "right" ? fitsRight : fitsLeft;
+      const centeredX = collisionLeft + (collisionRight - collisionLeft - tooltipWidth) / 2;
+      const preferredX =
+        horizontalFallback === "center" && !resolvedFits
+          ? centeredX
+          : resolvedSide === "right"
+            ? rightX
+            : leftX;
+      const x = Math.min(Math.max(preferredX, horizontalMinX), horizontalMaxX);
+      const preferredY = rect.top + rect.height / 2 + offsetY;
+      const minY =
+        verticalAlign === "center"
+          ? collisionTop + tooltipHeight / 2 + collisionPadding
+          : collisionTop + collisionPadding;
+      const maxY =
+        verticalAlign === "center"
+          ? collisionBottom - tooltipHeight / 2 - collisionPadding
+          : collisionBottom - tooltipHeight - collisionPadding;
+      const clampedMaxY = Math.max(minY, maxY);
+      const y = Math.min(Math.max(preferredY, minY), clampedMaxY);
+
+      setPosition({
+        x,
+        y,
+      });
+      setVisible(true);
+      setAnimatePosition(visibleRef.current);
+      visibleRef.current = true;
+    },
+    [
+      collisionPadding,
+      getCollisionRect,
+      horizontalFallback,
+      offsetX,
+      offsetY,
+      side,
+      tooltipFallbackHeight,
+      tooltipFallbackWidth,
+      verticalAlign,
+    ],
+  );
+
+  const hide = useCallback(() => {
     hideTimer.current = setTimeout(() => {
+      visibleRef.current = false;
       setVisible(false);
       setAnimatePosition(false);
     }, hideDelay);
-  };
+  }, [hideDelay]);
+
+  const hideImmediately = useCallback(() => {
+    clearTimeout(hideTimer.current);
+    visibleRef.current = false;
+    setVisible(false);
+    setAnimatePosition(false);
+  }, []);
+
+  const keepVisible = useCallback<MouseEventHandler<HTMLElement>>(() => {
+    clearTimeout(hideTimer.current);
+    visibleRef.current = true;
+    setVisible(true);
+  }, []);
+
+  const getTriggerProps = useCallback(
+    () => ({
+      onMouseEnter: show,
+      onMouseLeave: hide,
+    }),
+    [hide, show],
+  );
+
+  const getTooltipProps = useCallback(
+    () => ({
+      onMouseEnter: keepVisible,
+      onMouseLeave: hide,
+    }),
+    [hide, keepVisible],
+  );
 
   const tooltipStyle: CSSProperties = useMemo(
     () => ({
@@ -101,10 +197,9 @@ export function useFloatingHoverTooltip({
   );
 
   return {
-    getTriggerProps: () => ({
-      onMouseEnter: show,
-      onMouseLeave: hide,
-    }),
+    getTriggerProps,
+    getTooltipProps,
+    hideImmediately,
     tooltipRef,
     tooltipStyle,
     visible,

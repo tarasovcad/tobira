@@ -9,6 +9,44 @@ export type ColumnSize = (typeof COLUMN_SIZES)[number];
 export type ContentField = "description" | "tags" | "source" | "savedDate" | "avatar";
 export type PostContentField = "media" | "quotedPost" | "timestamp" | "author" | "tags";
 export type KindFilter = "website" | "media" | "post";
+export type CompactPreviewSize = "sm" | "md" | "lg";
+export type CompactPreviewPosition = "left" | "right" | "auto";
+
+export type CompactInteractions = {
+  hoverPreview: boolean;
+  previewSize: CompactPreviewSize;
+  previewAnimation: boolean;
+  previewPosition: CompactPreviewPosition;
+};
+
+export function getCompactPreviewWidthClass(size: CompactPreviewSize) {
+  switch (size) {
+    case "sm":
+      return "w-32";
+    case "md":
+      return "w-44";
+    case "lg":
+      return "w-56";
+  }
+}
+
+export function getCompactPreviewWidthPx(size: CompactPreviewSize) {
+  switch (size) {
+    case "sm":
+      return 128;
+    case "md":
+      return 176;
+    case "lg":
+      return 224;
+  }
+}
+
+export const DEFAULT_COMPACT_INTERACTIONS: CompactInteractions = {
+  hoverPreview: true,
+  previewSize: "md",
+  previewAnimation: true,
+  previewPosition: "auto",
+};
 
 export interface ViewOptionsState {
   // Layout
@@ -33,6 +71,14 @@ export interface ViewOptionsState {
   // Content (posts)
   postContentToggles: Record<PostContentField, boolean>;
   setPostContentToggle: (field: PostContentField, value: boolean) => void;
+
+  // Interactions (compact view)
+  compactInteractions: CompactInteractions;
+  setCompactInteraction: <K extends keyof CompactInteractions>(
+    key: K,
+    value: CompactInteractions[K],
+  ) => void;
+  setCompactInteractions: (interactions: CompactInteractions) => void;
 
   // Reset
   resetViewOptions: (view?: ViewMode) => void;
@@ -66,6 +112,7 @@ const DEFAULT_OPTIONS = {
     avatar: true,
   },
   postContentToggles: DEFAULT_POST_CONTENT_TOGGLES,
+  compactInteractions: DEFAULT_COMPACT_INTERACTIONS,
 };
 
 export const useViewOptionsStore = create<ViewOptionsState>((set) => ({
@@ -116,6 +163,18 @@ export const useViewOptionsStore = create<ViewOptionsState>((set) => ({
         [field]: value,
       },
     })),
+
+  // Interactions (compact view)
+  compactInteractions: DEFAULT_COMPACT_INTERACTIONS,
+  setCompactInteraction: (key, value) =>
+    set((state) => ({
+      compactInteractions: {
+        ...state.compactInteractions,
+        [key]: value,
+      },
+    })),
+  setCompactInteractions: (compactInteractions) => set({compactInteractions}),
+
   resetViewOptions: (view) =>
     set({
       ...DEFAULT_OPTIONS,

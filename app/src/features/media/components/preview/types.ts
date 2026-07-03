@@ -39,6 +39,7 @@ export type MediaPreviewProps = {
   onError?: () => void;
   onCanPlay?: () => void;
   addZoom?: boolean;
+  closeAnimation?: "default" | "none";
   /** When true, the preview overlay shows fallback content instead of the image */
   showFallback?: boolean;
   /** Content to render in the overlay when showFallback is true (e.g. placeholder icon) */

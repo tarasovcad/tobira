@@ -19,7 +19,10 @@ import {SliderComfortable} from "@/components/ui/app/slider";
 import {cn} from "@/lib/utils";
 import {
   useViewOptionsStore,
+  DEFAULT_COMPACT_INTERACTIONS,
   type ColumnSize,
+  type CompactPreviewPosition,
+  type CompactPreviewSize,
   type ContentField,
   type PostContentField,
   type ViewMode,
@@ -191,6 +194,18 @@ const WIDTH_OPTIONS = [
   {value: "full", label: "Full"},
 ] as const;
 
+const PREVIEW_SIZE_OPTIONS = [
+  {value: "sm", label: "S"},
+  {value: "md", label: "M"},
+  {value: "lg", label: "L"},
+] as const satisfies {value: CompactPreviewSize; label: string}[];
+
+const PREVIEW_POSITION_OPTIONS = [
+  {value: "left", label: "Left"},
+  {value: "auto", label: "Auto"},
+  {value: "right", label: "Right"},
+] as const satisfies {value: CompactPreviewPosition; label: string}[];
+
 type AppearanceField = "width" | "columnSize" | "gridGap" | "borderRadius";
 
 const DISABLED_APPEARANCE_BY_VIEW: Partial<Record<ViewMode, AppearanceField[]>> = {
@@ -248,6 +263,7 @@ const DEFAULT_VIEW_OPTIONS: Record<
     borderRadius: BorderRadius;
     bookmarkWidth: BookmarkWidth;
     contentToggles: Record<ContentField, boolean>;
+    compactInteractions?: typeof DEFAULT_COMPACT_INTERACTIONS;
   }
 > = {
   list: {
@@ -275,6 +291,7 @@ const DEFAULT_VIEW_OPTIONS: Record<
       source: true,
       savedDate: false,
     },
+    compactInteractions: DEFAULT_COMPACT_INTERACTIONS,
   },
   grid: {
     gridGap: "md",
@@ -326,6 +343,10 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
   const setPostContentToggle = useViewOptionsStore((state) => state.setPostContentToggle);
 
+  const compactInteractions = useViewOptionsStore((state) => state.compactInteractions);
+  const setCompactInteraction = useViewOptionsStore((state) => state.setCompactInteraction);
+  const setCompactInteractions = useViewOptionsStore((state) => state.setCompactInteractions);
+
   const isMedia = typeFilter === "media";
   const isPost = typeFilter === "post";
   const maxWidthIndex = isPost
@@ -333,6 +354,9 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
     : WIDTH_OPTIONS.length - 1;
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const disabledAppearanceFields = DISABLED_APPEARANCE_BY_VIEW[currentView as ViewMode] || [];
+  const isCompactView = currentView === "compact";
+  const interactionsDisabled = !isCompactView;
+  const previewControlsDisabled = interactionsDisabled || !compactInteractions.hoverPreview;
 
   return (
     <Menu>
@@ -414,6 +438,9 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                               defaults.bookmarkWidth,
                             );
                             setContentToggles(defaults.contentToggles);
+                            if (defaults.compactInteractions) {
+                              setCompactInteractions(defaults.compactInteractions);
+                            }
                           }
                         }}
                         className={cn(
@@ -541,7 +568,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                   <span>Content</span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="text-foreground px-1 py-2 text-sm">
+              <AccordionContent className="text-foreground px-1 pt-1 pb-2 text-sm">
                 <div className="space-y-2">
                   {isPost ? (
                     <div className="divide-border border-border divide-y rounded-md">
@@ -600,6 +627,112 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                       })}
                     </div>
                   )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem
+              className={cn("border-b-0", interactionsDisabled && "opacity-60")}
+              value="interactions">
+              <AccordionTrigger
+                disabled={interactionsDisabled}
+                className={cn(
+                  "hover:bg-accent hover:text-accent-foreground min-h-8 items-center rounded-sm px-2 py-1 text-sm font-normal sm:min-h-7",
+                  interactionsDisabled && "cursor-not-allowed",
+                )}>
+                <div className="flex items-center gap-2 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0 [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4.5 sm:[&>svg:not([class*='size-'])]:size-4">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M9.94316 7.22222H14.5362C16.0582 7.22222 17.292 8.46591 17.292 10V11.6937C17.292 15.3607 14.3428 18.3333 10.7049 18.3333C8.25927 18.3333 6.01494 16.9676 4.87589 14.7861L2.38714 10.0197C2.23404 9.72658 2.26782 9.36983 2.47317 9.11108L2.82459 8.66825C3.45844 7.86964 4.61458 7.74016 5.4069 8.37908L6.26878 9.07408V3.51851C6.26878 2.49576 7.09133 1.66666 8.10598 1.66666C9.12066 1.66666 9.94316 2.49576 9.94316 3.51851V7.22222Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  <span>Interactions</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-1 pt-1 pb-2 text-sm">
+                <div className="space-y-2">
+                  <div className="divide-border border-border divide-y rounded-md">
+                    <Switch
+                      label="Hover preview"
+                      checked={compactInteractions.hoverPreview}
+                      disabled={interactionsDisabled}
+                      onToggle={() =>
+                        setCompactInteraction("hoverPreview", !compactInteractions.hoverPreview)
+                      }
+                      labelClassName="text-sm"
+                      className={cn(
+                        "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",
+                        interactionsDisabled && "cursor-not-allowed!",
+                      )}
+                      aria-label="Show hover preview"
+                    />
+                    <Switch
+                      label="Preview animation"
+                      checked={compactInteractions.previewAnimation}
+                      disabled={previewControlsDisabled}
+                      onToggle={() =>
+                        setCompactInteraction(
+                          "previewAnimation",
+                          !compactInteractions.previewAnimation,
+                        )
+                      }
+                      labelClassName="text-sm"
+                      className={cn(
+                        "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",
+                        previewControlsDisabled && "cursor-not-allowed!",
+                      )}
+                      aria-label="Animate hover preview"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <SliderComfortable
+                      label="Preview size"
+                      value={PREVIEW_SIZE_OPTIONS.findIndex(
+                        (option) => option.value === compactInteractions.previewSize,
+                      )}
+                      min={0}
+                      max={PREVIEW_SIZE_OPTIONS.length - 1}
+                      step={1}
+                      variant="pips"
+                      className="cursor-pointer rounded-md"
+                      showTooltip={false}
+                      formatValue={(value) => PREVIEW_SIZE_OPTIONS[value as number].label}
+                      disabled={previewControlsDisabled}
+                      onChange={(value) =>
+                        setCompactInteraction(
+                          "previewSize",
+                          PREVIEW_SIZE_OPTIONS[value as number].value,
+                        )
+                      }
+                    />
+                    <SliderComfortable
+                      label="Preview position"
+                      value={PREVIEW_POSITION_OPTIONS.findIndex(
+                        (option) => option.value === compactInteractions.previewPosition,
+                      )}
+                      min={0}
+                      max={PREVIEW_POSITION_OPTIONS.length - 1}
+                      step={1}
+                      variant="pips"
+                      className="cursor-pointer rounded-md"
+                      showTooltip={false}
+                      formatValue={(value) => PREVIEW_POSITION_OPTIONS[value as number].label}
+                      disabled={previewControlsDisabled}
+                      onChange={(value) =>
+                        setCompactInteraction(
+                          "previewPosition",
+                          PREVIEW_POSITION_OPTIONS[value as number].value,
+                        )
+                      }
+                    />
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>

@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useMemo, useRef} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 
 // Components
@@ -232,9 +232,9 @@ export function BookmarkWorkspaceClient({
   const openMenu = useBookmarkMenuStore((state) => state.openMenu);
   const closeMenu = useBookmarkMenuStore((state) => state.closeMenu);
 
-  // Refs for infinite scroll
-  const scrollAreaRootRef = useRef<HTMLDivElement | null>(null);
-  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
+  // DOM targets for infinite scroll
+  const [scrollAreaRoot, setScrollAreaRoot] = useState<HTMLDivElement | null>(null);
+  const [bottomSentinel, setBottomSentinel] = useState<HTMLDivElement | null>(null);
 
   const {hasNextPage, isFetchingNextPage, fetchNextPage} = bookmarksQuery;
   const showEmptyState =
@@ -248,8 +248,8 @@ export function BookmarkWorkspaceClient({
   const isTagNotFound = tagFilter && !activeTag && !isInitialLoad;
 
   useHomeInfiniteScroll({
-    scrollAreaRootRef,
-    bottomSentinelRef,
+    scrollAreaRoot,
+    bottomSentinel,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -342,8 +342,8 @@ export function BookmarkWorkspaceClient({
           isFetchingNextPage={isFetchingNextPage}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
-          scrollAreaRootRef={scrollAreaRootRef}
-          bottomSentinelRef={bottomSentinelRef}
+          scrollAreaRootRef={setScrollAreaRoot}
+          bottomSentinelRef={setBottomSentinel}
           fetchNextPage={fetchNextPage}
           onTransitionDone={handleTransitionDone}
           toggleSelected={toggleSelected}

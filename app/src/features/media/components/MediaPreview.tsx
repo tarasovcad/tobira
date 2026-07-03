@@ -30,6 +30,7 @@ export default function MediaPreview({
   onError,
   onCanPlay,
   addZoom = true,
+  closeAnimation = "default",
   poster,
   showFallback = false,
   fallback,
@@ -53,7 +54,7 @@ export default function MediaPreview({
     handleMediaPointerUp,
     handleMediaPointerCancel,
     handleMediaClick,
-  } = useMediaPreview({width, height, onOpenChange, type, addZoom});
+  } = useMediaPreview({width, height, onOpenChange, type, addZoom, closeAnimation});
 
   const handledOpenSignalRef = useRef<number | undefined>(undefined);
   const isVideo = type === "video";

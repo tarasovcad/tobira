@@ -1,11 +1,17 @@
-import type {PointerEventHandler, ReactNode, RefObject, WheelEventHandler} from "react";
+import Image from "next/image";
+import {
+  useState,
+  type PointerEventHandler,
+  type ReactNode,
+  type RefObject,
+  type WheelEventHandler,
+} from "react";
 import {PreviewToolbar} from "./PreviewToolbar";
 import {PreviewSurface} from "./PreviewSurface";
 import type {Pan, Rect} from "./types";
 import {VideoPlayerShell} from "@/features/video-player/components/VideoPlayerShell";
 import type {VideoPlayerSession} from "@/features/video-player/types";
 import {cn} from "@/lib/utils";
-import {FallbackImage} from "./FallbackImage";
 
 type MediaPreviewOverlayProps = {
   overlayRef: RefObject<HTMLDivElement | null>;
@@ -67,6 +73,41 @@ function DefaultFallback() {
   );
 }
 
+function ProgressiveOverlayImage({
+  src,
+  fullSizeSrc,
+  alt,
+}: {
+  src: string;
+  fullSizeSrc?: string;
+  alt: string;
+}) {
+  const fullSizeImageSrc = fullSizeSrc && fullSizeSrc !== src ? fullSizeSrc : undefined;
+  const [loadedFullSizeImageSrc, setLoadedFullSizeImageSrc] = useState<string | null>(null);
+  const fullSizeImageLoaded =
+    fullSizeImageSrc !== undefined && loadedFullSizeImageSrc === fullSizeImageSrc;
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-none!">
+      <Image src={src} alt={alt} fill sizes="100vw" className="object-cover" />
+      {fullSizeImageSrc ? (
+        <Image
+          src={fullSizeImageSrc}
+          alt=""
+          aria-hidden="true"
+          fill
+          sizes="100vw"
+          className={cn(
+            "object-cover transition-opacity duration-200 ease-in-out",
+            fullSizeImageLoaded ? "opacity-100" : "opacity-0",
+          )}
+          onLoad={() => setLoadedFullSizeImageSrc(fullSizeImageSrc)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function MediaPreviewOverlay({
   overlayRef,
   expanded,
@@ -118,7 +159,8 @@ export function MediaPreviewOverlay({
         type="button"
         aria-label="Close preview"
         className={cn(
-          "absolute inset-0 bg-black/60 transition-opacity duration-[180ms]",
+          "absolute inset-0 bg-black/60 transition-opacity ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+          expanded ? "duration-[300ms]" : "duration-[200ms]",
           expanded ? "opacity-100" : "opacity-0",
         )}
         onClick={closePreview}
@@ -147,7 +189,8 @@ export function MediaPreviewOverlay({
             }}
             disabled={!onPrevious || !hasPrevious}
             className={cn(
-              "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
+              "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40 motion-reduce:transition-none",
+              expanded ? "duration-[260ms]" : "duration-[180ms]",
               expanded ? "opacity-100" : "pointer-events-none opacity-0",
             )}>
             <svg
@@ -171,7 +214,8 @@ export function MediaPreviewOverlay({
             }}
             disabled={!onNext || !hasNext}
             className={cn(
-              "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all duration-[180ms] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
+              "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40 motion-reduce:transition-none",
+              expanded ? "duration-[260ms]" : "duration-[180ms]",
               expanded ? "opacity-100" : "pointer-events-none opacity-0",
             )}>
             <svg
@@ -223,14 +267,7 @@ export function MediaPreviewOverlay({
         ) : showFallback ? (
           (fallback ?? <DefaultFallback />)
         ) : (
-          <FallbackImage
-            src={fullSizeSrc ?? src}
-            alt={alt}
-            fill
-            sizes="100vw"
-            parentClassName="bg-none!"
-            className="object-cover"
-          />
+          <ProgressiveOverlayImage src={src} fullSizeSrc={fullSizeSrc} alt={alt} />
         )}
       </PreviewSurface>
     </div>

@@ -36,7 +36,7 @@ function CodeBlockCopyButton({code}: {code: string}) {
         void copyText(code, code);
       }}
       className="hit-area-4 cursor-pointer">
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="popLayout" initial={false}>
         {copied ? (
           <AnimatedCopyIcon key="check" variant="check" />
         ) : (
@@ -53,10 +53,10 @@ function AnimatedCopyIcon({variant}: {variant: "check" | "copy"}) {
   return (
     <motion.span
       className="flex items-center justify-center"
-      initial={{opacity: 0, filter: `blur(${isCheck ? 2 : 4}px)`, scale: isCheck ? 0.9 : 0.85}}
-      animate={{opacity: 1, filter: "blur(0px)", scale: 1}}
-      exit={{opacity: 0, filter: "blur(4px)", scale: 0.85}}
-      transition={{duration: isCheck ? 0.05 : 0.1, ease: "easeOut"}}>
+      initial={{opacity: 0, scale: 0.25, filter: "blur(4px)"}}
+      animate={{opacity: 1, scale: 1, filter: "blur(0px)"}}
+      exit={{opacity: 0, scale: 0.25, filter: "blur(4px)"}}
+      transition={{type: "spring", duration: 0.3, bounce: 0}}>
       {isCheck ? <CheckIcon /> : <CopyIcon />}
     </motion.span>
   );

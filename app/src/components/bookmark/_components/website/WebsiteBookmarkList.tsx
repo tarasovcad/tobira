@@ -34,6 +34,7 @@ export default function BookmarkWebsiteList({
     <Link
       href={item.url}
       target="_blank"
+      draggable={false}
       className={cn(
         "group relative flex w-full cursor-pointer flex-col gap-2 border-b px-6 py-5 pr-16 text-left",
         "hover:bg-muted/80",

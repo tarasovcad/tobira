@@ -59,9 +59,9 @@ export function PreviewToolbar({
 }: PreviewToolbarProps) {
   return (
     <div
-      className={`absolute top-5 right-5 z-10 overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md transition-opacity duration-[180ms] ${
-        expanded ? "opacity-100" : "opacity-0"
-      }`}>
+      className={`absolute top-5 right-5 z-10 overflow-hidden rounded-md border border-white/10 bg-black/40 shadow-xl backdrop-blur-md transition-opacity ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+        expanded ? "duration-[260ms]" : "duration-[180ms]"
+      } ${expanded ? "opacity-100" : "opacity-0"}`}>
       <div className="relative z-10 flex items-center">
         {addZoom && (
           <ToolbarButton

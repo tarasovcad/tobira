@@ -1,5 +1,5 @@
 "use client";
-import {useCallback, useEffect, useMemo} from "react";
+import {useCallback, useEffect, useMemo, type Ref} from "react";
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
@@ -28,13 +28,14 @@ import {
   createMediaGalleryController,
   useMediaGalleryControllerSnapshot,
 } from "@/features/media/hooks/useMediaGalleryController";
+import {WebsiteBookmarkCompactHoverPreviewProvider} from "@/components/bookmark/_hooks/use-website-bookmark-compact-hover-preview";
 
 const GALLERY_PREFETCH_REMAINING_ITEMS = 4;
 
-function LoadingSpinner({className}: {className?: string}) {
+function LoadingSpinner({className, size = 4}: {className?: string; size?: number}) {
   return (
     <div className={className}>
-      <Spinner className="mx-auto size-4 animate-spin" />
+      <Spinner className={`mx-auto size-${size} animate-spin`} />
     </div>
   );
 }
@@ -54,8 +55,8 @@ interface AllItemsListProps {
   isFetchingNextPage: boolean;
   selectionMode: boolean;
   selectedIds: Set<string>;
-  scrollAreaRootRef: React.RefObject<HTMLDivElement | null>;
-  bottomSentinelRef: React.RefObject<HTMLDivElement | null>;
+  scrollAreaRootRef: Ref<HTMLDivElement>;
+  bottomSentinelRef: Ref<HTMLDivElement>;
   fetchNextPage: () => void;
   onTransitionDone: () => void;
   toggleSelected: (id: string) => void;
@@ -318,6 +319,8 @@ export function AllItemsList({
 
   const showPlaceholder = sort !== "az";
   const isNewestAtBottom = sort === "oldest";
+  const showWebsiteCompactHoverPreview =
+    currentView === "compact" && typeFilter === "website" && itemSurface !== "bin";
 
   const body = (
     <>
@@ -327,31 +330,17 @@ export function AllItemsList({
     </>
   );
 
-  return (
-    <>
-      <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
-        <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
-          <div className={cn(layoutConfig.wrapperClassName, applyScrollTopPadding && "pt-6")}>
-            <div className={layoutConfig.containerClassName}>
-              {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
-              {!layoutConfig.isMasonry ? (
-                <>
-                  {isFetchingNextPage && (
-                    <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
-                  )}
-                  <div
-                    ref={bottomSentinelRef}
-                    aria-hidden
-                    className={layoutConfig.sentinelClassName}
-                  />
-                </>
-              ) : null}
-            </div>
-            {layoutConfig.isMasonry ? (
+  const listBody = (
+    <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
+      <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
+        <div className={cn(layoutConfig.wrapperClassName, applyScrollTopPadding && "pt-6")}>
+          <div className={layoutConfig.containerClassName}>
+            {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}
+            {!layoutConfig.isMasonry ? (
               <>
-                {isFetchingNextPage ? (
-                  <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
-                ) : null}
+                {isFetchingNextPage && (
+                  <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} size={4.5} />
+                )}
                 <div
                   ref={bottomSentinelRef}
                   aria-hidden
@@ -360,8 +349,28 @@ export function AllItemsList({
               </>
             ) : null}
           </div>
-        </ScrollArea>
-      </div>
+          {layoutConfig.isMasonry ? (
+            <>
+              {isFetchingNextPage ? (
+                <LoadingSpinner className={layoutConfig.fetchSpinnerClassName} />
+              ) : null}
+              <div ref={bottomSentinelRef} aria-hidden className={layoutConfig.sentinelClassName} />
+            </>
+          ) : null}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  return (
+    <>
+      {showWebsiteCompactHoverPreview ? (
+        <WebsiteBookmarkCompactHoverPreviewProvider selectionMode={selectionMode}>
+          {listBody}
+        </WebsiteBookmarkCompactHoverPreviewProvider>
+      ) : (
+        listBody
+      )}
       <MediaGalleryOverlay
         entries={mediaGalleryEntries}
         controller={mediaGalleryController}
