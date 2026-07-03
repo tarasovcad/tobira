@@ -6,6 +6,8 @@ const DEFAULT_IMAGE_HEIGHT = 1200;
 const DEFAULT_MAX_RETRIES = 12;
 const DEFAULT_RETRY_MS = 2000;
 
+const loadedImageIdentities = new Set<string>();
+
 type ImageLoadingMode = "eager" | "lazy";
 type ImageLoadingStatus = "loading" | "loaded" | "error";
 
@@ -34,6 +36,10 @@ function isFailedAssetStatus(status: WebsiteImageStatus | undefined) {
   return status === "failed" || status === "missing";
 }
 
+function isLoadedImageIdentity(baseSrc: string, identity: string) {
+  return Boolean(baseSrc) && loadedImageIdentities.has(identity);
+}
+
 export function useWebsiteImageLoading({
   baseSrc,
   assetVersion,
@@ -51,14 +57,19 @@ export function useWebsiteImageLoading({
   const isPending = assetStatus === "pending";
   const isFailed = isFailedAssetStatus(assetStatus);
   const imageIdentity = getImageIdentity(baseSrc, assetVersion);
+  const cachedLoaded = isLoadedImageIdentity(baseSrc, imageIdentity);
 
   const [state, setState] = useState<ImageLoadingState>({
     identity: imageIdentity,
     attempt: 0,
-    status: "loading",
+    status: cachedLoaded ? "loaded" : "loading",
   });
   const attempt = state.identity === imageIdentity ? state.attempt : 0;
-  const status = state.identity === imageIdentity ? state.status : "loading";
+  const status = cachedLoaded
+    ? "loaded"
+    : state.identity === imageIdentity
+      ? state.status
+      : "loading";
   const hasValidImage = hasBaseSrc && status === "loaded";
   const showSkeleton = hasBaseSrc && !hasValidImage && (isPending || !assetStatus);
   const shouldRetry = hasBaseSrc && !isPending && !isFailed && status === "error";
@@ -82,8 +93,36 @@ export function useWebsiteImageLoading({
     return () => window.clearTimeout(timer);
   }, [attempt, imageIdentity, maxRetries, retryMs, shouldRetry]);
 
-  const markImageLoaded = () => setState({identity: imageIdentity, attempt, status: "loaded"});
-  const markImageFailed = () => setState({identity: imageIdentity, attempt, status: "error"});
+  const markImageLoaded = () => {
+    if (hasBaseSrc) {
+      loadedImageIdentities.add(imageIdentity);
+    }
+
+    setState((current) => {
+      if (
+        current.identity === imageIdentity &&
+        current.attempt === attempt &&
+        current.status === "loaded"
+      ) {
+        return current;
+      }
+
+      return {identity: imageIdentity, attempt, status: "loaded"};
+    });
+  };
+  const markImageFailed = () => {
+    setState((current) => {
+      if (
+        current.identity === imageIdentity &&
+        current.attempt === attempt &&
+        current.status === "error"
+      ) {
+        return current;
+      }
+
+      return {identity: imageIdentity, attempt, status: "error"};
+    });
+  };
 
   return {
     attempt,
