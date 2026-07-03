@@ -10,6 +10,7 @@ import {toastManager} from "@/components/ui/coss/toast";
 import {emailFormSchema, type EmailFormValues} from "../_lib/schemas";
 import SocialSignInButton from "./SocialSignInButton";
 import {useSocialSignIn} from "../_hooks/useSocialSignIn";
+import {sendOtpAction} from "@/app/actions/auth";
 
 type EmailLoginFormProps = {
   defaultEmail?: string;
@@ -36,13 +37,13 @@ const EmailLoginForm = ({defaultEmail = "", onSuccess}: EmailLoginFormProps) => 
   const onSubmit = async ({email}: EmailFormValues) => {
     clearErrors("email");
 
-    // const res = await sendOtpAction(email);
+    const res = await sendOtpAction(email);
 
-    // if (res.error) {
-    //   setError("email", {type: "server", message: res.error});
-    //   toastManager.add({title: res.error, type: "error"});
-    //   return;
-    // }
+    if (res.error) {
+      setError("email", {type: "server", message: res.error});
+      toastManager.add({title: res.error, type: "error"});
+      return;
+    }
 
     toastManager.add({title: "OTP sent successfully", type: "success"});
     onSuccess(email);

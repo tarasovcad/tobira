@@ -7,7 +7,7 @@ import {drizzleAdapter} from "@better-auth/drizzle-adapter";
 import {db} from "@/db";
 
 const cloudflare = new Cloudflare({
-  apiToken: process.env.CLOUDFLARE_API_TOKEN,
+  apiToken: process.env.CLOUDFLARE_EMAIL_API_TOKEN,
 });
 
 export const auth = betterAuth({
