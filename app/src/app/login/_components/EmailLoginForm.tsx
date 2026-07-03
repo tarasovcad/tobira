@@ -7,7 +7,6 @@ import {Button} from "@/components/ui/coss/button";
 import {Field, FieldLabel} from "@/components/ui/coss/field";
 import Spinner from "@/components/ui/app/spinner";
 import {toastManager} from "@/components/ui/coss/toast";
-import {sendOtpAction} from "@/app/actions/auth";
 import {emailFormSchema, type EmailFormValues} from "../_lib/schemas";
 import SocialSignInButton from "./SocialSignInButton";
 import {useSocialSignIn} from "../_hooks/useSocialSignIn";
@@ -18,8 +17,7 @@ type EmailLoginFormProps = {
 };
 
 const EmailLoginForm = ({defaultEmail = "", onSuccess}: EmailLoginFormProps) => {
-  const {isGoogleLoading, isGithubLoading, signInWithGoogle, signInWithGithub} =
-    useSocialSignIn();
+  const {isGoogleLoading, isGithubLoading, signInWithGoogle, signInWithGithub} = useSocialSignIn();
 
   const {
     control,
@@ -38,23 +36,20 @@ const EmailLoginForm = ({defaultEmail = "", onSuccess}: EmailLoginFormProps) => 
   const onSubmit = async ({email}: EmailFormValues) => {
     clearErrors("email");
 
-    const res = await sendOtpAction(email);
+    // const res = await sendOtpAction(email);
 
-    if (res.error) {
-      setError("email", {type: "server", message: res.error});
-      toastManager.add({title: res.error, type: "error"});
-      return;
-    }
+    // if (res.error) {
+    //   setError("email", {type: "server", message: res.error});
+    //   toastManager.add({title: res.error, type: "error"});
+    //   return;
+    // }
 
     toastManager.add({title: "OTP sent successfully", type: "success"});
     onSuccess(email);
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="w-full max-w-[380px] space-y-2.5"
-      noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-[380px] space-y-2.5" noValidate>
       <div className="flex flex-col gap-3">
         <SocialSignInButton
           provider="google"
@@ -87,6 +82,8 @@ const EmailLoginForm = ({defaultEmail = "", onSuccess}: EmailLoginFormProps) => 
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
+                inputMode="email"
                 placeholder="you@example.com"
                 size="lg"
                 name={field.name}

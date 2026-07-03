@@ -8,7 +8,7 @@ import {Field, FieldLabel} from "@/components/ui/coss/field";
 import {InputOTP, InputOTPGroup, InputOTPSlot} from "@/components/other/InputOtp";
 import Spinner from "@/components/ui/app/spinner";
 import {toastManager} from "@/components/ui/coss/toast";
-import {verifyOtpAction} from "@/app/actions/auth";
+import {sendOtpAction, verifyOtpAction} from "@/app/actions/auth";
 import {otpFormSchema, type OtpFormValues} from "../_lib/schemas";
 
 type OtpFormProps = {
@@ -19,6 +19,26 @@ type OtpFormProps = {
 
 const OtpForm = ({email, onBack, onVerified}: OtpFormProps) => {
   const [isVerified, setIsVerified] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  const handleResend = async () => {
+    const res = await sendOtpAction(email);
+    if (res.error) {
+      toastManager.add({title: res.error, type: "error"});
+      return;
+    }
+    toastManager.add({title: "New code sent!", type: "success"});
+    setCooldown(30);
+    const timer = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const {
     control,
@@ -63,6 +83,7 @@ const OtpForm = ({email, onBack, onVerified}: OtpFormProps) => {
             <InputOTP
               id="otp"
               maxLength={6}
+              autoComplete="one-time-code"
               value={field.value}
               onChange={(value) => {
                 clearErrors("otp");
@@ -136,8 +157,9 @@ const OtpForm = ({email, onBack, onVerified}: OtpFormProps) => {
           variant="link"
           type="button"
           className="text-foreground hit-area-2! h-auto p-0 text-sm"
-          disabled={isSubmitting}>
-          Resend
+          disabled={isSubmitting || cooldown > 0}
+          onClick={handleResend}>
+          {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend"}
         </Button>
       </div>
     </form>
