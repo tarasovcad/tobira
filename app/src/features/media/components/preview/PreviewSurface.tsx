@@ -40,15 +40,16 @@ export function PreviewSurface({
   onPointerUp,
   onPointerCancel,
 }: PreviewSurfaceProps) {
+  const layoutDurationClassName = expanded ? "duration-[360ms]" : "duration-[240ms]";
   const transitionClassName = !animateLayout
     ? "transition-none"
     : isDragging
       ? fadeWhenCollapsed
-        ? "transition-[top,left,width,height,border-radius,opacity] duration-[160ms]"
-        : "transition-[top,left,width,height,border-radius] duration-[160ms]"
+        ? "transition-[top,left,width,height,border-radius,opacity] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        : "transition-[top,left,width,height,border-radius] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
       : fadeWhenCollapsed
-        ? "transition-[top,left,width,height,transform,border-radius,opacity] duration-[240ms]"
-        : "transition-[top,left,width,height,transform,border-radius] duration-[240ms]";
+        ? `transition-[top,left,width,height,transform,border-radius,opacity] ${layoutDurationClassName} ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none`
+        : `transition-[top,left,width,height,transform,border-radius] ${layoutDurationClassName} ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none`;
 
   return (
     <div
@@ -59,7 +60,7 @@ export function PreviewSurface({
       onPointerUp={interactive ? onPointerUp : undefined}
       onPointerCancel={interactive ? onPointerCancel : undefined}
       className={cn(
-        "absolute overflow-hidden rounded-xl shadow-2xl ease-out",
+        "absolute overflow-hidden rounded-xl shadow-2xl will-change-[top,left,width,height,transform,opacity]",
         transitionClassName,
         className,
       )}
