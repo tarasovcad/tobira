@@ -21,7 +21,6 @@ import {
   useViewOptionsStore,
   DEFAULT_COMPACT_INTERACTIONS,
   type ColumnSize,
-  type CompactPreviewDelay,
   type CompactPreviewPosition,
   type CompactPreviewSize,
   type ContentField,
@@ -200,12 +199,6 @@ const PREVIEW_SIZE_OPTIONS = [
   {value: "md", label: "M"},
   {value: "lg", label: "L"},
 ] as const satisfies {value: CompactPreviewSize; label: string}[];
-
-const PREVIEW_DELAY_OPTIONS = [
-  {value: "instant", label: "Instant"},
-  {value: "short", label: "Short"},
-  {value: "long", label: "Long"},
-] as const satisfies {value: CompactPreviewDelay; label: string}[];
 
 const PREVIEW_POSITION_OPTIONS = [
   {value: "left", label: "Left"},
@@ -575,7 +568,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                   <span>Content</span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="text-foreground px-1 py-2 text-sm">
+              <AccordionContent className="text-foreground px-1 pt-1 pb-2 text-sm">
                 <div className="space-y-2">
                   {isPost ? (
                     <div className="divide-border border-border divide-y rounded-md">
@@ -662,7 +655,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                   <span>Interactions</span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="px-1 py-2 text-sm">
+              <AccordionContent className="px-1 pt-1 pb-2 text-sm">
                 <div className="space-y-2">
                   <div className="divide-border border-border divide-y rounded-md">
                     <Switch
@@ -679,10 +672,26 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                       )}
                       aria-label="Show hover preview"
                     />
+                    <Switch
+                      label="Preview animation"
+                      checked={compactInteractions.previewAnimation}
+                      disabled={previewControlsDisabled}
+                      onToggle={() =>
+                        setCompactInteraction(
+                          "previewAnimation",
+                          !compactInteractions.previewAnimation,
+                        )
+                      }
+                      labelClassName="text-sm"
+                      className={cn(
+                        "hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2",
+                        previewControlsDisabled && "cursor-not-allowed!",
+                      )}
+                      aria-label="Animate hover preview"
+                    />
                   </div>
 
                   <div className="space-y-4">
-                    {" "}
                     <SliderComfortable
                       label="Preview size"
                       value={PREVIEW_SIZE_OPTIONS.findIndex(
@@ -700,26 +709,6 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                         setCompactInteraction(
                           "previewSize",
                           PREVIEW_SIZE_OPTIONS[value as number].value,
-                        )
-                      }
-                    />
-                    <SliderComfortable
-                      label="Preview delay"
-                      value={PREVIEW_DELAY_OPTIONS.findIndex(
-                        (option) => option.value === compactInteractions.previewDelay,
-                      )}
-                      min={0}
-                      max={PREVIEW_DELAY_OPTIONS.length - 1}
-                      step={1}
-                      variant="pips"
-                      className="cursor-pointer rounded-md"
-                      showTooltip={false}
-                      formatValue={(value) => PREVIEW_DELAY_OPTIONS[value as number].label}
-                      disabled={previewControlsDisabled}
-                      onChange={(value) =>
-                        setCompactInteraction(
-                          "previewDelay",
-                          PREVIEW_DELAY_OPTIONS[value as number].value,
                         )
                       }
                     />

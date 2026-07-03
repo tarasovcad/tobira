@@ -5,6 +5,7 @@ import {
   useContext,
   useMemo,
   useState,
+  type CSSProperties,
   type FocusEvent,
   type MouseEvent,
   type ReactNode,
@@ -21,7 +22,13 @@ import {
   useViewOptionsStore,
 } from "@/store/use-view-options";
 
-type TriggerProps = {
+const PREVIEW_OFFSET_X = 12;
+const PREVIEW_OFFSET_Y = 0;
+const PREVIEW_ASPECT_RATIO = 9 / 16;
+const DISABLED_PREVIEW_TRANSITION = "left 0s, top 0s, transform 0s, opacity 0s";
+const SCROLL_VIEWPORT_SELECTOR = '[data-slot="scroll-area-viewport"]';
+
+type HoverPreviewTriggerProps = {
   onMouseEnter: (event: MouseEvent<HTMLElement>) => void;
   onMouseLeave: () => void;
   onFocus: (event: FocusEvent<HTMLElement>) => void;
@@ -29,18 +36,55 @@ type TriggerProps = {
 };
 
 type WebsiteBookmarkCompactHoverPreviewContextValue = {
-  getTriggerProps: (item: WebsiteBookmark) => TriggerProps;
+  getTriggerProps: (item: WebsiteBookmark) => HoverPreviewTriggerProps;
+};
+
+type WebsiteBookmarkCompactHoverPreviewProviderProps = {
+  children: ReactNode;
+  enabled?: boolean;
+  selectionMode?: boolean;
 };
 
 const WebsiteBookmarkCompactHoverPreviewContext =
   createContext<WebsiteBookmarkCompactHoverPreviewContextValue | null>(null);
 
-const noopTriggerProps: TriggerProps = {
+const noopTriggerProps: HoverPreviewTriggerProps = {
   onMouseEnter: () => {},
   onMouseLeave: () => {},
   onFocus: () => {},
   onBlur: () => {},
 };
+
+function getPreviewTransition(previewAnimation: boolean) {
+  return previewAnimation ? undefined : DISABLED_PREVIEW_TRANSITION;
+}
+
+function getPreviewHeight(width: number) {
+  return width * PREVIEW_ASPECT_RATIO;
+}
+
+function getScrollViewportCollisionRect(trigger: HTMLElement) {
+  return trigger.closest(SCROLL_VIEWPORT_SELECTOR)?.getBoundingClientRect() ?? null;
+}
+
+function didFocusMoveWithinTrigger(event: FocusEvent<HTMLElement>) {
+  const nextTarget = event.relatedTarget;
+
+  return nextTarget instanceof Node && event.currentTarget.contains(nextTarget);
+}
+
+function getTooltipVisibilityStyle({
+  shouldShowPreview,
+  visible,
+}: {
+  shouldShowPreview: boolean;
+  visible: boolean;
+}): CSSProperties {
+  return {
+    transform: `translateY(-50%) scale(${visible && shouldShowPreview ? 1 : 0.98})`,
+    visibility: shouldShowPreview ? "visible" : "hidden",
+  };
+}
 
 export function useWebsiteBookmarkCompactHoverPreviewTrigger(item: WebsiteBookmark) {
   const context = useContext(WebsiteBookmarkCompactHoverPreviewContext);
@@ -52,15 +96,13 @@ export function WebsiteBookmarkCompactHoverPreviewProvider({
   children,
   enabled = true,
   selectionMode = false,
-}: {
-  children: ReactNode;
-  enabled?: boolean;
-  selectionMode?: boolean;
-}) {
+}: WebsiteBookmarkCompactHoverPreviewProviderProps) {
   const [activeItem, setActiveItem] = useState<WebsiteBookmark | null>(null);
   const compactInteractions = useViewOptionsStore((state) => state.compactInteractions);
   const previewSize = compactInteractions.previewSize;
   const previewWidth = getCompactPreviewWidthPx(previewSize);
+  const previewHeight = getPreviewHeight(previewWidth);
+  const previewTransition = getPreviewTransition(compactInteractions.previewAnimation);
   const {
     getTriggerProps: getBaseTriggerProps,
     getTooltipProps,
@@ -70,36 +112,37 @@ export function WebsiteBookmarkCompactHoverPreviewProvider({
     visible,
   } = useFloatingHoverTooltip({
     side: compactInteractions.previewPosition,
-    offsetX: 12,
-    offsetY: 0,
+    offsetX: PREVIEW_OFFSET_X,
+    offsetY: PREVIEW_OFFSET_Y,
     horizontalFallback: "center",
     verticalAlign: "center",
     tooltipFallbackWidth: previewWidth,
-    tooltipFallbackHeight: previewWidth * (9 / 16),
-    getCollisionRect: (trigger) =>
-      trigger.closest('[data-slot="scroll-area-viewport"]')?.getBoundingClientRect() ?? null,
+    tooltipFallbackHeight: previewHeight,
+    getCollisionRect: getScrollViewportCollisionRect,
+    openTransition: previewTransition,
+    closeTransition: previewTransition,
+    positionTransition: previewTransition,
   });
 
   const contextValue = useMemo<WebsiteBookmarkCompactHoverPreviewContextValue>(() => {
-    const getTriggerProps = (item: WebsiteBookmark): TriggerProps => {
-      const mouseProps = getBaseTriggerProps();
+    const getTriggerProps = (item: WebsiteBookmark): HoverPreviewTriggerProps => {
+      const floatingTriggerProps = getBaseTriggerProps();
 
-      const showForItem = (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) => {
+      const showPreviewForItem = (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) => {
         if (!hasWebsiteBookmarkPreviewImage(item)) return;
 
         setActiveItem(item);
-        mouseProps.onMouseEnter(event as MouseEvent<HTMLElement>);
+        floatingTriggerProps.onMouseEnter(event as MouseEvent<HTMLElement>);
       };
 
       return {
-        onMouseEnter: showForItem,
-        onMouseLeave: mouseProps.onMouseLeave,
-        onFocus: showForItem,
+        onMouseEnter: showPreviewForItem,
+        onMouseLeave: floatingTriggerProps.onMouseLeave,
+        onFocus: showPreviewForItem,
         onBlur: (event) => {
-          const nextTarget = event.relatedTarget;
-          if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+          if (didFocusMoveWithinTrigger(event)) return;
 
-          mouseProps.onMouseLeave();
+          floatingTriggerProps.onMouseLeave();
         },
       };
     };
@@ -107,7 +150,7 @@ export function WebsiteBookmarkCompactHoverPreviewProvider({
     return {getTriggerProps};
   }, [getBaseTriggerProps]);
 
-  const showPreview =
+  const shouldShowPreview =
     enabled && compactInteractions.hoverPreview && !selectionMode && visible && activeItem !== null;
 
   return (
@@ -122,8 +165,7 @@ export function WebsiteBookmarkCompactHoverPreviewProvider({
         )}
         style={{
           ...tooltipStyle,
-          transform: `translateY(-50%) scale(${visible && showPreview ? 1 : 0.98})`,
-          visibility: showPreview ? "visible" : "hidden",
+          ...getTooltipVisibilityStyle({shouldShowPreview, visible}),
         }}>
         {activeItem ? (
           <WebsiteBookmarkCompactHoverPreviewContent

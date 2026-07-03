@@ -1,13 +1,38 @@
 import {useEffect, useState} from "react";
 import type {WebsiteImageStatus} from "@/db/schema";
 
+const DEFAULT_IMAGE_WIDTH = 1200;
+const DEFAULT_IMAGE_HEIGHT = 1200;
 const DEFAULT_MAX_RETRIES = 12;
 const DEFAULT_RETRY_MS = 2000;
+
+type ImageLoadingMode = "eager" | "lazy";
+type ImageLoadingStatus = "loading" | "loaded" | "error";
+
 type ImageLoadingState = {
   identity: string;
   attempt: number;
-  status: "loading" | "loaded" | "error";
+  status: ImageLoadingStatus;
 };
+
+type WebsiteImageLoadingOptions = {
+  baseSrc: string;
+  assetVersion?: string;
+  assetStatus?: WebsiteImageStatus;
+  width?: number;
+  height?: number;
+  loading?: ImageLoadingMode;
+  maxRetries?: number;
+  retryMs?: number;
+};
+
+function getImageIdentity(baseSrc: string, assetVersion?: string) {
+  return `${baseSrc}:${assetVersion ?? ""}`;
+}
+
+function isFailedAssetStatus(status: WebsiteImageStatus | undefined) {
+  return status === "failed" || status === "missing";
+}
 
 export function useWebsiteImageLoading({
   baseSrc,
@@ -18,22 +43,14 @@ export function useWebsiteImageLoading({
   loading,
   maxRetries = DEFAULT_MAX_RETRIES,
   retryMs = DEFAULT_RETRY_MS,
-}: {
-  baseSrc: string;
-  assetVersion?: string;
-  assetStatus?: WebsiteImageStatus;
-  width?: number;
-  height?: number;
-  loading?: "eager" | "lazy";
-  maxRetries?: number;
-  retryMs?: number;
-}) {
-  const imageWidth = width ?? 1200;
-  const imageHeight = height ?? 1200;
+}: WebsiteImageLoadingOptions) {
+  const imageWidth = width ?? DEFAULT_IMAGE_WIDTH;
+  const imageHeight = height ?? DEFAULT_IMAGE_HEIGHT;
   const imageLoading = loading ?? "lazy";
+  const hasBaseSrc = Boolean(baseSrc);
   const isPending = assetStatus === "pending";
-  const isFailed = assetStatus === "failed" || assetStatus === "missing";
-  const imageIdentity = `${baseSrc}:${assetVersion ?? ""}`;
+  const isFailed = isFailedAssetStatus(assetStatus);
+  const imageIdentity = getImageIdentity(baseSrc, assetVersion);
 
   const [state, setState] = useState<ImageLoadingState>({
     identity: imageIdentity,
@@ -42,14 +59,12 @@ export function useWebsiteImageLoading({
   });
   const attempt = state.identity === imageIdentity ? state.attempt : 0;
   const status = state.identity === imageIdentity ? state.status : "loading";
-  const hasValidImage = !!baseSrc && status === "loaded";
-  const showSkeleton = !!baseSrc && !hasValidImage && (isPending || !assetStatus);
+  const hasValidImage = hasBaseSrc && status === "loaded";
+  const showSkeleton = hasBaseSrc && !hasValidImage && (isPending || !assetStatus);
+  const shouldRetry = hasBaseSrc && !isPending && !isFailed && status === "error";
 
   useEffect(() => {
-    if (!baseSrc) return;
-    if (isPending) return;
-    if (isFailed) return;
-    if (status !== "error") return;
+    if (!shouldRetry) return;
     if (attempt >= maxRetries) return;
 
     const timer = window.setTimeout(() => {
@@ -65,7 +80,10 @@ export function useWebsiteImageLoading({
     }, retryMs);
 
     return () => window.clearTimeout(timer);
-  }, [attempt, baseSrc, imageIdentity, isFailed, isPending, maxRetries, retryMs, status]);
+  }, [attempt, imageIdentity, maxRetries, retryMs, shouldRetry]);
+
+  const markImageLoaded = () => setState({identity: imageIdentity, attempt, status: "loaded"});
+  const markImageFailed = () => setState({identity: imageIdentity, attempt, status: "error"});
 
   return {
     attempt,
@@ -76,7 +94,7 @@ export function useWebsiteImageLoading({
     isFailed,
     hasValidImage,
     showSkeleton,
-    markLoaded: () => setState({identity: imageIdentity, attempt, status: "loaded"}),
-    markFailed: () => setState({identity: imageIdentity, attempt, status: "error"}),
+    markLoaded: markImageLoaded,
+    markFailed: markImageFailed,
   };
 }

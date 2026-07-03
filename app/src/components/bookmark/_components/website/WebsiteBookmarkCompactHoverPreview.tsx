@@ -8,18 +8,31 @@ import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {cn} from "@/lib/utils";
 import {getCompactPreviewWidthPx, type CompactPreviewSize} from "@/store/use-view-options";
 
+const DEFAULT_PREVIEW_WIDTH = 1200;
+const DEFAULT_PREVIEW_HEIGHT = 675;
+
+type WebsiteBookmarkCompactHoverPreviewContentProps = {
+  item: WebsiteBookmark;
+  previewSize: CompactPreviewSize;
+  onOpenFullscreen: () => void;
+};
+
 function getSelectedWebsitePreviewImage(images: WebsiteBookmark["images"]) {
   if (!images) return undefined;
 
-  const resolved = images.selected === "og" ? images.og : images.preview;
+  const selectedImage = images.selected === "og" ? images.og : images.preview;
 
   return {
-    key: resolved?.key ?? "",
-    width: resolved?.width ?? 1200,
-    height: resolved?.height ?? 675,
-    status: resolved?.status,
-    fetchedAt: resolved?.fetchedAt,
+    key: selectedImage?.key ?? "",
+    width: selectedImage?.width ?? DEFAULT_PREVIEW_WIDTH,
+    height: selectedImage?.height ?? DEFAULT_PREVIEW_HEIGHT,
+    status: selectedImage?.status,
+    fetchedAt: selectedImage?.fetchedAt,
   };
+}
+
+function getPreviewAltText(item: WebsiteBookmark) {
+  return `${item.title || item.url} preview`;
 }
 
 export function hasWebsiteBookmarkPreviewImage(item: WebsiteBookmark) {
@@ -30,22 +43,33 @@ export default function WebsiteBookmarkCompactHoverPreviewContent({
   item,
   previewSize,
   onOpenFullscreen,
-}: {
-  item: WebsiteBookmark;
-  previewSize: CompactPreviewSize;
-  onOpenFullscreen: () => void;
-}) {
+}: WebsiteBookmarkCompactHoverPreviewContentProps) {
   const previewImage = getSelectedWebsitePreviewImage(item.images);
   const baseSrc = previewImage?.key ? buildR2PublicUrl(previewImage.key) : "";
   const image = useWebsiteImageLoading({
     baseSrc,
     assetVersion: previewImage?.fetchedAt,
     assetStatus: previewImage?.status,
-    width: previewImage?.width ?? 1200,
-    height: previewImage?.height ?? 675,
+    width: previewImage?.width ?? DEFAULT_PREVIEW_WIDTH,
+    height: previewImage?.height ?? DEFAULT_PREVIEW_HEIGHT,
   });
 
   if (!baseSrc) return null;
+
+  const assetVersion = previewImage?.fetchedAt;
+  const previewSrc = buildWebsiteAssetUrl(baseSrc, {
+    size: "small",
+    format: "webp",
+    fetchedAt: assetVersion,
+    attempt: image.attempt,
+  });
+  const fullSizeSrc = buildWebsiteAssetUrl(baseSrc, {
+    size: "orig",
+    fetchedAt: assetVersion,
+    attempt: image.attempt,
+  });
+  const previewWidth = getCompactPreviewWidthPx(previewSize);
+  const isImageVisible = image.status === "loaded";
 
   return (
     <div
@@ -55,29 +79,20 @@ export default function WebsiteBookmarkCompactHoverPreviewContent({
         image.isFailed && "bg-muted",
       )}>
       <MediaPreview
-        src={buildWebsiteAssetUrl(baseSrc, {
-          size: "small",
-          format: "webp",
-          fetchedAt: previewImage?.fetchedAt,
-          attempt: image.attempt,
-        })}
-        fullSizeSrc={buildWebsiteAssetUrl(baseSrc, {
-          size: "orig",
-          fetchedAt: previewImage?.fetchedAt,
-          attempt: image.attempt,
-        })}
-        alt={`${item.title || item.url} preview`}
+        src={previewSrc}
+        fullSizeSrc={fullSizeSrc}
+        alt={getPreviewAltText(item)}
         width={image.imageWidth}
         height={image.imageHeight}
-        sizes={`${getCompactPreviewWidthPx(previewSize)}px`}
+        sizes={`${previewWidth}px`}
         quality={60}
         loading="lazy"
         disableClickToOpen={false}
         closeAnimation="none"
         showFallback={!image.hasValidImage}
         className={cn(
-          image.status === "loaded" ? "opacity-100" : "opacity-0",
-          "h-full w-full object-cover transition-opacity duration-200 ease-out",
+          isImageVisible ? "opacity-100" : "opacity-0",
+          "h-full w-full object-cover transition-none! duration-0",
         )}
         buttonClassName="h-full w-full"
         onLoad={image.markLoaded}

@@ -10,21 +10,14 @@ export type ContentField = "description" | "tags" | "source" | "savedDate" | "av
 export type PostContentField = "media" | "quotedPost" | "timestamp" | "author" | "tags";
 export type KindFilter = "website" | "media" | "post";
 export type CompactPreviewSize = "sm" | "md" | "lg";
-export type CompactPreviewDelay = "instant" | "short" | "long";
 export type CompactPreviewPosition = "left" | "right" | "auto";
 
 export type CompactInteractions = {
   hoverPreview: boolean;
   previewSize: CompactPreviewSize;
-  previewDelay: CompactPreviewDelay;
+  previewAnimation: boolean;
   previewPosition: CompactPreviewPosition;
 };
-
-export const COMPACT_PREVIEW_DELAY_MS = {
-  instant: 0,
-  short: 150,
-  long: 300,
-} as const satisfies Record<CompactPreviewDelay, number>;
 
 export function getCompactPreviewWidthClass(size: CompactPreviewSize) {
   switch (size) {
@@ -51,7 +44,7 @@ export function getCompactPreviewWidthPx(size: CompactPreviewSize) {
 export const DEFAULT_COMPACT_INTERACTIONS: CompactInteractions = {
   hoverPreview: true,
   previewSize: "md",
-  previewDelay: "short",
+  previewAnimation: true,
   previewPosition: "auto",
 };
 
