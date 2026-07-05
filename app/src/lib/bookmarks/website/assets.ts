@@ -56,18 +56,14 @@ export async function processWebsiteAssets({
   page,
   keys,
   r2Exists,
-  timingsMs,
 }: {
   normalizedUrl: string;
   page: WebsiteHtmlPage;
   keys: WebsiteImageKeys;
   r2Exists: {favicon: boolean; og: boolean; preview: boolean};
-  timingsMs?: Record<string, number>;
 }) {
   const fallbackFaviconDomain = new URL(normalizedUrl).hostname;
 
-  const faviconStartedAt = performance.now();
-  let faviconDurationMs = 0;
   const faviconPromise = processWebsiteAsset({
     label: "favicon",
     key: keys.favicon,
@@ -90,12 +86,8 @@ export async function processWebsiteAssets({
 
       return {status: "ready"};
     },
-  }).finally(() => {
-    faviconDurationMs = elapsedMs(faviconStartedAt);
   });
 
-  const ogStartedAt = performance.now();
-  let ogDurationMs = 0;
   const ogPromise = processWebsiteAsset({
     label: "og",
     key: keys.og,
@@ -115,12 +107,8 @@ export async function processWebsiteAssets({
       await uploadWebsiteOgImage(ogImageUrl, keys.og, page.finalUrl);
       return {status: "ready"};
     },
-  }).finally(() => {
-    ogDurationMs = elapsedMs(ogStartedAt);
   });
 
-  const previewStartedAt = performance.now();
-  let previewDurationMs = 0;
   const previewPromise = processWebsiteAsset({
     label: "preview",
     key: keys.preview,
@@ -136,19 +124,9 @@ export async function processWebsiteAssets({
       await uploadWebsitePreview(screenshot, keys.preview);
       return {status: "ready"};
     },
-  }).finally(() => {
-    previewDurationMs = elapsedMs(previewStartedAt);
   });
 
-  const [favicon, og, preview] = await Promise.all([faviconPromise, ogPromise, previewPromise]);
-
-  if (timingsMs) {
-    timingsMs["1) processWebsiteAssets.favicon"] = faviconDurationMs;
-    timingsMs["2) processWebsiteAssets.ogImage"] = ogDurationMs;
-    timingsMs["3) processWebsiteAssets.preview"] = previewDurationMs;
-  }
-
-  return [favicon, og, preview];
+  return await Promise.all([faviconPromise, ogPromise, previewPromise]);
 }
 
 type WebsiteAssetProcessResult = {status: "ready"} | {status: "missing"};
@@ -342,8 +320,4 @@ function looksLikeSvgUrl(url: string) {
 
 async function uploadAsset(key: string, body: Buffer, contentType: string) {
   await uploadToR2({key, body, contentType});
-}
-
-function elapsedMs(startedAt: number) {
-  return Number((performance.now() - startedAt).toFixed(2));
 }

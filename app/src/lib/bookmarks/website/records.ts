@@ -73,7 +73,6 @@ export async function upsertWebsiteRecord({
   existingRecord,
   htmlRefreshed,
   previewRefreshed,
-  timingsMs,
 }: {
   key: string;
   normalizedUrl: string;
@@ -86,7 +85,6 @@ export async function upsertWebsiteRecord({
   existingRecord?: WebsiteRecord | null;
   htmlRefreshed: boolean;
   previewRefreshed: boolean;
-  timingsMs?: Record<string, number>;
 }) {
   const now = new Date();
   const nowIso = now.toISOString();
@@ -110,7 +108,6 @@ export async function upsertWebsiteRecord({
   const {mergeAsset, htmlStatusSql, previewStatusSql, htmlRefreshAfterSql, previewRefreshAfterSql} =
     buildWebsiteRecordUpsertSql({htmlStatus, previewStatus, refreshAfterReady, refreshAfterFailed});
 
-  const upsertStartedAt = performance.now();
   const [record] = await db
     .insert(websiteRecords)
     .values({
@@ -153,9 +150,6 @@ export async function upsertWebsiteRecord({
       },
     })
     .returning();
-  if (timingsMs) {
-    timingsMs["upsertWebsiteRecord"] = elapsedMs(upsertStartedAt);
-  }
 
   return record;
 }
@@ -210,8 +204,4 @@ export async function updateBookmarkFromWebsiteRecord(bookmarkId: string, record
     .where(
       and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "website"), isNull(bookmarks.deletedAt)),
     );
-}
-
-function elapsedMs(startedAt: number) {
-  return Number((performance.now() - startedAt).toFixed(2));
 }

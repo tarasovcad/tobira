@@ -14,6 +14,7 @@ import {TagDialog} from "../library/TagDialog";
 import {Header, type AppShellSession} from "./Header";
 import SyncSetupSheet from "@/app/(app)/sync/_components/SyncSetupSheet";
 import type {SidebarPreferences} from "@/lib/sidebar-preferences";
+import {AnalyticsIdentity} from "@/components/analytics/AnalyticsIdentity";
 
 const AppShell = ({
   children,
@@ -30,6 +31,7 @@ const AppShell = ({
 
   return (
     <main className="flex h-dvh min-h-screen flex-col">
+      <AnalyticsIdentity userId={session?.user?.id ?? null} />
       <Header session={session} />
       <div className="flex min-h-0 flex-1 overflow-auto">
         {sidebar ?? (

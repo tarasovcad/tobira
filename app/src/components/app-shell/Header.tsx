@@ -17,6 +17,7 @@ import {serializeSettingsParams} from "@/lib/query-params";
 import {useFloatingHoverTooltip} from "@/lib/hooks/use-floating-hover-tooltip";
 import {markSidebarSwitchTarget} from "./sidebar/sidebar-switch-animation";
 import {useSidebarStore} from "@/store/use-sidebar-store";
+import {clearClientUser} from "@/lib/analytics/client";
 
 export type AppShellSession = Session | null;
 
@@ -32,6 +33,7 @@ export function Header({session}: {session: AppShellSession}) {
       return res;
     },
     onSuccess: () => {
+      clearClientUser();
       toastManager.add({title: "Signed out", type: "success"});
       router.refresh();
       router.push("/login");

@@ -12,7 +12,6 @@ import {createWebsiteBookmark} from "@/lib/bookmarks/website/create";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {assertWebsiteUrl} from "@/lib/fetch/web/website-url";
 import {enforceWebsiteBookmarkCreateRateLimit} from "@/lib/rate-limit/website-bookmarks";
-import {logger} from "@/lib/shared/logger";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 
 export type AddWebsiteBookmarkResult = {
@@ -75,33 +74,19 @@ export async function addMediaBookmark(input: {
   kind: "media";
   selectedMediaUrls?: string[];
 }): Promise<AddMediaBookmarkResult> {
-  const addMediaBookmarkStart = performance.now();
-  const timingsMs: Record<string, number> = {};
   const userId = await requireAuthenticatedUserId();
 
   if (input.kind !== "media") {
     throw new Error("Invalid kind");
   }
 
-  const prepareMediaBookmarkStart = performance.now();
   const prepared = await prepareMediaBookmark({
     url: input.url,
     selectedMediaUrls: input.selectedMediaUrls,
     userId,
   });
-  timingsMs.prepareMediaBookmark = Number(
-    (performance.now() - prepareMediaBookmarkStart).toFixed(2),
-  );
 
   if (prepared.requiresSelection) {
-    timingsMs.totalAddMediaBookmark = Number(
-      (performance.now() - addMediaBookmarkStart).toFixed(2),
-    );
-    logger.info("addMediaBookmark timings", {
-      url: prepared.normalized.toString(),
-      requiresSelection: true,
-      timingsMs,
-    });
     return {
       ok: true,
       url: prepared.normalized.toString(),
@@ -110,9 +95,7 @@ export async function addMediaBookmark(input: {
     };
   }
 
-  const dbInsertStart = performance.now();
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
-  timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
   await attachBookmarkRelations({
     bookmarkId: prepared.bookmarkId,
@@ -122,7 +105,6 @@ export async function addMediaBookmark(input: {
     kind: "media",
   });
 
-  const qstashPublishStart = performance.now();
   try {
     await qstash.publishJSON({
       url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-media-bookmark`,
@@ -130,15 +112,6 @@ export async function addMediaBookmark(input: {
       deduplicationId: `media-bookmark-${prepared.bookmarkId}`,
       headers: {"x-job-type": "process-media-bookmark"},
       timeout: 120,
-    });
-    timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
-    timingsMs.totalAddMediaBookmark = Number(
-      (performance.now() - addMediaBookmarkStart).toFixed(2),
-    );
-    logger.info("addMediaBookmark timings", {
-      bookmarkId: prepared.bookmarkId,
-      url: prepared.normalized.toString(),
-      timingsMs,
     });
   } catch (error) {
     console.error("Failed to queue media bookmark processing job:", error);
@@ -165,23 +138,15 @@ export async function addPostBookmark(input: {
   collectionId?: string;
   kind: "post";
 }): Promise<AddPostBookmarkResult> {
-  const addPostBookmarkStart = performance.now();
-  const timingsMs: Record<string, number> = {};
   const userId = await requireAuthenticatedUserId();
 
   if (input.kind !== "post") {
     throw new Error("Invalid kind");
   }
 
-  const preparePostBookmarkCreationStart = performance.now();
   const prepared = await preparePostBookmarkCreation({url: input.url, userId});
-  timingsMs.preparePostBookmarkCreation = Number(
-    (performance.now() - preparePostBookmarkCreationStart).toFixed(2),
-  );
 
-  const dbInsertStart = performance.now();
   await db.insert(bookmarks).values(prepared.bookmarkToInsert);
-  timingsMs.insertBookmark = Number((performance.now() - dbInsertStart).toFixed(2));
 
   await attachBookmarkRelations({
     bookmarkId: prepared.bookmarkId,
@@ -192,7 +157,6 @@ export async function addPostBookmark(input: {
   });
 
   if (prepared.bookmarkToInsert.images.processing) {
-    const qstashPublishStart = performance.now();
     try {
       await qstash.publishJSON({
         url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-post-media`,
@@ -210,15 +174,7 @@ export async function addPostBookmark(input: {
       }
       throw new Error("Failed to queue post media processing job");
     }
-    timingsMs.qstashPublishJSON = Number((performance.now() - qstashPublishStart).toFixed(2));
   }
-  timingsMs.totalAddPostBookmark = Number((performance.now() - addPostBookmarkStart).toFixed(2));
-
-  logger.info("addPostBookmark timings", {
-    bookmarkId: prepared.bookmarkId,
-    url: prepared.url,
-    timingsMs,
-  });
 
   return {ok: true, url: prepared.url, id: prepared.bookmarkId};
 }

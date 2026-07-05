@@ -23,12 +23,9 @@ export async function createWebsiteBookmark({
   tags,
   collectionId,
 }: CreateWebsiteBookmarkInput) {
-  const startedAt = performance.now();
-  const timingsMs: Record<string, number> = {};
   const url = normalizedUrl.toString();
   const bookmarkId = randomUUID();
 
-  const recordStartedAt = performance.now();
   const {
     key: websiteRecordKey,
     record: websiteRecord,
@@ -36,13 +33,9 @@ export async function createWebsiteBookmark({
     htmlFresh,
     previewFresh,
   } = await getReusableWebsiteRecord(normalizedUrl);
-  timingsMs.getReusableWebsiteRecord = elapsedMs(recordStartedAt);
 
-  const imagesStartedAt = performance.now();
   const images = await resolveWebsiteBookmarkImages(websiteRecord, url, previewFresh, htmlFresh);
-  timingsMs.buildWebsiteImages = elapsedMs(imagesStartedAt);
 
-  const insertStartedAt = performance.now();
   await db.insert(bookmarks).values(
     buildWebsiteBookmarkValues({
       bookmarkId,
@@ -54,7 +47,6 @@ export async function createWebsiteBookmark({
       images,
     }),
   );
-  timingsMs.insertBookmark = elapsedMs(insertStartedAt);
 
   await attachBookmarkRelations({
     bookmarkId,
@@ -65,39 +57,16 @@ export async function createWebsiteBookmark({
   });
 
   if (!websiteRecordFresh) {
-    const scheduleStartedAt = performance.now();
     scheduleWebsiteEnrichmentAfterResponse(bookmarkId, url);
-    timingsMs.scheduleWebsiteEnrichment = elapsedMs(scheduleStartedAt);
   }
-
-  timingsMs.totalAddWebsiteBookmark = elapsedMs(startedAt);
-  logger.info("addWebsiteBookmark timings", {
-    bookmarkId,
-    url,
-    websiteRecordKey: websiteRecord ? websiteRecordKey : undefined,
-    usedWebsiteRecord: !!websiteRecord,
-    websiteRecordFresh,
-    htmlFresh,
-    previewFresh,
-    timingsMs,
-  });
 
   return {id: bookmarkId, url};
 }
 
 function scheduleWebsiteEnrichmentAfterResponse(bookmarkId: string, url: string) {
   after(async () => {
-    const queueStartedAt = performance.now();
-
     try {
       await enqueueWebsiteEnrichmentOrRollback(bookmarkId, url);
-      logger.info("Queued website bookmark enrichment after response", {
-        bookmarkId,
-        url,
-        timingsMs: {
-          qstashPublishJSON: elapsedMs(queueStartedAt),
-        },
-      });
     } catch {
       // enqueueWebsiteEnrichmentOrRollback logs the queue failure and deletes the bookmark.
     }
@@ -173,8 +142,4 @@ async function deleteBookmarkAfterQueueFailure(bookmarkId: string) {
       error: toLogError(error),
     });
   }
-}
-
-function elapsedMs(startedAt: number) {
-  return Number((performance.now() - startedAt).toFixed(2));
 }

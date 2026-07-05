@@ -2,22 +2,47 @@
 
 import {
   compactAnalyticsProperties,
+  type AnalyticsProperties,
   type AnalyticsEventName,
   type AnalyticsEventProperties,
 } from "./events";
+
+function withRybbit(callback: (rybbit: NonNullable<Window["rybbit"]>) => void, operation: string) {
+  if (typeof window === "undefined") return;
+
+  const rybbit = window.rybbit;
+  if (!rybbit) {
+    console.log("[analytics] Skipping client operation; Rybbit is not available.", {
+      operation,
+    });
+    return;
+  }
+
+  if (rybbit.onReady) {
+    rybbit.onReady(callback);
+    return;
+  }
+
+  callback(rybbit);
+}
 
 export function trackClientEvent<Name extends AnalyticsEventName>(
   name: Name,
   properties: AnalyticsEventProperties[Name],
 ) {
-  if (typeof window === "undefined") return;
+  withRybbit((rybbit) => {
+    rybbit.event(name, compactAnalyticsProperties(properties));
+  }, name);
+}
 
-  if (!window.rybbit?.event) {
-    console.log("[analytics] Skipping client event; Rybbit is not available.", {
-      event: name,
-    });
-    return;
-  }
+export function identifyClientUser(userId: string, traits?: AnalyticsProperties) {
+  withRybbit((rybbit) => {
+    rybbit.identify(userId, traits ? compactAnalyticsProperties(traits) : undefined);
+  }, "identify_user");
+}
 
-  window.rybbit.event(name, compactAnalyticsProperties(properties));
+export function clearClientUser() {
+  withRybbit((rybbit) => {
+    rybbit.clearUserId();
+  }, "clear_user_id");
 }
