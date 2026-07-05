@@ -28,7 +28,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} antialiased`} suppressHydrationWarning>
       <body>
-        <Script src="http://localhost:3001/api/script.js" data-site-id="24e4864af7f4" defer />
+        <Script
+          src={process.env.ANALYTICS_URL}
+          data-site-id={process.env.ANALYTICS_DATA_SITE_ID}
+          defer
+        />
         <Analytics />
         <SpeedInsights />
         <ThemeProvider

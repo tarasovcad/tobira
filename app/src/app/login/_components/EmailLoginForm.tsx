@@ -11,6 +11,7 @@ import {emailFormSchema, type EmailFormValues} from "../_lib/schemas";
 import SocialSignInButton from "./SocialSignInButton";
 import {useSocialSignIn} from "../_hooks/useSocialSignIn";
 import {sendOtpAction} from "@/app/actions/auth";
+import {trackClientEvent} from "@/lib/analytics/client";
 
 type EmailLoginFormProps = {
   defaultEmail?: string;
@@ -38,6 +39,13 @@ const EmailLoginForm = ({defaultEmail = "", onSuccess}: EmailLoginFormProps) => 
     clearErrors("email");
 
     const res = await sendOtpAction(email);
+
+    trackClientEvent("auth_otp_requested", {
+      source: "login",
+      success: Boolean(res.success),
+      rate_limited: res.rateLimited,
+      error_code: res.errorCode,
+    });
 
     if (res.error) {
       setError("email", {type: "server", message: res.error});

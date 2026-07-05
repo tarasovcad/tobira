@@ -3,6 +3,7 @@
 import {useState} from "react";
 import {authClient} from "@/lib/auth/auth-client";
 import {toastManager} from "@/components/ui/coss/toast";
+import {trackClientEvent} from "@/lib/analytics/client";
 
 type socialProvider = "google" | "github";
 
@@ -20,6 +21,7 @@ export const useSocialSignIn = () => {
   const signIn = async (provider: socialProvider) => {
     const label = socialProviders.find((p) => p.provider === provider)?.label ?? provider;
     setIsLoading((prev) => ({...prev, [provider]: true}));
+    trackClientEvent("auth_social_started", {provider});
 
     try {
       await authClient.signIn.social({
@@ -33,6 +35,7 @@ export const useSocialSignIn = () => {
         description: `Failed to start ${label} sign-in. Please try again.`,
         type: "error",
       });
+      trackClientEvent("auth_social_failed", {provider, error_code: "start_failed"});
       console.error(`[login] ${label} sign-in error`, err);
       setIsLoading((prev) => ({...prev, [provider]: false}));
     }

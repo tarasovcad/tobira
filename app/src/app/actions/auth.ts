@@ -6,6 +6,7 @@ import {Ratelimit} from "@upstash/ratelimit";
 import {getIp} from "@/lib/utils/ip";
 import {auth} from "@/lib/auth/auth";
 import {headers} from "next/headers";
+import {trackServerEvent} from "@/lib/analytics/server";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -49,16 +50,24 @@ export async function sendOtpAction(email: string) {
     const retryAfterSeconds = Math.ceil((reset - Date.now()) / 1000);
     return {
       error: `Too many requests. Please try again in ${retryAfterSeconds}s.`,
+      errorCode: "rate_limited",
+      rateLimited: true,
+      cooldownSeconds: retryAfterSeconds,
     };
   }
 
-  const res = await auth.api.sendVerificationOTP({
-    body: {email, type: "sign-in"},
-    headers: await headers(),
-  });
+  let res;
+  try {
+    res = await auth.api.sendVerificationOTP({
+      body: {email, type: "sign-in"},
+      headers: await headers(),
+    });
+  } catch {
+    return {error: "Failed to send OTP", errorCode: "send_failed"};
+  }
 
   if (!res.success) {
-    return {error: "Failed to send OTP"};
+    return {error: "Failed to send OTP", errorCode: "send_failed"};
   }
 
   return {success: true};
@@ -76,6 +85,9 @@ export async function verifyOtpAction(email: string, otp: string) {
     const retryAfterSeconds = Math.ceil((reset - Date.now()) / 1000);
     return {
       error: `Too many attempts. Please try again in ${retryAfterSeconds}s.`,
+      errorCode: "rate_limited",
+      rateLimited: true,
+      cooldownSeconds: retryAfterSeconds,
     };
   }
 
@@ -87,6 +99,7 @@ export async function verifyOtpAction(email: string, otp: string) {
   } catch (error: unknown) {
     return {
       error: error instanceof Error ? error.message : "Invalid code",
+      errorCode: "invalid_otp",
     };
   }
 
@@ -94,15 +107,27 @@ export async function verifyOtpAction(email: string, otp: string) {
 }
 
 export async function signOutAction() {
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({
+    headers: requestHeaders,
+  });
+
   try {
     await auth.api.signOut({
-      headers: await headers(),
+      headers: requestHeaders,
     });
+    await trackServerEvent("user_signed_out", {success: true}, {userId: session?.user?.id});
     return {success: true};
   } catch (err) {
+    await trackServerEvent(
+      "user_signed_out",
+      {success: false, error_code: "sign_out_failed"},
+      {userId: session?.user?.id},
+    );
     return {
       success: false,
       error: err instanceof Error ? err.message : "Failed to sign out",
+      errorCode: "sign_out_failed",
     };
   }
 }

@@ -5,6 +5,27 @@ import Cloudflare from "cloudflare";
 import {drizzleAdapter} from "@better-auth/drizzle-adapter";
 
 import {db} from "@/db";
+import {trackServerEvent} from "@/lib/analytics/server";
+import type {AuthMethod} from "@/lib/analytics/events";
+import {AUTH_COOKIE_PREFIX} from "@/lib/auth/cookies";
+
+type AuthHookContext = {
+  path?: string;
+  params?: {
+    id?: string;
+  };
+} | null;
+
+function getAuthMethodFromContext(context: AuthHookContext): AuthMethod {
+  if (context?.path === "/sign-in/email-otp") return "otp";
+
+  if (context?.path === "/callback/:id") {
+    const provider = context.params?.id;
+    if (provider === "google" || provider === "github") return provider;
+  }
+
+  return "unknown";
+}
 
 const cloudflare = new Cloudflare({
   apiToken: process.env.CLOUDFLARE_EMAIL_API_TOKEN,
@@ -12,9 +33,36 @@ const cloudflare = new Cloudflare({
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
+  advanced: {
+    cookiePrefix: AUTH_COOKIE_PREFIX,
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        async after(user, context) {
+          void trackServerEvent(
+            "user_signed_up",
+            {method: getAuthMethodFromContext(context)},
+            {userId: user.id},
+          );
+        },
+      },
+    },
+    session: {
+      create: {
+        async after(session, context) {
+          void trackServerEvent(
+            "user_signed_in",
+            {method: getAuthMethodFromContext(context)},
+            {userId: session.userId},
+          );
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       aiContext: {type: "string"},

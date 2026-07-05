@@ -10,6 +10,7 @@ import Spinner from "@/components/ui/app/spinner";
 import {toastManager} from "@/components/ui/coss/toast";
 import {sendOtpAction, verifyOtpAction} from "@/app/actions/auth";
 import {otpFormSchema, type OtpFormValues} from "../_lib/schemas";
+import {trackClientEvent} from "@/lib/analytics/client";
 
 type OtpFormProps = {
   email: string;
@@ -23,6 +24,13 @@ const OtpForm = ({email, onBack, onVerified}: OtpFormProps) => {
 
   const handleResend = async () => {
     const res = await sendOtpAction(email);
+
+    trackClientEvent("auth_otp_resent", {
+      success: Boolean(res.success),
+      cooldown_seconds: res.success ? 30 : res.cooldownSeconds,
+      error_code: res.errorCode,
+    });
+
     if (res.error) {
       toastManager.add({title: res.error, type: "error"});
       return;
@@ -58,6 +66,11 @@ const OtpForm = ({email, onBack, onVerified}: OtpFormProps) => {
     setIsVerified(false);
 
     const res = await verifyOtpAction(email, otp);
+
+    trackClientEvent("auth_otp_verified", {
+      success: Boolean(res.success),
+      error_code: res.errorCode,
+    });
 
     if (res.error) {
       setError("otp", {type: "server", message: res.error});
