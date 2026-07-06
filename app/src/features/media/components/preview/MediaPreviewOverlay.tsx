@@ -159,7 +159,7 @@ export function MediaPreviewOverlay({
         type="button"
         aria-label="Close preview"
         className={cn(
-          "absolute inset-0 bg-black/60 transition-opacity ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+          "absolute inset-0 bg-black/60 transition-opacity ease-[cubic-bezier(0.16,1,0.3,1)]",
           expanded ? "duration-[300ms]" : "duration-[200ms]",
           expanded ? "opacity-100" : "opacity-0",
         )}
@@ -189,7 +189,7 @@ export function MediaPreviewOverlay({
             }}
             disabled={!onPrevious || !hasPrevious}
             className={cn(
-              "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40 motion-reduce:transition-none",
+              "hit-area-4 absolute top-1/2 left-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
               expanded ? "duration-[260ms]" : "duration-[180ms]",
               expanded ? "opacity-100" : "pointer-events-none opacity-0",
             )}>
@@ -214,7 +214,7 @@ export function MediaPreviewOverlay({
             }}
             disabled={!onNext || !hasNext}
             className={cn(
-              "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40 motion-reduce:transition-none",
+              "hit-area-4 absolute top-1/2 right-4 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/40 p-2.5 text-white/90 shadow-xl backdrop-blur-md transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-black/40",
               expanded ? "duration-[260ms]" : "duration-[180ms]",
               expanded ? "opacity-100" : "pointer-events-none opacity-0",
             )}>

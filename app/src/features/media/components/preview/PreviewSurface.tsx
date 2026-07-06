@@ -48,8 +48,8 @@ export function PreviewSurface({
         ? "transition-[top,left,width,height,border-radius,opacity] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
         : "transition-[top,left,width,height,border-radius] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
       : fadeWhenCollapsed
-        ? `transition-[top,left,width,height,transform,border-radius,opacity] ${layoutDurationClassName} ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none`
-        : `transition-[top,left,width,height,transform,border-radius] ${layoutDurationClassName} ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none`;
+        ? `transition-[top,left,width,height,transform,border-radius,opacity] ${layoutDurationClassName} ease-[cubic-bezier(0.16,1,0.3,1)]`
+        : `transition-[top,left,width,height,transform,border-radius] ${layoutDurationClassName} ease-[cubic-bezier(0.16,1,0.3,1)]`;
 
   return (
     <div

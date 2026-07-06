@@ -49,17 +49,18 @@ const TRANSITION_STYLES = `
   0% { background-position: 100% 0; }
   100% { background-position: 0% 0; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .t-shimmer::before { animation: none !important; }
-}
 `;
 
-if (typeof document !== "undefined" && !document.getElementById("transitions-p15")) {
-  const style = document.createElement("style");
-  style.id = "transitions-p15";
+if (typeof document !== "undefined") {
+  let style = document.getElementById("transitions-p15");
+
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "transitions-p15";
+    document.head.appendChild(style);
+  }
+
   style.textContent = TRANSITION_STYLES;
-  document.head.appendChild(style);
 }
 
 export type TextShimmerProps = {
