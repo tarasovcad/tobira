@@ -21,6 +21,9 @@ import {
   useTagsQuery,
 } from "@/features/home/hooks/use-home-metadata-query";
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
+import {trackClientEvent} from "@/lib/analytics/client";
+import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import {getBookmarkErrorCode} from "@/components/bookmark/_utils/bookmark-analytics";
 import {
   addBookmarkSchema,
   createAddBookmarkDefaultValues,
@@ -37,6 +40,14 @@ import {
   type AddBookmarkMutationInput,
   type BookmarksInfiniteData,
 } from "../_utils/optimistic-bookmark-cache";
+
+function getUrlHost(url: string) {
+  try {
+    return normalizeInputUrl(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "invalid_url";
+  }
+}
 
 export function useAddBookmarkFlow({
   userId,
@@ -192,6 +203,10 @@ export function useAddBookmarkFlow({
         return;
       }
 
+      trackClientEvent("bookmark_add_succeeded", {
+        kind: variables.kind,
+      });
+
       closeDialog();
       toastManager.add({
         title: "Bookmark added",
@@ -214,6 +229,11 @@ export function useAddBookmarkFlow({
         queryClient.setQueryData(queryKey, data);
       });
 
+      trackClientEvent("bookmark_add_failed", {
+        kind: _variables.kind,
+        error_code: getBookmarkErrorCode(err),
+      });
+
       toastManager.add({
         title: "Submit failed",
         description:
@@ -228,6 +248,13 @@ export function useAddBookmarkFlow({
   });
 
   const onSubmit = (data: AddBookmarkFormValues) => {
+    trackClientEvent("bookmark_add_submitted", {
+      kind: data.type,
+      url_host: getUrlHost(data.url),
+      tag_count: data.tags.length,
+      has_collection: Boolean(data.collectionId),
+    });
+
     switch (data.type) {
       case "website":
         addItemMutation.mutate({

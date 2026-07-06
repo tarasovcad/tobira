@@ -6,17 +6,25 @@ import {UseFormReturn} from "react-hook-form";
 import {BookmarkFormValues} from "../_utils/bookmark-schema";
 import {isOptimisticBookmarkId} from "@/features/add-item/_utils/optimistic-bookmark-cache";
 import {getErrorMessage} from "@/lib/shared/errors";
+import {trackClientEvent} from "@/lib/analytics/client";
+import type {BookmarkKind} from "@/lib/analytics/events";
+import {
+  getBookmarkActionProperties,
+  getBookmarkErrorCode,
+} from "@/components/bookmark/_utils/bookmark-analytics";
 
 export function useBookmarkMutations({
   onOpenChange,
   originalValues,
   setOriginalValues,
   form,
+  kind,
 }: {
   onOpenChange: (open: boolean) => void;
   originalValues: BookmarkFormValues;
   setOriginalValues?: (values: BookmarkFormValues) => void;
   form: UseFormReturn<BookmarkFormValues>;
+  kind: BookmarkKind;
 }) {
   const queryClient = useQueryClient();
 
@@ -46,6 +54,7 @@ export function useBookmarkMutations({
       return {prev};
     },
     onSuccess: () => {
+      trackClientEvent("bookmark_update_succeeded", {kind});
       invalidateBookmarkQueries();
       toastManager.add({
         title: "Bookmark updated",
@@ -66,6 +75,11 @@ export function useBookmarkMutations({
         form.reset(ctx.prev);
       }
 
+      trackClientEvent("bookmark_update_failed", {
+        kind,
+        error_code: getBookmarkErrorCode(error),
+      });
+
       toastManager.add({
         title: "Update failed",
         description: getErrorMessage(error, "Failed to update bookmark"),
@@ -83,6 +97,7 @@ export function useBookmarkMutations({
       return archiveBookmarks(id);
     },
     onSuccess: () => {
+      trackClientEvent("bookmark_archived", getBookmarkActionProperties([{kind}]));
       invalidateBookmarkQueries();
       onOpenChange(false);
       toastManager.add({

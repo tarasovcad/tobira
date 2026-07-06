@@ -72,6 +72,7 @@ export function AddBookmarkDialog({
           variant="default"
           size="icon-lg"
           className="relative z-40 size-12 rounded-full hover:bg-[#454545] dark:bg-white dark:hover:bg-[#D0D0D0]"
+          data-rybbit-event=""
           onClick={handleOpenDialogClick}>
           <svg
             width="20"
@@ -123,6 +124,7 @@ export function AddBookmarkDialog({
                 <Button
                   type="submit"
                   form="add-item-form"
+                  data-rybbit-event=""
                   disabled={addItemMutation.isPending || !form.formState.isValid}>
                   {addItemMutation.isPending ? (
                     <Spinner className="mx-auto size-4 animate-spin" />
@@ -132,6 +134,7 @@ export function AddBookmarkDialog({
               ) : (
                 <Button
                   type="button"
+                  data-rybbit-event=""
                   disabled={selectedMediaUrls.length === 0 || addItemMutation.isPending}
                   onClick={confirmMediaSelection}>
                   {addItemMutation.isPending ? (

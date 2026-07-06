@@ -16,6 +16,8 @@ import {
 import {toastManager} from "@/components/ui/coss/toast";
 import Spinner from "@/components/ui/app/spinner";
 import {useDeleteBookmarkDialogStore} from "@/store/use-delete-bookmark-dialog-store";
+import {trackClientEvent} from "@/lib/analytics/client";
+import {getBookmarkActionProperties} from "@/components/bookmark/_utils/bookmark-analytics";
 
 export function DeleteBookmarkDialog() {
   const queryClient = useQueryClient();
@@ -35,6 +37,7 @@ export function DeleteBookmarkDialog() {
       return deleteBookmarks(ids);
     },
     onSuccess: () => {
+      trackClientEvent("bookmark_deleted", getBookmarkActionProperties(displayItems));
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: ["tags"]});
     },

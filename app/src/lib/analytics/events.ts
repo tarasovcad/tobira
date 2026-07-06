@@ -1,8 +1,11 @@
 export type AnalyticsPrimitive = string | number | boolean | null;
-export type AnalyticsProperties = Record<string, AnalyticsPrimitive | undefined>;
+export type AnalyticsPropertyValue = AnalyticsPrimitive | Record<string, number>;
+export type AnalyticsProperties = Record<string, AnalyticsPropertyValue | undefined>;
 
 export type AuthMethod = "otp" | "google" | "github" | "unknown";
 export type SocialProvider = "google" | "github";
+export type BookmarkKind = "website" | "media" | "post";
+export type BookmarkKindCounts = Record<BookmarkKind, number>;
 
 export type AnalyticsEventProperties = {
   auth_otp_requested: {
@@ -37,15 +40,51 @@ export type AnalyticsEventProperties = {
     success: boolean;
     error_code?: string;
   };
+  bookmark_add_submitted: {
+    kind: BookmarkKind;
+    url_host: string;
+    tag_count: number;
+    has_collection: boolean;
+  };
+  bookmark_add_succeeded: {
+    kind: BookmarkKind;
+  };
+  bookmark_add_failed: {
+    kind: BookmarkKind;
+    error_code: string;
+  };
+  bookmark_update_succeeded: {
+    kind: BookmarkKind;
+  };
+  bookmark_update_failed: {
+    kind: BookmarkKind;
+    error_code: string;
+  };
+  bookmark_archived: {
+    count: number;
+    kind_counts: BookmarkKindCounts;
+  };
+  bookmark_deleted: {
+    count: number;
+    kind_counts: BookmarkKindCounts;
+  };
+  bookmark_restored: {
+    count: number;
+    kind_counts: BookmarkKindCounts;
+  };
+  bookmark_permanently_deleted: {
+    count: number;
+    kind_counts: BookmarkKindCounts;
+  };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEventProperties;
 
 export function compactAnalyticsProperties(
   properties: AnalyticsProperties,
-): Record<string, AnalyticsPrimitive> {
+): Record<string, AnalyticsPropertyValue> {
   return Object.fromEntries(
-    Object.entries(properties).filter((entry): entry is [string, AnalyticsPrimitive] => {
+    Object.entries(properties).filter((entry): entry is [string, AnalyticsPropertyValue] => {
       const [, value] = entry;
       return value !== undefined;
     }),

@@ -32,6 +32,12 @@ import type {SortMode, TypeFilter} from "@/features/home/types";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {BinHeader, type BinHeaderStats} from "./BinHeader";
 import {BinSelectionActionBar} from "./BinSelectionActionBar";
+import {trackClientEvent} from "@/lib/analytics/client";
+import {
+  getBookmarkActionProperties,
+  getBookmarkActionPropertiesFromStats,
+  getBookmarksByIds,
+} from "@/components/bookmark/_utils/bookmark-analytics";
 
 type BinPageClientProps = {
   userId: string;
@@ -81,52 +87,6 @@ export function BinPageClient({
       ),
     [binActionIds],
   );
-
-  const binBookmarkActionMutation = useMutation({
-    mutationKey: ["bin-bookmark-action"],
-    mutationFn: async ({ids, action}: BinBookmarkAction) => {
-      if (action === "restore") {
-        return restoreBookmarks(ids);
-      }
-
-      return permanentlyDeleteBookmarks(ids);
-    },
-    onSuccess: async (_data, variables) => {
-      const isRestore = variables.action === "restore";
-      const count = variables.ids.length;
-
-      toastManager.add({
-        title: isRestore
-          ? count === 1
-            ? "Bookmark restored"
-            : `${count} bookmarks restored`
-          : count === 1
-            ? "Bookmark deleted forever"
-            : `${count} bookmarks deleted forever`,
-        type: "success",
-      });
-
-      await queryClient.invalidateQueries({queryKey: ["bookmarks", "bin"]});
-      router.refresh();
-    },
-    onError: (error, variables) => {
-      const isRestore = variables.action === "restore";
-      console.error(`[BinPageClient] ${isRestore ? "restore" : "delete forever"} failed`, {
-        ids: variables.ids,
-        error,
-      });
-      toastManager.add({
-        title: isRestore ? "Restore failed" : "Delete failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : isRestore
-              ? "Failed to restore bookmark"
-              : "Failed to permanently delete bookmark",
-        type: "error",
-      });
-    },
-  });
 
   const deletedBookmarksQuery = useInfiniteQuery({
     queryKey: ["bookmarks", "bin", userId, PAGE_SIZE, typeFilter, sort],
@@ -179,10 +139,72 @@ export function BinPageClient({
     handleSelectAll,
   } = useBookmarksSelection(visibleBookmarks, allBookmarks);
 
+  const binBookmarkActionMutation = useMutation({
+    mutationKey: ["bin-bookmark-action"],
+    mutationFn: async ({ids, action}: BinBookmarkAction) => {
+      if (action === "restore") {
+        return restoreBookmarks(ids);
+      }
+
+      return permanentlyDeleteBookmarks(ids);
+    },
+    onSuccess: async (_data, variables) => {
+      const isRestore = variables.action === "restore";
+      const count = variables.ids.length;
+      const actionBookmarks = getBookmarksByIds(allBookmarks, variables.ids);
+      const actionProperties = getBookmarkActionProperties(
+        actionBookmarks.length === variables.ids.length
+          ? actionBookmarks
+          : variables.ids.map(() => ({kind: typeFilter})),
+      );
+
+      trackClientEvent(
+        isRestore ? "bookmark_restored" : "bookmark_permanently_deleted",
+        actionProperties,
+      );
+
+      toastManager.add({
+        title: isRestore
+          ? count === 1
+            ? "Bookmark restored"
+            : `${count} bookmarks restored`
+          : count === 1
+            ? "Bookmark deleted forever"
+            : `${count} bookmarks deleted forever`,
+        type: "success",
+      });
+
+      await queryClient.invalidateQueries({queryKey: ["bookmarks", "bin"]});
+      router.refresh();
+    },
+    onError: (error, variables) => {
+      const isRestore = variables.action === "restore";
+      console.error(`[BinPageClient] ${isRestore ? "restore" : "delete forever"} failed`, {
+        ids: variables.ids,
+        error,
+      });
+      toastManager.add({
+        title: isRestore ? "Restore failed" : "Delete failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : isRestore
+              ? "Failed to restore bookmark"
+              : "Failed to permanently delete bookmark",
+        type: "error",
+      });
+    },
+  });
+
   const emptyBinMutation = useMutation({
     mutationKey: ["bin-empty"],
     mutationFn: emptyBin,
     onSuccess: async ({deletedCount}) => {
+      trackClientEvent("bookmark_permanently_deleted", {
+        ...getBookmarkActionPropertiesFromStats(stats),
+        count: deletedCount,
+      });
+
       handleClearSelection();
       toastManager.add({
         title: deletedCount <= 1 ? "Bin emptied" : `${deletedCount} bookmarks deleted forever`,

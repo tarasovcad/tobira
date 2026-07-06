@@ -177,6 +177,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
     originalValues,
     setOriginalValues,
     form,
+    kind: "website",
   });
   const {mutate: updateBookmark, isPending: isUpdating} = updateMutation;
   const {mutate: archiveBookmark, isPending: isArchiving} = archiveMutation;

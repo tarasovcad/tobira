@@ -145,6 +145,7 @@ export function MediaBookmarkMenu({userId}: {userId: string | null}) {
     originalValues,
     setOriginalValues,
     form,
+    kind: "media",
   });
   const {mutate: updateBookmark, isPending: isUpdating} = updateMutation;
   const {mutate: archiveBookmark, isPending: isArchiving} = archiveMutation;

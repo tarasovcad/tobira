@@ -6,6 +6,11 @@ import {toastManager} from "@/components/ui/coss/toast";
 import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import type {TypeFilter} from "@/features/home/types";
+import {trackClientEvent} from "@/lib/analytics/client";
+import {
+  getBookmarkActionProperties,
+  getBookmarksByIds,
+} from "@/components/bookmark/_utils/bookmark-analytics";
 
 /**
  * Manages mutation tracking (add/delete/archive)
@@ -170,7 +175,19 @@ export function useBookmarksMutations({
     mutationFn: async (ids: string | string[]) => {
       return archiveBookmarks(ids);
     },
-    onSuccess: () => {
+    onSuccess: (_data, ids) => {
+      const idList = Array.isArray(ids) ? ids : [ids];
+      const archivedBookmarks = getBookmarksByIds(allBookmarks, idList);
+
+      trackClientEvent(
+        "bookmark_archived",
+        getBookmarkActionProperties(
+          archivedBookmarks.length === idList.length
+            ? archivedBookmarks
+            : idList.map(() => ({kind: typeFilter})),
+        ),
+      );
+
       queryClient.invalidateQueries({queryKey: ["bookmarks"]});
       queryClient.invalidateQueries({queryKey: ["tags"]});
     },
