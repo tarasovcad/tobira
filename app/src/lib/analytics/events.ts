@@ -21,6 +21,13 @@ export type AnalyticsEventProperties = {
     url_host: string;
     qstash_publish_ms: number;
   };
+  bookmark_processing_job_queue_failed: {
+    kind: BookmarkKind;
+    job_type: BookmarkProcessingJobType;
+    url_host: string;
+    qstash_publish_ms: number;
+    error_code: string;
+  };
   bookmark_processing_completed: {
     kind: "website";
     job_type: WebsiteJobType;
@@ -113,6 +120,30 @@ export type AnalyticsEventProperties = {
   bookmark_permanently_deleted: {
     count: number;
     kind_counts: BookmarkKindCounts;
+  };
+  collection_created: {
+    has_description: boolean;
+  };
+  collection_updated: {
+    collection_id: string;
+    changed_name: boolean;
+    changed_description: boolean;
+    changed_color: boolean;
+  };
+  collection_deleted: {
+    collection_count: number;
+    total_item_count?: number;
+    is_bulk: boolean;
+  };
+  tag_updated: {
+    tag_id: string;
+    changed_name: boolean;
+    changed_description: boolean;
+  };
+  tag_deleted: {
+    tag_count: number;
+    total_item_count?: number;
+    is_bulk: boolean;
   };
 };
 

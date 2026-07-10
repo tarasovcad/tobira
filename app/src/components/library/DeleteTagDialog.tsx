@@ -18,6 +18,7 @@ import {useEffect, useState} from "react";
 import Spinner from "@/components/ui/app/spinner";
 import {usePathname, useRouter} from "next/navigation";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
+import {trackClientEvent} from "@/lib/analytics/client";
 
 export function DeleteTagDialog() {
   const queryClient = useQueryClient();
@@ -66,6 +67,11 @@ export function DeleteTagDialog() {
     const ids = tags.map((t) => t.id);
     deleteMutation.mutate(ids, {
       onSuccess: () => {
+        trackClientEvent("tag_deleted", {
+          tag_count: ids.length,
+          is_bulk: ids.length > 1,
+        });
+
         toastManager.add({
           title: tags.length === 1 ? "Tag deleted" : `${tags.length} tags deleted`,
           type: "success",

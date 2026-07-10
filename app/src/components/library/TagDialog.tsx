@@ -23,6 +23,7 @@ import * as z from "zod";
 import {useTagDialogStore} from "@/store/use-tag-dialog-store";
 import Spinner from "@/components/ui/app/spinner";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
+import {trackClientEvent} from "@/lib/analytics/client";
 
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -72,9 +73,16 @@ export function TagDialog() {
   }, [isOpen, tag, reset]);
 
   const updateMutation = useMutation({
-    mutationFn: (variables: {id: string; data: {name: string; description?: string}}) =>
-      updateTag(variables.id, variables.data),
-    onSuccess: () => {
+    mutationFn: (variables: {
+      id: string;
+      data: {name: string; description?: string};
+      analytics: {changed_name: boolean; changed_description: boolean};
+    }) => updateTag(variables.id, variables.data),
+    onSuccess: (_result, variables) => {
+      trackClientEvent("tag_updated", {
+        tag_id: variables.id,
+        ...variables.analytics,
+      });
       setSubmitSuccess(true);
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
       queryClient.invalidateQueries({queryKey: ["active-tag"]});
@@ -96,11 +104,17 @@ export function TagDialog() {
   const onSubmit = (data: TagFormValues) => {
     if (!tag) return;
 
+    const nextDescription = data.description?.trim() || null;
+
     updateMutation.mutate({
       id: tag.id,
       data: {
         name: data.name.trim(),
-        description: data.description?.trim() || undefined,
+        description: nextDescription ?? undefined,
+      },
+      analytics: {
+        changed_name: data.name.trim() !== tag.name,
+        changed_description: nextDescription !== (tag.description ?? null),
       },
     });
   };

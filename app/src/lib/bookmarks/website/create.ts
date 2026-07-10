@@ -4,6 +4,7 @@ import {after} from "next/server";
 import {db} from "@/db";
 import {bookmarks, type WebsiteImages} from "@/db/schema";
 import {buildWebsiteImages} from "@/features/media/utils";
+import {trackServerEvent} from "@/lib/analytics/server";
 import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {queueWebsiteBookmarkEnrichment} from "./queue";
@@ -117,6 +118,7 @@ function buildWebsiteBookmarkValues({
 }
 
 async function enqueueWebsiteEnrichmentOrRollback(bookmarkId: string, url: string, userId: string) {
+  const queueStartedAt = performance.now();
   try {
     await queueWebsiteBookmarkEnrichment(bookmarkId, {
       deduplicationId: `bookmark-${bookmarkId}`,
@@ -125,6 +127,17 @@ async function enqueueWebsiteEnrichmentOrRollback(bookmarkId: string, url: strin
       userId,
     });
   } catch (error) {
+    await trackServerEvent(
+      "bookmark_processing_job_queue_failed",
+      {
+        kind: "website",
+        job_type: "process_website_bookmark",
+        url_host: new URL(url).hostname,
+        qstash_publish_ms: Math.round(performance.now() - queueStartedAt),
+        error_code: "qstash_publish_failed",
+      },
+      {userId},
+    );
     logger.error("Failed to queue website bookmark processing job", {
       bookmarkId,
       url,

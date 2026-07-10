@@ -18,6 +18,7 @@ import {useEffect, useState} from "react";
 import {useDeleteCollectionDialogStore} from "@/store/use-delete-collection-dialog-store";
 import {usePathname, useRouter} from "next/navigation";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
+import {trackClientEvent} from "@/lib/analytics/client";
 
 export function DeleteCollectionDialog() {
   const queryClient = useQueryClient();
@@ -66,6 +67,11 @@ export function DeleteCollectionDialog() {
     const ids = collections.map((c) => c.id);
     deleteMutation.mutate(ids, {
       onSuccess: () => {
+        trackClientEvent("collection_deleted", {
+          collection_count: ids.length,
+          is_bulk: ids.length > 1,
+        });
+
         toastManager.add({
           title:
             collections.length === 1

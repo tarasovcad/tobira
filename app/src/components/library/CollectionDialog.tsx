@@ -26,6 +26,7 @@ import Spinner from "@/components/ui/app/spinner";
 import {homeMetadataKeys} from "@/features/home/hooks/use-home-metadata-query";
 import type {CollectionColor} from "@/db/schema";
 import {CollectionColorPicker, getRandomCollectionColorValue} from "./CollectionColorPicker";
+import {trackClientEvent} from "@/lib/analytics/client";
 
 const collectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -94,7 +95,10 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
 
   const mutation = useMutation({
     mutationFn: createCollection,
-    onSuccess: () => {
+    onSuccess: (_createdCollection, variables) => {
+      trackClientEvent("collection_created", {
+        has_description: !!variables.description,
+      });
       setSubmitSuccess("create");
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
       router.refresh();
@@ -115,8 +119,17 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     mutationFn: (variables: {
       id: string;
       data: {name: string; description?: string; color?: CollectionColor};
+      analytics: {
+        changed_name: boolean;
+        changed_description: boolean;
+        changed_color: boolean;
+      };
     }) => updateCollection(variables.id, variables.data),
-    onSuccess: () => {
+    onSuccess: (_updatedCollection, variables) => {
+      trackClientEvent("collection_updated", {
+        collection_id: variables.id,
+        ...variables.analytics,
+      });
       setSubmitSuccess("save");
       queryClient.invalidateQueries({queryKey: homeMetadataKeys.collectionsRoot});
       queryClient.invalidateQueries({queryKey: ["active-collection"]});
@@ -142,12 +155,21 @@ export function CollectionDialog({isAuthenticated = false}: CollectionDialogProp
     }
 
     if (collection) {
+      const nextDescription = data.description?.trim() || null;
+      const nextColor = JSON.stringify(data.color);
+      const currentColor = JSON.stringify(collection.color);
+
       updateMutation.mutate({
         id: collection.id,
         data: {
           name: data.name.trim(),
-          description: data.description?.trim() || undefined,
+          description: nextDescription ?? undefined,
           color: data.color,
+        },
+        analytics: {
+          changed_name: data.name.trim() !== collection.name,
+          changed_description: nextDescription !== (collection.description ?? null),
+          changed_color: nextColor !== currentColor,
         },
       });
       return;
