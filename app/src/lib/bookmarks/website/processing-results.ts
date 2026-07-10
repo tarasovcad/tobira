@@ -10,6 +10,7 @@ export type WebsiteAssetProcessingResult = {
   width?: number;
   height?: number;
   reusedExisting?: boolean;
+  durationMs?: number;
   reason?: unknown;
 };
 

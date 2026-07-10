@@ -146,9 +146,18 @@ async function processWebsiteAsset({
   alreadyExists: boolean;
   process: () => Promise<WebsiteAssetProcessResult>;
 }): Promise<WebsiteAssetProcessingResult> {
+  const startedAt = performance.now();
   try {
     if (alreadyExists) {
-      return websiteAssetResult({label, status: "ready", key, width, height, reusedExisting: true});
+      return websiteAssetResult({
+        label,
+        status: "ready",
+        key,
+        width,
+        height,
+        reusedExisting: true,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
     }
 
     const result = await process();
@@ -160,17 +169,26 @@ async function processWebsiteAsset({
         width,
         height,
         reusedExisting: false,
+        durationMs: Math.round(performance.now() - startedAt),
       });
     }
 
-    return {label, status: "missing"};
+    return {label, status: "missing", durationMs: Math.round(performance.now() - startedAt)};
   } catch (error) {
     logger.warn("Website asset processing failed", {
       label,
       key,
       error: toLogError(error),
     });
-    return websiteAssetResult({label, status: "failed", key, width, height, reason: error});
+    return websiteAssetResult({
+      label,
+      status: "failed",
+      key,
+      width,
+      height,
+      durationMs: Math.round(performance.now() - startedAt),
+      reason: error,
+    });
   }
 }
 
@@ -181,6 +199,7 @@ function websiteAssetResult({
   width,
   height,
   reusedExisting,
+  durationMs,
   reason,
 }: {
   label: WebsiteAssetLabel;
@@ -189,6 +208,7 @@ function websiteAssetResult({
   width?: number;
   height?: number;
   reusedExisting?: boolean;
+  durationMs?: number;
   reason?: unknown;
 }): WebsiteAssetProcessingResult {
   return {
@@ -198,6 +218,7 @@ function websiteAssetResult({
     ...(width !== undefined ? {width} : {}),
     ...(height !== undefined ? {height} : {}),
     ...(reusedExisting !== undefined ? {reusedExisting} : {}),
+    ...(durationMs !== undefined ? {durationMs} : {}),
     ...(reason !== undefined ? {reason} : {}),
   };
 }

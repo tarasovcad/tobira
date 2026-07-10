@@ -57,16 +57,16 @@ export async function createWebsiteBookmark({
   });
 
   if (!websiteRecordFresh) {
-    scheduleWebsiteEnrichmentAfterResponse(bookmarkId, url);
+    scheduleWebsiteEnrichmentAfterResponse(bookmarkId, url, userId);
   }
 
   return {id: bookmarkId, url};
 }
 
-function scheduleWebsiteEnrichmentAfterResponse(bookmarkId: string, url: string) {
+function scheduleWebsiteEnrichmentAfterResponse(bookmarkId: string, url: string, userId: string) {
   after(async () => {
     try {
-      await enqueueWebsiteEnrichmentOrRollback(bookmarkId, url);
+      await enqueueWebsiteEnrichmentOrRollback(bookmarkId, url, userId);
     } catch {
       // enqueueWebsiteEnrichmentOrRollback logs the queue failure and deletes the bookmark.
     }
@@ -116,11 +116,13 @@ function buildWebsiteBookmarkValues({
   };
 }
 
-async function enqueueWebsiteEnrichmentOrRollback(bookmarkId: string, url: string) {
+async function enqueueWebsiteEnrichmentOrRollback(bookmarkId: string, url: string, userId: string) {
   try {
     await queueWebsiteBookmarkEnrichment(bookmarkId, {
       deduplicationId: `bookmark-${bookmarkId}`,
       retries: 2,
+      urlHost: new URL(url).hostname,
+      userId,
     });
   } catch (error) {
     logger.error("Failed to queue website bookmark processing job", {

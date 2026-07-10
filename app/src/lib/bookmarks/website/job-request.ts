@@ -6,19 +6,25 @@ import {isRecord} from "@/lib/fetch/web/http";
 const QSTASH_BODY_MAX_BYTES = 64 * 1024;
 
 export type WebsiteJobRequest =
-  | {ok: true; bookmarkId: string}
-  | {ok: false; status: 400 | 401; error: "Missing id" | "Unauthorized"};
+  | {ok: true; bookmarkId: string; qstashVerifyMs: number}
+  | {ok: false; status: 400 | 401; error: "Missing id" | "Unauthorized"; qstashVerifyMs: number};
 
 export async function readWebsiteJobRequest(request: NextRequest): Promise<WebsiteJobRequest> {
   const rawBody = await readTextWithLimit(request, QSTASH_BODY_MAX_BYTES).catch(() => "");
 
-  if (!(await verifyQstashRequest(request, rawBody))) {
-    return {ok: false, status: 401, error: "Unauthorized"};
+  const qstashVerifyStartedAt = performance.now();
+  const verified = await verifyQstashRequest(request, rawBody);
+  const qstashVerifyMs = Math.round(performance.now() - qstashVerifyStartedAt);
+
+  if (!verified) {
+    return {ok: false, status: 401, error: "Unauthorized", qstashVerifyMs};
   }
 
   const bookmarkId = parseWebsiteJobPayload(request.nextUrl.searchParams.get("id"), rawBody);
 
-  return bookmarkId ? {ok: true, bookmarkId} : {ok: false, status: 400, error: "Missing id"};
+  return bookmarkId
+    ? {ok: true, bookmarkId, qstashVerifyMs}
+    : {ok: false, status: 400, error: "Missing id", qstashVerifyMs};
 }
 
 export function parseWebsiteJobPayload(queryId: string | null, rawBody: string) {

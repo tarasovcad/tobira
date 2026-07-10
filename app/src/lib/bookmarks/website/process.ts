@@ -14,6 +14,13 @@ import {existsInR2} from "@/lib/storage/r2-storage";
 import {processWebsiteAssets} from "./assets";
 import {collectWebsiteAssetFailures} from "./processing-results";
 import {
+  measureDb,
+  measureDuration,
+  recordDuration,
+  setAssetMetrics,
+  type WebsiteBookmarkProcessingMetrics,
+} from "./metrics";
+import {
   markWebsiteEnrichmentFailed,
   updateWebsiteImageStatuses,
   updateWebsiteTextMetadata,
@@ -36,11 +43,17 @@ type WebsiteBookmarkProcessingInfo = {
   url: string;
 };
 
-export async function processWebsiteBookmark(bookmarkId: string) {
-  const bookmark = await getWebsiteBookmarkProcessingInfo(bookmarkId);
+export async function processWebsiteBookmark(
+  bookmarkId: string,
+  metrics: WebsiteBookmarkProcessingMetrics = {},
+) {
+  const bookmark = await measureDb(metrics, "bookmark_select_db_ms", () =>
+    getWebsiteBookmarkProcessingInfo(bookmarkId),
+  );
   if (!bookmark) return;
 
   const normalizedUrl = normalizeInputUrl(bookmark.url).toString();
+  metrics.url_host = new URL(normalizedUrl).hostname;
 
   const websiteUrl = isWebsiteUrl(normalizedUrl);
   if (!websiteUrl) return;
@@ -48,33 +61,51 @@ export async function processWebsiteBookmark(bookmarkId: string) {
   const websiteRecordKey = await getWebsiteRecordKey(normalizedUrl);
 
   const keysPromise = buildWebsiteImageKeys(normalizedUrl);
-  const existingRecordPromise = getWebsiteRecordByKey(websiteRecordKey);
+  const existingRecordPromise = measureDb(metrics, "website_record_select_db_ms", () =>
+    getWebsiteRecordByKey(websiteRecordKey),
+  );
   const r2ChecksPromise = keysPromise.then((k) =>
-    Promise.all([
-      existsInR2(k.favicon).catch(() => false),
-      existsInR2(k.og).catch(() => false),
-      existsInR2(k.preview).catch(() => false),
-    ]),
+    measureDuration(metrics, "r2_exists_ms", () =>
+      Promise.all([
+        existsInR2(k.favicon).catch(() => false),
+        existsInR2(k.og).catch(() => false),
+        existsInR2(k.preview).catch(() => false),
+      ]),
+    ),
   );
 
   let page: WebsiteHtmlPage;
 
   try {
-    page = await fetchWebsiteHtmlPage(normalizedUrl);
+    page = await measureDuration(metrics, "html_fetch_ms", () =>
+      fetchWebsiteHtmlPage(normalizedUrl),
+    );
+    metrics.website_protected = page.websiteProtected ? "true" : "false";
   } catch (error) {
     const keys = await keysPromise;
-    await markWebsiteEnrichmentFailed(bookmark.id, normalizedUrl, error, keys);
+    metrics.html_status = "failed";
+    metrics.favicon_status = "failed";
+    metrics.og_status = "failed";
+    metrics.preview_status = "failed";
+    await measureDb(metrics, "bookmark_update_db_ms", () =>
+      markWebsiteEnrichmentFailed(bookmark.id, normalizedUrl, error, keys),
+    );
     throw error;
   }
 
+  const htmlExtractStartedAt = performance.now();
   const metadataResult = extractUrlMetadataFromHtmlPage(page);
+  recordDuration(metrics, "html_extract_ms", htmlExtractStartedAt);
   const htmlStatus = metadataResult.title || metadataResult.description ? "ready" : "missing";
+  metrics.html_status = htmlStatus;
 
-  const bookmarkUpdated = await updateWebsiteTextMetadata(bookmark.id, {
-    title: metadataResult.title ?? null,
-    description: metadataResult.description ?? null,
-    status: htmlStatus,
-  });
+  const bookmarkUpdated = await measureDb(metrics, "bookmark_update_db_ms", () =>
+    updateWebsiteTextMetadata(bookmark.id, {
+      title: metadataResult.title ?? null,
+      description: metadataResult.description ?? null,
+      status: htmlStatus,
+    }),
+  );
   if (!bookmarkUpdated) return;
 
   const keys = await keysPromise;
@@ -94,6 +125,7 @@ export async function processWebsiteBookmark(bookmarkId: string) {
       preview: previewExists,
     }),
   });
+  setAssetMetrics(metrics, assetResults);
 
   const nowIso = new Date().toISOString();
   const {images, htmlRefreshed, previewRefreshed} = buildWebsiteRecordRefreshOutcome({
@@ -105,25 +137,31 @@ export async function processWebsiteBookmark(bookmarkId: string) {
 
   let websiteRecord;
   try {
-    websiteRecord = await upsertWebsiteRecord({
-      key: websiteRecordKey,
-      normalizedUrl,
-      hostname: new URL(normalizedUrl).hostname,
-      title: metadataResult.title ?? null,
-      description: metadataResult.description ?? null,
-      images,
-      htmlStatus,
-      previewStatus,
-      existingRecord,
-      htmlRefreshed,
-      previewRefreshed,
-    });
+    websiteRecord = await measureDb(metrics, "website_record_upsert_db_ms", () =>
+      upsertWebsiteRecord({
+        key: websiteRecordKey,
+        normalizedUrl,
+        hostname: new URL(normalizedUrl).hostname,
+        title: metadataResult.title ?? null,
+        description: metadataResult.description ?? null,
+        images,
+        htmlStatus,
+        previewStatus,
+        existingRecord,
+        htmlRefreshed,
+        previewRefreshed,
+      }),
+    );
   } catch (upsertError) {
-    await updateWebsiteImageStatuses(bookmark.id, assetResults).catch(() => {});
+    await measureDb(metrics, "bookmark_update_db_ms", () =>
+      updateWebsiteImageStatuses(bookmark.id, assetResults).catch(() => {}),
+    );
     throw upsertError;
   }
 
-  await updateBookmarkFromWebsiteRecord(bookmark.id, websiteRecord);
+  await measureDb(metrics, "bookmark_update_db_ms", () =>
+    updateBookmarkFromWebsiteRecord(bookmark.id, websiteRecord),
+  );
 
   const failures = collectWebsiteAssetFailures(assetResults);
   if (failures.length === 0) return;

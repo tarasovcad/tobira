@@ -91,7 +91,7 @@ export function AddBookmarkDialog({
 
         <DialogPopup
           className={cn(
-            "overflow-hidden transition-[max-width,height,scale,opacity,translate] duration-250 ease-in-out [interpolate-size:allow-keywords] data-ending-style:translate-y-2 data-ending-style:scale-98 data-ending-style:opacity-0 data-starting-style:translate-y-2 data-starting-style:scale-98 data-starting-style:opacity-0 motion-reduce:transition-none",
+            "overflow-hidden transition-[max-width,height,scale,opacity,translate] duration-250 ease-in-out [interpolate-size:allow-keywords] data-ending-style:translate-y-2 data-ending-style:scale-98 data-ending-style:opacity-0 data-starting-style:translate-y-2 data-starting-style:scale-98 data-starting-style:opacity-0",
             step === 2 && mediaItems.length > 2 && "max-w-2xl",
           )}>
           <DialogHeader>

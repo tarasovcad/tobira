@@ -5,6 +5,7 @@ import {eq} from "drizzle-orm";
 import {db} from "@/db";
 import {bookmarks} from "@/db/schema";
 import {requireAuthenticatedUserId} from "@/lib/auth/session";
+import {trackServerEvent} from "@/lib/analytics/server";
 import {prepareMediaBookmark} from "./prepareMediaBookmark";
 import {preparePostBookmarkCreation} from "@/lib/bookmarks/post";
 import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
@@ -105,6 +106,7 @@ export async function addMediaBookmark(input: {
     kind: "media",
   });
 
+  const mediaPublishStartedAt = performance.now();
   try {
     await qstash.publishJSON({
       url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-media-bookmark`,
@@ -113,6 +115,16 @@ export async function addMediaBookmark(input: {
       headers: {"x-job-type": "process-media-bookmark"},
       timeout: 120,
     });
+    void trackServerEvent(
+      "bookmark_processing_job_queued",
+      {
+        kind: "media",
+        job_type: "process_media_bookmark",
+        url_host: prepared.normalized.hostname,
+        qstash_publish_ms: Math.round(performance.now() - mediaPublishStartedAt),
+      },
+      {userId},
+    );
   } catch (error) {
     console.error("Failed to queue media bookmark processing job:", error);
     try {
@@ -157,6 +169,7 @@ export async function addPostBookmark(input: {
   });
 
   if (prepared.bookmarkToInsert.images.processing) {
+    const postPublishStartedAt = performance.now();
     try {
       await qstash.publishJSON({
         url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-post-media`,
@@ -165,6 +178,16 @@ export async function addPostBookmark(input: {
         headers: {"x-job-type": "process-post-media"},
         timeout: 120,
       });
+      void trackServerEvent(
+        "bookmark_processing_job_queued",
+        {
+          kind: "post",
+          job_type: "process_post_media",
+          url_host: new URL(prepared.url).hostname,
+          qstash_publish_ms: Math.round(performance.now() - postPublishStartedAt),
+        },
+        {userId},
+      );
     } catch (error) {
       console.error("Failed to queue post media processing job:", error);
       try {
