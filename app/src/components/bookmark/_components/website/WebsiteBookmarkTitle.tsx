@@ -1,7 +1,6 @@
 "use client";
 
 import type {WebsiteTextMetadataStatus} from "@/components/bookmark/types/metadata";
-import {TextShimmer} from "@/components/ui/app/text-shimmer";
 
 export function getDomainName(url: string): string {
   try {
@@ -25,8 +24,9 @@ export default function WebsiteBookmarkTitle({
   className,
 }: WebsiteBookmarkTitleProps) {
   const trimmedTitle = title?.trim();
-  const isPending = textMetadataStatus === "pending" && !trimmedTitle;
-  const displayTitle = isPending ? "Loading..." : trimmedTitle || getDomainName(url);
+  const showUntitled =
+    (textMetadataStatus === "pending" || textMetadataStatus === "missing") && !trimmedTitle;
+  const displayTitle = showUntitled ? "Untitled" : trimmedTitle || getDomainName(url);
   const showFailedIcon = textMetadataStatus === "failed";
 
   return (
@@ -35,9 +35,7 @@ export default function WebsiteBookmarkTitle({
       title={displayTitle}
       data-text-metadata-status={textMetadataStatus}
       data-fallback-title={trimmedTitle ? undefined : "true"}>
-      {isPending ? (
-        <TextShimmer>{displayTitle}</TextShimmer>
-      ) : showFailedIcon ? (
+      {showFailedIcon ? (
         <span className="relative block max-w-full min-w-0 pl-6">
           <TextMetadataFailedIcon className="text-warning absolute top-1/2 left-0 shrink-0 -translate-y-1/2" />
           <span className="block min-w-0 truncate">{displayTitle}</span>

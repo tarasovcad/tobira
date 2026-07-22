@@ -129,7 +129,6 @@ const BookmarkFavicon = ({
           "flex items-center justify-center",
         )}>
         {image.status !== "loaded" ? <FaviconPlaceholder /> : null}
-
         {baseSrc ? (
           <div className={cn("absolute inset-0 flex items-center justify-center")}>
             <Image

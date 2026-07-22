@@ -4,7 +4,7 @@ import * as React from "react";
 import {formatDateAbsolute} from "@/lib/utils/dates";
 import {cn} from "@/lib/utils";
 import {Tag} from "@/components/ui/app/tag";
-import {TextShimmer} from "@/components/ui/app/text-shimmer";
+
 import type {WebsiteTextMetadataStatus} from "@/components/bookmark/types/metadata";
 import WebsiteBookmarkTitle, {getDomainName} from "./WebsiteBookmarkTitle";
 
@@ -91,7 +91,7 @@ export default function WebsiteBookmarkMeta({
             hasMetaRow ? descriptionMarginWhenMetaVisible : descriptionMarginWhenMetaHidden,
             descriptionClassName,
           )}>
-          {showPendingDescription ? <TextShimmer>Loading...</TextShimmer> : description}
+          {showPendingDescription ? "Untitled" : description}
         </div>
       ) : null}
 

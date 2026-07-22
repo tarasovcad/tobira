@@ -37,7 +37,6 @@ import {BookmarkMenuActions} from "../shared/BookmarkMenuActions";
 import BookmarkMenuDetails from "../shared/BookmarkMenuDetails";
 import WebsiteBookmarkMenuImage from "./WebsiteBookmarkMenuImage";
 import WebsiteBookmarkTitle from "./WebsiteBookmarkTitle";
-import {TextShimmer} from "@/components/ui/app/text-shimmer";
 
 const MAX_DESCRIPTION_LENGTH = 280;
 
@@ -348,9 +347,7 @@ export function WebsiteBookmarkMenu({userId}: {userId: string | null}) {
 
                 <div className="p-6">
                   {metadataLoading && !websiteItem?.description ? (
-                    <div className="text-muted-foreground text-[15px]">
-                      <TextShimmer>Loading...</TextShimmer>
-                    </div>
+                    <div className="text-muted-foreground text-[15px]">Untitled</div>
                   ) : (
                     <BookmarkDescriptionField
                       key={`${websiteItem?.id ?? "none"}:${isOpen ? "open" : "closed"}`}

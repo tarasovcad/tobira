@@ -13,8 +13,25 @@ export type MediaJobType = "process_media_bookmark";
 export type PostJobType = "process_post_media";
 export type BookmarkProcessingJobType = WebsiteJobType | MediaJobType | PostJobType;
 export type WebsiteProcessingStatus = "ready" | "missing" | "failed";
+export type WebsiteBookmarkCreateCacheStatus = "fresh" | "partial" | "miss_or_stale" | "unknown";
+export type WebsiteBookmarkCreateQueueDecision =
+  | "skipped_fresh_cache"
+  | "scheduled_after_response"
+  | "not_reached";
 
 export type AnalyticsEventProperties = {
+  website_bookmark_create_completed: {
+    kind: "website";
+    success: AnalyticsBoolean;
+    error_code: string;
+    url_host: string;
+    duration_ms: number;
+    cache_lookup_ms?: number;
+    bookmark_insert_db_ms?: number;
+    relations_db_ms?: number;
+    cache_status: WebsiteBookmarkCreateCacheStatus;
+    queue_decision: WebsiteBookmarkCreateQueueDecision;
+  };
   bookmark_processing_job_queued: {
     kind: BookmarkKind;
     job_type: BookmarkProcessingJobType;
