@@ -13,14 +13,15 @@ export type MediaJobType = "process_media_bookmark";
 export type PostJobType = "process_post_media";
 export type BookmarkProcessingJobType = WebsiteJobType | MediaJobType | PostJobType;
 export type WebsiteProcessingStatus = "ready" | "missing" | "failed";
+export type WebsitePreviewProvider = "cloudflare" | "firecrawl";
 export type WebsiteBookmarkCreateCacheStatus = "fresh" | "partial" | "miss_or_stale" | "unknown";
-export type WebsiteBookmarkCreateQueueDecision =
+export type WebsiteBookmarkCreateEnrichmentJobStatus =
+  | "published"
   | "skipped_fresh_cache"
-  | "scheduled_after_response"
   | "not_reached";
 
 export type AnalyticsEventProperties = {
-  website_bookmark_create_completed: {
+  bookmark_add_completed: {
     kind: "website";
     success: AnalyticsBoolean;
     error_code: string;
@@ -29,8 +30,10 @@ export type AnalyticsEventProperties = {
     cache_lookup_ms?: number;
     bookmark_insert_db_ms?: number;
     relations_db_ms?: number;
+    qstash_publish_ms?: number;
+    qstash_publish_started_after_ms?: number;
     cache_status: WebsiteBookmarkCreateCacheStatus;
-    queue_decision: WebsiteBookmarkCreateQueueDecision;
+    enrichment_job_status: WebsiteBookmarkCreateEnrichmentJobStatus;
   };
   bookmark_processing_job_queued: {
     kind: BookmarkKind;
@@ -58,6 +61,7 @@ export type AnalyticsEventProperties = {
     db_ms?: number;
     html_fetch_ms?: number;
     html_extract_ms?: number;
+    text_metadata_db_ready_ms?: number;
     r2_exists_ms?: number;
     favicon_ms?: number;
     og_ms?: number;
@@ -68,6 +72,7 @@ export type AnalyticsEventProperties = {
     favicon_status?: WebsiteProcessingStatus;
     og_status?: WebsiteProcessingStatus;
     preview_status?: WebsiteProcessingStatus;
+    preview_provider?: WebsitePreviewProvider;
     website_protected?: AnalyticsBoolean;
   };
   auth_otp_requested: {
@@ -107,9 +112,6 @@ export type AnalyticsEventProperties = {
     url_host: string;
     tag_count: number;
     has_collection: boolean;
-  };
-  bookmark_add_succeeded: {
-    kind: BookmarkKind;
   };
   bookmark_add_failed: {
     kind: BookmarkKind;

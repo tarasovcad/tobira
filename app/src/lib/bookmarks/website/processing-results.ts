@@ -2,6 +2,7 @@ import type {WebsiteImageAsset} from "@/db/schema";
 
 export type WebsiteAssetLabel = "favicon" | "og" | "preview";
 export type WebsiteAssetProcessingStatus = "ready" | "missing" | "failed";
+export type WebsitePreviewProvider = "cloudflare" | "firecrawl";
 
 export type WebsiteAssetProcessingResult = {
   label: WebsiteAssetLabel;
@@ -10,6 +11,7 @@ export type WebsiteAssetProcessingResult = {
   width?: number;
   height?: number;
   reusedExisting?: boolean;
+  previewProvider?: WebsitePreviewProvider;
   durationMs?: number;
   reason?: unknown;
 };

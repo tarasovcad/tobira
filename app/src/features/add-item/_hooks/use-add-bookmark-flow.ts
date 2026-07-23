@@ -175,10 +175,6 @@ export function useAddBookmarkFlow({
         return;
       }
 
-      trackClientEvent("bookmark_add_succeeded", {
-        kind: variables.kind,
-      });
-
       closeDialog();
       toastManager.add({
         title: "Bookmark added",

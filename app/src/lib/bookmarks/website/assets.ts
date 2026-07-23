@@ -17,7 +17,11 @@ import {
 import {sanitizeSvgBuffer} from "@/lib/fetch/web/svg";
 import {uploadToR2} from "@/lib/storage/r2-storage";
 import {logger, toLogError} from "@/lib/shared/logger";
-import type {WebsiteAssetLabel, WebsiteAssetProcessingResult} from "./processing-results";
+import type {
+  WebsiteAssetLabel,
+  WebsiteAssetProcessingResult,
+  WebsitePreviewProvider,
+} from "./processing-results";
 
 const FAVICON_MAX_BYTES = 2 * 1024 * 1024;
 const FAVICON_FETCH_TIMEOUT_MS = 10_000;
@@ -122,14 +126,16 @@ export async function processWebsiteAssets({
       }
 
       await uploadWebsitePreview(screenshot, keys.preview);
-      return {status: "ready"};
+      return {status: "ready", previewProvider: screenshot.provider};
     },
   });
 
   return await Promise.all([faviconPromise, ogPromise, previewPromise]);
 }
 
-type WebsiteAssetProcessResult = {status: "ready"} | {status: "missing"};
+type WebsiteAssetProcessResult =
+  | {status: "ready"; previewProvider?: WebsitePreviewProvider}
+  | {status: "missing"};
 
 async function processWebsiteAsset({
   label,
@@ -169,6 +175,7 @@ async function processWebsiteAsset({
         width,
         height,
         reusedExisting: false,
+        previewProvider: result.previewProvider,
         durationMs: Math.round(performance.now() - startedAt),
       });
     }
@@ -199,6 +206,7 @@ function websiteAssetResult({
   width,
   height,
   reusedExisting,
+  previewProvider,
   durationMs,
   reason,
 }: {
@@ -208,6 +216,7 @@ function websiteAssetResult({
   width?: number;
   height?: number;
   reusedExisting?: boolean;
+  previewProvider?: WebsitePreviewProvider;
   durationMs?: number;
   reason?: unknown;
 }): WebsiteAssetProcessingResult {
@@ -218,6 +227,7 @@ function websiteAssetResult({
     ...(width !== undefined ? {width} : {}),
     ...(height !== undefined ? {height} : {}),
     ...(reusedExisting !== undefined ? {reusedExisting} : {}),
+    ...(previewProvider !== undefined ? {previewProvider} : {}),
     ...(durationMs !== undefined ? {durationMs} : {}),
     ...(reason !== undefined ? {reason} : {}),
   };
@@ -282,14 +292,19 @@ async function uploadWebsitePreview(screenshot: ScreenshotData, objectKey: strin
   await uploadAsset(objectKey, screenshot.buffer, screenshot.contentType || "image/png");
 }
 
-async function fetchPreviewScreenshot(url: string, websiteProtected: boolean) {
+async function fetchPreviewScreenshot(
+  url: string,
+  websiteProtected: boolean,
+): Promise<ScreenshotData & {provider: WebsitePreviewProvider}> {
   try {
-    return await fetchScreenshotViaCloudflare(url);
+    const screenshot = await fetchScreenshotViaCloudflare(url);
+    return {...screenshot, provider: "cloudflare"};
   } catch (error) {
     if (!shouldFallbackToFirecrawlScreenshot(error, {websiteProtected})) {
       throw error;
     }
-    return fetchScreenshotViaFirecrawl(url);
+    const screenshot = await fetchScreenshotViaFirecrawl(url);
+    return {...screenshot, provider: "firecrawl"};
   }
 }
 

@@ -7,7 +7,7 @@ import {buildWebsiteImages} from "@/features/media/utils";
 import {trackServerEvent} from "@/lib/analytics/server";
 import type {
   WebsiteBookmarkCreateCacheStatus,
-  WebsiteBookmarkCreateQueueDecision,
+  WebsiteBookmarkCreateEnrichmentJobStatus,
 } from "@/lib/analytics/events";
 import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
 import {logger, toLogError} from "@/lib/shared/logger";
@@ -36,8 +36,10 @@ export async function createWebsiteBookmark({
   let cacheLookupMs: number | undefined;
   let bookmarkInsertDbMs: number | undefined;
   let relationsDbMs: number | undefined;
+  let qstashPublishMs: number | undefined;
+  let qstashPublishStartedAfterMs: number | undefined;
   let cacheStatus: WebsiteBookmarkCreateCacheStatus = "unknown";
-  let queueDecision: WebsiteBookmarkCreateQueueDecision = "not_reached";
+  let enrichmentJobStatus: WebsiteBookmarkCreateEnrichmentJobStatus = "not_reached";
 
   try {
     const {
@@ -89,14 +91,22 @@ export async function createWebsiteBookmark({
         }),
     );
 
+    let queuePromise: Promise<void> | undefined;
     if (!websiteRecordFresh) {
-      queueDecision = "scheduled_after_response";
-      scheduleWebsiteEnrichmentAfterResponse(bookmarkId, url, userId);
+      enrichmentJobStatus = "published";
+      qstashPublishStartedAfterMs = Math.round(performance.now() - startedAt);
+      queuePromise = measureWebsiteBookmarkCreateDuration(
+        (durationMs) => {
+          qstashPublishMs = durationMs;
+        },
+        () => enqueueWebsiteEnrichmentOrRollback(bookmarkId, url, userId),
+      );
     } else {
-      queueDecision = "skipped_fresh_cache";
+      enrichmentJobStatus = "skipped_fresh_cache";
     }
 
     const bookmark = await getCreatedWebsiteBookmark(bookmarkId);
+    await queuePromise;
 
     scheduleWebsiteBookmarkCreateCompletedEvent({
       startedAt,
@@ -107,8 +117,10 @@ export async function createWebsiteBookmark({
       cacheLookupMs,
       bookmarkInsertDbMs,
       relationsDbMs,
+      qstashPublishMs,
+      qstashPublishStartedAfterMs,
       cacheStatus,
-      queueDecision,
+      enrichmentJobStatus,
     });
 
     return {id: bookmarkId, url, bookmark};
@@ -122,8 +134,10 @@ export async function createWebsiteBookmark({
       cacheLookupMs,
       bookmarkInsertDbMs,
       relationsDbMs,
+      qstashPublishMs,
+      qstashPublishStartedAfterMs,
       cacheStatus,
-      queueDecision,
+      enrichmentJobStatus,
     });
     throw error;
   }
@@ -195,8 +209,10 @@ function scheduleWebsiteBookmarkCreateCompletedEvent({
   cacheLookupMs,
   bookmarkInsertDbMs,
   relationsDbMs,
+  qstashPublishMs,
+  qstashPublishStartedAfterMs,
   cacheStatus,
-  queueDecision,
+  enrichmentJobStatus,
 }: {
   startedAt: number;
   urlHost: string;
@@ -206,14 +222,16 @@ function scheduleWebsiteBookmarkCreateCompletedEvent({
   cacheLookupMs?: number;
   bookmarkInsertDbMs?: number;
   relationsDbMs?: number;
+  qstashPublishMs?: number;
+  qstashPublishStartedAfterMs?: number;
   cacheStatus: WebsiteBookmarkCreateCacheStatus;
-  queueDecision: WebsiteBookmarkCreateQueueDecision;
+  enrichmentJobStatus: WebsiteBookmarkCreateEnrichmentJobStatus;
 }) {
   const durationMs = Math.round(performance.now() - startedAt);
 
   after(() => {
     void trackServerEvent(
-      "website_bookmark_create_completed",
+      "bookmark_add_completed",
       {
         kind: "website",
         success: success ? "true" : "false",
@@ -223,21 +241,13 @@ function scheduleWebsiteBookmarkCreateCompletedEvent({
         cache_lookup_ms: cacheLookupMs,
         bookmark_insert_db_ms: bookmarkInsertDbMs,
         relations_db_ms: relationsDbMs,
+        qstash_publish_ms: qstashPublishMs,
+        qstash_publish_started_after_ms: qstashPublishStartedAfterMs,
         cache_status: cacheStatus,
-        queue_decision: queueDecision,
+        enrichment_job_status: enrichmentJobStatus,
       },
       {userId},
     );
-  });
-}
-
-function scheduleWebsiteEnrichmentAfterResponse(bookmarkId: string, url: string, userId: string) {
-  after(async () => {
-    try {
-      await enqueueWebsiteEnrichmentOrRollback(bookmarkId, url, userId);
-    } catch {
-      // enqueueWebsiteEnrichmentOrRollback logs the queue failure and deletes the bookmark.
-    }
   });
 }
 
@@ -290,8 +300,6 @@ async function enqueueWebsiteEnrichmentOrRollback(bookmarkId: string, url: strin
     await queueWebsiteBookmarkEnrichment(bookmarkId, {
       deduplicationId: `bookmark-${bookmarkId}`,
       retries: 2,
-      urlHost: new URL(url).hostname,
-      userId,
     });
   } catch (error) {
     await trackServerEvent(

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   const metrics: WebsiteBookmarkProcessingMetrics = {};
 
   try {
-    await processWebsiteBookmark(jobRequest.bookmarkId, metrics);
+    await processWebsiteBookmark(jobRequest.bookmarkId, metrics, startedAt);
     await trackWebsiteProcessingCompleted({
       durationMs: Math.round(performance.now() - startedAt),
       qstashVerifyMs: jobRequest.qstashVerifyMs,

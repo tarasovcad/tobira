@@ -45,7 +45,8 @@ type WebsiteBookmarkProcessingInfo = {
 
 export async function processWebsiteBookmark(
   bookmarkId: string,
-  metrics: WebsiteBookmarkProcessingMetrics = {},
+  metrics: WebsiteBookmarkProcessingMetrics,
+  jobStartedAt: number,
 ) {
   const bookmark = await measureDb(metrics, "bookmark_select_db_ms", () =>
     getWebsiteBookmarkProcessingInfo(bookmarkId),
@@ -107,6 +108,7 @@ export async function processWebsiteBookmark(
     }),
   );
   if (!bookmarkUpdated) return;
+  metrics.text_metadata_db_ready_ms = Math.round(performance.now() - jobStartedAt);
 
   const keys = await keysPromise;
   const [existingRecord, [faviconExists, ogExists, previewExists]] = await Promise.all([

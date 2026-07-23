@@ -138,7 +138,7 @@ const BookmarkFavicon = ({
               height={isCompact ? 18 : 20}
               className={cn(
                 "object-contain transition-opacity duration-200 ease-in-out",
-                isCompact ? "h-[18px] w-[18px]" : undefined,
+                isCompact ? "h-[18px] w-[18px]" : "h-5 w-5",
                 image.status === "loaded" ? "opacity-100" : "opacity-0",
               )}
               loading="lazy"

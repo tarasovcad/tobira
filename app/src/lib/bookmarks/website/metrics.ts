@@ -1,5 +1,9 @@
 import {trackServerEvent} from "@/lib/analytics/server";
-import type {WebsiteAssetLabel, WebsiteAssetProcessingStatus} from "./processing-results";
+import type {
+  WebsiteAssetProcessingResult,
+  WebsiteAssetProcessingStatus,
+  WebsitePreviewProvider,
+} from "./processing-results";
 
 export type WebsiteBookmarkProcessingMetrics = Partial<{
   url_host: string;
@@ -8,6 +12,7 @@ export type WebsiteBookmarkProcessingMetrics = Partial<{
   db_ms: number;
   html_fetch_ms: number;
   html_extract_ms: number;
+  text_metadata_db_ready_ms: number;
   r2_exists_ms: number;
   favicon_ms: number;
   og_ms: number;
@@ -18,6 +23,7 @@ export type WebsiteBookmarkProcessingMetrics = Partial<{
   favicon_status: WebsiteAssetProcessingStatus;
   og_status: WebsiteAssetProcessingStatus;
   preview_status: WebsiteAssetProcessingStatus;
+  preview_provider: WebsitePreviewProvider;
   website_protected: "true" | "false";
 }>;
 
@@ -28,6 +34,7 @@ type WebsiteProcessingDurationField = Exclude<
   | "favicon_status"
   | "og_status"
   | "preview_status"
+  | "preview_provider"
   | "website_protected"
 >;
 
@@ -89,6 +96,9 @@ function addDurationMetric(
     case "html_extract_ms":
       metrics.html_extract_ms = (metrics.html_extract_ms ?? 0) + durationMs;
       return;
+    case "text_metadata_db_ready_ms":
+      metrics.text_metadata_db_ready_ms = durationMs;
+      return;
     case "r2_exists_ms":
       metrics.r2_exists_ms = (metrics.r2_exists_ms ?? 0) + durationMs;
       return;
@@ -111,11 +121,7 @@ function addDurationMetric(
 
 export function setAssetMetrics(
   metrics: WebsiteBookmarkProcessingMetrics,
-  assetResults: {
-    label: WebsiteAssetLabel;
-    status: WebsiteAssetProcessingStatus;
-    durationMs?: number;
-  }[],
+  assetResults: WebsiteAssetProcessingResult[],
 ) {
   const favicon = assetResults.find((assetResult) => assetResult.label === "favicon");
   if (favicon) {
@@ -133,6 +139,7 @@ export function setAssetMetrics(
   if (preview) {
     metrics.preview_ms = preview.durationMs ?? 0;
     metrics.preview_status = preview.status;
+    metrics.preview_provider = preview.previewProvider;
   }
 }
 
