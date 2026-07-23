@@ -11,6 +11,7 @@ import type {
 } from "@/lib/analytics/events";
 import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
 import {logger, toLogError} from "@/lib/shared/logger";
+import type {WebsiteBookmark} from "@/components/bookmark/types";
 import {queueWebsiteBookmarkEnrichment} from "./queue";
 import {buildBookmarkImagesFromWebsiteRecord} from "./refresh";
 import {getReusableWebsiteRecord, type WebsiteRecord} from "./records";
@@ -95,6 +96,8 @@ export async function createWebsiteBookmark({
       queueDecision = "skipped_fresh_cache";
     }
 
+    const bookmark = await getCreatedWebsiteBookmark(bookmarkId);
+
     scheduleWebsiteBookmarkCreateCompletedEvent({
       startedAt,
       urlHost,
@@ -108,7 +111,7 @@ export async function createWebsiteBookmark({
       queueDecision,
     });
 
-    return {id: bookmarkId, url};
+    return {id: bookmarkId, url, bookmark};
   } catch (error) {
     scheduleWebsiteBookmarkCreateCompletedEvent({
       startedAt,
@@ -124,6 +127,43 @@ export async function createWebsiteBookmark({
     });
     throw error;
   }
+}
+
+async function getCreatedWebsiteBookmark(bookmarkId: string): Promise<WebsiteBookmark> {
+  const row = await db.query.bookmarks.findFirst({
+    where: eq(bookmarks.id, bookmarkId),
+    with: {
+      bookmarkTags: {with: {tag: true}},
+      bookmarkCollections: {with: {collection: true}},
+    },
+  });
+
+  if (!row || row.kind !== "website") {
+    throw new Error("Created website bookmark not found");
+  }
+
+  return {
+    id: row.id,
+    title: row.title || "",
+    description: row.description || "",
+    url: row.url,
+    user_id: row.userId,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt || row.createdAt,
+    archived_at: row.archivedAt || "",
+    deleted_at: row.deletedAt || "",
+    notes: row.notes || "",
+    tags: row.bookmarkTags
+      .map((bt) => bt.tag.name)
+      .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: "base"})),
+    collections: row.bookmarkCollections.map((bc) => ({
+      id: bc.collection.id,
+      name: bc.collection.name,
+    })),
+    kind: "website",
+    images: (row.images ?? undefined) as WebsiteBookmark["images"],
+    metadata: (row.metadata ?? undefined) as WebsiteBookmark["metadata"],
+  };
 }
 
 async function measureWebsiteBookmarkCreateDuration<T>(

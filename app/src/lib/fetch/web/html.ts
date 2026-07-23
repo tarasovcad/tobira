@@ -1,3 +1,5 @@
+import * as cheerio from "cheerio";
+
 export function stripWrappingQuotes(value: string) {
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
@@ -28,39 +30,31 @@ export function decodeHtmlEntitiesMinimal(s: string) {
 export function extractMetaContentFromHtml(html: string, key: {name?: string; property?: string}) {
   const keyName = key.name?.toLowerCase();
   const keyProp = key.property?.toLowerCase();
+  const $ = cheerio.load(html);
 
-  // Very small/naive HTML parsing via regex (good enough for "simple").
-  const metaTags = html.match(/<meta\b[^>]*>/gi) ?? [];
-  for (const tag of metaTags) {
-    const nameMatch = /\bname\s*=\s*(".*?"|'.*?'|[^\s>]+)/i.exec(tag);
-    const propMatch = /\bproperty\s*=\s*(".*?"|'.*?'|[^\s>]+)/i.exec(tag);
-    const contentMatch = /\bcontent\s*=\s*(".*?"|'.*?'|[^\s>]+)/i.exec(tag);
+  const metas = $("head meta, meta").toArray();
+  for (const meta of metas) {
+    const element = $(meta);
+    const content = element.attr("content");
+    if (!content) continue;
 
-    if (!contentMatch) continue;
-    const content = stripWrappingQuotes(contentMatch[1] ?? "");
+    const name = element.attr("name")?.toLowerCase();
+    if (keyName && name === keyName) return decodeHtmlEntitiesMinimal(content);
 
-    if (keyName && nameMatch) {
-      const name = stripWrappingQuotes(nameMatch[1] ?? "").toLowerCase();
-      if (name === keyName) return decodeHtmlEntitiesMinimal(content);
-    }
-    if (keyProp && propMatch) {
-      const prop = stripWrappingQuotes(propMatch[1] ?? "").toLowerCase();
-      if (prop === keyProp) return decodeHtmlEntitiesMinimal(content);
-    }
+    const prop = element.attr("property")?.toLowerCase();
+    if (keyProp && prop === keyProp) return decodeHtmlEntitiesMinimal(content);
   }
 
   return undefined;
 }
 
 export function extractTitleFromHtml(html: string): string | undefined {
-  // Prefer OG title when present, then fallback to <title>.
-  const ogTitle = extractMetaContentFromHtml(html, {property: "og:title"});
-  if (ogTitle && ogTitle.trim()) return ogTitle.trim();
-
-  const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
-  const title = m ? decodeHtmlEntitiesMinimal(m[1] ?? "") : "";
+  const $ = cheerio.load(html);
+  const title = decodeHtmlEntitiesMinimal($("head title, title").first().text());
   const cleaned = title.trim();
-  return cleaned || undefined;
+  if (cleaned) return cleaned;
+
+  return extractMetaContentFromHtml(html, {property: "og:title"})?.trim() || undefined;
 }
 
 export function extractDescriptionFromHtml(html: string): string | undefined {

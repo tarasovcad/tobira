@@ -1,13 +1,7 @@
 import type {InfiniteData, QueryClient, QueryKey} from "@tanstack/react-query";
-import type {
-  AddMediaBookmarkResult,
-  AddPostBookmarkResult,
-  AddWebsiteBookmarkResult,
-} from "@/app/actions/bookmarks/create";
 import type {Bookmark} from "@/components/bookmark/types";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {normalizeTagName} from "@/lib/bookmarks/tag-utils";
-import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 
 export function isOptimisticBookmarkId(id: string | undefined | null): boolean {
   return typeof id === "string" && id.startsWith("optimistic-");
@@ -53,63 +47,17 @@ type BookmarksPage = {
 export type BookmarksInfiniteData = InfiniteData<BookmarksPage, number>;
 
 export type AddBookmarkMutationContext = {
-  optimisticBookmarkId?: string;
   previousBookmarkQueries: [QueryKey, BookmarksInfiniteData | undefined][];
   previousCountQueries: [QueryKey, number | undefined][];
 };
 
-export function createOptimisticBookmark({
-  input,
-  userId,
-  collectionItems,
-}: {
-  input: AddBookmarkMutationInput;
-  userId: string | undefined;
-  collectionItems: {label: string; value: string}[];
-}): Bookmark | null {
-  if (!userId || input.kind !== "website") return null;
-
-  const now = new Date().toISOString();
-  const collection = input.collectionId
-    ? collectionItems.find((item) => item.value === input.collectionId)
-    : null;
-  const base = {
-    id: `optimistic-${crypto.randomUUID()}`,
-    title: "",
-    // title: "This is tanstack cache",
-    // title: input.url,
-    description: "",
-    created_at: now,
-    url: input.url,
-    user_id: userId,
-    updated_at: now,
-    archived_at: "",
-    deleted_at: "",
-    notes: "",
-    tags: input.tags,
-    collections: collection ? [{id: collection.value, name: collection.label}] : [],
-  };
-
-  return {
-    ...base,
-    kind: "website",
-    images: {
-      favicon: {status: "pending"},
-      og: {status: "pending", width: 1200, height: 630},
-      preview: {status: "pending", width: 1920, height: 1080},
-      selected: "preview",
-    },
-    metadata: {textMetadataStatus: "pending"},
-  };
-}
-
-export function insertOptimisticBookmark(
+export function insertCreatedBookmark(
   current: BookmarksInfiniteData | undefined,
-  optimisticBookmark: Bookmark,
+  bookmark: Bookmark,
 ) {
   if (
     !current ||
-    current.pages.some((page) => page.items.some((item) => item.id === optimisticBookmark.id))
+    current.pages.some((page) => page.items.some((item) => item.id === bookmark.id))
   ) {
     return current;
   }
@@ -122,55 +70,11 @@ export function insertOptimisticBookmark(
     pages: [
       {
         ...firstPage,
-        items: [optimisticBookmark, ...firstPage.items],
+        items: [bookmark, ...firstPage.items],
       },
       ...current.pages.slice(1),
     ],
   };
-}
-
-export function replaceOptimisticBookmarkId({
-  queryClient,
-  optimisticBookmarkId,
-  resultIds,
-}: {
-  queryClient: QueryClient;
-  optimisticBookmarkId: string | undefined;
-  resultIds: string[];
-}) {
-  const [resultId] = resultIds;
-  if (!optimisticBookmarkId || !resultId) return;
-
-  queryClient.setQueriesData<BookmarksInfiniteData>(
-    {queryKey: ["bookmarks", "all-items"], type: "active"},
-    (current) => {
-      if (!current) return current;
-
-      return {
-        ...current,
-        pages: current.pages.map((page) => ({
-          ...page,
-          items: page.items.map((item) =>
-            item.id === optimisticBookmarkId ? {...item, id: resultId} : item,
-          ),
-        })),
-      };
-    },
-  );
-
-  const menuState = useBookmarkMenuStore.getState();
-  if (menuState.item?.id === optimisticBookmarkId) {
-    const cachedBookmark = findBookmarkInQueryCache(queryClient, resultId);
-    menuState.setItem(cachedBookmark ?? {...menuState.item, id: resultId});
-  }
-}
-
-export function getAddBookmarkResultIds(
-  result: AddWebsiteBookmarkResult | AddMediaBookmarkResult | AddPostBookmarkResult,
-) {
-  if ("ids" in result && result.ids?.length) return result.ids;
-  if ("id" in result) return [result.id];
-  return [];
 }
 
 export function bookmarkListQueryMatchesInput({

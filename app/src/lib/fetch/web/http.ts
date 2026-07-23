@@ -7,6 +7,13 @@ export const WEB_FETCH_USER_AGENT =
 
 const WEB_FETCH_ACCEPT_LANGUAGE = "en-US,en;q=0.9";
 
+export function urlMetadataRequestHeaders(): HeadersInit {
+  return {
+    "User-Agent": "url-metadata (+https://www.npmjs.com/package/url-metadata)",
+    From: "example@example.com",
+  };
+}
+
 function sameSiteForRequest(url: string, refererUrl?: string) {
   if (!refererUrl) return "none";
 
@@ -15,19 +22,6 @@ function sameSiteForRequest(url: string, refererUrl?: string) {
   } catch {
     return "cross-site";
   }
-}
-
-export function browserDocumentFetchHeaders(): HeadersInit {
-  return {
-    "User-Agent": WEB_FETCH_USER_AGENT,
-    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": WEB_FETCH_ACCEPT_LANGUAGE,
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-  };
 }
 
 export function browserManifestFetchHeaders(url: string, refererUrl?: string): HeadersInit {

@@ -6,7 +6,7 @@ import {
 } from "@/lib/fetch/web/html";
 import {fetchHtmlViaFirecrawl} from "@/lib/fetch/web/screenshot";
 import {readTextWithLimit} from "@/lib/fetch/web/bounded-reader";
-import {browserDocumentFetchHeaders} from "@/lib/fetch/web/http";
+import {urlMetadataRequestHeaders} from "@/lib/fetch/web/http";
 import {assertWebsiteUrl, NonWebsiteUrlError} from "@/lib/fetch/web/website-url";
 import {assertPublicFetchUrl, safeWebFetch} from "@/lib/fetch/web/safe-fetch";
 
@@ -57,7 +57,7 @@ export async function fetchWebsiteHtmlPage(url: string): Promise<WebsiteHtmlPage
     res = await safeWebFetch(url, {
       method: "GET",
       cache: "no-store",
-      headers: browserDocumentFetchHeaders(),
+      headers: urlMetadataRequestHeaders(),
       signal: controller.signal,
     });
 

@@ -32,10 +32,7 @@ import {
 import {
   bookmarkCountQueryMatchesInput,
   bookmarkListQueryMatchesInput,
-  createOptimisticBookmark,
-  getAddBookmarkResultIds,
-  insertOptimisticBookmark,
-  replaceOptimisticBookmarkId,
+  insertCreatedBookmark,
   type AddBookmarkMutationContext,
   type AddBookmarkMutationInput,
   type BookmarksInfiniteData,
@@ -107,65 +104,12 @@ export function useAddBookmarkFlow({
   >({
     mutationKey: ["add-bookmark"],
     onMutate: async (input) => {
-      const optimisticBookmark = createOptimisticBookmark({
-        input,
-        userId,
-        collectionItems,
-      });
-
-      if (!optimisticBookmark) {
+      if (input.kind !== "website") {
         return {previousBookmarkQueries: [], previousCountQueries: []};
       }
 
       await queryClient.cancelQueries({queryKey: ["bookmarks"]});
-
-      const matchesListQuery = (queryKey: QueryKey) =>
-        bookmarkListQueryMatchesInput({
-          queryKey,
-          input,
-          userId,
-          defaultTagNames,
-        });
-      const matchesCountQuery = (queryKey: QueryKey) =>
-        bookmarkCountQueryMatchesInput({
-          queryKey,
-          input,
-          userId,
-          defaultTagNames,
-        });
-      const previousBookmarkQueries = queryClient.getQueriesData<BookmarksInfiniteData>({
-        queryKey: ["bookmarks", "all-items"],
-        type: "active",
-        predicate: (query) => matchesListQuery(query.queryKey),
-      });
-      const previousCountQueries = queryClient.getQueriesData<number>({
-        queryKey: ["bookmarks", "count"],
-        type: "active",
-        predicate: (query) => matchesCountQuery(query.queryKey),
-      });
-
-      queryClient.setQueriesData<BookmarksInfiniteData>(
-        {
-          queryKey: ["bookmarks", "all-items"],
-          type: "active",
-          predicate: (query) => matchesListQuery(query.queryKey),
-        },
-        (current) => insertOptimisticBookmark(current, optimisticBookmark),
-      );
-      queryClient.setQueriesData<number>(
-        {
-          queryKey: ["bookmarks", "count"],
-          type: "active",
-          predicate: (query) => matchesCountQuery(query.queryKey),
-        },
-        (current) => (typeof current === "number" ? current + 1 : current),
-      );
-
-      return {
-        optimisticBookmarkId: optimisticBookmark.id,
-        previousBookmarkQueries,
-        previousCountQueries,
-      };
+      return {previousBookmarkQueries: [], previousCountQueries: []};
     },
     mutationFn: async (input) => {
       if (input.kind === "website") {
@@ -182,12 +126,40 @@ export function useAddBookmarkFlow({
       }
       return addPostBookmark(input);
     },
-    onSuccess: (res, variables, context) => {
-      replaceOptimisticBookmarkId({
-        queryClient,
-        optimisticBookmarkId: context?.optimisticBookmarkId,
-        resultIds: getAddBookmarkResultIds(res),
-      });
+    onSuccess: (res, variables) => {
+      if (variables.kind === "website" && "bookmark" in res) {
+        const matchesListQuery = (queryKey: QueryKey) =>
+          bookmarkListQueryMatchesInput({
+            queryKey,
+            input: variables,
+            userId,
+            defaultTagNames,
+          });
+        const matchesCountQuery = (queryKey: QueryKey) =>
+          bookmarkCountQueryMatchesInput({
+            queryKey,
+            input: variables,
+            userId,
+            defaultTagNames,
+          });
+
+        queryClient.setQueriesData<BookmarksInfiniteData>(
+          {
+            queryKey: ["bookmarks", "all-items"],
+            type: "active",
+            predicate: (query) => matchesListQuery(query.queryKey),
+          },
+          (current) => insertCreatedBookmark(current, res.bookmark),
+        );
+        queryClient.setQueriesData<number>(
+          {
+            queryKey: ["bookmarks", "count"],
+            type: "active",
+            predicate: (query) => matchesCountQuery(query.queryKey),
+          },
+          (current) => (typeof current === "number" ? current + 1 : current),
+        );
+      }
 
       if (
         variables.kind === "media" &&

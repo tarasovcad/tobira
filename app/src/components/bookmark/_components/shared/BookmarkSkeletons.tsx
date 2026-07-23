@@ -13,14 +13,15 @@ export function WebsiteSkeletonList() {
           <Skeleton className="size-9 rounded-md" />
         </div>
         <div className="min-w-0 flex-1 text-[13px]">
-          <Skeleton className="h-[20px] w-48 rounded" />
+          <Skeleton className="h-[21px] w-48 rounded" />
           {(contentToggles.source || contentToggles.savedDate) && (
-            <div className="mt-[6.5px]">
-              <Skeleton className="h-[16.5px] w-64 rounded" />
+            <div className="mt-[6px]">
+              <Skeleton className="h-[17px] w-64 rounded" />
             </div>
           )}
           {contentToggles.description && (
-            <div className={contentToggles.source || contentToggles.savedDate ? "mt-2.5" : "mt-3"}>
+            <div
+              className={contentToggles.source || contentToggles.savedDate ? "mt-[9px]" : "mt-3"}>
               <Skeleton className="h-[16.5px] w-40 rounded" />
             </div>
           )}
@@ -54,7 +55,7 @@ export function WebsiteSkeletonCompact() {
         <Skeleton className="size-[18px] rounded-none" />
       </div>
       <div className="min-w-0 flex-1">
-        <Skeleton className="h-[20px] w-48 rounded" />
+        <Skeleton className="h-[20.25px] w-48 rounded" />
       </div>
       {(contentToggles.source || contentToggles.savedDate || contentToggles.tags) && (
         <div className="flex shrink-0 items-center gap-2">

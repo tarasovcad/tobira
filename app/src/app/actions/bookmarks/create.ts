@@ -14,11 +14,13 @@ import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {assertWebsiteUrl} from "@/lib/fetch/web/website-url";
 import {enforceWebsiteBookmarkCreateRateLimit} from "@/lib/rate-limit/website-bookmarks";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
+import type {WebsiteBookmark} from "@/components/bookmark/types";
 
 export type AddWebsiteBookmarkResult = {
   ok: true;
   url: string;
   id: string;
+  bookmark: WebsiteBookmark;
 };
 
 export type AddMediaBookmarkResult = {

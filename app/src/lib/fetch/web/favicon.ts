@@ -1,6 +1,6 @@
+import * as cheerio from "cheerio";
 import {readTextWithLimit} from "./bounded-reader";
 import {browserManifestFetchHeaders, isRecord} from "./http";
-import {stripWrappingQuotes} from "./html";
 import {safeWebFetch} from "./safe-fetch";
 
 const MANIFEST_MAX_BYTES = 1024 * 1024;
@@ -15,21 +15,6 @@ export type BestIcon = {
   type?: string;
   source: IconSource;
 };
-
-function parseAttributes(tag: string) {
-  const attrs: Partial<Record<"href" | "rel" | "sizes" | "type", string>> = {};
-  const re = /([a-zA-Z_:][a-zA-Z0-9_:\-]*)\s*=\s*(".*?"|'.*?'|[^\s>]+)/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(tag)) !== null) {
-    const key = match[1].toLowerCase();
-    const value = stripWrappingQuotes(match[2]);
-    if (key === "href") attrs.href = value;
-    else if (key === "rel") attrs.rel = value;
-    else if (key === "sizes") attrs.sizes = value;
-    else if (key === "type") attrs.type = value;
-  }
-  return attrs;
-}
 
 export function dedupeFaviconCandidates<T extends {url: string}>(items: T[]) {
   const seen = new Set<string>();
@@ -98,30 +83,25 @@ async function discoverFromManifest(manifestUrl: string, refererUrl?: string): P
 }
 
 export function discoverFaviconCandidatesFromHtml(html: string, baseUrl: string) {
-  // remove comments from html to prevent <link> tags from being ignored
-  const cleanHtml = html.replace(/<!--[\s\S]*?-->/g, "");
+  const $ = cheerio.load(html);
   const icons: BestIcon[] = [];
 
   let effectiveBase = baseUrl;
-  const baseMatch = cleanHtml.match(/<base\b[^>]*>/i);
-  if (baseMatch) {
-    const attrs = parseAttributes(baseMatch[0]);
-    if (attrs.href) {
-      try {
-        effectiveBase = new URL(attrs.href, baseUrl).toString();
-      } catch {
-        // ignore invalid base urls
-      }
+  const baseHref = $("base[href]").first().attr("href");
+  if (baseHref) {
+    try {
+      effectiveBase = new URL(baseHref, baseUrl).toString();
+    } catch {
+      // ignore invalid base urls
     }
   }
 
-  const linkTags = cleanHtml.match(/<link\b[^>]*>/gi) ?? [];
   let manifestUrl: string | undefined;
 
-  for (const tag of linkTags) {
-    const attrs = parseAttributes(tag);
-    const relRaw = (attrs.rel ?? "").toLowerCase();
-    const hrefRaw = attrs.href;
+  for (const link of $("link").toArray()) {
+    const element = $(link);
+    const relRaw = (element.attr("rel") ?? "").toLowerCase();
+    const hrefRaw = element.attr("href");
     if (!hrefRaw) continue;
 
     const relTokens = relRaw.split(/\s+/).filter(Boolean);
@@ -146,9 +126,9 @@ export function discoverFaviconCandidatesFromHtml(html: string, baseUrl: string)
 
     icons.push({
       url: resolved,
-      rel: attrs.rel,
-      sizes: attrs.sizes,
-      type: attrs.type,
+      rel: element.attr("rel"),
+      sizes: element.attr("sizes"),
+      type: element.attr("type"),
       source: "html",
     });
   }
