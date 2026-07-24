@@ -245,6 +245,7 @@ export function shouldFallbackToFirecrawlScreenshot(
     if (error.status === 401 || error.status === 429) return false;
     if (error.status === 403) return options.websiteProtected;
     if (error.status && error.status >= 500) return false;
+    if (error.status) return true;
   }
 
   return /access denied|blocked|bot|captcha|challenge|forbidden/.test(message);

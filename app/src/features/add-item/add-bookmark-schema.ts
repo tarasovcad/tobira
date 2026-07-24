@@ -1,5 +1,6 @@
 import {z} from "zod";
 import {normalizeInputUrl, UnsafeFetchUrlError} from "@/lib/fetch/web/url";
+import {extractUrls} from "./_utils/extract-urls";
 import {ALLOWED_MEDIA_DOMAINS, ALLOWED_POST_DOMAINS} from "./add-bookmark-constants";
 
 function getUrlValidationError(error: unknown) {
@@ -32,45 +33,64 @@ export const addBookmarkSchema = z
   })
   .superRefine((data, ctx) => {
     if (!data.url) return;
-    let u: URL;
 
-    try {
-      u = normalizeInputUrl(data.url);
-      const hostname = u.hostname.replace(/^www\./, "");
-
-      if (data.type === "media" && !ALLOWED_MEDIA_DOMAINS.includes(hostname)) {
+    const extracted = extractUrls(data.url);
+    if (extracted.length === 0) {
+      try {
+        normalizeInputUrl(data.url);
+      } catch (error) {
         ctx.addIssue({
           code: "custom",
-          message: "Media type only supports x.com, twitter.com and reddit.com",
+          message: getUrlValidationError(error),
           path: ["url"],
         });
       }
+      return;
+    }
 
-      if (data.type === "post") {
-        if (!ALLOWED_POST_DOMAINS.includes(hostname)) {
+    for (const rawUrl of extracted) {
+      try {
+        const u = normalizeInputUrl(rawUrl);
+        const hostname = u.hostname.replace(/^www\./, "");
+
+        if (data.type === "media" && !ALLOWED_MEDIA_DOMAINS.includes(hostname)) {
           ctx.addIssue({
             code: "custom",
-            message: "Post type only supports x.com and reddit.com",
+            message: `Media type only supports x.com, twitter.com and reddit.com (${hostname})`,
             path: ["url"],
           });
-        } else {
-          const pathParts = u.pathname.split("/").filter(Boolean);
-          const hasStatus = pathParts.includes("status") || pathParts.includes("comments");
-          if (!hasStatus) {
+          break;
+        }
+
+        if (data.type === "post") {
+          if (!ALLOWED_POST_DOMAINS.includes(hostname)) {
             ctx.addIssue({
               code: "custom",
-              message: "Please enter a direct link to an individual post",
+              message: `Post type only supports x.com and reddit.com (${hostname})`,
               path: ["url"],
             });
+            break;
+          } else {
+            const pathParts = u.pathname.split("/").filter(Boolean);
+            const hasStatus = pathParts.includes("status") || pathParts.includes("comments");
+            if (!hasStatus) {
+              ctx.addIssue({
+                code: "custom",
+                message: "Please enter a direct link to an individual post",
+                path: ["url"],
+              });
+              break;
+            }
           }
         }
+      } catch (error) {
+        ctx.addIssue({
+          code: "custom",
+          message: getUrlValidationError(error),
+          path: ["url"],
+        });
+        break;
       }
-    } catch (error) {
-      ctx.addIssue({
-        code: "custom",
-        message: getUrlValidationError(error),
-        path: ["url"],
-      });
     }
   });
 

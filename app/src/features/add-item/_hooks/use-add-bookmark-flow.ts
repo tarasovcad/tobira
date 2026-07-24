@@ -23,6 +23,7 @@ import {
 import {useAddItemDialogStore} from "@/store/use-add-item-dialog";
 import {trackClientEvent} from "@/lib/analytics/client";
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
+import {extractUrls} from "../_utils/extract-urls";
 import {getBookmarkErrorCode} from "@/components/bookmark/_utils/bookmark-analytics";
 import {
   addBookmarkSchema,
@@ -64,6 +65,7 @@ export function useAddBookmarkFlow({
   const setDialogOpen = useAddItemDialogStore((state) => state.setDialogOpen);
   const closeDialog = useAddItemDialogStore((state) => state.closeDialog);
   const [step, setStep] = useState<1 | 2>(1);
+  const [resetKey, setResetKey] = useState(0);
   const [mediaItems, setMediaItems] = useState<BookmarkMediaItem[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
@@ -215,7 +217,68 @@ export function useAddBookmarkFlow({
     },
   });
 
-  const onSubmit = (data: AddBookmarkFormValues) => {
+  const onSubmit = async (data: AddBookmarkFormValues) => {
+    const parsedUrls = extractUrls(data.url);
+
+    if (parsedUrls.length > 1) {
+      closeDialog();
+      toastManager.add({
+        title: `Adding ${parsedUrls.length} bookmarks...`,
+        type: "info",
+      });
+
+      const results = await Promise.allSettled(
+        parsedUrls.map((targetUrl) => {
+          if (data.type === "website") {
+            return addWebsiteBookmark({
+              url: targetUrl,
+              tags: data.tags,
+              collectionId: data.collectionId ?? undefined,
+              kind: "website",
+            });
+          }
+          if (data.type === "media") {
+            return addMediaBookmark({
+              url: targetUrl,
+              tags: data.tags,
+              collectionId: data.collectionId ?? undefined,
+              kind: "media",
+            });
+          }
+          return addPostBookmark({
+            url: targetUrl,
+            tags: data.tags,
+            collectionId: data.collectionId ?? undefined,
+            kind: "post",
+          });
+        }),
+      );
+
+      const successful = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+
+      if (successful > 0) {
+        toastManager.add({
+          title: `Successfully added ${successful} bookmark${successful > 1 ? "s" : ""}`,
+          type: "success",
+        });
+        queryClient.invalidateQueries({queryKey: ["bookmarks"]});
+        queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
+      }
+
+      if (failed > 0) {
+        toastManager.add({
+          title: `Failed to add ${failed} bookmark${failed > 1 ? "s" : ""}`,
+          type: "error",
+        });
+      }
+
+      setTimeout(() => {
+        resetLocalState();
+      }, 500);
+      return;
+    }
+
     trackClientEvent("bookmark_add_submitted", {
       kind: data.type,
       url_host: getUrlHost(data.url),
@@ -257,6 +320,7 @@ export function useAddBookmarkFlow({
 
   const resetLocalState = () => {
     form.reset(getDefaultValues());
+    setResetKey((key) => key + 1);
     setStep(1);
     setMediaItems([]);
     setSelectedMediaUrls([]);
@@ -316,6 +380,7 @@ export function useAddBookmarkFlow({
     selectedMediaUrls,
     toggleMediaUrl,
     form,
+    resetKey,
     addItemMutation,
     collectionItems,
     tags,

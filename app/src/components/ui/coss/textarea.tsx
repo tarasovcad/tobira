@@ -42,7 +42,7 @@ function Textarea({className, size = "default", unstyled = false, error, ...prop
         />
       </span>
       {error ? (
-        <div className="text-destructive mt-1.5 flex items-center gap-1.5 text-sm" role="alert">
+        <div className="text-destructive flex items-center gap-1.5 text-sm" role="alert">
           <svg
             width="16"
             height="16"

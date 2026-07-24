@@ -48,6 +48,7 @@ export function AddBookmarkDialog({
     selectedMediaUrls,
     toggleMediaUrl,
     form,
+    resetKey,
     addItemMutation,
     collectionItems,
     tags,
@@ -100,7 +101,7 @@ export function AddBookmarkDialog({
 
           <FormProvider {...form}>
             {step === 1 ? (
-              <div key="step1">
+              <div key={resetKey}>
                 <AddBookmarkStep1Form
                   collectionItems={collectionItems}
                   tagNames={tagNames}

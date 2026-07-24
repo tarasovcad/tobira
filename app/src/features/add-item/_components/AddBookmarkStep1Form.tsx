@@ -1,11 +1,14 @@
 "use client";
 
-import type {BaseSyntheticEvent} from "react";
+import {useId, useMemo, useRef, useState, type BaseSyntheticEvent, type ChangeEvent} from "react";
 import {Controller, useFormContext, useWatch} from "react-hook-form";
 import {SearchIcon} from "lucide-react";
 import TagsInput from "@/components/ui/app/tags-input";
 import {Input} from "@/components/ui/coss/input";
 import {Label} from "@/components/ui/coss/label";
+import {Textarea} from "@/components/ui/coss/textarea";
+import {Toggle} from "@/components/ui/coss/toggle";
+import {extractUrls} from "../_utils/extract-urls";
 import {
   Combobox,
   ComboboxEmpty,
@@ -43,14 +46,80 @@ export function AddBookmarkStep1Form({
   userAiContext,
   onValidSubmit,
 }: AddBookmarkStep1FormProps) {
+  const [isBulk, setIsBulk] = useState(false);
+  const bulkTextRef = useRef<string>("");
+  const isUserDisabledBulkRef = useRef<boolean>(false);
+  const urlHelpId = useId();
+
   const {
     register,
     control,
     trigger,
+    setValue,
+    clearErrors,
     formState: {errors},
   } = useFormContext<AddBookmarkFormValues>();
   const watchedUrl = useWatch({control, name: "url"});
   const watchedType = useWatch({control, name: "type"});
+
+  const detectedUrls = useMemo(() => extractUrls(watchedUrl ?? ""), [watchedUrl]);
+  const sourceUrl = isBulk ? (detectedUrls[0] ?? "") : (watchedUrl ?? "");
+  const urlField = register("url");
+
+  const handleUrlChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    void urlField.onChange(event);
+
+    const nextUrls = extractUrls(event.target.value);
+    if (nextUrls.length > 1 && !isBulk && !isUserDisabledBulkRef.current) {
+      setIsBulk(true);
+      const formatted = nextUrls.join("\n");
+      bulkTextRef.current = formatted;
+      if (event.target.value !== formatted) {
+        setValue("url", formatted, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        });
+      }
+    }
+  };
+
+  const handleToggleBulk = (nextBulk: boolean) => {
+    if (!nextBulk) {
+      isUserDisabledBulkRef.current = true;
+      bulkTextRef.current = watchedUrl ?? "";
+      const firstUrl =
+        detectedUrls[0] ??
+        (watchedUrl ?? "")
+          .split(/[\r\n]+/)
+          .map((line) => line.trim())
+          .find(Boolean) ??
+        "";
+      if (!firstUrl) {
+        clearErrors("url");
+      }
+      setValue("url", firstUrl, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: Boolean(firstUrl),
+      });
+      setIsBulk(false);
+    } else {
+      isUserDisabledBulkRef.current = false;
+      setIsBulk(true);
+      const restoredText =
+        bulkTextRef.current ||
+        (detectedUrls.length > 0 ? detectedUrls.join("\n") : (watchedUrl ?? ""));
+      if (!restoredText) {
+        clearErrors("url");
+      }
+      setValue("url", restoredText, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: Boolean(restoredText),
+      });
+    }
+  };
 
   return (
     <DialogPanel>
@@ -61,15 +130,55 @@ export function AddBookmarkStep1Form({
         onSubmit={onValidSubmit}
         noValidate>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="url">URL</Label>
-          <Input
-            id="url"
-            type="url"
-            placeholder="https://example.com"
-            data-rybbit-event=""
-            {...register("url")}
-            error={errors.url?.message}
-          />
+          <div className="flex items-end justify-between">
+            <Label htmlFor="url" className="flex items-center gap-1">
+              {isBulk ? (
+                <>
+                  URLs
+                  <span className="text-muted-foreground font-medium">{detectedUrls.length}</span>
+                </>
+              ) : (
+                "URL"
+              )}
+            </Label>
+            {/*<Label htmlFor={inputId} className={cn("flex items-center gap-1", labelClassName)}>
+              {label} <span className="text-muted-foreground font-medium">(max {maxTags})</span>
+              <InfoIcon />
+            </Label>*/}
+            <Toggle
+              size="sm"
+              pressed={isBulk}
+              aria-label={isBulk ? "Switch to single URL mode" : "Switch to bulk URL mode"}
+              onPressedChange={handleToggleBulk}
+              className="text-muted-foreground data-pressed:text-foreground -mb-1 rounded-md">
+              Bulk
+            </Toggle>
+          </div>
+          {isBulk ? (
+            <Textarea
+              id="url"
+              placeholder={`https://example.com`}
+              data-rybbit-event=""
+              aria-describedby={urlHelpId}
+              autoFocus
+              className="[&_textarea]:max-h-56 [&_textarea]:min-h-13 [&_textarea]:overflow-y-auto [&_textarea]:max-sm:min-h-14"
+              {...urlField}
+              onChange={handleUrlChange}
+              error={errors.url?.message}
+            />
+          ) : (
+            <Input
+              id="url"
+              type="url"
+              placeholder="https://example.com"
+              data-rybbit-event=""
+              aria-describedby={urlHelpId}
+              autoFocus
+              {...urlField}
+              onChange={handleUrlChange}
+              error={errors.url?.message}
+            />
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -159,7 +268,7 @@ export function AddBookmarkStep1Form({
               availableTags={tagNames}
               userTags={tagNames}
               userAiContext={userAiContext}
-              sourceUrl={watchedUrl ?? ""}
+              sourceUrl={sourceUrl}
               itemType={watchedType}
             />
           )}
