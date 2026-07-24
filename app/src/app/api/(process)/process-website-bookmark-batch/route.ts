@@ -6,24 +6,22 @@ import {logger, toLogError} from "@/lib/shared/logger";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const startedAt = performance.now();
   const jobRequest = await readWebsiteBatchJobRequest(request);
   if (!jobRequest.ok) {
     return NextResponse.json({error: jobRequest.error}, {status: jobRequest.status});
   }
 
   try {
-    await processWebsiteBookmarkBatch(jobRequest.bookmarkIds, startedAt);
+    const result = await processWebsiteBookmarkBatch(jobRequest.bookmarkIds);
+    return NextResponse.json({success: true, ...result}, {headers: {"cache-control": "no-store"}});
   } catch (error) {
-    logger.error("Website bookmark batch processing failed", {
+    logger.error("Website bookmark batch processing failed fatally", {
       bookmarkIds: jobRequest.bookmarkIds,
       error: toLogError(error),
     });
     return NextResponse.json(
-      {error: "Failed to enrich bookmark batch"},
+      {error: "Failed to process bookmark batch"},
       {status: 500, headers: {"cache-control": "no-store"}},
     );
   }
-
-  return NextResponse.json({success: true}, {headers: {"cache-control": "no-store"}});
 }

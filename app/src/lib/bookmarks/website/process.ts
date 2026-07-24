@@ -42,6 +42,15 @@ type WebsiteBookmarkProcessingInfo = {
   url: string;
 };
 
+export type PreparedWebsiteBookmarkProcessingInfo = {
+  id: string;
+  url: string;
+  normalizedUrl: string;
+  websiteRecordKey: string;
+  imageKeys: WebsiteImageKeys;
+  existingRecord: WebsiteRecord | null;
+};
+
 export async function processWebsiteBookmark(
   bookmarkId: string,
   metrics: WebsiteBookmarkProcessingMetrics,
@@ -53,17 +62,38 @@ export async function processWebsiteBookmark(
   if (!bookmark) return;
 
   const normalizedUrl = normalizeInputUrl(bookmark.url).toString();
-  metrics.url_host = new URL(normalizedUrl).hostname;
-
-  const websiteUrl = isWebsiteUrl(normalizedUrl);
-  if (!websiteUrl) return;
-
   const websiteRecordKey = await getWebsiteRecordKey(normalizedUrl);
 
   const keysPromise = buildWebsiteImageKeys(normalizedUrl);
   const existingRecordPromise = measureDb(metrics, "website_record_select_db_ms", () =>
     getWebsiteRecordByKey(websiteRecordKey),
   );
+
+  const [imageKeys, existingRecord] = await Promise.all([keysPromise, existingRecordPromise]);
+
+  const prepared: PreparedWebsiteBookmarkProcessingInfo = {
+    id: bookmark.id,
+    url: bookmark.url,
+    normalizedUrl,
+    websiteRecordKey,
+    imageKeys,
+    existingRecord,
+  };
+
+  await processPreparedWebsiteBookmark(prepared, metrics, jobStartedAt);
+}
+
+export async function processPreparedWebsiteBookmark(
+  prepared: PreparedWebsiteBookmarkProcessingInfo,
+  metrics: WebsiteBookmarkProcessingMetrics,
+  jobStartedAt: number,
+) {
+  const {id, normalizedUrl, websiteRecordKey, imageKeys: keys, existingRecord} = prepared;
+
+  metrics.url_host = new URL(normalizedUrl).hostname;
+
+  const websiteUrl = isWebsiteUrl(normalizedUrl);
+  if (!websiteUrl) return;
 
   let page: WebsiteHtmlPage;
 
@@ -73,13 +103,12 @@ export async function processWebsiteBookmark(
     );
     metrics.website_protected = page.websiteProtected ? "true" : "false";
   } catch (error) {
-    const keys = await keysPromise;
     metrics.html_status = "failed";
     metrics.favicon_status = "failed";
     metrics.og_status = "failed";
     metrics.preview_status = "failed";
     await measureDb(metrics, "bookmark_update_db_ms", () =>
-      markWebsiteEnrichmentFailed(bookmark.id, normalizedUrl, error, keys),
+      markWebsiteEnrichmentFailed(id, normalizedUrl, error, keys),
     );
     throw error;
   }
@@ -91,7 +120,7 @@ export async function processWebsiteBookmark(
   metrics.html_status = htmlStatus;
 
   const bookmarkUpdated = await measureDb(metrics, "bookmark_update_db_ms", () =>
-    updateWebsiteTextMetadata(bookmark.id, {
+    updateWebsiteTextMetadata(id, {
       title: metadataResult.title ?? null,
       description: metadataResult.description ?? null,
       status: htmlStatus,
@@ -100,8 +129,6 @@ export async function processWebsiteBookmark(
   if (!bookmarkUpdated) return;
   metrics.text_metadata_db_ready_ms = Math.round(performance.now() - jobStartedAt);
 
-  const keys = await keysPromise;
-  const existingRecord = await existingRecordPromise;
   const refreshPlans = getWebsiteRecordRefreshPlans(existingRecord);
 
   const assetResults = await processWebsiteAssets({
@@ -123,7 +150,7 @@ export async function processWebsiteBookmark(
   try {
     await measureDb(metrics, "website_record_upsert_db_ms", () =>
       upsertWebsiteRecordAndUpdateBookmark({
-        bookmarkId: bookmark.id,
+        bookmarkId: id,
         key: websiteRecordKey,
         normalizedUrl,
         hostname: new URL(normalizedUrl).hostname,
@@ -139,7 +166,7 @@ export async function processWebsiteBookmark(
     );
   } catch (upsertError) {
     await measureDb(metrics, "bookmark_update_db_ms", () =>
-      updateWebsiteImageStatuses(bookmark.id, assetResults).catch(() => {}),
+      updateWebsiteImageStatuses(id, assetResults).catch(() => {}),
     );
     throw upsertError;
   }
@@ -148,7 +175,7 @@ export async function processWebsiteBookmark(
   if (failures.length === 0) return;
 
   logger.warn("Website enrichment completed with asset failures", {
-    bookmarkId: bookmark.id,
+    bookmarkId: id,
     url: normalizedUrl,
     failures: failures.map((failure) => ({
       label: failure.label,

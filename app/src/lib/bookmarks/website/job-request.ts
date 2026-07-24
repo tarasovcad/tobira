@@ -14,7 +14,7 @@ export type WebsiteBatchJobRequest =
   | {
       ok: false;
       status: 400 | 401;
-      error: "Missing bookmarkIds" | "Unauthorized";
+      error: "Missing bookmarkIds" | "Too many bookmarkIds" | "Unauthorized";
       qstashVerifyMs: number;
     };
 
@@ -36,6 +36,8 @@ export async function readWebsiteJobRequest(request: NextRequest): Promise<Websi
     : {ok: false, status: 400, error: "Missing id", qstashVerifyMs};
 }
 
+const BATCH_WEBSITE_MAX_IDS = 10;
+
 export async function readWebsiteBatchJobRequest(
   request: NextRequest,
 ): Promise<WebsiteBatchJobRequest> {
@@ -51,9 +53,15 @@ export async function readWebsiteBatchJobRequest(
 
   const bookmarkIds = parseWebsiteBatchJobPayload(rawBody);
 
-  return bookmarkIds && bookmarkIds.length > 0
-    ? {ok: true, bookmarkIds, qstashVerifyMs}
-    : {ok: false, status: 400, error: "Missing bookmarkIds", qstashVerifyMs};
+  if (!bookmarkIds || bookmarkIds.length === 0) {
+    return {ok: false, status: 400, error: "Missing bookmarkIds", qstashVerifyMs};
+  }
+
+  if (bookmarkIds.length > BATCH_WEBSITE_MAX_IDS) {
+    return {ok: false, status: 400, error: "Too many bookmarkIds", qstashVerifyMs};
+  }
+
+  return {ok: true, bookmarkIds, qstashVerifyMs};
 }
 
 export function parseWebsiteJobPayload(queryId: string | null, rawBody: string) {
@@ -75,9 +83,17 @@ export function parseWebsiteBatchJobPayload(rawBody: string): string[] | undefin
     const parsed: unknown = JSON.parse(rawBody);
     if (!isRecord(parsed)) return undefined;
     if (Array.isArray(parsed.bookmarkIds)) {
-      const ids = parsed.bookmarkIds.filter(
-        (id): id is string => typeof id === "string" && id.trim().length > 0,
-      );
+      const seen = new Set<string>();
+      const ids: string[] = [];
+      for (const id of parsed.bookmarkIds) {
+        if (typeof id === "string") {
+          const trimmed = id.trim();
+          if (trimmed.length > 0 && !seen.has(trimmed)) {
+            seen.add(trimmed);
+            ids.push(trimmed);
+          }
+        }
+      }
       return ids.length > 0 ? ids : undefined;
     }
     return undefined;
