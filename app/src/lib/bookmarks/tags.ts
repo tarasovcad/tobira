@@ -32,6 +32,34 @@ export async function attachTagsToBookmark(
   }
 }
 
+export async function attachTagsToBookmarks(
+  bookmarkIds: string[],
+  userId: string,
+  rawTagNames: string[],
+): Promise<void> {
+  if (bookmarkIds.length === 0) return;
+
+  const cleanedTagNames = normalizeTagNames(rawTagNames);
+  if (cleanedTagNames.length === 0) return;
+
+  const upsertedTags = await db
+    .insert(tags)
+    .values(cleanedTagNames.map((name) => ({name, userId})))
+    .onConflictDoUpdate({
+      target: [tags.userId, tags.name],
+      set: {updatedAt: new Date().toISOString()},
+    })
+    .returning({id: tags.id});
+
+  if (upsertedTags.length === 0) return;
+
+  const rows = bookmarkIds.flatMap((bookmarkId) =>
+    upsertedTags.map((tag) => ({bookmarkId, tagId: tag.id})),
+  );
+
+  await db.insert(bookmarkTags).values(rows).onConflictDoNothing();
+}
+
 export async function syncBookmarkTags(bookmarkId: string, userId: string, rawTagNames: string[]) {
   if (!bookmarkId || !userId) {
     throw new Error("invalid input");

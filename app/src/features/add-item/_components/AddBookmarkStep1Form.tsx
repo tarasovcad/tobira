@@ -135,16 +135,14 @@ export function AddBookmarkStep1Form({
               {isBulk ? (
                 <>
                   URLs
-                  <span className="text-muted-foreground font-medium">{detectedUrls.length}</span>
+                  <span className="text-muted-foreground font-medium">
+                    {detectedUrls.length}/10
+                  </span>
                 </>
               ) : (
                 "URL"
               )}
             </Label>
-            {/*<Label htmlFor={inputId} className={cn("flex items-center gap-1", labelClassName)}>
-              {label} <span className="text-muted-foreground font-medium">(max {maxTags})</span>
-              <InfoIcon />
-            </Label>*/}
             <Toggle
               size="sm"
               pressed={isBulk}

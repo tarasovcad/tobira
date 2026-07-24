@@ -35,6 +35,15 @@ export const addBookmarkSchema = z
     if (!data.url) return;
 
     const extracted = extractUrls(data.url);
+    if (extracted.length > 10) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Maximum 10 URLs allowed at a time`,
+        path: ["url"],
+      });
+      return;
+    }
+
     if (extracted.length === 0) {
       try {
         normalizeInputUrl(data.url);

@@ -9,12 +9,15 @@ import type {
   WebsiteBookmarkCreateCacheStatus,
   WebsiteBookmarkCreateEnrichmentJobStatus,
 } from "@/lib/analytics/events";
-import {attachBookmarkRelations} from "@/lib/bookmarks/relations";
+import {attachBookmarkRelations, attachRelationsToBookmarks} from "@/lib/bookmarks/relations";
 import {logger, toLogError} from "@/lib/shared/logger";
 import type {WebsiteBookmark} from "@/components/bookmark/types";
+import type {NormalizedBulkUrl} from "./normalize-bulk-urls";
 import {queueWebsiteBookmarkEnrichment} from "./queue";
-import {buildBookmarkImagesFromWebsiteRecord} from "./refresh";
+import {buildBookmarkImagesFromWebsiteRecord, getWebsiteRecordFreshness} from "./refresh";
 import {getReusableWebsiteRecord, type WebsiteRecord} from "./records";
+import {getWebsiteRecordsByKeys} from "./bulk-db";
+import {hashUrlToKey} from "@/lib/utils/hash";
 
 export type CreateWebsiteBookmarkInput = {
   normalizedUrl: URL;
@@ -332,4 +335,87 @@ async function deleteBookmarkAfterQueueFailure(bookmarkId: string) {
       error: toLogError(error),
     });
   }
+}
+
+export type CreatedBulkBookmark = {
+  id: string;
+  url: string;
+  displayHost: string;
+  kind: "website";
+};
+
+export async function createBulkWebsiteBookmarks({
+  normalizedUrls,
+  userId,
+  tags,
+  collectionId,
+}: {
+  normalizedUrls: NormalizedBulkUrl[];
+  userId: string;
+  tags?: string[];
+  collectionId?: string;
+}): Promise<CreatedBulkBookmark[]> {
+  if (normalizedUrls.length === 0) return [];
+
+  const keyedUrls = await Promise.all(
+    normalizedUrls.map(async (entry) => ({
+      ...entry,
+      key: await hashUrlToKey(entry.normalized),
+      pendingImages: await buildWebsiteImages(entry.normalized),
+    })),
+  );
+
+  const keys = keyedUrls.map((e) => e.key);
+  const existingRecords = await getWebsiteRecordsByKeys(keys);
+  const recordMap = new Map(existingRecords.map((r) => [r.key, r]));
+
+  const rows = keyedUrls.map(({normalized, displayHost, key, pendingImages}) => {
+    const bookmarkId = randomUUID();
+    const existingRecord = recordMap.get(key) ?? null;
+    const freshness = existingRecord ? getWebsiteRecordFreshness(existingRecord) : null;
+    const htmlFresh = freshness?.htmlFresh ?? false;
+    const previewFresh = freshness?.previewFresh ?? false;
+    const isFresh = htmlFresh || previewFresh;
+
+    const images: WebsiteImages =
+      isFresh && existingRecord
+        ? (buildBookmarkImagesFromWebsiteRecord(existingRecord.images, {
+            htmlFresh,
+            previewFresh,
+          }) ?? pendingImages)
+        : pendingImages;
+
+    return {
+      row: {
+        id: bookmarkId,
+        url: normalized,
+        userId,
+        websiteRecordKey: isFresh && existingRecord ? key : null,
+        kind: "website" as const,
+        title: htmlFresh && existingRecord ? (existingRecord.title ?? null) : null,
+        description: htmlFresh && existingRecord ? (existingRecord.description ?? null) : null,
+        images,
+        metadata: {
+          textMetadataStatus:
+            htmlFresh && existingRecord ? (existingRecord.htmlStatus ?? "pending") : "pending",
+        },
+      },
+      bookmarkId,
+      url: normalized,
+      displayHost,
+    };
+  });
+
+  await db.insert(bookmarks).values(rows.map((r) => r.row));
+
+  const bookmarkIds = rows.map((r) => r.bookmarkId);
+
+  await attachRelationsToBookmarks({bookmarkIds, userId, tags, collectionId});
+
+  return rows.map(({bookmarkId, url, displayHost}) => ({
+    id: bookmarkId,
+    url,
+    displayHost,
+    kind: "website" as const,
+  }));
 }

@@ -9,6 +9,15 @@ export type WebsiteJobRequest =
   | {ok: true; bookmarkId: string; qstashVerifyMs: number}
   | {ok: false; status: 400 | 401; error: "Missing id" | "Unauthorized"; qstashVerifyMs: number};
 
+export type WebsiteBatchJobRequest =
+  | {ok: true; bookmarkIds: string[]; qstashVerifyMs: number}
+  | {
+      ok: false;
+      status: 400 | 401;
+      error: "Missing bookmarkIds" | "Unauthorized";
+      qstashVerifyMs: number;
+    };
+
 export async function readWebsiteJobRequest(request: NextRequest): Promise<WebsiteJobRequest> {
   const rawBody = await readTextWithLimit(request, QSTASH_BODY_MAX_BYTES).catch(() => "");
 
@@ -27,6 +36,26 @@ export async function readWebsiteJobRequest(request: NextRequest): Promise<Websi
     : {ok: false, status: 400, error: "Missing id", qstashVerifyMs};
 }
 
+export async function readWebsiteBatchJobRequest(
+  request: NextRequest,
+): Promise<WebsiteBatchJobRequest> {
+  const rawBody = await readTextWithLimit(request, QSTASH_BODY_MAX_BYTES).catch(() => "");
+
+  const qstashVerifyStartedAt = performance.now();
+  const verified = await verifyQstashRequest(request, rawBody);
+  const qstashVerifyMs = Math.round(performance.now() - qstashVerifyStartedAt);
+
+  if (!verified) {
+    return {ok: false, status: 401, error: "Unauthorized", qstashVerifyMs};
+  }
+
+  const bookmarkIds = parseWebsiteBatchJobPayload(rawBody);
+
+  return bookmarkIds && bookmarkIds.length > 0
+    ? {ok: true, bookmarkIds, qstashVerifyMs}
+    : {ok: false, status: 400, error: "Missing bookmarkIds", qstashVerifyMs};
+}
+
 export function parseWebsiteJobPayload(queryId: string | null, rawBody: string) {
   if (queryId) return queryId;
   if (!rawBody) return undefined;
@@ -34,6 +63,24 @@ export function parseWebsiteJobPayload(queryId: string | null, rawBody: string) 
   try {
     const parsed: unknown = JSON.parse(rawBody);
     return isRecord(parsed) && typeof parsed.id === "string" ? parsed.id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function parseWebsiteBatchJobPayload(rawBody: string): string[] | undefined {
+  if (!rawBody) return undefined;
+
+  try {
+    const parsed: unknown = JSON.parse(rawBody);
+    if (!isRecord(parsed)) return undefined;
+    if (Array.isArray(parsed.bookmarkIds)) {
+      const ids = parsed.bookmarkIds.filter(
+        (id): id is string => typeof id === "string" && id.trim().length > 0,
+      );
+      return ids.length > 0 ? ids : undefined;
+    }
+    return undefined;
   } catch {
     return undefined;
   }

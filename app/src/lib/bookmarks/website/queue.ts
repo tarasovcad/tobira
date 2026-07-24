@@ -23,3 +23,22 @@ export async function queueWebsiteBookmarkEnrichment(
     retries: options.retries,
   });
 }
+
+type QueueWebsiteBookmarkBatchOptions = {
+  deduplicationId?: string;
+  retries?: number;
+};
+
+export async function queueWebsiteBookmarkBatch(
+  bookmarkIds: string[],
+  options: QueueWebsiteBookmarkBatchOptions,
+) {
+  await qstash.publishJSON({
+    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/process-website-bookmark-batch`,
+    body: {bookmarkIds},
+    deduplicationId: options.deduplicationId,
+    headers: {"x-job-type": "process_website_bookmark_batch", "x-version": "v1"},
+    timeout: 300,
+    retries: options.retries ?? 2,
+  });
+}

@@ -13,6 +13,7 @@ import {
   type AddMediaBookmarkResult,
   type AddPostBookmarkResult,
 } from "@/app/actions/bookmarks/create";
+import {addBulkWebsiteBookmarks} from "@/app/actions/bookmarks/addBulkWebsiteBookmarks";
 import {toastManager} from "@/components/ui/coss/toast";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {
@@ -222,6 +223,43 @@ export function useAddBookmarkFlow({
 
     if (parsedUrls.length > 1) {
       closeDialog();
+
+      if (data.type === "website") {
+        try {
+          const res = await addBulkWebsiteBookmarks({
+            urls: parsedUrls,
+            tags: data.tags,
+            collectionId: data.collectionId ?? undefined,
+          });
+
+          if (res.bookmarks.length > 0) {
+            const count = res.bookmarks.length;
+            const rejectedCount = res.rejected.length + res.duplicates.length;
+            const rejectedSuffix = rejectedCount > 0 ? ` (${rejectedCount} skipped)` : "";
+            toastManager.add({
+              title:
+                count === 1
+                  ? `Bookmark added${rejectedSuffix}`
+                  : `${count} bookmarks added${rejectedSuffix}`,
+              type: "success",
+            });
+            queryClient.invalidateQueries({queryKey: ["bookmarks"]});
+            queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
+          }
+        } catch (err) {
+          toastManager.add({
+            title: "Submit failed",
+            description: err instanceof Error ? err.message : "Unknown error",
+            type: "error",
+          });
+        }
+
+        setTimeout(() => {
+          resetLocalState();
+        }, 500);
+        return;
+      }
+
       toastManager.add({
         title: `Adding ${parsedUrls.length} bookmarks...`,
         type: "info",
@@ -229,14 +267,6 @@ export function useAddBookmarkFlow({
 
       const results = await Promise.allSettled(
         parsedUrls.map((targetUrl) => {
-          if (data.type === "website") {
-            return addWebsiteBookmark({
-              url: targetUrl,
-              tags: data.tags,
-              collectionId: data.collectionId ?? undefined,
-              kind: "website",
-            });
-          }
           if (data.type === "media") {
             return addMediaBookmark({
               url: targetUrl,

@@ -39,3 +39,25 @@ export async function syncBookmarkCollection(
     await db.insert(bookmarkCollections).values({bookmarkId, collectionId}).onConflictDoNothing();
   }
 }
+
+export async function attachCollectionToBookmarks(
+  bookmarkIds: string[],
+  userId: string,
+  collectionId: string,
+): Promise<void> {
+  if (bookmarkIds.length === 0) return;
+
+  const [collectionExists] = await db
+    .select({id: collections.id})
+    .from(collections)
+    .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)));
+
+  if (!collectionExists) {
+    throw new Error("collection not found");
+  }
+
+  await db
+    .insert(bookmarkCollections)
+    .values(bookmarkIds.map((bookmarkId) => ({bookmarkId, collectionId})))
+    .onConflictDoNothing();
+}

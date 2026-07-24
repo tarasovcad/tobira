@@ -12,6 +12,7 @@ export type WebsiteJobType = "process_website_bookmark";
 export type MediaJobType = "process_media_bookmark";
 export type PostJobType = "process_post_media";
 export type BookmarkProcessingJobType = WebsiteJobType | MediaJobType | PostJobType;
+
 export type WebsiteProcessingStatus = "ready" | "missing" | "failed";
 export type WebsitePreviewProvider = "cloudflare" | "firecrawl";
 export type WebsiteBookmarkCreateCacheStatus = "fresh" | "partial" | "miss_or_stale" | "unknown";
@@ -48,6 +49,7 @@ export type AnalyticsEventProperties = {
     qstash_publish_ms: number;
     error_code: string;
   };
+
   bookmark_processing_completed: {
     kind: "website";
     job_type: WebsiteJobType;
