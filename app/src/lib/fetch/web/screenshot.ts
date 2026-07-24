@@ -234,15 +234,18 @@ export function shouldFallbackToFirecrawlScreenshot(
 
   if (
     message.includes("missing cloudflare_account_id") ||
-    message.includes("missing cloudflare_api_token") ||
-    message.includes("timed out") ||
-    message.includes("timeout")
+    message.includes("missing cloudflare_api_token")
   ) {
     return false;
   }
 
+  if (message.includes("timed out") || message.includes("timeout")) {
+    return true;
+  }
+
   if (error instanceof CloudflareScreenshotError) {
     if (error.status === 401 || error.status === 429) return false;
+    if (error.status === 408 || error.status === 504) return true;
     if (error.status === 403) return options.websiteProtected;
     if (error.status && error.status >= 500) return false;
     if (error.status) return true;

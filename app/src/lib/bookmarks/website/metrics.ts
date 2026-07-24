@@ -13,7 +13,6 @@ export type WebsiteBookmarkProcessingMetrics = Partial<{
   html_fetch_ms: number;
   html_extract_ms: number;
   text_metadata_db_ready_ms: number;
-  r2_exists_ms: number;
   favicon_ms: number;
   og_ms: number;
   preview_ms: number;
@@ -99,9 +98,6 @@ function addDurationMetric(
     case "text_metadata_db_ready_ms":
       metrics.text_metadata_db_ready_ms = durationMs;
       return;
-    case "r2_exists_ms":
-      metrics.r2_exists_ms = (metrics.r2_exists_ms ?? 0) + durationMs;
-      return;
     case "favicon_ms":
       metrics.favicon_ms = (metrics.favicon_ms ?? 0) + durationMs;
       return;
@@ -145,13 +141,11 @@ export function setAssetMetrics(
 
 export async function trackWebsiteProcessingCompleted({
   durationMs,
-  qstashVerifyMs,
   metrics,
   success,
   errorCode,
 }: {
   durationMs: number;
-  qstashVerifyMs: number;
   metrics: WebsiteBookmarkProcessingMetrics;
   success: boolean;
   errorCode: string;
@@ -162,7 +156,6 @@ export async function trackWebsiteProcessingCompleted({
     duration_ms: durationMs,
     success: success ? "true" : "false",
     error_code: errorCode,
-    qstash_verify_ms: qstashVerifyMs,
     ...metrics,
   });
 }

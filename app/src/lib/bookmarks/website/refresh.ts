@@ -40,12 +40,6 @@ export type WebsiteRecordRefreshPlans = {
   preview: WebsitePreviewRefreshPlan;
 };
 
-export type WebsiteAssetR2Exists = {
-  favicon: boolean;
-  og: boolean;
-  preview: boolean;
-};
-
 export type WebsiteRecordRefreshOutcome = {
   images: WebsiteRecordImages;
   htmlRefreshed: boolean;
@@ -107,17 +101,6 @@ export function getWebsiteRecordRefreshPlans(
   return {
     html: getWebsiteHtmlRefreshPlan(record),
     preview: getWebsitePreviewRefreshPlan(record),
-  };
-}
-
-export function getWebsiteAssetR2Exists(
-  plans: WebsiteRecordRefreshPlans,
-  r2Exists: WebsiteAssetR2Exists,
-): WebsiteAssetR2Exists {
-  return {
-    favicon: plans.html.shouldRefresh ? false : r2Exists.favicon,
-    og: plans.html.shouldRefresh ? false : r2Exists.og,
-    preview: plans.preview.shouldRefresh ? false : r2Exists.preview,
   };
 }
 

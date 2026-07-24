@@ -57,14 +57,12 @@ export type AnalyticsEventProperties = {
     success: AnalyticsBoolean;
     error_code: string;
     url_host?: string;
-    qstash_verify_ms?: number;
     bookmark_select_db_ms?: number;
     website_record_select_db_ms?: number;
     db_ms?: number;
     html_fetch_ms?: number;
     html_extract_ms?: number;
     text_metadata_db_ready_ms?: number;
-    r2_exists_ms?: number;
     favicon_ms?: number;
     og_ms?: number;
     preview_ms?: number;

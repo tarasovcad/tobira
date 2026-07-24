@@ -59,19 +59,19 @@ export async function processWebsiteAssets({
   normalizedUrl,
   page,
   keys,
-  r2Exists,
+  alreadyExists,
 }: {
   normalizedUrl: string;
   page: WebsiteHtmlPage;
   keys: WebsiteImageKeys;
-  r2Exists: {favicon: boolean; og: boolean; preview: boolean};
+  alreadyExists: {favicon: boolean; og: boolean; preview: boolean};
 }) {
   const fallbackFaviconDomain = new URL(normalizedUrl).hostname;
 
   const faviconPromise = processWebsiteAsset({
     label: "favicon",
     key: keys.favicon,
-    alreadyExists: r2Exists.favicon,
+    alreadyExists: alreadyExists.favicon,
     process: async () => {
       const bestIcon = await fetchBestFaviconFromHtml({
         html: page.html,
@@ -97,7 +97,7 @@ export async function processWebsiteAssets({
     key: keys.og,
     width: 1200,
     height: 630,
-    alreadyExists: r2Exists.og,
+    alreadyExists: alreadyExists.og,
     process: async () => {
       const ogImageUrl = fetchResolvedOgImageUrlFromHtml({
         html: page.html,
@@ -118,7 +118,7 @@ export async function processWebsiteAssets({
     key: keys.preview,
     width: 1920,
     height: 1080,
-    alreadyExists: r2Exists.preview,
+    alreadyExists: alreadyExists.preview,
     process: async () => {
       const screenshot = await fetchPreviewScreenshot(normalizedUrl, page.websiteProtected);
       if (screenshot.buffer.length === 0) {

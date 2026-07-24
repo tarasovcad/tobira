@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
     await processWebsiteBookmark(jobRequest.bookmarkId, metrics, startedAt);
     await trackWebsiteProcessingCompleted({
       durationMs: Math.round(performance.now() - startedAt),
-      qstashVerifyMs: jobRequest.qstashVerifyMs,
       metrics,
       success: true,
       errorCode: "none",
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
     });
     await trackWebsiteProcessingCompleted({
       durationMs: Math.round(performance.now() - startedAt),
-      qstashVerifyMs: jobRequest.qstashVerifyMs,
       metrics,
       success: false,
       errorCode: "processing_failed",

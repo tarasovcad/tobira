@@ -1,6 +1,6 @@
 import {and, eq, isNull} from "drizzle-orm";
 import {db} from "@/db";
-import {bookmarks} from "@/db/schema";
+import {bookmarks, type WebsiteImageAsset} from "@/db/schema";
 import {buildWebsiteImageKeys} from "@/features/media/utils";
 import {
   extractUrlMetadataFromHtmlPage,
@@ -10,8 +10,7 @@ import {
 import {normalizeInputUrl} from "@/lib/fetch/web/url";
 import {isWebsiteUrl} from "@/lib/fetch/web/website-url";
 import {logger, toLogError} from "@/lib/shared/logger";
-import {existsInR2} from "@/lib/storage/r2-storage";
-import {processWebsiteAssets} from "./assets";
+import {processWebsiteAssets, type WebsiteImageKeys} from "./assets";
 import {collectWebsiteAssetFailures} from "./processing-results";
 import {
   measureDb,
@@ -27,15 +26,15 @@ import {
 } from "./status-updates";
 import {
   buildWebsiteRecordRefreshOutcome,
-  getWebsiteAssetR2Exists,
   getWebsiteRecordRefreshPlans,
+  type WebsiteRecordRefreshPlans,
 } from "./refresh";
 import {
   getWebsiteRecordByKey,
   getWebsiteRecordKey,
   getWebsiteRecordPreviewStatus,
-  updateBookmarkFromWebsiteRecord,
-  upsertWebsiteRecord,
+  type WebsiteRecord,
+  upsertWebsiteRecordAndUpdateBookmark,
 } from "./records";
 
 type WebsiteBookmarkProcessingInfo = {
@@ -64,15 +63,6 @@ export async function processWebsiteBookmark(
   const keysPromise = buildWebsiteImageKeys(normalizedUrl);
   const existingRecordPromise = measureDb(metrics, "website_record_select_db_ms", () =>
     getWebsiteRecordByKey(websiteRecordKey),
-  );
-  const r2ChecksPromise = keysPromise.then((k) =>
-    measureDuration(metrics, "r2_exists_ms", () =>
-      Promise.all([
-        existsInR2(k.favicon).catch(() => false),
-        existsInR2(k.og).catch(() => false),
-        existsInR2(k.preview).catch(() => false),
-      ]),
-    ),
   );
 
   let page: WebsiteHtmlPage;
@@ -111,21 +101,14 @@ export async function processWebsiteBookmark(
   metrics.text_metadata_db_ready_ms = Math.round(performance.now() - jobStartedAt);
 
   const keys = await keysPromise;
-  const [existingRecord, [faviconExists, ogExists, previewExists]] = await Promise.all([
-    existingRecordPromise,
-    r2ChecksPromise,
-  ]);
+  const existingRecord = await existingRecordPromise;
   const refreshPlans = getWebsiteRecordRefreshPlans(existingRecord);
 
   const assetResults = await processWebsiteAssets({
     normalizedUrl,
     page,
     keys,
-    r2Exists: getWebsiteAssetR2Exists(refreshPlans, {
-      favicon: faviconExists,
-      og: ogExists,
-      preview: previewExists,
-    }),
+    alreadyExists: getReusableWebsiteAssets(existingRecord, refreshPlans, keys),
   });
   setAssetMetrics(metrics, assetResults);
 
@@ -137,10 +120,10 @@ export async function processWebsiteBookmark(
   });
   const previewStatus = getWebsiteRecordPreviewStatus(assetResults);
 
-  let websiteRecord;
   try {
-    websiteRecord = await measureDb(metrics, "website_record_upsert_db_ms", () =>
-      upsertWebsiteRecord({
+    await measureDb(metrics, "website_record_upsert_db_ms", () =>
+      upsertWebsiteRecordAndUpdateBookmark({
+        bookmarkId: bookmark.id,
         key: websiteRecordKey,
         normalizedUrl,
         hostname: new URL(normalizedUrl).hostname,
@@ -160,10 +143,6 @@ export async function processWebsiteBookmark(
     );
     throw upsertError;
   }
-
-  await measureDb(metrics, "bookmark_update_db_ms", () =>
-    updateBookmarkFromWebsiteRecord(bookmark.id, websiteRecord),
-  );
 
   const failures = collectWebsiteAssetFailures(assetResults);
   if (failures.length === 0) return;
@@ -195,4 +174,26 @@ async function getWebsiteBookmarkProcessingInfo(
 
   if (!bookmark) return null;
   return {id: bookmark.id, url: bookmark.url};
+}
+
+function getReusableWebsiteAssets(
+  existingRecord: WebsiteRecord | null,
+  refreshPlans: WebsiteRecordRefreshPlans,
+  keys: WebsiteImageKeys,
+) {
+  return {
+    favicon:
+      !refreshPlans.html.shouldRefresh &&
+      isReusableWebsiteAsset(existingRecord?.images?.favicon, keys.favicon),
+    og:
+      !refreshPlans.html.shouldRefresh &&
+      isReusableWebsiteAsset(existingRecord?.images?.og, keys.og),
+    preview:
+      !refreshPlans.preview.shouldRefresh &&
+      isReusableWebsiteAsset(existingRecord?.images?.preview, keys.preview),
+  };
+}
+
+function isReusableWebsiteAsset(asset: WebsiteImageAsset | undefined, expectedKey: string) {
+  return asset?.status === "ready" && asset.key === expectedKey;
 }

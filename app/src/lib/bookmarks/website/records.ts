@@ -1,4 +1,4 @@
-import {and, eq, isNull, sql} from "drizzle-orm";
+import {eq, sql} from "drizzle-orm";
 import {db} from "@/db";
 import {
   bookmarks,
@@ -61,7 +61,8 @@ export async function getReusableWebsiteRecord(normalizedUrl: URL | string) {
   };
 }
 
-export async function upsertWebsiteRecord({
+export async function upsertWebsiteRecordAndUpdateBookmark({
+  bookmarkId,
   key,
   normalizedUrl,
   hostname,
@@ -74,6 +75,7 @@ export async function upsertWebsiteRecord({
   htmlRefreshed,
   previewRefreshed,
 }: {
+  bookmarkId: string;
   key: string;
   normalizedUrl: string;
   hostname: string;
@@ -85,7 +87,7 @@ export async function upsertWebsiteRecord({
   existingRecord?: WebsiteRecord | null;
   htmlRefreshed: boolean;
   previewRefreshed: boolean;
-}) {
+}): Promise<WebsiteRecord> {
   const now = new Date();
   const nowIso = now.toISOString();
   const refreshAfterReady = addDays(now, refreshDaysForStatus("ready")).toISOString();
@@ -98,7 +100,6 @@ export async function upsertWebsiteRecord({
       previewRefreshed,
     });
 
-  // INSERT path (no existing record): compute statuses from the incoming images alone.
   const insertHtmlStatus = pickBestHtmlStatus(htmlStatus, images);
   const insertHtmlRefreshStatus = getHtmlAssetPairStatus(images);
   const insertPreviewStatus = pickBestStatus(previewStatus, images.preview);
@@ -108,49 +109,84 @@ export async function upsertWebsiteRecord({
   const {mergeAsset, htmlStatusSql, previewStatusSql, htmlRefreshAfterSql, previewRefreshAfterSql} =
     buildWebsiteRecordUpsertSql({htmlStatus, previewStatus, refreshAfterReady, refreshAfterFailed});
 
-  const [record] = await db
-    .insert(websiteRecords)
-    .values({
+  const defaultBookmarkImagesJson = JSON.stringify(
+    buildBookmarkImagesFromWebsiteRecord(images) ?? {},
+  );
+
+  const query = sql`
+    WITH upserted_record AS (
+      INSERT INTO ${websiteRecords} (
+        "key", "normalized_url", "hostname", "title", "description", "images",
+        "html_status", "preview_status", "html_fetched_at", "preview_fetched_at",
+        "html_refresh_after", "preview_refresh_after", "updated_at"
+      )
+      VALUES (
+        ${key}, ${normalizedUrl}, ${hostname}, ${title}, ${description}, ${JSON.stringify(images)}::jsonb,
+        ${insertHtmlStatus}, ${insertPreviewStatus}, ${nowIso}::timestamptz, ${nowIso}::timestamptz,
+        ${addDays(now, refreshDaysForStatus(insertHtmlRefreshStatus)).toISOString()}::timestamptz,
+        ${addDays(now, refreshDaysForStatus(insertPreviewRefreshStatus)).toISOString()}::timestamptz,
+        ${nowIso}::timestamptz
+      )
+      ON CONFLICT ("key") DO UPDATE SET
+        "normalized_url" = EXCLUDED."normalized_url",
+        "hostname" = EXCLUDED."hostname",
+        "title" = EXCLUDED."title",
+        "description" = EXCLUDED."description",
+        "images" = jsonb_build_object(
+          'favicon', ${mergeAsset("favicon")},
+          'og', ${mergeAsset("og")},
+          'preview', ${mergeAsset("preview")}
+        ),
+        "html_status" = ${htmlStatusSql},
+        "preview_status" = ${previewStatusSql},
+        "html_fetched_at" = ${conflictHtmlFetchedAt}::timestamptz,
+        "preview_fetched_at" = ${conflictPreviewFetchedAt}::timestamptz,
+        "html_refresh_after" = ${htmlRefreshAfterSql},
+        "preview_refresh_after" = ${previewRefreshAfterSql},
+        "updated_at" = ${nowIso}::timestamptz
+      RETURNING *
+    ),
+    updated_bookmark AS (
+      UPDATE ${bookmarks}
+      SET
+        "website_record_key" = upserted_record.key,
+        "title" = COALESCE(${bookmarks.title}, upserted_record.title),
+        "description" = COALESCE(${bookmarks.description}, upserted_record.description),
+        "images" = CASE
+          WHEN ${bookmarks.images}->>'selected' IN ('preview', 'og')
+            THEN jsonb_set(upserted_record.images, '{selected}', to_jsonb(${bookmarks.images}->>'selected'), true)
+          ELSE ${defaultBookmarkImagesJson}::jsonb
+        END,
+        "metadata" = jsonb_set(COALESCE(${bookmarks.metadata}, '{}'::jsonb), '{textMetadataStatus}', to_jsonb(upserted_record.html_status::text), true),
+        "updated_at" = ${nowIso}::timestamptz
+      FROM upserted_record
+      WHERE ${bookmarks.id} = ${bookmarkId}
+        AND ${bookmarks.kind} = 'website'
+        AND ${bookmarks.deletedAt} IS NULL
+    )
+    SELECT
       key,
-      normalizedUrl,
+      normalized_url AS "normalizedUrl",
       hostname,
       title,
       description,
       images,
-      htmlStatus: insertHtmlStatus,
-      previewStatus: insertPreviewStatus,
-      htmlFetchedAt: nowIso,
-      previewFetchedAt: nowIso,
-      htmlRefreshAfter: addDays(now, refreshDaysForStatus(insertHtmlRefreshStatus)).toISOString(),
-      previewRefreshAfter: addDays(
-        now,
-        refreshDaysForStatus(insertPreviewRefreshStatus),
-      ).toISOString(),
-      updatedAt: nowIso,
-    })
-    .onConflictDoUpdate({
-      target: websiteRecords.key,
-      set: {
-        normalizedUrl,
-        hostname,
-        title,
-        description,
-        images: sql`jsonb_build_object(
-          'favicon', ${mergeAsset("favicon")},
-          'og', ${mergeAsset("og")},
-          'preview', ${mergeAsset("preview")}
-        )`,
-        htmlStatus: htmlStatusSql,
-        previewStatus: previewStatusSql,
-        htmlFetchedAt: conflictHtmlFetchedAt,
-        previewFetchedAt: conflictPreviewFetchedAt,
-        htmlRefreshAfter: htmlRefreshAfterSql,
-        previewRefreshAfter: previewRefreshAfterSql,
-        updatedAt: nowIso,
-      },
-    })
-    .returning();
+      html_status AS "htmlStatus",
+      preview_status AS "previewStatus",
+      html_fetched_at AS "htmlFetchedAt",
+      preview_fetched_at AS "previewFetchedAt",
+      html_refresh_after AS "htmlRefreshAfter",
+      preview_refresh_after AS "previewRefreshAfter",
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    FROM upserted_record;
+  `;
 
+  const result = await db.execute<WebsiteRecord>(query);
+  const record = result.rows[0];
+  if (!record) {
+    throw new Error(`Failed to upsert website record and update bookmark ${bookmarkId}`);
+  }
   return record;
 }
 
@@ -179,29 +215,4 @@ function pickBestHtmlStatus(
 
 function getHtmlAssetPairStatus(images: WebsiteRecordImages): WebsiteRecordStatus {
   return images.favicon?.status === "ready" && images.og?.status === "ready" ? "ready" : "missing";
-}
-
-export async function updateBookmarkFromWebsiteRecord(bookmarkId: string, record: WebsiteRecord) {
-  const recordImagesJson = JSON.stringify(record.images ?? {});
-  const defaultBookmarkImagesJson = JSON.stringify(
-    buildBookmarkImagesFromWebsiteRecord(record.images) ?? {},
-  );
-
-  await db
-    .update(bookmarks)
-    .set({
-      websiteRecordKey: record.key,
-      title: sql`COALESCE(${bookmarks.title}, ${record.title ?? null})`,
-      description: sql`COALESCE(${bookmarks.description}, ${record.description ?? null})`,
-      images: sql`CASE
-        WHEN ${bookmarks.images}->>'selected' IN ('preview', 'og')
-          THEN jsonb_set(${recordImagesJson}::jsonb, '{selected}', to_jsonb(${bookmarks.images}->>'selected'), true)
-        ELSE ${defaultBookmarkImagesJson}::jsonb
-      END`,
-      metadata: sql`jsonb_set(COALESCE(${bookmarks.metadata}, '{}'::jsonb), '{textMetadataStatus}', to_jsonb(${record.htmlStatus}::text), true)`,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(
-      and(eq(bookmarks.id, bookmarkId), eq(bookmarks.kind, "website"), isNull(bookmarks.deletedAt)),
-    );
 }
