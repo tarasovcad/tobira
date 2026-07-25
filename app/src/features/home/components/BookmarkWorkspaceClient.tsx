@@ -44,6 +44,7 @@ import {useBookmarkMenuStore} from "@/store/use-bookmark-menu-store";
 import {getCurrentAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
 import {getPostBookmarkById} from "@/app/actions/bookmarks/getPostBookmarkById";
 import type {Collection} from "@/app/actions/collections";
+import {useBulkBookmarkState} from "@/store/use-bulk-bookmark-state";
 
 /**
  * Main client component for bookmark workspace pages.
@@ -158,6 +159,9 @@ export function BookmarkWorkspaceClient({
         : !userId
           ? "UNAUTHORIZED"
           : null;
+  const bulkPendingCount = useBulkBookmarkState((state) => state.pendingCount);
+  const bulkCreatedIds = useBulkBookmarkState((state) => state.createdIds);
+
   // Mutation Hook
   const {
     removingIds,
@@ -167,12 +171,22 @@ export function BookmarkWorkspaceClient({
     resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,
+    isBulkPending,
+    bulkSkeletonCount,
   } = useBookmarksMutations({
     typeFilter,
     tagFilter,
     activeTagName: activeTag?.name ?? null,
     allBookmarks,
+    bulkPendingCount,
   });
+
+  // For bulk adds, use a sentinel animatingUrl so AllItemsAnimatingPlaceholders
+  // renders N skeletons immediately while the server action is in-flight.
+  const effectiveAnimatingUrl = isBulkPending ? "__bulk__" : animatingUrl;
+  const effectiveAnimatingItemCount = isBulkPending ? bulkSkeletonCount : animatingItemCount;
+  // Bulk skeletons have no resolved bookmarks yet — keep empty so skeletons persist
+  const effectiveResolvedBookmarks = isBulkPending ? [] : resolvedBookmarks;
 
   // Derived visible items
   const visibleItems = useMemo(() => {
@@ -180,14 +194,19 @@ export function BookmarkWorkspaceClient({
 
     const resolvedIds =
       sort === "az" ? new Set<string>() : new Set(resolvedBookmarks.map((bookmark) => bookmark.id));
+    // While a bulk add is in-flight, hide the newly-fetched rows so they don't
+    // appear alongside the skeletons. reset() clears both isBulkPending and
+    // bulkCreatedIds atomically, so rows and skeletons swap in one render.
+    const bulkHideIds = isBulkPending ? new Set(bulkCreatedIds) : null;
 
     return allBookmarks.filter((item) => {
       const isBeingRemoved = removingIds.has(item.id);
       const isDuplicateOfResolved = resolvedIds.has(item.id);
+      const isHiddenForBulk = bulkHideIds !== null && bulkHideIds.has(item.id);
 
-      return !isBeingRemoved && !isDuplicateOfResolved;
+      return !isBeingRemoved && !isDuplicateOfResolved && !isHiddenForBulk;
     });
-  }, [allBookmarks, removingIds, resolvedBookmarks, sort]);
+  }, [allBookmarks, removingIds, resolvedBookmarks, sort, isBulkPending, bulkCreatedIds]);
   const selectionItems = useMemo(
     () => (isPostDetailOpen && detailBookmark ? [detailBookmark] : visibleItems),
     [detailBookmark, isPostDetailOpen, visibleItems],
@@ -241,7 +260,7 @@ export function BookmarkWorkspaceClient({
     !isInitialLoad &&
     !isFetchingNextPage &&
     visibleItems.length === 0 &&
-    !animatingUrl &&
+    !effectiveAnimatingUrl &&
     resolvedBookmarks.length === 0;
 
   const isCollectionNotFound = collectionFilter && !activeCollection && !isInitialLoad;
@@ -333,10 +352,10 @@ export function BookmarkWorkspaceClient({
           sort={sort}
           visibleItems={visibleItems}
           onOpenDetail={handleOpenPostDetail}
-          animatingUrl={animatingUrl}
-          animatingItemCount={animatingItemCount}
+          animatingUrl={effectiveAnimatingUrl}
+          animatingItemCount={effectiveAnimatingItemCount}
           pendingMediaItems={pendingMediaItems}
-          resolvedBookmarks={resolvedBookmarks}
+          resolvedBookmarks={effectiveResolvedBookmarks}
           isInitialLoad={isInitialLoad}
           hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}

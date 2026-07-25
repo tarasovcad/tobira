@@ -5,7 +5,7 @@ import type {Bookmark} from "@/components/bookmark/types";
 import {flattenMediaGridBookmarks} from "@/components/bookmark/_utils/media-grid-render";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 
-interface AllItemsAnimatingPlaceholdersProps {
+interface AllItemsPendingBookmarkPlaceholdersProps {
   animatingUrl: string | null;
   animatingItemCount: number;
   pendingMediaItems?: BookmarkMediaItem[];
@@ -15,7 +15,7 @@ interface AllItemsAnimatingPlaceholdersProps {
   renderSkeletonItem: (index: number) => ReactNode;
 }
 
-export function AllItemsAnimatingPlaceholders({
+export function AllItemsPendingBookmarkPlaceholders({
   animatingUrl,
   animatingItemCount,
   pendingMediaItems = [],
@@ -23,7 +23,7 @@ export function AllItemsAnimatingPlaceholders({
   flattenMediaBookmarks = false,
   onTransitionDone,
   renderSkeletonItem,
-}: AllItemsAnimatingPlaceholdersProps) {
+}: AllItemsPendingBookmarkPlaceholdersProps) {
   const resolvedEntries = flattenMediaBookmarks ? flattenMediaGridBookmarks(resolvedBookmarks) : [];
   const hasResolvedBookmark = flattenMediaBookmarks
     ? resolvedEntries.length > 0

@@ -9,7 +9,7 @@ import {
 } from "./process";
 import {getWebsiteRecordKey} from "./records";
 
-const BATCH_WEBSITE_PROCESSING_CONCURRENCY = 2;
+const BATCH_WEBSITE_PROCESSING_CONCURRENCY = 5;
 
 export type WebsiteBookmarkBatchResult = {
   requested: number;

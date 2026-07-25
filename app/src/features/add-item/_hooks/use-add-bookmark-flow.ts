@@ -14,6 +14,7 @@ import {
   type AddPostBookmarkResult,
 } from "@/app/actions/bookmarks/create";
 import {addBulkWebsiteBookmarks} from "@/app/actions/bookmarks/addBulkWebsiteBookmarks";
+import {useBulkBookmarkState} from "@/store/use-bulk-bookmark-state";
 import {toastManager} from "@/components/ui/coss/toast";
 import type {BookmarkMediaItem} from "@/components/bookmark/types/metadata";
 import {
@@ -70,6 +71,9 @@ export function useAddBookmarkFlow({
   const [mediaItems, setMediaItems] = useState<BookmarkMediaItem[]>([]);
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
+  const setBulkPendingCount = useBulkBookmarkState((state) => state.setPendingCount);
+  const setBulkCreatedIds = useBulkBookmarkState((state) => state.setCreatedIds);
+  const resetBulkState = useBulkBookmarkState((state) => state.reset);
 
   const {data: collections = []} = useCollectionsQuery({
     userId,
@@ -225,9 +229,11 @@ export function useAddBookmarkFlow({
       closeDialog();
 
       if (data.type === "website") {
+        const urlsToSubmit = parsedUrls.slice(0, 10);
+        setBulkPendingCount(urlsToSubmit.length);
         try {
           const res = await addBulkWebsiteBookmarks({
-            urls: parsedUrls,
+            urls: urlsToSubmit,
             tags: data.tags,
             collectionId: data.collectionId ?? undefined,
           });
@@ -243,8 +249,15 @@ export function useAddBookmarkFlow({
                   : `${count} bookmarks added${rejectedSuffix}`,
               type: "success",
             });
-            queryClient.invalidateQueries({queryKey: ["bookmarks"]});
-            queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot});
+            // Store created IDs so the workspace can hide the newly-fetched rows
+            // from visibleItems while skeletons are still showing.
+            setBulkCreatedIds(res.bookmarks.map((b) => b.id));
+            // Await the refetch so finally() (which clears skeletons) runs only
+            // after the new data is already in the cache.
+            await Promise.all([
+              queryClient.invalidateQueries({queryKey: ["bookmarks"]}),
+              queryClient.invalidateQueries({queryKey: homeMetadataKeys.tagsRoot}),
+            ]);
           }
         } catch (err) {
           toastManager.add({
@@ -252,6 +265,10 @@ export function useAddBookmarkFlow({
             description: err instanceof Error ? err.message : "Unknown error",
             type: "error",
           });
+        } finally {
+          // One atomic Zustand update → one React render that simultaneously
+          // removes skeletons and un-hides the rows from visibleItems.
+          resetBulkState();
         }
 
         setTimeout(() => {

@@ -33,12 +33,12 @@ export async function getInitialBookmarks({
   const orderBy = (() => {
     switch (sort) {
       case "oldest":
-        return [asc(bookmarks.createdAt)];
+        return [asc(bookmarks.createdAt), asc(bookmarks.id)];
       case "az":
         return [asc(bookmarks.title), asc(bookmarks.id)];
       case "recent":
       default:
-        return [desc(bookmarks.createdAt)];
+        return [desc(bookmarks.createdAt), desc(bookmarks.id)];
     }
   })();
 

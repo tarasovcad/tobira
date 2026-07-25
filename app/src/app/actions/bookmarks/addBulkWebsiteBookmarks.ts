@@ -52,7 +52,7 @@ export async function addBulkWebsiteBookmarks(
     );
   }
 
-  const createdBookmarks = await createBulkWebsiteBookmarks({
+  const {createdBookmarks} = await createBulkWebsiteBookmarks({
     normalizedUrls: accepted,
     userId,
     tags,

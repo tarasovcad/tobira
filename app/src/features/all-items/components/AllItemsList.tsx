@@ -13,7 +13,7 @@ import {
   getAllItemsListViewOptions,
   getBookmarkWidthForType,
 } from "@/features/all-items/components/all-items-list-view-options";
-import {AllItemsAnimatingPlaceholders} from "@/features/all-items/components/AllItemsAnimatingPlaceholders";
+import {AllItemsPendingBookmarkPlaceholders} from "@/features/all-items/components/AllItemsPendingBookmarkPlaceholders";
 import {AllItemsBookmarkRow} from "@/features/all-items/components/AllItemsBookmarkRow";
 import {
   getAllItemsListLayoutConfig,
@@ -306,7 +306,7 @@ export function AllItemsList({
   ]);
 
   const placeholder = (
-    <AllItemsAnimatingPlaceholders
+    <AllItemsPendingBookmarkPlaceholders
       animatingUrl={animatingUrl}
       animatingItemCount={animatingItemCount}
       pendingMediaItems={pendingMediaItems}

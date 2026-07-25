@@ -344,6 +344,11 @@ export type CreatedBulkBookmark = {
   kind: "website";
 };
 
+export type CreateBulkWebsiteBookmarksResult = {
+  createdBookmarks: CreatedBulkBookmark[];
+  pendingEnrichmentBookmarkIds: string[];
+};
+
 export async function createBulkWebsiteBookmarks({
   normalizedUrls,
   userId,
@@ -354,8 +359,10 @@ export async function createBulkWebsiteBookmarks({
   userId: string;
   tags?: string[];
   collectionId?: string;
-}): Promise<CreatedBulkBookmark[]> {
-  if (normalizedUrls.length === 0) return [];
+}): Promise<CreateBulkWebsiteBookmarksResult> {
+  if (normalizedUrls.length === 0) {
+    return {createdBookmarks: [], pendingEnrichmentBookmarkIds: []};
+  }
 
   const keyedUrls = await Promise.all(
     normalizedUrls.map(async (entry) => ({
@@ -369,13 +376,23 @@ export async function createBulkWebsiteBookmarks({
   const existingRecords = await getWebsiteRecordsByKeys(keys);
   const recordMap = new Map(existingRecords.map((r) => [r.key, r]));
 
-  const rows = keyedUrls.map(({normalized, displayHost, key, pendingImages}) => {
+  const now = Date.now();
+  const totalCount = keyedUrls.length;
+
+  const pendingEnrichmentBookmarkIds: string[] = [];
+
+  const rows = keyedUrls.map(({normalized, displayHost, key, pendingImages}, index) => {
     const bookmarkId = randomUUID();
     const existingRecord = recordMap.get(key) ?? null;
     const freshness = existingRecord ? getWebsiteRecordFreshness(existingRecord) : null;
+    const isFullyFresh = freshness?.fresh ?? false;
     const htmlFresh = freshness?.htmlFresh ?? false;
     const previewFresh = freshness?.previewFresh ?? false;
     const isFresh = htmlFresh || previewFresh;
+
+    if (!isFullyFresh) {
+      pendingEnrichmentBookmarkIds.push(bookmarkId);
+    }
 
     const images: WebsiteImages =
       isFresh && existingRecord
@@ -384,6 +401,11 @@ export async function createBulkWebsiteBookmarks({
             previewFresh,
           }) ?? pendingImages)
         : pendingImages;
+
+    // Offset each created bookmark timestamp slightly so each item in the batch has a unique createdAt date.
+    // Preserves the input order when sorting by createdAt DESC.
+    const createdAtOffsetMs = (totalCount - 1 - index) * 1000;
+    const createdAt = new Date(now + createdAtOffsetMs).toISOString();
 
     return {
       row: {
@@ -399,6 +421,7 @@ export async function createBulkWebsiteBookmarks({
           textMetadataStatus:
             htmlFresh && existingRecord ? (existingRecord.htmlStatus ?? "pending") : "pending",
         },
+        createdAt,
       },
       bookmarkId,
       url: normalized,
@@ -412,10 +435,12 @@ export async function createBulkWebsiteBookmarks({
 
   await attachRelationsToBookmarks({bookmarkIds, userId, tags, collectionId});
 
-  return rows.map(({bookmarkId, url, displayHost}) => ({
+  const createdBookmarks = rows.map(({bookmarkId, url, displayHost}) => ({
     id: bookmarkId,
     url,
     displayHost,
     kind: "website" as const,
   }));
+
+  return {createdBookmarks, pendingEnrichmentBookmarkIds};
 }

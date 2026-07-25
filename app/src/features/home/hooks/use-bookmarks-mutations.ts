@@ -20,11 +20,13 @@ export function useBookmarksMutations({
   tagFilter,
   activeTagName,
   allBookmarks,
+  bulkPendingCount = 0,
 }: {
   typeFilter: TypeFilter;
   tagFilter: string | null;
   activeTagName: string | null;
   allBookmarks: Bookmark[];
+  bulkPendingCount?: number;
 }) {
   const queryClient = useQueryClient();
 
@@ -214,5 +216,7 @@ export function useBookmarksMutations({
     resolvedBookmarks,
     handleTransitionDone,
     archiveMutation,
+    isBulkPending: bulkPendingCount > 0,
+    bulkSkeletonCount: bulkPendingCount,
   };
 }
