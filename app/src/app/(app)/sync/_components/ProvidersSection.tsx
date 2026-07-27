@@ -78,7 +78,9 @@ export function ProvidersSection() {
           height: {duration: 0.2, ease: [0.22, 1, 0.36, 1]},
           opacity: {duration: 0.12, ease: [0.22, 1, 0.36, 1]},
         }}
-        className={cn("overflow-hidden", providersCollapsed && "pointer-events-none")}>
+        className={cn(
+          providersCollapsed ? "pointer-events-none overflow-hidden" : "overflow-visible",
+        )}>
         <div className="pt-0.5">
           <Tabs defaultValue="all">
             <div className="flex items-center justify-between gap-2">
@@ -192,7 +194,7 @@ function ProviderCard({provider}: {provider: Provider}) {
 
   return (
     <div
-      className="border-border text-card-foreground relative flex w-full flex-col gap-4 rounded-lg border p-5"
+      className="border-border text-card-foreground relative flex w-full flex-col gap-4 rounded-lg border p-4"
       style={{
         background: `radial-gradient(ellipse at 120% -20%, ${provider.color}12 0%, transparent 55%), var(--card)`,
       }}>
@@ -212,9 +214,9 @@ function ProviderCard({provider}: {provider: Provider}) {
       </div>
 
       <div className="space-y-4">
-        <div className="text-muted-foreground/80 font-mono text-[13px] tracking-wide">
+        {/*<div className="text-muted-foreground/80 font-mono text-[13px] tracking-wide">
           {provider.types.join(" · ")}
-        </div>
+        </div>*/}
         <Button
           variant="outline"
           size="default"

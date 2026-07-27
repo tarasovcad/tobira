@@ -5,6 +5,7 @@ import {headers} from "next/headers";
 import {redirect} from "next/navigation";
 import {Suspense} from "react";
 import {PageHeader} from "@/components/ui/app/page/PageHeader";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import {ProvidersSection} from "./_components/ProvidersSection";
 import {
   ConnectedAccountsDataWrapper,
@@ -28,9 +29,9 @@ const SyncPage = async () => {
   }
 
   return (
-    <div className="flex h-full w-full overflow-auto">
-      <div className="min-h-0 flex-1 overflow-auto px-5 py-12">
-        <div className="mx-auto max-w-[840px]">
+    <div className="flex h-full w-full">
+      <ScrollArea className="min-h-0 flex-1 py-12" viewportProps={{tabIndex: -1}}>
+        <div className="mx-auto max-w-4xl px-6">
           <div className="">
             <div className="mb-16">
               <PageHeader
@@ -50,7 +51,7 @@ const SyncPage = async () => {
             </Suspense>
           </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };

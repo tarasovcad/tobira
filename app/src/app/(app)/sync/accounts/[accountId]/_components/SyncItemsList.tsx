@@ -164,7 +164,7 @@ export function SyncItemsList({
 
   return (
     <div ref={scrollAreaRootRef} className="h-auto min-h-0 flex-1">
-      <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: 0}}>
+      <ScrollArea className="h-full" hideFocusRing viewportProps={{tabIndex: -1}}>
         <div className={layoutConfig.wrapperClassName}>
           <div className={layoutConfig.containerClassName}>
             {layoutConfig.isTable ? <BookmarkTableShell>{body}</BookmarkTableShell> : body}

@@ -243,7 +243,9 @@ export function SyncActivitySection({initialActivity}: {initialActivity: SyncAct
             height: {duration: 0.2, ease: [0.22, 1, 0.36, 1]},
             opacity: {duration: 0.12, ease: [0.22, 1, 0.36, 1]},
           }}
-          className={cn("overflow-hidden", activityCollapsed && "pointer-events-none")}>
+          className={cn(
+            activityCollapsed ? "pointer-events-none overflow-hidden" : "overflow-visible",
+          )}>
           <div className="pt-0.5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <Tabs
@@ -357,11 +359,11 @@ function SyncActivityRow({item, dayLabel}: {item: SyncActivityItem; dayLabel: st
 
   return (
     <AccordionItem value={item.id} className="border-border/80">
-      <div className="hover:bg-muted/25 relative px-0 transition-colors">
+      <div className="hover:bg-muted/80 relative px-0 transition-none!">
         <div className="absolute top-0 bottom-0 left-0 w-px" />
         {dayLabel ? <div className="text-muted-foreground pt-3 text-sm">{dayLabel}</div> : null}
 
-        <AccordionTrigger className="py-4 hover:no-underline">
+        <AccordionTrigger className="py-4 outline-none hover:no-underline focus-visible:ring-0 focus-visible:outline-none">
           <div className="flex w-full items-start gap-3 md:items-center">
             {providerIcon ? (
               <Image
