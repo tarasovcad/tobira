@@ -1,9 +1,9 @@
 import React from "react";
 
-export type SyncMethod = "oauth" | "extension" | "cookies" | "export" | "har";
+export type XSyncMethod = "oauth" | "extension" | "cookies" | "export" | "har";
 
-export interface MethodDef {
-  id: SyncMethod;
+export interface XMethodDef {
+  id: XSyncMethod;
   label: string;
   badge?: string;
   badgeVariant?: "recommended" | "stable";
@@ -11,7 +11,7 @@ export interface MethodDef {
   disabled?: boolean;
 }
 
-export const SYNC_METHODS: MethodDef[] = [
+export const X_SYNC_METHODS: XMethodDef[] = [
   {
     id: "extension",
     label: "Extension + GraphQL",

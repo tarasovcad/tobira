@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {DownloadIcon, MoreHorizontalIcon, RefreshCwIcon} from "lucide-react";
+import {MoreHorizontalIcon} from "lucide-react";
 import {motion} from "motion/react";
 import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/coss/button";
@@ -13,8 +13,9 @@ import {Tabs, TabsList, TabsTab} from "@/components/ui/coss/tabs";
 import {Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger} from "@/components/ui/coss/tooltip";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/coss/input-group";
 import {PROVIDERS} from "../_lib/sync-providers";
+import {syncModeLabel, SyncModeTooltipContent, type SyncMode} from "./SyncModeTooltipContent";
 
-export type ConnectionMode = "automatic" | "once";
+export type ConnectionMode = SyncMode;
 type AccountModeFilter = "all" | "automatic" | "once";
 
 export type ConnectedAccount = {
@@ -41,15 +42,11 @@ function matchesAccountQuery(account: ConnectedAccount, rawQuery: string) {
   return [
     account.provider,
     account.account,
-    modeLabel(account.mode),
+    syncModeLabel(account.mode),
     account.lastSync,
     String(account.itemsImported),
     formatAccountItemCount(account.itemsImported),
   ].some((value) => value.toLowerCase().includes(query));
-}
-
-function modeLabel(mode: ConnectionMode): string {
-  return mode === "automatic" ? "Auto-sync" : "Import";
 }
 
 function modeBadgeClass(mode: ConnectionMode): string {
@@ -57,36 +54,6 @@ function modeBadgeClass(mode: ConnectionMode): string {
     return "border-indigo-200/50 bg-indigo-500/10 text-indigo-800/85 dark:border-indigo-800/40 dark:bg-indigo-400/10 dark:text-indigo-300/85";
   }
   return "border-teal-200/50 bg-teal-500/10 text-teal-800/85 dark:border-teal-800/40 dark:bg-teal-400/10 dark:text-teal-300/85";
-}
-
-function ModeTooltipContent({mode}: {mode: ConnectionMode}) {
-  const isAutoSync = mode === "automatic";
-  return (
-    <span className="flex items-start gap-2 py-0.5">
-      <span
-        aria-hidden
-        className={cn(
-          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px]",
-          isAutoSync
-            ? "bg-indigo-500/10 dark:bg-indigo-400/15"
-            : "bg-teal-500/10 dark:bg-teal-400/15",
-        )}>
-        {isAutoSync ? (
-          <RefreshCwIcon className="size-3 text-indigo-600/90 dark:text-indigo-300/90" />
-        ) : (
-          <DownloadIcon className="size-3 text-teal-600/90 dark:text-teal-300/90" />
-        )}
-      </span>
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-medium">{modeLabel(mode)}</span>
-        <span className="text-muted-foreground leading-snug">
-          {isAutoSync
-            ? "This source stays connected in the background and updates when new items are found."
-            : "This is a one-time import. If you add more items later, you need to import again."}
-        </span>
-      </span>
-    </span>
-  );
 }
 
 function formatAccountItemCount(count: number): string {
@@ -265,7 +232,7 @@ function ConnectedAccountRow({account}: {account: ConnectedAccount}) {
                 )}
               />
             }>
-            {modeLabel(account.mode)}
+            {syncModeLabel(account.mode)}
           </TooltipTrigger>
           <TooltipPopup
             sideOffset={6}
@@ -274,7 +241,7 @@ function ConnectedAccountRow({account}: {account: ConnectedAccount}) {
               "shadow-none!",
               account.mode == "automatic" ? "max-w-[260px]" : "max-w-[230px]",
             )}>
-            <ModeTooltipContent mode={account.mode} />
+            <SyncModeTooltipContent mode={account.mode} />
           </TooltipPopup>
         </Tooltip>
       </div>

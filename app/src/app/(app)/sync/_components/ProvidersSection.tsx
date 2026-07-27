@@ -191,6 +191,7 @@ export function ProvidersSection() {
 
 function ProviderCard({provider}: {provider: Provider}) {
   const openSyncSetup = useSyncSetupStore((state) => state.open);
+  const hasSetup = provider.name === "X" || provider.name === "Chrome";
 
   return (
     <div
@@ -221,12 +222,15 @@ function ProviderCard({provider}: {provider: Provider}) {
           variant="outline"
           size="default"
           className="group w-full"
+          disabled={!hasSetup}
           onClick={() => openSyncSetup(provider)}>
-          Connect{" "}
-          <ArrowUpRightIcon
-            className="size-4 text-current opacity-100 transition-transform duration-200 ease-out group-hover:translate-x-px group-hover:-translate-y-px"
-            strokeWidth={2}
-          />
+          {hasSetup ? "Connect" : "Coming soon"}
+          {hasSetup ? (
+            <ArrowUpRightIcon
+              className="size-4 text-current opacity-100 transition-transform duration-200 ease-out group-hover:translate-x-px group-hover:-translate-y-px"
+              strokeWidth={2}
+            />
+          ) : null}
         </Button>
       </div>
     </div>

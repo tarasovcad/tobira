@@ -2,7 +2,7 @@
 
 import {Button} from "@/components/ui/coss/button";
 
-export const CookiesOption = () => (
+export const XCookiesOption = () => (
   <>
     <p className="text-muted-foreground mb-3 text-[13.5px] leading-relaxed">
       Open DevTools <span className="text-muted-foreground/50">›</span> Application{" "}

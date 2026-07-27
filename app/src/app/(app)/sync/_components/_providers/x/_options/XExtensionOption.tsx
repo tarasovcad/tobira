@@ -4,11 +4,11 @@ import Image from "next/image";
 import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/coss/button";
 import Spinner from "@/components/ui/app/spinner";
-import {useExtensionConnectionStore} from "@/store/use-extension-connection-store";
+import {useXExtensionConnectionStore} from "../use-x-extension-connection-store";
 
 type ConnectionStatus = "idle" | "checking" | "connected" | "error";
 
-interface ExtensionOptionProps {
+interface XExtensionOptionProps {
   connectionStatus: ConnectionStatus;
   onVerify: () => void | Promise<void>;
   onReVerify: () => void | Promise<void>;
@@ -22,9 +22,13 @@ const getInitials = (value: string) =>
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 
-export const ExtensionOption = ({connectionStatus, onVerify, onReVerify}: ExtensionOptionProps) => {
-  const extensionError = useExtensionConnectionStore((state) => state.error);
-  const extensionUser = useExtensionConnectionStore((state) => state.user);
+export const XExtensionOption = ({
+  connectionStatus,
+  onVerify,
+  onReVerify,
+}: XExtensionOptionProps) => {
+  const extensionError = useXExtensionConnectionStore((state) => state.error);
+  const extensionUser = useXExtensionConnectionStore((state) => state.user);
   const avatarAlt = extensionUser ? `${extensionUser.name} avatar` : "X profile avatar";
   const avatarFallback = extensionUser
     ? getInitials(extensionUser.name || extensionUser.screenName)

@@ -2,7 +2,7 @@
 
 import {Button} from "@/components/ui/coss/button";
 
-export const HarOption = () => (
+export const XHarOption = () => (
   <>
     <p className="text-muted-foreground mb-3 text-[13.5px] leading-relaxed">
       Record all network traffic while browsing your bookmarks, then export and upload the HAR file.

@@ -2,8 +2,7 @@
 
 import {Separator} from "@/components/ui/legacy-shadcn/separator";
 import {cn} from "@/lib/utils";
-import {useExtensionConnectionStore} from "@/store/use-extension-connection-store";
-import {useSyncSetupStore} from "@/store/use-sync-setup-store";
+import {useXExtensionConnectionStore} from "./use-x-extension-connection-store";
 
 interface ReviewRowProps {
   label: string;
@@ -24,9 +23,8 @@ function ReviewRow({label, value, last}: ReviewRowProps) {
   );
 }
 
-export default function ReviewSyncStep() {
-  const {provider} = useSyncSetupStore();
-  const extensionUser = useExtensionConnectionStore((state) => state.user);
+export default function XReviewStep() {
+  const extensionUser = useXExtensionConnectionStore((state) => state.user);
 
   return (
     <div className="flex flex-col text-[14px]">
@@ -47,9 +45,7 @@ export default function ReviewSyncStep() {
           <div className="flex items-center gap-3 px-3.5 py-2.5">
             <span className="text-muted-foreground">Method</span>
             <div className="ml-auto flex items-center gap-1.5">
-              <span className="text-foreground text-sm font-medium">
-                {provider?.name ?? "X"} - Extension
-              </span>
+              <span className="text-foreground text-sm font-medium">X - Extension</span>
             </div>
           </div>
 

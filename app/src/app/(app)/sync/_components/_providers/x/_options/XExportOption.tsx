@@ -5,7 +5,7 @@ import {Button} from "@/components/ui/coss/button";
 
 const NAVIGATION_CRUMBS = ["X Settings", "Your Account", "Download an archive of your data"];
 
-export const ExportOption = () => (
+export const XExportOption = () => (
   <>
     <p className="text-muted-foreground mb-3 text-[13.5px] leading-relaxed">
       Request your data archive from X, then upload the .zip file once it arrives via email.

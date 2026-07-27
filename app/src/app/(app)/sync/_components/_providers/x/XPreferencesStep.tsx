@@ -51,7 +51,7 @@ const DEFAULT_PREFERENCES: PreferencesState = {
   defaultCollectionId: null,
 };
 
-export default function PreferencesSyncStep({userId}: {userId?: string | null}) {
+export default function XPreferencesStep({userId}: {userId?: string | null}) {
   const [preferences, setPreferences] = useState<PreferencesState>(DEFAULT_PREFERENCES);
 
   const setPreference = <K extends keyof PreferencesState>(key: K, value: PreferencesState[K]) => {
@@ -181,23 +181,5 @@ function getSyncModeLabel(value: SyncMode) {
       return "Keep synced automatically";
     case "once":
       return "Import once";
-  }
-}
-
-function getImportRangeLabel(value: ImportRange) {
-  switch (value) {
-    case "all":
-      return "All bookmarks";
-    case "recent":
-      return "Recent bookmarks only";
-  }
-}
-
-function getDeletedItemBehaviorLabel(value: DeletedItemBehavior) {
-  switch (value) {
-    case "keep":
-      return "Keep archived in Tobira";
-    case "remove":
-      return "Remove from Tobira";
   }
 }

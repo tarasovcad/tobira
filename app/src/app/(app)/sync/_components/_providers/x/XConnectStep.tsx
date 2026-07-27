@@ -2,25 +2,23 @@
 
 import {useState} from "react";
 import {cn} from "@/lib/utils";
-import {useExtensionConnectionStore} from "@/store/use-extension-connection-store";
-import {useSyncSetupStore} from "@/store/use-sync-setup-store";
-import {SYNC_METHODS, type SyncMethod} from "./_options/sync-method-types";
-import {ExtensionOption} from "./_options/ExtensionOption";
-import {OAuthOption} from "./_options/OAuthOption";
-import {CookiesOption} from "./_options/CookiesOption";
-import {ExportOption} from "./_options/ExportOption";
-import {HarOption} from "./_options/HarOption";
+import {X_SYNC_METHODS, type XSyncMethod} from "./_options/x-sync-method-types";
+import {XExtensionOption} from "./_options/XExtensionOption";
+import {XOAuthOption} from "./_options/XOAuthOption";
+import {XCookiesOption} from "./_options/XCookiesOption";
+import {XExportOption} from "./_options/XExportOption";
+import {XHarOption} from "./_options/XHarOption";
+import {useXExtensionConnectionStore} from "./use-x-extension-connection-store";
 
 type ConnectionStatus = "idle" | "checking" | "connected" | "error";
 
-export const ConnectSyncStep = () => {
-  const {provider} = useSyncSetupStore();
-  const [selectedMethod, setSelectedMethod] = useState<SyncMethod>("extension");
+export const XConnectStep = () => {
+  const [selectedMethod, setSelectedMethod] = useState<XSyncMethod>("extension");
   const [verificationStatus, setVerificationStatus] = useState<ConnectionStatus>("idle");
 
   // extension connection store
-  const extensionUser = useExtensionConnectionStore((state) => state.user);
-  const loadExtensionUser = useExtensionConnectionStore((state) => state.loadUser);
+  const extensionUser = useXExtensionConnectionStore((state) => state.user);
+  const loadExtensionUser = useXExtensionConnectionStore((state) => state.loadUser);
   const connectionStatus: ConnectionStatus = extensionUser ? "connected" : verificationStatus;
 
   const handleVerifyConnection = async () => {
@@ -29,13 +27,11 @@ export const ConnectSyncStep = () => {
     setVerificationStatus(user ? "idle" : "error");
   };
 
-  if (!provider) return null;
-
   return (
     <div className="flex flex-col gap-4 px-6 pb-2">
       {/* Method selector */}
       <div className="border-border divide-border divide-y overflow-hidden rounded-[10px] border">
-        {SYNC_METHODS.map((m) => {
+        {X_SYNC_METHODS.map((m) => {
           const active = selectedMethod === m.id;
           return (
             <button
@@ -81,22 +77,20 @@ export const ConnectSyncStep = () => {
 
       <div className="py-4.5">
         {selectedMethod === "extension" && (
-          <ExtensionOption
+          <XExtensionOption
             connectionStatus={connectionStatus}
             onVerify={handleVerifyConnection}
             onReVerify={handleVerifyConnection}
           />
         )}
 
-        {selectedMethod === "oauth" && (
-          <OAuthOption providerName={provider.name} providerImage={provider.image} />
-        )}
+        {selectedMethod === "oauth" && <XOAuthOption />}
 
-        {selectedMethod === "cookies" && <CookiesOption />}
+        {selectedMethod === "cookies" && <XCookiesOption />}
 
-        {selectedMethod === "export" && <ExportOption />}
+        {selectedMethod === "export" && <XExportOption />}
 
-        {selectedMethod === "har" && <HarOption />}
+        {selectedMethod === "har" && <XHarOption />}
       </div>
     </div>
   );

@@ -7,11 +7,6 @@ import {Alert, AlertDescription, AlertTitle} from "@/components/ui/coss/alert";
 import {CircleAlertIcon} from "@/components/ui/coss/toast";
 import {Button} from "@/components/ui/coss/button";
 
-interface OAuthOptionProps {
-  providerName: string;
-  providerImage: string;
-}
-
 const OAuthPricing = () => {
   const [bookmarks, setBookmarks] = useState(5000);
 
@@ -72,7 +67,7 @@ const OAuthPricing = () => {
   );
 };
 
-export const OAuthOption = ({providerName, providerImage}: OAuthOptionProps) => (
+export const XOAuthOption = () => (
   <div className="flex flex-col gap-4">
     <div className="flex items-center justify-center py-2">
       <div className="relative flex items-center">
@@ -86,13 +81,7 @@ export const OAuthOption = ({providerName, providerImage}: OAuthOptionProps) => 
           />
         </div>
         <div className="border-border -ml-1.5 size-[44px] overflow-hidden rounded-full">
-          <Image
-            src={providerImage}
-            alt={providerName}
-            width={32}
-            height={32}
-            className="h-full w-full"
-          />
+          <Image src="/socials/x.svg" alt="X" width={32} height={32} className="h-full w-full" />
         </div>
       </div>
     </div>
@@ -105,6 +94,6 @@ export const OAuthOption = ({providerName, providerImage}: OAuthOptionProps) => 
       <AlertDescription>Syncing large collections can quickly become expensive</AlertDescription>
     </Alert>
     <OAuthPricing />
-    <Button className="w-full">Authorize with {providerName}</Button>
+    <Button className="w-full">Authorize with X</Button>
   </div>
 );

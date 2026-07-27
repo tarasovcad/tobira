@@ -31,7 +31,7 @@ export interface ExtensionXUser {
   userId: string;
 }
 
-interface ExtensionConnectionStore {
+interface XExtensionConnectionStore {
   error: string | null;
   initialize: () => Promise<void>;
   loadUser: () => Promise<ExtensionXUser | null>;
@@ -81,7 +81,7 @@ const requestExtensionMessage = <TPayload>(
   });
 };
 
-export const useExtensionConnectionStore = create<ExtensionConnectionStore>((set) => ({
+export const useXExtensionConnectionStore = create<XExtensionConnectionStore>((set) => ({
   presence: "unknown",
   user: null,
   error: null,
@@ -132,7 +132,7 @@ export const useExtensionConnectionStore = create<ExtensionConnectionStore>((set
 
   loadUser: async (): Promise<ExtensionXUser | null> => {
     // Delegates to initialize so presence check is never duplicated
-    await useExtensionConnectionStore.getState().initialize();
-    return useExtensionConnectionStore.getState().user;
+    await useXExtensionConnectionStore.getState().initialize();
+    return useXExtensionConnectionStore.getState().user;
   },
 }));
