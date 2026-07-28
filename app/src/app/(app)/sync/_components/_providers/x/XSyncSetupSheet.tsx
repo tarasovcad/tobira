@@ -74,10 +74,7 @@ export function XSyncSetupSheet({userId}: {userId?: string | null}) {
             <Button type="button" variant="ghost" onClick={handleBack}>
               {BACK_BUTTON_TEXT[currentStep - 1]}
             </Button>
-            <Button
-              type="button"
-              onClick={handleNext}
-              disabled={currentStep === 2 && !extensionUser}>
+            <Button type="button" onClick={handleNext}>
               {NEXT_BUTTON_TEXT[currentStep - 1]}
             </Button>
           </SheetFooter>

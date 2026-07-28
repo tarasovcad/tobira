@@ -16,8 +16,10 @@ import {
 } from "@/components/ui/coss/combobox";
 import {Select as ComboboxSelect, SelectButton} from "@/components/ui/coss/select";
 import {Select, SelectItem, SelectPopup, SelectTrigger} from "@/components/ui/coss/select";
+import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import {Switch} from "@/components/ui/app/switch";
 import {cn} from "@/lib/utils";
+import {ChromeFolderListLoading} from "./ChromeFolderListLoading";
 import {
   isChromeAutoSyncSource,
   isChromeBookmarksSource,
@@ -29,16 +31,17 @@ import {
 interface ChromeFolder {
   id: string;
   label: string;
-  path: string;
+  count: number;
 }
 
 const MOCK_CHROME_FOLDERS: ChromeFolder[] = [
-  {id: "bookmarks-bar", label: "Bookmarks Bar", path: "Bookmarks Bar"},
-  {id: "other-bookmarks", label: "Other Bookmarks", path: "Other Bookmarks"},
-  {id: "mobile-bookmarks", label: "Mobile Bookmarks", path: "Mobile Bookmarks"},
-  {id: "reading", label: "Reading", path: "Bookmarks Bar / Reading"},
-  {id: "work", label: "Work", path: "Bookmarks Bar / Work"},
-  {id: "design", label: "Design", path: "Other Bookmarks / Design"},
+  {id: "bookmarks-bar", label: "Bookmarks Bar", count: 43},
+  {id: "other-bookmarks", label: "Other Bookmarks", count: 12},
+  {id: "mobile-bookmarks", label: "Mobile Bookmarks", count: 1},
+  {id: "reading", label: "Reading", count: 0},
+  {id: "work", label: "Work", count: 10},
+  {id: "design", label: "Design", count: 313},
+  {id: "de1sign", label: "Des1ign", count: 313},
 ];
 
 function PreferenceSection({
@@ -92,6 +95,7 @@ function OrganizationOption({
         className={cn(
           "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-none!",
           selected ? "border-highlight bg-highlight" : "border-muted-foreground/35",
+          description ? "mt-1" : "mt-0.5",
         )}>
         {selected ? <div className="h-1 w-1 rounded-full bg-white" /> : null}
       </div>
@@ -133,6 +137,8 @@ export function ChromePreferencesStep({userId}: {userId?: string | null}) {
     [collectionItems, preferences.defaultCollectionId],
   );
 
+  const isLoadingFolders = false;
+
   const allFoldersSelected = preferences.selectedFolderIds.length === MOCK_CHROME_FOLDERS.length;
 
   const handleSelectAllFolders = () => {
@@ -150,49 +156,56 @@ export function ChromePreferencesStep({userId}: {userId?: string | null}) {
             title="Bookmark folders"
             description="Choose which Chrome folders to include. Nested folders stay selected with their parent when enabled."
             className="pt-0">
-            <div className="border-border overflow-hidden rounded-[10px] border">
-              <button
-                type="button"
-                onClick={handleSelectAllFolders}
-                className={cn(
-                  "flex w-full cursor-pointer items-center gap-3 border-b px-3.5 py-2.5 text-left transition-none!",
-                  allFoldersSelected
-                    ? "bg-muted-strong text-foreground border-border"
-                    : "text-secondary hover:bg-muted hover:text-foreground border-border",
-                )}>
-                <FolderCheckmark checked={allFoldersSelected} />
-                <span className="text-sm font-medium">All folders</span>
-              </button>
+            {isLoadingFolders ? (
+              <ChromeFolderListLoading />
+            ) : (
+              <div className="border-border overflow-hidden rounded-[10px] border">
+                <button
+                  type="button"
+                  onClick={handleSelectAllFolders}
+                  className={cn(
+                    "flex w-full cursor-pointer items-center gap-3 border-b px-3.5 py-2.5 text-left transition-none!",
+                    allFoldersSelected
+                      ? "bg-muted-strong text-foreground border-border"
+                      : "text-secondary hover:bg-muted hover:text-foreground border-border",
+                  )}>
+                  <FolderCheckmark checked={allFoldersSelected} />
+                  <span className="text-sm font-medium">All folders</span>
+                </button>
 
-              <div className="divide-border max-h-48 divide-y overflow-y-auto">
-                {MOCK_CHROME_FOLDERS.map((folder) => {
-                  const isSelected = preferences.selectedFolderIds.includes(folder.id);
+                <ScrollArea
+                  className="h-56 **:data-[slot=scroll-area-scrollbar]:opacity-100 [&_[data-orientation=horizontal]]:hidden"
+                  scrollbarGutter
+                  viewportProps={{className: "divide-border divide-y overscroll-contain"}}>
+                  {MOCK_CHROME_FOLDERS.map((folder) => {
+                    const isSelected = preferences.selectedFolderIds.includes(folder.id);
 
-                  return (
-                    <button
-                      key={folder.id}
-                      type="button"
-                      role="checkbox"
-                      aria-checked={isSelected}
-                      onClick={() => toggleFolder(folder.id)}
-                      className={cn(
-                        "flex w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left transition-none!",
-                        isSelected
-                          ? "bg-muted-strong text-foreground"
-                          : "text-secondary hover:bg-muted hover:text-foreground",
-                      )}>
-                      <FolderCheckmark checked={isSelected} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium">{folder.label}</span>
-                        <span className="text-muted-foreground block truncate text-xs">
-                          {folder.path}
+                    return (
+                      <button
+                        key={folder.id}
+                        type="button"
+                        role="checkbox"
+                        aria-checked={isSelected}
+                        onClick={() => toggleFolder(folder.id)}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left transition-none!",
+                          isSelected
+                            ? "bg-muted-strong text-foreground"
+                            : "text-secondary hover:bg-muted hover:text-foreground",
+                        )}>
+                        <FolderCheckmark checked={isSelected} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium">
+                            {folder.label}
+                            <span className="text-muted-foreground pl-2">{folder.count} items</span>
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </ScrollArea>
               </div>
-            </div>
+            )}
           </PreferenceSection>
 
           <PreferenceSection
@@ -220,7 +233,6 @@ export function ChromePreferencesStep({userId}: {userId?: string | null}) {
                 selected={preferences.folderOrganization === "preserve"}
                 label="Preserve Chrome folders"
                 description="Create matching Tobira collections for the folders you selected."
-                badge="Recommended"
                 onSelect={(value) => setPreference("folderOrganization", value)}
               />
               <OrganizationOption
@@ -273,17 +285,6 @@ export function ChromePreferencesStep({userId}: {userId?: string | null}) {
           </Combobox>
         </PreferenceSection>
       ) : null}
-
-      <PreferenceSection
-        title="Skip duplicates"
-        description={"Don't import bookmarks already saved in Tobira."}>
-        <Switch
-          checked={preferences.skipDuplicates}
-          onToggle={() => setPreference("skipDuplicates", !preferences.skipDuplicates)}
-          aria-label="Skip duplicates"
-          className="hit-area-5 w-fit px-0 py-0"
-        />
-      </PreferenceSection>
 
       {isAutoSync ? (
         <>

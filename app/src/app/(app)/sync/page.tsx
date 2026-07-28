@@ -30,7 +30,7 @@ const SyncPage = async () => {
 
   return (
     <div className="flex h-full w-full">
-      <ScrollArea className="min-h-0 flex-1 py-12" viewportProps={{tabIndex: -1}}>
+      <ScrollArea className="min-h-0 flex-1 pt-12" viewportProps={{tabIndex: -1}}>
         <div className="mx-auto max-w-4xl px-6">
           <div className="">
             <div className="mb-16">
