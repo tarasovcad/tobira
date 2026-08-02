@@ -351,6 +351,74 @@ export const account = pgTable(
   ],
 );
 
+export const apikey = pgTable(
+  "apikey",
+  {
+    id: text().primaryKey().notNull(),
+    configId: text().default("default").notNull(),
+    name: text(),
+    start: text(),
+    referenceId: text().notNull(),
+    prefix: text(),
+    key: text().notNull(),
+    refillInterval: integer(),
+    refillAmount: integer(),
+    lastRefillAt: timestamp({withTimezone: true, mode: "string"}),
+    enabled: boolean().default(true),
+    rateLimitEnabled: boolean().default(true),
+    rateLimitTimeWindow: integer().default(60 * 1000),
+    rateLimitMax: integer().default(300),
+    requestCount: integer().default(0),
+    remaining: integer(),
+    lastRequest: timestamp({withTimezone: true, mode: "string"}),
+    expiresAt: timestamp({withTimezone: true, mode: "string"}),
+    createdAt: timestamp({withTimezone: true, mode: "string"}).notNull(),
+    updatedAt: timestamp({withTimezone: true, mode: "string"}).notNull(),
+    permissions: text(),
+    metadata: text(),
+  },
+  (table) => [
+    index("apikey_configId_idx").on(table.configId),
+    index("apikey_referenceId_idx").on(table.referenceId),
+    index("apikey_key_idx").on(table.key),
+  ],
+);
+
+export const extensionPairings = pgTable(
+  "extension_pairings",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    userCodeHash: text("user_code_hash").notNull(),
+    deviceTokenHash: text("device_token_hash").notNull(),
+    userId: text("user_id"),
+    apiKeyId: text("api_key_id"),
+    expiresAt: timestamp("expires_at", {withTimezone: true, mode: "string"}).notNull(),
+    approvedAt: timestamp("approved_at", {withTimezone: true, mode: "string"}),
+    claimedAt: timestamp("claimed_at", {withTimezone: true, mode: "string"}),
+    redeemedAt: timestamp("redeemed_at", {withTimezone: true, mode: "string"}),
+    cancelledAt: timestamp("cancelled_at", {withTimezone: true, mode: "string"}),
+    createdAt: timestamp("created_at", {withTimezone: true, mode: "string"}).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", {withTimezone: true, mode: "string"}).defaultNow().notNull(),
+  },
+  (table) => [
+    unique("extension_pairings_user_code_hash_key").on(table.userCodeHash),
+    unique("extension_pairings_device_token_hash_key").on(table.deviceTokenHash),
+    index("extension_pairings_expires_at_idx").on(table.expiresAt),
+    index("extension_pairings_user_id_idx").on(table.userId),
+    index("extension_pairings_api_key_id_idx").on(table.apiKeyId),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "extension_pairings_user_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.apiKeyId],
+      foreignColumns: [apikey.id],
+      name: "extension_pairings_api_key_id_fkey",
+    }).onDelete("set null"),
+  ],
+);
+
 export const tags = pgTable(
   "tags",
   {

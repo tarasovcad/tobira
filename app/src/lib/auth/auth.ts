@@ -2,6 +2,7 @@ import {betterAuth} from "better-auth";
 import {emailOTP} from "better-auth/plugins";
 import {nextCookies} from "better-auth/next-js";
 import Cloudflare from "cloudflare";
+import {apiKey} from "@better-auth/api-key";
 import {drizzleAdapter} from "@better-auth/drizzle-adapter";
 
 import {db} from "@/db";
@@ -80,6 +81,30 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    apiKey({
+      configId: "chrome-extension",
+      references: "user",
+      defaultPrefix: "tobira_ext_",
+      defaultKeyLength: 64,
+      requireName: true,
+      enableMetadata: true,
+      keyExpiration: {
+        defaultExpiresIn: 90 * 24 * 60 * 60,
+        disableCustomExpiresTime: true,
+      },
+      rateLimit: {
+        enabled: true,
+        timeWindow: 60 * 1000,
+        maxRequests: 300,
+      },
+      enableSessionForAPIKeys: false,
+      permissions: {
+        defaultPermissions: {
+          account: ["read"],
+          connection: ["delete"],
+        },
+      },
+    }),
     emailOTP({
       storeOTP: "hashed",
       otpLength: 6,
