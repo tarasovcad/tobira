@@ -1,3 +1,6 @@
+"use client";
+
+import {useCallback, useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -30,9 +33,9 @@ export function ConnectExtensionShell({children}: ConnectExtensionShellProps) {
   );
 }
 
-export function ConnectExtensionLogo() {
+export function ConnectExtensionLogo({connected = false}: {connected?: boolean}) {
   return (
-    <div className="mb-3.5 flex items-center justify-center">
+    <div className="relative mb-3.5 flex items-center justify-center">
       <div className="border-muted-foreground/40 relative flex h-14 w-14 items-center justify-center rounded-lg border border-dashed">
         <Image
           src="/logo/dark-logo.svg"
@@ -42,16 +45,43 @@ export function ConnectExtensionLogo() {
           className="dark:invert"
         />
       </div>
+      {connected && (
+        <div className="border-background bg-success absolute -right-1.5 -bottom-1.5 flex size-6 items-center justify-center rounded-full border-2 text-white">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 12 12"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path
+              d="M3 6.25L5.05 8.3L9.25 4.1"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
 
 export function ConnectExtensionView({state}: ConnectExtensionViewProps) {
+  const [isApproved, setIsApproved] = useState(false);
+  const handleApproved = useCallback(() => setIsApproved(true), []);
+
   return (
     <ConnectExtensionShell>
-      <ConnectExtensionLogo />
+      <ConnectExtensionLogo connected={isApproved || state.kind === "connected"} />
 
-      {state.kind === "pending" && <PendingState code={state.code} />}
+      {state.kind === "pending" &&
+        (isApproved ? (
+          <ConnectedState />
+        ) : (
+          <PendingState code={state.code} onApproved={handleApproved} />
+        ))}
       {state.kind === "signed-out" && <SignedOutState code={state.code} />}
       {state.kind === "missing-code" && (
         <TerminalState
@@ -83,13 +113,7 @@ export function ConnectExtensionView({state}: ConnectExtensionViewProps) {
           description="No account access was granted. You can close this tab or start again from the extension."
         />
       )}
-      {state.kind === "connected" && (
-        <TerminalState
-          title="Account connected"
-          description="You can close this tab and return to the extension."
-          actionLabel="Go to Tobira"
-        />
-      )}
+      {state.kind === "connected" && <ConnectedState />}
     </ConnectExtensionShell>
   );
 }
@@ -102,12 +126,12 @@ function PageHeader({title, description}: {title: string; description: string}) 
         className="text-foreground text-center text-[22px] font-medium tracking-tight">
         {title}
       </h1>
-      <p className="text-muted-foreground mt-1.5 mb-6 w-full text-center text-sm">{description}</p>
+      <p className="text-muted-foreground mt-1.5 mb-5 w-full text-center text-sm">{description}</p>
     </div>
   );
 }
 
-function PendingState({code}: {code: string}) {
+function PendingState({code, onApproved}: {code: string; onApproved: () => void}) {
   return (
     <section className="w-full" aria-labelledby="connect-extension-title">
       <PageHeader
@@ -117,17 +141,27 @@ function PendingState({code}: {code: string}) {
 
       <PairingCode code={code} />
 
-      <ApproveExtensionButton code={code} />
+      <ApproveExtensionButton code={code} onApproved={onApproved} />
 
       <div className="mt-2">
-        <Button variant="ghost" size="lg" className="w-full" render={<Link href="/home" />}>
+        <Button variant="ghost" size="default" className="w-full" render={<Link href="/home" />}>
           Cancel
         </Button>
       </div>
+    </section>
+  );
+}
 
-      <p className="text-muted-foreground mt-5 text-center text-xs leading-5">
-        Can view basic account info and manage this connection.
-      </p>
+function ConnectedState() {
+  return (
+    <section className="w-full" aria-labelledby="connect-extension-title">
+      <PageHeader
+        title="Account connected"
+        description="Your Tobira extension is ready to use. You can close this tab and return to the extension."
+      />
+      <Button size="default" className="w-full rounded-lg" render={<Link href="/home" />}>
+        Go to Tobira
+      </Button>
     </section>
   );
 }
@@ -143,7 +177,7 @@ function SignedOutState({code}: {code: string}) {
       <PairingCode code={code} />
 
       <div className="mt-8">
-        <Button size="lg" className="w-full rounded-lg" disabled aria-disabled="true">
+        <Button size="default" className="w-full rounded-lg" disabled aria-disabled="true">
           Sign in to continue
         </Button>
       </div>
@@ -176,7 +210,7 @@ function TerminalState({
     <section className="w-full" aria-labelledby="connect-extension-title">
       <PageHeader title={title} description={description} />
 
-      <Button size="lg" className="w-full rounded-lg" render={<Link href="/home" />}>
+      <Button size="default" className="w-full rounded-lg" render={<Link href="/home" />}>
         {actionLabel}
       </Button>
     </section>

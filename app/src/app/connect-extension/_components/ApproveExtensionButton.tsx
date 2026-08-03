@@ -12,13 +12,14 @@ import {
 
 type ApproveExtensionButtonProps = {
   code: string;
+  onApproved: () => void;
 };
 
 type ApprovalErrorStatus = Exclude<ExtensionPairingApprovalState["status"], "idle" | "approved">;
 
 const EXTENSION_PAIRING_APPROVED = "TOBIRA_EXTENSION_PAIRING_APPROVED";
 
-export function ApproveExtensionButton({code}: ApproveExtensionButtonProps) {
+export function ApproveExtensionButton({code, onApproved}: ApproveExtensionButtonProps) {
   const [state, formAction, isPending] = useActionState(
     approveExtensionPairing,
     initialExtensionPairingApprovalState,
@@ -36,21 +37,16 @@ export function ApproveExtensionButton({code}: ApproveExtensionButtonProps) {
       },
       window.location.origin,
     );
-  }, [code, state.status]);
+    onApproved();
+  }, [code, onApproved, state.status]);
 
-  if (state.status === "approved") {
-    return (
-      <p className="text-muted-foreground mt-5 text-center text-sm" role="status">
-        Connection approved. You can close this tab and return to the extension to finish.
-      </p>
-    );
-  }
+  if (state.status === "approved") return null;
 
   return (
     <>
       <form action={formAction} className="mt-8 space-y-2">
         <input type="hidden" name="code" value={code} />
-        <Button type="submit" size="lg" className="w-full rounded-lg" disabled={isPending}>
+        <Button type="submit" size="default" className="w-full rounded-lg" disabled={isPending}>
           {isPending && <Spinner />}
           {isPending ? "Connecting..." : "Connect extension"}
         </Button>

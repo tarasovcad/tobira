@@ -11,13 +11,17 @@ export function AccountConnectedPage({
   onContinue: () => void;
 }) {
   return (
-    <div className="relative w-72 select-none bg-background font-sans text-sm">
+    <div className="relative w-80 select-none bg-background font-sans text-sm">
       <CloseButton className="absolute top-3 right-3" />
 
       <div className="flex flex-col items-center px-5 pt-8 pb-5 text-center">
         <div className="relative mb-4">
           <div className="flex size-11 items-center justify-center rounded-xl border bg-card shadow-xs">
-            <img src="/logo/dark-logo.svg" alt="" className="size-6 shrink-0 object-contain" />
+            <img
+              src="/logo/dark-logo.svg"
+              alt=""
+              className="size-6 shrink-0 object-contain"
+            />
           </div>
           <div className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border-2 border-background bg-success text-white">
             <svg
@@ -46,7 +50,11 @@ export function AccountConnectedPage({
           {user.email} is now connected to this browser.
         </p>
 
-        <Button className="mt-4 w-full text-[13px]" size="xs" onClick={onContinue}>
+        <Button
+          className="mt-4 w-full text-[13px]"
+          size="xs"
+          onClick={onContinue}
+        >
           Next
         </Button>
       </div>
@@ -72,12 +80,16 @@ export function ConnectAccountPage({
   onReopen,
 }: ConnectAccountPageProps) {
   return (
-    <div className="relative w-72 select-none bg-background font-sans text-sm">
+    <div className="relative w-80 select-none bg-background font-sans text-sm">
       <CloseButton className="absolute top-3 right-3" />
 
       <div className="flex flex-col items-center px-5 pt-8 pb-5 text-center">
         <div className="mb-4 flex size-11 items-center justify-center rounded-xl border bg-card">
-          <img src="/logo/dark-logo.svg" alt="" className="size-6 shrink-0 object-contain" />
+          <img
+            src="/logo/dark-logo.svg"
+            alt=""
+            className="size-6 shrink-0 object-contain"
+          />
         </div>
 
         <h1 className="text-[16px] leading-snug font-medium tracking-tight text-foreground">
@@ -104,7 +116,12 @@ export function ConnectAccountPage({
         </Button>
 
         {isConnecting && (
-          <Button className="mt-2 w-full text-[13px]" size="xs" variant="ghost" onClick={onReopen}>
+          <Button
+            className="mt-2 w-full text-[13px]"
+            size="xs"
+            variant="ghost"
+            onClick={onReopen}
+          >
             Return to confirmation
           </Button>
         )}
@@ -114,12 +131,17 @@ export function ConnectAccountPage({
             <p className="text-[12px] text-muted-foreground">
               Confirm this code on the Tobira page:
             </p>
-            <p className="font-mono mt-0.5 text-[13px] font-semibold text-foreground">{userCode}</p>
+            <p className="font-mono mt-0.5 text-[13px] font-semibold text-foreground">
+              {userCode}
+            </p>
           </div>
         )}
 
         {error && (
-          <p className="mt-3 text-xs leading-relaxed text-destructive" role="alert">
+          <p
+            className="mt-3 text-xs leading-relaxed text-destructive"
+            role="alert"
+          >
             {error}
           </p>
         )}

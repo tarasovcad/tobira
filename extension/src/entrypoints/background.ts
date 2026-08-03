@@ -28,6 +28,7 @@ const DEVICE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 let storageAccessPromise: Promise<void> | undefined;
 let startPairingPromise: Promise<TobiraRuntimeResponse> | null = null;
 let redeemPairingPromise: Promise<ReconcileResult> | null = null;
+let reconcileConnectionPromise: Promise<string | undefined> | null = null;
 let disconnectPromise: Promise<TobiraRuntimeResponse> | null = null;
 let operationVersion = 0;
 
@@ -198,9 +199,19 @@ async function getTobiraStateResponse(
   let state = await getPublicTobiraState(warning);
 
   if (state.kind === "connected") {
-    const reconciliationWarning = await reconcileStoredConnection();
-    state = await getPublicTobiraState(reconciliationWarning ?? warning);
-    return {state, warning: reconciliationWarning};
+    // Use the persisted connection for instant popup startup and verify it in
+    // the background. A revoked connection will still be pushed to the popup.
+    void reconcileStoredConnection()
+      .then(async (reconciliationWarning) => {
+        broadcastTobiraState(
+          await getPublicTobiraState(reconciliationWarning ?? warning),
+        );
+      })
+      .catch((error) => {
+        console.error("Failed to reconcile the Tobira connection", error);
+      });
+
+    return {state, warning};
   }
 
   if (state.kind === "pairing") {
@@ -419,6 +430,17 @@ async function reconcileAndBroadcast() {
 }
 
 async function reconcileStoredConnection(): Promise<string | undefined> {
+  if (reconcileConnectionPromise) return reconcileConnectionPromise;
+
+  const operation = reconcileStoredConnectionInternal();
+  reconcileConnectionPromise = operation.finally(() => {
+    reconcileConnectionPromise = null;
+  });
+
+  return reconcileConnectionPromise;
+}
+
+async function reconcileStoredConnectionInternal(): Promise<string | undefined> {
   const connection = await readStoredConnection();
   if (!connection || isExpired(connection.expiresAt)) return undefined;
 
