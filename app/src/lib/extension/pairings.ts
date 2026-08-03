@@ -3,6 +3,7 @@ import {createHash, randomBytes, randomInt} from "node:crypto";
 export const EXTENSION_PAIRING_PATH = "/connect-extension";
 export const EXTENSION_PAIRING_TTL_MS = 5 * 60 * 1000;
 export const EXTENSION_PAIRING_POLL_INTERVAL_MS = 5 * 1000;
+export const EXTENSION_PAIRING_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
 
 const DEVICE_TOKEN_BYTES = 32;
 const USER_CODE_LENGTH = 8;

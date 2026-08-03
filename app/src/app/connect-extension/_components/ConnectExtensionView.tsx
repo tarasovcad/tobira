@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import {Button} from "@/components/ui/coss/button";
+import {ApproveExtensionButton} from "./ApproveExtensionButton";
 
 export type ConnectExtensionViewState =
   | {kind: "pending"; code: string}
@@ -116,10 +117,9 @@ function PendingState({code}: {code: string}) {
 
       <PairingCode code={code} />
 
-      <div className="mt-8 space-y-2">
-        <Button size="lg" className="w-full rounded-lg" aria-disabled="true">
-          Connect extension
-        </Button>
+      <ApproveExtensionButton code={code} />
+
+      <div className="mt-2">
         <Button variant="ghost" size="lg" className="w-full" render={<Link href="/home" />}>
           Cancel
         </Button>

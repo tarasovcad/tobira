@@ -1,6 +1,9 @@
 import type {Metadata} from "next";
 
-import {normalizeExtensionPairingCode} from "@/lib/extension/pairings";
+import {
+  EXTENSION_PAIRING_CODE_PATTERN,
+  normalizeExtensionPairingCode,
+} from "@/lib/extension/pairings";
 import {
   ConnectExtensionView,
   type ConnectExtensionViewState,
@@ -15,8 +18,6 @@ type ConnectExtensionSearchParams = {
   code?: string | string[];
 };
 
-const EXTENSION_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
-
 function getViewState(codeParam: ConnectExtensionSearchParams["code"]): ConnectExtensionViewState {
   if (!codeParam) {
     return {kind: "missing-code"};
@@ -28,7 +29,7 @@ function getViewState(codeParam: ConnectExtensionSearchParams["code"]): ConnectE
 
   const normalizedCode = normalizeExtensionPairingCode(codeParam);
 
-  if (!EXTENSION_CODE_PATTERN.test(normalizedCode)) {
+  if (!EXTENSION_PAIRING_CODE_PATTERN.test(normalizedCode)) {
     return {kind: "invalid-code"};
   }
 
