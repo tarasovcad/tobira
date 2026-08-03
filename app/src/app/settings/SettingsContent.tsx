@@ -6,8 +6,17 @@ import GeneralSettings from "./tabs/GeneralSettings";
 import PersonalizationSettings from "./tabs/PersonalizationSettings";
 import AccountSettings from "./tabs/AccountSettings";
 import DataSettings from "./tabs/DataSettings";
+import type {ExtensionConnection} from "@/lib/auth/extension-connections";
 
-export function SettingsContent({activeTag}: {activeTag: string}) {
+export function SettingsContent({
+  activeTag,
+  accountEmail,
+  extensionConnections,
+}: {
+  activeTag: string;
+  accountEmail: string;
+  extensionConnections: ExtensionConnection[];
+}) {
   return (
     <div className="flex h-full min-h-0 w-full">
       <ScrollArea className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:m-0.5 [&_[data-orientation=horizontal]]:hidden">
@@ -15,7 +24,9 @@ export function SettingsContent({activeTag}: {activeTag: string}) {
           <div className="mx-auto max-w-[840px]">
             {activeTag === "general" && <GeneralSettings />}
             {activeTag === "personalization" && <PersonalizationSettings />}
-            {activeTag === "account" && <AccountSettings />}
+            {activeTag === "account" && (
+              <AccountSettings email={accountEmail} extensionConnections={extensionConnections} />
+            )}
             {activeTag === "data" && <DataSettings />}
           </div>
         </div>

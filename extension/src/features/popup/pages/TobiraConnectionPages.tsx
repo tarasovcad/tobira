@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import Spinner from "@/components/ui/spinner";
+import type { TobiraConnectionUser } from "@/lib/tobira-connection-storage";
 import { CloseButton } from "../components/CloseButton";
 
-export function AccountConnectedPage({ onContinue }: { onContinue: () => void }) {
+export function AccountConnectedPage({
+  user,
+  onContinue,
+}: {
+  user: TobiraConnectionUser;
+  onContinue: () => void;
+}) {
   return (
     <div className="relative w-72 select-none bg-background font-sans text-sm">
       <CloseButton className="absolute top-3 right-3" />
@@ -36,7 +43,7 @@ export function AccountConnectedPage({ onContinue }: { onContinue: () => void })
           Account connected
         </h1>
         <p className="mt-1 max-w-[17rem] text-[13px] leading-relaxed text-muted-foreground">
-          Your Tobira account is now connected to this browser.
+          {user.email} is now connected to this browser.
         </p>
 
         <Button className="mt-4 w-full text-[13px]" size="xs" onClick={onContinue}>
@@ -48,17 +55,28 @@ export function AccountConnectedPage({ onContinue }: { onContinue: () => void })
 }
 
 type ConnectAccountPageProps = {
+  error?: string | null;
+  expiresAt?: string;
   isConnecting: boolean;
+  userCode?: string;
   onConnect: () => void;
+  onReopen: () => void;
 };
 
-export function ConnectAccountPage({ isConnecting, onConnect }: ConnectAccountPageProps) {
+export function ConnectAccountPage({
+  error,
+  expiresAt,
+  isConnecting,
+  userCode,
+  onConnect,
+  onReopen,
+}: ConnectAccountPageProps) {
   return (
     <div className="relative w-72 select-none bg-background font-sans text-sm">
       <CloseButton className="absolute top-3 right-3" />
 
       <div className="flex flex-col items-center px-5 pt-8 pb-5 text-center">
-        <div className="mb-4 flex size-11 items-center justify-center rounded-xl border bg-card shadow-xs">
+        <div className="mb-4 flex size-11 items-center justify-center rounded-xl border bg-card">
           <img src="/logo/dark-logo.svg" alt="" className="size-6 shrink-0 object-contain" />
         </div>
 
@@ -84,7 +102,38 @@ export function ConnectAccountPage({ isConnecting, onConnect }: ConnectAccountPa
             "Connect to Tobira"
           )}
         </Button>
+
+        {isConnecting && (
+          <Button className="mt-2 w-full text-[13px]" size="xs" variant="ghost" onClick={onReopen}>
+            Return to confirmation
+          </Button>
+        )}
+
+        {isConnecting && userCode && (
+          <div className="mt-3 rounded-lg border border-dashed py-2.5 text-left w-full px-3">
+            <p className="text-[12px] text-muted-foreground">
+              Confirm this code on the Tobira page:
+            </p>
+            <p className="font-mono mt-0.5 text-[13px] font-semibold text-foreground">{userCode}</p>
+          </div>
+        )}
+
+        {error && (
+          <p className="mt-3 text-xs leading-relaxed text-destructive" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
+}
+
+function formatExpiry(value: string): string {
+  const expiresAt = new Date(value);
+  if (Number.isNaN(expiresAt.getTime())) return "soon";
+
+  return expiresAt.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }

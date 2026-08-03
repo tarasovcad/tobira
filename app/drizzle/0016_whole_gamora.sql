@@ -1,0 +1,1 @@
+ALTER TABLE "extension_pairings" ADD COLUMN "client_metadata" jsonb;

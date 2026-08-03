@@ -11,21 +11,7 @@ import {
   normalizeExtensionPairingCode,
 } from "@/lib/extension/pairings";
 import {logger, toLogError} from "@/lib/shared/logger";
-
-export type ExtensionPairingApprovalState =
-  | {status: "idle"}
-  | {status: "approved"}
-  | {status: "unauthenticated"}
-  | {status: "invalid-code"}
-  | {status: "not-found"}
-  | {status: "expired"}
-  | {status: "used"}
-  | {status: "cancelled"}
-  | {status: "error"};
-
-export const initialExtensionPairingApprovalState: ExtensionPairingApprovalState = {
-  status: "idle",
-};
+import type {ExtensionPairingApprovalState} from "./extension-pairing-state";
 
 export async function approveExtensionPairing(
   _previousState: ExtensionPairingApprovalState,

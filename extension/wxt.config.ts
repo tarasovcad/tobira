@@ -16,6 +16,12 @@ export default defineConfig({
   },
   manifest: {
     permissions: ["cookies", "storage"],
-    host_permissions: ["*://*.x.com/*", "*://*.twitter.com/*"],
+    host_permissions: [
+      "*://*.x.com/*",
+      "*://*.twitter.com/*",
+      "https://tobira.app/*",
+      "http://localhost:3000/*",
+      "http://127.0.0.1:3000/*",
+    ],
   },
 });

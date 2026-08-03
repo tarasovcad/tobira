@@ -390,6 +390,7 @@ export const extensionPairings = pgTable(
     id: uuid().defaultRandom().primaryKey().notNull(),
     userCodeHash: text("user_code_hash").notNull(),
     deviceTokenHash: text("device_token_hash").notNull(),
+    clientMetadata: jsonb("client_metadata"),
     userId: text("user_id"),
     apiKeyId: text("api_key_id"),
     expiresAt: timestamp("expires_at", {withTimezone: true, mode: "string"}).notNull(),

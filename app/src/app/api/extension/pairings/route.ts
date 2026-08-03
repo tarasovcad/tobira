@@ -14,14 +14,23 @@ import {
 } from "@/lib/rate-limit/extension-pairings";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {getIp} from "@/lib/utils/ip";
+import {extensionClientMetadataSchema} from "@/lib/extension/device-metadata";
 
 export const runtime = "nodejs";
 
 const MAX_INSERT_ATTEMPTS = 3;
 const NO_STORE_HEADERS = {"cache-control": "no-store"};
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const clientMetadata = await readClientMetadata(request);
+    if (!clientMetadata) {
+      return NextResponse.json(
+        {error: "Valid extension device metadata is required", code: "INVALID_METADATA"},
+        {status: 400, headers: NO_STORE_HEADERS},
+      );
+    }
+
     const ip = await getIp();
     await enforceExtensionPairingCreateRateLimit(ip);
 
@@ -37,6 +46,7 @@ export async function POST() {
         await db.insert(extensionPairings).values({
           userCodeHash: credentials.userCodeHash,
           deviceTokenHash: credentials.deviceTokenHash,
+          clientMetadata,
           expiresAt,
         });
 
@@ -93,6 +103,23 @@ export async function POST() {
     {error: "Failed to create extension pairing"},
     {status: 500, headers: NO_STORE_HEADERS},
   );
+}
+
+async function readClientMetadata(request: Request) {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return null;
+  }
+
+  if (typeof body !== "object" || body === null || !("clientMetadata" in body)) {
+    return null;
+  }
+
+  const result = extensionClientMetadataSchema.safeParse(body.clientMetadata);
+  return result.success ? result.data : null;
 }
 
 function isUniqueViolation(error: unknown): boolean {

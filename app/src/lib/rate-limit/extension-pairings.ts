@@ -14,6 +14,18 @@ const extensionPairingHourLimiter = new Ratelimit({
   prefix: "rl:extension-pairing:create:ip:hour",
 });
 
+const extensionPairingRedeemMinuteLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.tokenBucket(30, "1 m", 30),
+  prefix: "rl:extension-pairing:redeem:ip:minute",
+});
+
+const extensionPairingRedeemTokenLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.tokenBucket(10, "1 m", 10),
+  prefix: "rl:extension-pairing:redeem:token:minute",
+});
+
 export class ExtensionPairingRateLimitError extends Error {
   constructor(public readonly reset: number) {
     super("Too many extension pairing requests. Please try again later.");
@@ -45,6 +57,24 @@ export async function enforceExtensionPairingCreateRateLimit(identifier: string)
     }
 
     logger.error("Extension pairing rate limit failed", {error: toLogError(error)});
+    throw new ExtensionPairingRateLimitUnavailableError();
+  }
+}
+
+export async function enforceExtensionPairingRedeemRateLimit(ip: string, deviceTokenHash: string) {
+  try {
+    await enforceLimit(extensionPairingRedeemMinuteLimiter, ip);
+    // The hash avoids putting the device token itself into the rate-limit key.
+    await enforceLimit(extensionPairingRedeemTokenLimiter, deviceTokenHash.slice(0, 16));
+  } catch (error) {
+    if (
+      error instanceof ExtensionPairingRateLimitError ||
+      error instanceof ExtensionPairingRateLimitUnavailableError
+    ) {
+      throw error;
+    }
+
+    logger.error("Extension pairing redemption rate limit failed", {error: toLogError(error)});
     throw new ExtensionPairingRateLimitUnavailableError();
   }
 }

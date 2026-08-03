@@ -9,6 +9,7 @@ import {db} from "@/db";
 import {trackServerEvent} from "@/lib/analytics/server";
 import type {AuthMethod} from "@/lib/analytics/events";
 import {AUTH_COOKIE_PREFIX} from "@/lib/auth/cookies";
+import {EXTENSION_API_KEY_PERMISSIONS} from "@/lib/auth/extension-permissions";
 
 type AuthHookContext = {
   path?: string;
@@ -16,6 +17,8 @@ type AuthHookContext = {
     id?: string;
   };
 } | null;
+
+export const EXTENSION_API_KEY_CONFIG_ID = "chrome-extension";
 
 function getAuthMethodFromContext(context: AuthHookContext): AuthMethod {
   if (context?.path === "/sign-in/email-otp") return "otp";
@@ -82,7 +85,7 @@ export const auth = betterAuth({
   },
   plugins: [
     apiKey({
-      configId: "chrome-extension",
+      configId: EXTENSION_API_KEY_CONFIG_ID,
       references: "user",
       defaultPrefix: "tobira_ext_",
       defaultKeyLength: 64,
@@ -100,8 +103,8 @@ export const auth = betterAuth({
       enableSessionForAPIKeys: false,
       permissions: {
         defaultPermissions: {
-          account: ["read"],
-          connection: ["delete"],
+          ...EXTENSION_API_KEY_PERMISSIONS.accountRead,
+          ...EXTENSION_API_KEY_PERMISSIONS.connectionDelete,
         },
       },
     }),

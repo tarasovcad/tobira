@@ -1,9 +1,11 @@
 import type {Metadata} from "next";
+import {redirect} from "next/navigation";
 
 import {
   EXTENSION_PAIRING_CODE_PATTERN,
   normalizeExtensionPairingCode,
 } from "@/lib/extension/pairings";
+import {getCurrentUserId} from "@/lib/auth/session";
 import {
   ConnectExtensionView,
   type ConnectExtensionViewState,
@@ -44,6 +46,12 @@ export default async function ConnectExtensionPage({
 }: {
   searchParams: Promise<ConnectExtensionSearchParams>;
 }) {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    redirect("/login");
+  }
+
   const {code} = await searchParams;
 
   return <ConnectExtensionView state={getViewState(code)} />;
