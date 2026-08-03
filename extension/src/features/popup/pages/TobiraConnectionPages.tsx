@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
 import Spinner from "@/components/ui/spinner";
-import type { TobiraConnectionUser } from "@/lib/tobira-connection-storage";
+import type { TobiraConnectionUser } from "@/lib/tobira-contracts";
 import { CloseButton } from "../components/CloseButton";
 
 export function AccountConnectedPage({
+  error,
   user,
   onContinue,
 }: {
+  error?: string | null;
   user: TobiraConnectionUser;
   onContinue: () => void;
 }) {
@@ -57,14 +59,23 @@ export function AccountConnectedPage({
         >
           Next
         </Button>
+
+        {error && (
+          <p
+            className="mt-3 text-xs leading-relaxed text-destructive"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
 type ConnectAccountPageProps = {
+  canReopen: boolean;
   error?: string | null;
-  expiresAt?: string;
   isConnecting: boolean;
   userCode?: string;
   onConnect: () => void;
@@ -72,8 +83,8 @@ type ConnectAccountPageProps = {
 };
 
 export function ConnectAccountPage({
+  canReopen,
   error,
-  expiresAt,
   isConnecting,
   userCode,
   onConnect,
@@ -115,7 +126,7 @@ export function ConnectAccountPage({
           )}
         </Button>
 
-        {isConnecting && (
+        {canReopen && (
           <Button
             className="mt-2 w-full text-[13px]"
             size="xs"
@@ -148,14 +159,4 @@ export function ConnectAccountPage({
       </div>
     </div>
   );
-}
-
-function formatExpiry(value: string): string {
-  const expiresAt = new Date(value);
-  if (Number.isNaN(expiresAt.getTime())) return "soon";
-
-  return expiresAt.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }

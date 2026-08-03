@@ -1,6 +1,12 @@
 import { browser } from "wxt/browser";
 import { storage } from "wxt/utils/storage";
 
+import {
+  parseTobiraStoredAuth,
+  type TobiraStoredAuth,
+} from "@/lib/tobira-contracts";
+import { isTobiraAppUrl } from "@/lib/tobira-config";
+
 export type TobiraDeviceMetadata = {
   installationId: string;
   browser: "chrome";
@@ -9,48 +15,52 @@ export type TobiraDeviceMetadata = {
   extensionVersion: string;
 };
 
-export type TobiraConnectionUser = {
-  id: string;
-  name: string;
-  email: string;
-  image: string | null;
+export type TobiraAuthStore = {
+  get(): Promise<TobiraStoredAuth | null>;
+  set(value: TobiraStoredAuth | null): Promise<void>;
 };
 
-export type TobiraConnection = {
-  apiKey: string;
-  apiKeyId: string;
-  user: TobiraConnectionUser;
-  expiresAt: string | null;
-  confirmationPending: boolean;
-  connectedAt: string;
-};
-
-export type TobiraPendingPairing = {
-  deviceToken: string;
-  userCode: string;
-  verificationUrl: string;
-  verificationUrlComplete: string;
-  expiresAt: string;
-  pollIntervalMs: number;
-};
-
-export const tobiraInstallation = storage.defineItem<TobiraDeviceMetadata | null>(
+const tobiraInstallation = storage.defineItem<TobiraDeviceMetadata | null>(
   "local:tobiraInstallation",
   { fallback: null },
 );
 
-export const tobiraConnection = storage.defineItem<TobiraConnection | null>(
-  "local:tobiraConnection",
-  { fallback: null },
-);
+const tobiraAuth = storage.defineItem<unknown>("local:tobiraAuth", {
+  fallback: null,
+});
 
-export const tobiraPendingPairing =
-  storage.defineItem<TobiraPendingPairing | null>(
-    "local:tobiraPendingPairing",
-    { fallback: null },
-  );
+export const browserTobiraAuthStore: TobiraAuthStore = {
+  async get() {
+    const value = await tobiraAuth.getValue();
+    if (value === null) return null;
 
-export async function restrictTobiraStorageAccess() {
+    const auth = parseTobiraStoredAuth(value);
+    if (
+      !auth ||
+      (auth.kind === "pairing" &&
+        !isTobiraAppUrl(auth.pairing.verificationUrlComplete))
+    ) {
+      await tobiraAuth.removeValue();
+      return null;
+    }
+
+    if (JSON.stringify(value) !== JSON.stringify(auth)) {
+      await tobiraAuth.setValue(auth);
+    }
+
+    return auth;
+  },
+  async set(value) {
+    if (value === null) {
+      await tobiraAuth.removeValue();
+      return;
+    }
+
+    await tobiraAuth.setValue(value);
+  },
+};
+
+export async function restrictTobiraStorageAccess(): Promise<void> {
   await browser.storage.local.setAccessLevel({
     accessLevel: "TRUSTED_CONTEXTS",
   });
@@ -69,9 +79,22 @@ export async function getTobiraDeviceMetadata(): Promise<TobiraDeviceMetadata> {
     extensionVersion: manifest.version,
   };
 
-  if (JSON.stringify(existing) !== JSON.stringify(metadata)) {
+  if (!hasSameDeviceMetadata(existing, metadata)) {
     await tobiraInstallation.setValue(metadata);
   }
 
   return metadata;
+}
+
+function hasSameDeviceMetadata(
+  left: TobiraDeviceMetadata | null,
+  right: TobiraDeviceMetadata,
+): boolean {
+  return (
+    left?.installationId === right.installationId &&
+    left.browser === right.browser &&
+    left.os === right.os &&
+    left.architecture === right.architecture &&
+    left.extensionVersion === right.extensionVersion
+  );
 }

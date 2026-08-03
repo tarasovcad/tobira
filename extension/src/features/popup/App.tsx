@@ -1,31 +1,40 @@
-import {useEffect, useState} from "react";
-import {browser} from "wxt/browser";
+import { useEffect, useState } from "react";
+import { browser } from "wxt/browser";
 
 import {
   AccountConnectedPage,
   ConnectAccountPage,
 } from "./pages/TobiraConnectionPages";
-import {MainPage} from "./pages/MainPage";
-import type {ProviderId} from "./providers/providers";
-import type {TobiraConnectionUser} from "@/lib/tobira-connection-storage";
+import { MainPage } from "./pages/MainPage";
+import type { ProviderId } from "./providers/providers";
+import type {
+  TobiraConnectionUser,
+  TobiraPublicState,
+} from "@/lib/tobira-contracts";
 import {
   isTobiraStateChangedMessage,
-  type PublicTobiraState,
   type TobiraRuntimeResponse,
 } from "@/lib/tobira-messages";
-
-const INITIAL_STATE: PublicTobiraState = {kind: "bootstrapping"};
+import {
+  acknowledgeTobiraConnection,
+  disconnectTobiraConnection,
+  reopenTobiraPairing,
+  requestTobiraState,
+  startTobiraPairing,
+} from "@/lib/tobira-runtime-client";
 
 function App() {
   const [connectionState, setConnectionState] =
-    useState<PublicTobiraState>(INITIAL_STATE);
+    useState<TobiraPublicState | null>(null);
   const [activeProviderId, setActiveProviderId] = useState<ProviderId | null>(
     null,
   );
   const [connectedProviderIds, setConnectedProviderIds] = useState<
     ProviderId[]
   >([]);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionNotice, setConnectionNotice] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -33,9 +42,10 @@ function App() {
     const handleStateChanged = (message: unknown) => {
       if (!isMounted || !isTobiraStateChangedMessage(message)) return;
 
-      setConnectionState(message.state);
-      setConnectionError(
-        message.state.kind === "pairing" ? message.state.warning ?? null : null,
+      applyRuntimeResponse(
+        message,
+        setConnectionState,
+        setConnectionNotice,
       );
     };
 
@@ -44,12 +54,16 @@ function App() {
     void requestTobiraState()
       .then((response) => {
         if (!isMounted) return;
-        applyRuntimeResponse(response, setConnectionState, setConnectionError);
+        applyRuntimeResponse(
+          response,
+          setConnectionState,
+          setConnectionNotice,
+        );
       })
       .catch((error) => {
         if (!isMounted) return;
-        setConnectionState({kind: "disconnected"});
-        setConnectionError(getConnectionErrorMessage(error));
+        setConnectionState({ kind: "disconnected" });
+        setConnectionNotice(getConnectionErrorMessage(error));
       });
 
     return () => {
@@ -59,85 +73,91 @@ function App() {
   }, []);
 
   const startConnection = async () => {
-    if (
-      connectionState.kind === "pairing" ||
-      connectionState.kind === "connected" ||
-      connectionState.kind === "disconnecting"
-    ) {
-      return;
-    }
+    if (!connectionState || connectionState.kind !== "disconnected") return;
 
-    setConnectionError(null);
+    setConnectionNotice(null);
+    setIsStarting(true);
 
     try {
-      const response = await browser.runtime.sendMessage({
-        type: "START_TOBIRA_PAIRING",
-      });
       applyRuntimeResponse(
-        response as TobiraRuntimeResponse,
+        await startTobiraPairing(),
         setConnectionState,
-        setConnectionError,
+        setConnectionNotice,
       );
     } catch (error) {
-      setConnectionState({kind: "disconnected"});
-      setConnectionError(getConnectionErrorMessage(error));
+      setConnectionNotice(getConnectionErrorMessage(error));
+    } finally {
+      setIsStarting(false);
     }
   };
 
   const reopenConnection = async () => {
-    setConnectionError(null);
+    setConnectionNotice(null);
 
     try {
-      const response = await browser.runtime.sendMessage({
-        type: "TOBIRA_OPEN_PAIRING",
-      });
       applyRuntimeResponse(
-        response as TobiraRuntimeResponse,
+        await reopenTobiraPairing(),
         setConnectionState,
-        setConnectionError,
+        setConnectionNotice,
       );
     } catch (error) {
-      setConnectionError(getConnectionErrorMessage(error));
+      setConnectionNotice(getConnectionErrorMessage(error));
     }
   };
 
   const acknowledgeConnected = async () => {
+    setConnectionNotice(null);
+
     try {
-      const response = await browser.runtime.sendMessage({
-        type: "TOBIRA_ACK_CONNECTED",
-      });
       applyRuntimeResponse(
-        response as TobiraRuntimeResponse,
+        await acknowledgeTobiraConnection(),
         setConnectionState,
-        setConnectionError,
+        setConnectionNotice,
       );
     } catch (error) {
-      setConnectionError(getConnectionErrorMessage(error));
+      setConnectionNotice(getConnectionErrorMessage(error));
     }
   };
 
   const disconnect = async () => {
-    if (connectionState.kind !== "connected") return;
+    if (connectionState?.kind !== "connected" || isDisconnecting) return;
 
-    setConnectionState({
-      kind: "disconnecting",
-      user: connectionState.user,
-    });
-    setConnectionError(null);
+    const previousState = connectionState;
+    setConnectionNotice(null);
+    setIsDisconnecting(true);
 
     try {
-      const response = await browser.runtime.sendMessage({
-        type: "TOBIRA_DISCONNECT",
-      });
+      const response = await disconnectTobiraConnection();
       applyRuntimeResponse(
-        response as TobiraRuntimeResponse,
+        response,
         setConnectionState,
-        setConnectionError,
+        setConnectionNotice,
       );
-      setActiveProviderId(null);
+      if (response.state.kind === "disconnected") {
+        setActiveProviderId(null);
+      }
     } catch (error) {
-      setConnectionError(getConnectionErrorMessage(error));
-      setConnectionState({kind: "disconnected"});
+      const transportNotice = getConnectionErrorMessage(error);
+
+      try {
+        const response = await requestTobiraState();
+        applyRuntimeResponse(
+          {
+            ...response,
+            notice: response.notice ?? transportNotice,
+          },
+          setConnectionState,
+          setConnectionNotice,
+        );
+        if (response.state.kind === "disconnected") {
+          setActiveProviderId(null);
+        }
+      } catch {
+        setConnectionState(previousState);
+        setConnectionNotice(transportNotice);
+      }
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -153,8 +173,9 @@ function App() {
       <MainPage
         activeProviderId={activeProviderId}
         connectedProviderIds={connectedProviderIds}
+        connectionNotice={connectionNotice}
         connectionUser={mainUser}
-        isDisconnecting={connectionState.kind === "disconnecting"}
+        isDisconnecting={isDisconnecting}
         onCloseProvider={() => setActiveProviderId(null)}
         onConnectProvider={connectProvider}
         onDisconnect={() => void disconnect()}
@@ -164,85 +185,47 @@ function App() {
   }
 
   if (
-    connectionState.kind === "connected" &&
+    connectionState?.kind === "connected" &&
     connectionState.confirmationPending
   ) {
     return (
       <AccountConnectedPage
+        error={connectionNotice}
         user={connectionState.user}
         onContinue={() => void acknowledgeConnected()}
       />
     );
   }
 
-  const isConnecting =
-    connectionState.kind === "bootstrapping" ||
-    connectionState.kind === "pairing";
+  const isPairing = connectionState?.kind === "pairing";
 
   return (
     <ConnectAccountPage
-      error={
-        connectionError ??
-        (connectionState.kind === "pairing"
-          ? connectionState.warning ?? null
-          : null)
-      }
-      expiresAt={
-        connectionState.kind === "pairing"
-          ? connectionState.expiresAt
-          : undefined
-      }
-      isConnecting={isConnecting}
-      userCode={
-        connectionState.kind === "pairing"
-          ? connectionState.userCode
-          : undefined
-      }
+      canReopen={isPairing}
+      error={connectionNotice}
+      isConnecting={connectionState === null || isStarting || isPairing}
+      userCode={isPairing ? connectionState.userCode : undefined}
       onConnect={() => void startConnection()}
       onReopen={() => void reopenConnection()}
     />
   );
 }
 
-async function requestTobiraState(): Promise<TobiraRuntimeResponse> {
-  return (await browser.runtime.sendMessage({
-    type: "TOBIRA_GET_CONNECTION_STATE",
-  })) as TobiraRuntimeResponse;
-}
-
 function applyRuntimeResponse(
-  response: TobiraRuntimeResponse | null | undefined,
-  setState: (state: PublicTobiraState) => void,
-  setError: (error: string | null) => void,
-) {
-  if (!response?.state) {
-    setError(
-      response && "error" in response && typeof response.error === "string"
-        ? response.error
-        : "Could not update the Tobira connection. Please try again.",
-    );
-    return;
-  }
-
+  response: TobiraRuntimeResponse,
+  setState: (state: TobiraPublicState) => void,
+  setNotice: (notice: string | null) => void,
+): void {
   setState(response.state);
-  setError(response.error ?? response.warning ?? getStateWarning(response.state));
+  setNotice(response.notice ?? null);
 }
 
-function getStateWarning(state: PublicTobiraState): string | null {
-  if (state.kind === "disconnected" || state.kind === "pairing") {
-    return state.warning ?? null;
-  }
-
-  return null;
-}
-
-function getMainUser(state: PublicTobiraState): TobiraConnectionUser | null {
-  if (state.kind === "disconnecting") return state.user;
-  if (state.kind === "connected" && !state.confirmationPending) {
-    return state.user;
-  }
-
-  return null;
+function getMainUser(
+  state: TobiraPublicState | null,
+): TobiraConnectionUser | null {
+  return state?.kind === "connected" && !state.confirmationPending
+    ? state.user
+    : null;
 }
 
 function getConnectionErrorMessage(error: unknown): string {

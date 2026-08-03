@@ -1,25 +1,8 @@
-import type { TobiraConnectionUser } from "@/lib/tobira-connection-storage";
-
-export type PublicTobiraState =
-  | { kind: "bootstrapping" }
-  | { kind: "disconnected"; warning?: string }
-  | {
-      kind: "pairing";
-      userCode: string;
-      expiresAt: string;
-      warning?: string;
-    }
-  | {
-      kind: "connected";
-      user: TobiraConnectionUser;
-      apiKeyId: string;
-      expiresAt: string | null;
-      confirmationPending: boolean;
-    }
-  | {
-      kind: "disconnecting";
-      user: TobiraConnectionUser;
-    };
+import {
+  isRecord,
+  isTobiraPublicState,
+  type TobiraPublicState,
+} from "@/lib/tobira-contracts";
 
 export type TobiraRuntimeMessage =
   | { type: "TOBIRA_GET_CONNECTION_STATE" }
@@ -30,82 +13,34 @@ export type TobiraRuntimeMessage =
   | { type: "TOBIRA_DISCONNECT" };
 
 export type TobiraRuntimeResponse = {
-  state: PublicTobiraState;
-  error?: string;
-  warning?: string;
+  state: TobiraPublicState;
+  notice?: string;
 };
 
-export type TobiraStateChangedMessage = {
+export type TobiraStateChangedMessage = TobiraRuntimeResponse & {
   type: "TOBIRA_STATE_CHANGED";
-  state: PublicTobiraState;
 };
+
+export function isTobiraRuntimeResponse(
+  value: unknown,
+): value is TobiraRuntimeResponse {
+  return (
+    isRecord(value) &&
+    isTobiraPublicState(value.state) &&
+    (value.notice === undefined || typeof value.notice === "string")
+  );
+}
 
 export function isTobiraStateChangedMessage(
   value: unknown,
 ): value is TobiraStateChangedMessage {
-  if (typeof value !== "object" || value === null) return false;
-
-  const message = value as { state?: unknown; type?: unknown };
   return (
-    message.type === "TOBIRA_STATE_CHANGED" &&
-    isPublicTobiraState(message.state)
+    isRecord(value) &&
+    value.type === "TOBIRA_STATE_CHANGED" &&
+    isTobiraRuntimeResponse(value)
   );
 }
 
-function isPublicTobiraState(value: unknown): value is PublicTobiraState {
-  if (typeof value !== "object" || value === null) return false;
-
-  const state = value as {
-    apiKeyId?: unknown;
-    confirmationPending?: unknown;
-    expiresAt?: unknown;
-    kind?: unknown;
-    user?: unknown;
-    userCode?: unknown;
-    warning?: unknown;
-  };
-
-  if (state.kind === "bootstrapping") return true;
-
-  if (state.kind === "disconnected") {
-    return state.warning === undefined || typeof state.warning === "string";
-  }
-
-  if (state.kind === "pairing") {
-    return (
-      typeof state.userCode === "string" &&
-      typeof state.expiresAt === "string" &&
-      (state.warning === undefined || typeof state.warning === "string")
-    );
-  }
-
-  if (state.kind === "disconnecting") {
-    return isTobiraConnectionUser(state.user);
-  }
-
-  return (
-    state.kind === "connected" &&
-    isTobiraConnectionUser(state.user) &&
-    typeof state.apiKeyId === "string" &&
-    (state.expiresAt === null || typeof state.expiresAt === "string") &&
-    typeof state.confirmationPending === "boolean"
-  );
-}
-
-function isTobiraConnectionUser(value: unknown): value is TobiraConnectionUser {
-  if (typeof value !== "object" || value === null) return false;
-
-  const user = value as {
-    email?: unknown;
-    id?: unknown;
-    image?: unknown;
-    name?: unknown;
-  };
-
-  return (
-    typeof user.id === "string" &&
-    typeof user.name === "string" &&
-    typeof user.email === "string" &&
-    (user.image === null || typeof user.image === "string")
-  );
+export function getRuntimeMessageType(value: unknown): string | null {
+  return isRecord(value) && typeof value.type === "string" ? value.type : null;
 }

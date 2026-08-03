@@ -1,16 +1,14 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "tobira-extension",
+  "description": "Connect Tobira to your browser and bring your saved content together.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
+    "build:local": "wxt build --mode development",
     "build": "wxt build",
-    "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare"
   },

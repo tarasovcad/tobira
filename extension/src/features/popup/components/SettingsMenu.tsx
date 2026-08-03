@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/menu";
 import { cn } from "@/lib/utils";
 import { TOBIRA_APP_URL } from "@/lib/tobira-config";
-import type { TobiraConnectionUser } from "@/lib/tobira-connection-storage";
+import type { TobiraConnectionUser } from "@/lib/tobira-contracts";
 import { Avatar as UserAvatar } from "../../../../../app/src/components/ui/app/avatar";
 
 function openTobira(path = "") {

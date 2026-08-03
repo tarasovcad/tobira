@@ -1,10 +1,15 @@
-import { defineConfig } from "wxt";
 import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "wxt";
 
-// See https://wxt.dev/api/config.html
+import {
+  DEVELOPMENT_TOBIRA_APP_URL,
+  PRODUCTION_TOBIRA_APP_URL,
+} from "./src/lib/tobira-origins";
+
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   srcDir: "src",
+  targetBrowsers: ["chrome"],
   vite: () => ({
     plugins: [tailwindcss()],
   }),
@@ -14,14 +19,22 @@ export default defineConfig({
       origin: "http://localhost:3001",
     },
   },
-  manifest: {
-    permissions: ["cookies", "storage"],
-    host_permissions: [
-      "*://*.x.com/*",
-      "*://*.twitter.com/*",
-      "https://tobira.app/*",
-      "http://localhost:3000/*",
-      "http://127.0.0.1:3000/*",
-    ],
+  manifest: ({ mode }) => {
+    const tobiraAppUrl =
+      mode === "development"
+        ? DEVELOPMENT_TOBIRA_APP_URL
+        : PRODUCTION_TOBIRA_APP_URL;
+
+    return {
+      name: "Tobira",
+      description:
+        "Connect Tobira to your browser and bring your saved content together.",
+      permissions: ["cookies", "storage"],
+      host_permissions: [
+        "*://*.x.com/*",
+        "*://*.twitter.com/*",
+        `${tobiraAppUrl}/*`,
+      ],
+    };
   },
 });

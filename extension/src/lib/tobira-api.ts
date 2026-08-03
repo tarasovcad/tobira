@@ -1,36 +1,24 @@
-import { buildTobiraUrl } from "@/lib/tobira-config";
+import { buildTobiraUrl, isTobiraAppUrl } from "@/lib/tobira-config";
 import {
-  getTobiraDeviceMetadata,
-  type TobiraConnectionUser,
-} from "@/lib/tobira-connection-storage";
+  parseTobiraPairingResponse,
+  parseTobiraRedeemResult,
+  parseTobiraRemoteConnection,
+  type TobiraPairingResponse,
+  type TobiraRedeemResult,
+  type TobiraRemoteConnection,
+} from "@/lib/tobira-contracts";
+import { getTobiraDeviceMetadata } from "@/lib/tobira-connection-storage";
 
 const PAIRINGS_ENDPOINT = "/api/extension/pairings";
 const CONNECTION_ENDPOINT = "/api/extension/connection";
+const TOBIRA_REQUEST_TIMEOUT_MS = 10_000;
 
-export type TobiraPairing = {
-  deviceToken: string;
-  userCode: string;
-  verificationUrl: string;
-  verificationUrlComplete: string;
-  expiresAt: string;
-  pollIntervalMs: number;
+export type TobiraApi = {
+  createPairing(): Promise<TobiraPairingResponse>;
+  redeemPairing(deviceToken: string): Promise<TobiraRedeemResult>;
+  getConnection(apiKey: string): Promise<TobiraRemoteConnection>;
+  revokeConnection(apiKey: string): Promise<void>;
 };
-
-export type TobiraConnection = {
-  user: TobiraConnectionUser;
-  apiKeyId: string;
-  expiresAt: string | null;
-};
-
-export type TobiraRedeemResult =
-  | { status: "pending" }
-  | {
-      status: "redeemed";
-      apiKey: string;
-      apiKeyId: string;
-      expiresAt: string | null;
-      user: TobiraConnectionUser;
-    };
 
 export class TobiraApiError extends Error {
   constructor(
@@ -46,6 +34,13 @@ export class TobiraApiError extends Error {
 type TobiraRequestOptions = Omit<RequestInit, "headers"> & {
   apiKey?: string;
   headers?: HeadersInit;
+};
+
+export const browserTobiraApi: TobiraApi = {
+  createPairing: createTobiraPairing,
+  redeemPairing: redeemTobiraPairing,
+  getConnection: getTobiraConnection,
+  revokeConnection: revokeTobiraConnection,
 };
 
 export async function requestTobira<T>(
@@ -71,9 +66,15 @@ export async function requestTobira<T>(
       ...requestInit,
       cache: "no-store",
       headers,
+      signal:
+        requestInit.signal ?? AbortSignal.timeout(TOBIRA_REQUEST_TIMEOUT_MS),
     });
-  } catch {
-    throw new TobiraApiError(`Could not reach Tobira at ${url}`, 0);
+  } catch (error) {
+    const message =
+      error instanceof DOMException && error.name === "TimeoutError"
+        ? "The Tobira request timed out"
+        : `Could not reach Tobira at ${url}`;
+    throw new TobiraApiError(message, 0);
   }
 
   const payload = await readResponsePayload(response);
@@ -92,13 +93,17 @@ export async function requestTobira<T>(
   return payload as T;
 }
 
-export async function createTobiraPairing(): Promise<TobiraPairing> {
-  const pairing = await requestTobira<unknown>(PAIRINGS_ENDPOINT, {
+async function createTobiraPairing(): Promise<TobiraPairingResponse> {
+  const payload = await requestTobira<unknown>(PAIRINGS_ENDPOINT, {
     method: "POST",
-    body: JSON.stringify({clientMetadata: await getTobiraDeviceMetadata()}),
+    body: JSON.stringify({ clientMetadata: await getTobiraDeviceMetadata() }),
   });
 
-  if (!isTobiraPairing(pairing)) {
+  const pairing = parseTobiraPairingResponse(payload);
+  if (
+    !pairing ||
+    !isTobiraAppUrl(pairing.verificationUrlComplete)
+  ) {
     throw new TobiraApiError(
       "Tobira returned an invalid pairing response",
       502,
@@ -108,15 +113,16 @@ export async function createTobiraPairing(): Promise<TobiraPairing> {
   return pairing;
 }
 
-export async function redeemTobiraPairing(
+async function redeemTobiraPairing(
   deviceToken: string,
 ): Promise<TobiraRedeemResult> {
-  const result = await requestTobira<unknown>(`${PAIRINGS_ENDPOINT}/redeem`, {
+  const payload = await requestTobira<unknown>(`${PAIRINGS_ENDPOINT}/redeem`, {
     method: "POST",
     body: JSON.stringify({ deviceToken }),
   });
 
-  if (!isTobiraRedeemResult(result)) {
+  const result = parseTobiraRedeemResult(payload);
+  if (!result) {
     throw new TobiraApiError(
       "Tobira returned an invalid redemption response",
       502,
@@ -126,12 +132,13 @@ export async function redeemTobiraPairing(
   return result;
 }
 
-export async function getTobiraConnection(
+async function getTobiraConnection(
   apiKey: string,
-): Promise<TobiraConnection> {
-  const result = await requestTobira<unknown>(CONNECTION_ENDPOINT, { apiKey });
+): Promise<TobiraRemoteConnection> {
+  const payload = await requestTobira<unknown>(CONNECTION_ENDPOINT, { apiKey });
 
-  if (!isTobiraConnection(result)) {
+  const result = parseTobiraRemoteConnection(payload);
+  if (!result) {
     throw new TobiraApiError(
       "Tobira returned an invalid connection response",
       502,
@@ -141,9 +148,7 @@ export async function getTobiraConnection(
   return result;
 }
 
-export async function revokeTobiraConnection(
-  apiKey: string,
-): Promise<{ revoked: true }> {
+async function revokeTobiraConnection(apiKey: string): Promise<void> {
   const result = await requestTobira<unknown>(CONNECTION_ENDPOINT, {
     method: "DELETE",
     apiKey,
@@ -155,8 +160,6 @@ export async function revokeTobiraConnection(
       502,
     );
   }
-
-  return result;
 }
 
 async function readResponsePayload(response: Response): Promise<unknown> {
@@ -182,80 +185,28 @@ function getErrorMessage(payload: unknown, fallback: string): string {
       }
     }
 
-    if ("message" in payload && typeof payload.message === "string" && payload.message.trim()) {
+    if (
+      "message" in payload &&
+      typeof payload.message === "string" &&
+      payload.message.trim()
+    ) {
       return payload.message;
     }
   }
 
-  return fallback || "Tobira request failed";
+  return fallback;
 }
 
 function parseRetryAfter(value: string | null): number | null {
   if (!value) return null;
 
   const seconds = Number.parseInt(value, 10);
-  return Number.isFinite(seconds) ? seconds : null;
-}
+  if (Number.isFinite(seconds)) return Math.max(0, seconds);
 
-function isTobiraPairing(value: unknown): value is TobiraPairing {
-  if (typeof value !== "object" || value === null) return false;
+  const retryAt = Date.parse(value);
+  if (Number.isNaN(retryAt)) return null;
 
-  const pairing = value as Partial<TobiraPairing>;
-
-  return (
-    typeof pairing.deviceToken === "string" &&
-    /^[A-Za-z0-9_-]{43}$/.test(pairing.deviceToken) &&
-    typeof pairing.userCode === "string" &&
-    /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(pairing.userCode) &&
-    typeof pairing.verificationUrl === "string" &&
-    typeof pairing.verificationUrlComplete === "string" &&
-    typeof pairing.expiresAt === "string" &&
-    !Number.isNaN(Date.parse(pairing.expiresAt)) &&
-    typeof pairing.pollIntervalMs === "number" &&
-    pairing.pollIntervalMs > 0
-  );
-}
-
-function isTobiraRedeemResult(value: unknown): value is TobiraRedeemResult {
-  if (typeof value !== "object" || value === null) return false;
-
-  const result = value as {
-    apiKey?: unknown;
-    apiKeyId?: unknown;
-    expiresAt?: unknown;
-    status?: unknown;
-    user?: unknown;
-  };
-
-  if (result.status === "pending") return true;
-
-  return (
-    result.status === "redeemed" &&
-    typeof result.apiKey === "string" &&
-    result.apiKey.length > 0 &&
-    typeof result.apiKeyId === "string" &&
-    result.apiKeyId.length > 0 &&
-    (result.expiresAt === null || typeof result.expiresAt === "string") &&
-    isTobiraConnectionUser(result.user)
-  );
-}
-
-function isTobiraConnection(value: unknown): value is TobiraConnection {
-  if (typeof value !== "object" || value === null) return false;
-
-  const connection = value as {
-    apiKeyId?: unknown;
-    expiresAt?: unknown;
-    user?: unknown;
-  };
-
-  return (
-    typeof connection.apiKeyId === "string" &&
-    connection.apiKeyId.length > 0 &&
-    (connection.expiresAt === null ||
-      typeof connection.expiresAt === "string") &&
-    isTobiraConnectionUser(connection.user)
-  );
+  return Math.max(0, Math.ceil((retryAt - Date.now()) / 1_000));
 }
 
 function isRevocationResult(value: unknown): value is { revoked: true } {
@@ -264,23 +215,5 @@ function isRevocationResult(value: unknown): value is { revoked: true } {
     value !== null &&
     "revoked" in value &&
     value.revoked === true
-  );
-}
-
-function isTobiraConnectionUser(value: unknown): value is TobiraConnectionUser {
-  if (typeof value !== "object" || value === null) return false;
-
-  const user = value as {
-    email?: unknown;
-    id?: unknown;
-    image?: unknown;
-    name?: unknown;
-  };
-
-  return (
-    typeof user.id === "string" &&
-    typeof user.name === "string" &&
-    typeof user.email === "string" &&
-    (user.image === null || typeof user.image === "string")
   );
 }

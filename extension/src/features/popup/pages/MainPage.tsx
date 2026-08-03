@@ -1,5 +1,5 @@
 import {TOBIRA_APP_URL} from "@/lib/tobira-config";
-import type {TobiraConnectionUser} from "@/lib/tobira-connection-storage";
+import type {TobiraConnectionUser} from "@/lib/tobira-contracts";
 import {Separator} from "@/components/ui/separator";
 import {CloseButton} from "../components/CloseButton";
 import {ProviderRow} from "../components/ProviderRow";
@@ -9,6 +9,7 @@ import {PROVIDERS, type ProviderId} from "../providers/providers";
 export function MainPage({
   activeProviderId,
   connectedProviderIds,
+  connectionNotice,
   onCloseProvider,
   onConnectProvider,
   onSelectProvider,
@@ -18,6 +19,7 @@ export function MainPage({
 }: {
   activeProviderId: ProviderId | null;
   connectedProviderIds: ProviderId[];
+  connectionNotice?: string | null;
   onCloseProvider: () => void;
   onConnectProvider: (id: ProviderId) => void;
   onSelectProvider: (id: ProviderId) => void;
@@ -56,6 +58,14 @@ export function MainPage({
         </div>
       </header>
       <Separator />
+      {connectionNotice && (
+        <p
+          className="border-b border-border px-4 py-2 text-xs leading-relaxed text-destructive"
+          role="alert"
+        >
+          {connectionNotice}
+        </p>
+      )}
       <main className="max-h-96 overflow-y-auto">
         {activeProvider && ActiveProviderSection ? (
           <ActiveProviderSection

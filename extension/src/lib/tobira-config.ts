@@ -1,26 +1,23 @@
-const configuredTobiraAppUrl = import.meta.env.WXT_TOBIRA_APP_URL?.trim();
-const defaultTobiraAppUrl = import.meta.env.DEV
-  ? "http://localhost:3000"
-  : "https://tobira.app";
+import {
+  DEVELOPMENT_TOBIRA_APP_URL,
+  PRODUCTION_TOBIRA_APP_URL,
+} from "@/lib/tobira-origins";
 
-function normalizeTobiraAppUrl(value: string): string {
-  const url = new URL(value);
+export const TOBIRA_APP_URL = import.meta.env.DEV
+  ? DEVELOPMENT_TOBIRA_APP_URL
+  : PRODUCTION_TOBIRA_APP_URL;
 
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("WXT_TOBIRA_APP_URL must use HTTP or HTTPS");
-  }
-
-  if (url.username || url.password) {
-    throw new Error("WXT_TOBIRA_APP_URL must not contain credentials");
-  }
-
-  return url.toString().replace(/\/$/, "");
-}
-
-export const TOBIRA_APP_URL = normalizeTobiraAppUrl(
-  configuredTobiraAppUrl || defaultTobiraAppUrl,
-);
+export const TOBIRA_APP_ORIGIN = new URL(TOBIRA_APP_URL).origin;
+export const TOBIRA_APP_MATCH_PATTERN = `${TOBIRA_APP_ORIGIN}/*`;
 
 export function buildTobiraUrl(path: string): string {
   return new URL(path, `${TOBIRA_APP_URL}/`).toString();
+}
+
+export function isTobiraAppUrl(value: string): boolean {
+  try {
+    return new URL(value).origin === TOBIRA_APP_ORIGIN;
+  } catch {
+    return false;
+  }
 }
