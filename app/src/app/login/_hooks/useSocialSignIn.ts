@@ -4,6 +4,7 @@ import {useState} from "react";
 import {authClient} from "@/lib/auth/auth-client";
 import {toastManager} from "@/components/ui/coss/toast";
 import {trackClientEvent} from "@/lib/analytics/client";
+import {getLoginPath} from "@/lib/auth/redirect";
 
 type socialProvider = "google" | "github";
 
@@ -12,7 +13,7 @@ const socialProviders: {provider: socialProvider; label: string}[] = [
   {provider: "github", label: "GitHub"},
 ];
 
-export const useSocialSignIn = () => {
+export const useSocialSignIn = (returnTo: string) => {
   const [isLoading, setIsLoading] = useState<Record<socialProvider, boolean>>({
     google: false,
     github: false,
@@ -26,8 +27,8 @@ export const useSocialSignIn = () => {
     try {
       await authClient.signIn.social({
         provider,
-        callbackURL: "/home",
-        errorCallbackURL: "/login",
+        callbackURL: returnTo,
+        errorCallbackURL: getLoginPath(returnTo),
       });
     } catch (err) {
       toastManager.add({

@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import {redirect} from "next/navigation";
 
 import {getCurrentUserId} from "@/lib/auth/session";
+import {getLoginPath} from "@/lib/auth/redirect";
 import {getExtensionPairingViewState} from "@/lib/extension/connections";
 import {
   EXTENSION_PAIRING_CODE_PATTERN,
@@ -53,13 +54,22 @@ export default async function ConnectExtensionPage({
 }: {
   searchParams: Promise<ConnectExtensionSearchParams>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const userId = await getCurrentUserId();
 
   if (!userId) {
-    redirect("/login");
+    const destinationParams = new URLSearchParams();
+    if (typeof resolvedSearchParams.code === "string") {
+      destinationParams.set("code", resolvedSearchParams.code);
+    }
+
+    const returnTo = `/connect-extension${
+      destinationParams.size > 0 ? `?${destinationParams.toString()}` : ""
+    }`;
+    redirect(getLoginPath(returnTo));
   }
 
-  const {code} = await searchParams;
+  const {code} = resolvedSearchParams;
 
   return <ConnectExtensionView state={await getViewState(code)} />;
 }

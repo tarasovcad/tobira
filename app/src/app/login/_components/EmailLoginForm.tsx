@@ -16,10 +16,12 @@ import {trackClientEvent} from "@/lib/analytics/client";
 type EmailLoginFormProps = {
   defaultEmail?: string;
   onSuccess: (email: string) => void;
+  returnTo: string;
 };
 
-const EmailLoginForm = ({defaultEmail = "", onSuccess}: EmailLoginFormProps) => {
-  const {isGoogleLoading, isGithubLoading, signInWithGoogle, signInWithGithub} = useSocialSignIn();
+const EmailLoginForm = ({defaultEmail = "", onSuccess, returnTo}: EmailLoginFormProps) => {
+  const {isGoogleLoading, isGithubLoading, signInWithGoogle, signInWithGithub} =
+    useSocialSignIn(returnTo);
 
   const {
     control,

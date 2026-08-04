@@ -1,7 +1,8 @@
 "use client";
 
 import {Suspense, useState} from "react";
-import {useRouter} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
+import {getSafeReturnTo} from "@/lib/auth/redirect";
 import LoginLogo from "./_components/LoginLogo";
 import LoginHeader from "./_components/LoginHeader";
 import EmailLoginForm from "./_components/EmailLoginForm";
@@ -10,8 +11,10 @@ import SocialSignInErrorHandler from "./_components/SocialSignInErrorHandler";
 
 type LoginStep = "email" | "otp";
 
-const LoginPage = () => {
+const LoginPageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = getSafeReturnTo(searchParams.get("returnTo"));
   const [step, setStep] = useState<LoginStep>("email");
   const [submittedEmail, setSubmittedEmail] = useState("");
 
@@ -21,7 +24,7 @@ const LoginPage = () => {
   };
 
   const handleOtpVerified = () => {
-    router.push("/home");
+    router.replace(returnTo);
   };
 
   const handleBack = () => {
@@ -38,7 +41,11 @@ const LoginPage = () => {
         <LoginHeader step={step} email={submittedEmail} />
 
         {step === "email" ? (
-          <EmailLoginForm defaultEmail={submittedEmail} onSuccess={handleEmailSuccess} />
+          <EmailLoginForm
+            defaultEmail={submittedEmail}
+            onSuccess={handleEmailSuccess}
+            returnTo={returnTo}
+          />
         ) : (
           <OtpForm email={submittedEmail} onBack={handleBack} onVerified={handleOtpVerified} />
         )}
@@ -46,5 +53,11 @@ const LoginPage = () => {
     </div>
   );
 };
+
+const LoginPage = () => (
+  <Suspense fallback={null}>
+    <LoginPageContent />
+  </Suspense>
+);
 
 export default LoginPage;
