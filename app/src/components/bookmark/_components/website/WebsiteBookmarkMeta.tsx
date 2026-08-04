@@ -19,6 +19,7 @@ interface BookmarkMetaProps {
   tags?: string[];
   showSource?: boolean;
   showSavedDate?: boolean;
+  showTitle?: boolean;
   showDescription?: boolean;
   showTags?: boolean;
   sourceMode?: "url" | "domain";
@@ -42,6 +43,7 @@ export default function WebsiteBookmarkMeta({
   tags,
   showSource = false,
   showSavedDate = false,
+  showTitle = true,
   showDescription = false,
   showTags = false,
   sourceMode = "url",
@@ -62,7 +64,7 @@ export default function WebsiteBookmarkMeta({
 
   return (
     <>
-      {title || textMetadataStatus ? (
+      {showTitle && (title || textMetadataStatus) ? (
         <WebsiteBookmarkTitle
           title={title}
           url={url}

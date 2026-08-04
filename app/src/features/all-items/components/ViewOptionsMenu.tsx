@@ -278,6 +278,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const setGridGap = useViewOptionsStore((state) => state.setGridGap);
   const setColumnSize = useViewOptionsStore((state) => state.setColumnSize);
   const setBorderRadius = useViewOptionsStore((state) => state.setBorderRadius);
+  const setShowTitle = useViewOptionsStore((state) => state.setShowTitle);
   const setContentToggle = useViewOptionsStore((state) => state.setContentToggle);
   const setPostContentToggle = useViewOptionsStore((state) => state.setPostContentToggle);
   const setCompactInteraction = useViewOptionsStore((state) => state.setCompactInteraction);
@@ -294,6 +295,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const isCompactView = currentView === "compact";
   const interactionsDisabled = !isCompactView;
   const previewControlsDisabled = interactionsDisabled || !compactInteractions.hoverPreview;
+  const titleToggleDisabled = isMedia || currentView !== "grid";
 
   return (
     <Menu>
@@ -517,14 +519,25 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     </div>
                   ) : (
                     <div className="divide-border border-border divide-y rounded-md">
-                      <div
-                        className={cn(
-                          "text-muted-foreground flex items-center justify-between gap-3 px-2 py-2",
-                          isMedia && "pointer-events-none opacity-60",
-                        )}>
-                        <span className="">Title</span>
-                        <span className="shrink-0">{isMedia ? "Always off" : "Always on"}</span>
-                      </div>
+                      {titleToggleDisabled ? (
+                        <div
+                          className={cn(
+                            "text-muted-foreground flex items-center justify-between gap-3 px-2 py-2",
+                            "pointer-events-none opacity-60",
+                          )}>
+                          <span>Title</span>
+                          <span className="shrink-0">{isMedia ? "Always off" : "Always on"}</span>
+                        </div>
+                      ) : (
+                        <Switch
+                          label="Title"
+                          checked={layoutOptions.showTitle}
+                          onToggle={() => setShowTitle(currentView, !layoutOptions.showTitle)}
+                          labelClassName="text-sm"
+                          className="hit-area-2 hover:text-accent-foreground hover:bg-accent flex-row-reverse justify-between gap-3 px-2 py-2"
+                          aria-label="Show title"
+                        />
+                      )}
 
                       {CONTENT_OPTIONS.map(({id, label}) => {
                         const isDisabled =

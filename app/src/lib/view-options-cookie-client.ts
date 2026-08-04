@@ -32,6 +32,7 @@ type CompactLayoutOverrides = {
   c?: number;
   r?: number;
   w?: number;
+  h?: number;
   x?: number;
   p?: number;
   i?: number;
@@ -98,6 +99,7 @@ function isViewLayoutOptions(value: unknown): value is ViewLayoutOptions {
     isBookmarkWidth(bookmarkWidthByType.website) &&
     isBookmarkWidth(bookmarkWidthByType.media) &&
     isBookmarkWidth(bookmarkWidthByType.post) &&
+    (typeof value.showTitle === "boolean" || typeof value.showTitle === "undefined") &&
     isRecord(contentToggles) &&
     typeof contentToggles.description === "boolean" &&
     typeof contentToggles.tags === "boolean" &&
@@ -140,6 +142,7 @@ function normalizeLegacyLayoutOptions(value: unknown, fallback: ViewLayoutOption
       media: value.bookmarkWidthByType.media,
       post: value.bookmarkWidthByType.post,
     },
+    showTitle: typeof value.showTitle === "boolean" ? value.showTitle : fallback.showTitle,
     contentToggles: {
       description: value.contentToggles.description,
       tags: value.contentToggles.tags,
@@ -297,6 +300,7 @@ function applyCompactLayoutOverrides(value: unknown, fallback: ViewLayoutOptions
     columnSize: isColumnSize(value.c) ? value.c : fallback.columnSize,
     borderRadius: decodeIndexedValue(BORDER_RADII, value.r, fallback.borderRadius),
     bookmarkWidthByType: decodeBookmarkWidths(value.w, fallback.bookmarkWidthByType),
+    showTitle: value.h === 0 ? false : value.h === 1 ? true : fallback.showTitle,
     contentToggles: decodeContentToggles(value.x, fallback.contentToggles),
     postContentToggles: decodePostContentToggles(value.p, fallback.postContentToggles),
     compactInteractions: decodeCompactInteractions(value.i, fallback.compactInteractions),
@@ -330,6 +334,7 @@ function createCompactLayoutOverrides(
   if (value.borderRadius !== defaults.borderRadius) {
     overrides.r = BORDER_RADII.indexOf(value.borderRadius);
   }
+  if (value.showTitle !== defaults.showTitle) overrides.h = Number(value.showTitle);
 
   const widths = encodeBookmarkWidths(value.bookmarkWidthByType);
   if (widths !== encodeBookmarkWidths(defaults.bookmarkWidthByType)) overrides.w = widths;

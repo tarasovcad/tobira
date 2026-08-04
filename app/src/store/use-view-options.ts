@@ -58,6 +58,7 @@ export interface ViewLayoutOptions {
   columnSize: ColumnSize;
   borderRadius: BorderRadius;
   bookmarkWidthByType: Record<KindFilter, BookmarkWidth>;
+  showTitle: boolean;
   contentToggles: Record<ContentField, boolean>;
   postContentToggles: Record<PostContentField, boolean>;
   compactInteractions: CompactInteractions;
@@ -76,6 +77,7 @@ export interface ViewOptionsState extends ViewLayoutOptions {
   setBorderRadius: (layout: ViewMode, radius: BorderRadius) => void;
 
   // Content (websites / media)
+  setShowTitle: (layout: ViewMode, value: boolean) => void;
   setContentToggle: (layout: ViewMode, field: ContentField, value: boolean) => void;
   setContentToggles: (layout: ViewMode, toggles: Record<ContentField, boolean>) => void;
 
@@ -121,6 +123,7 @@ const BASE_LAYOUT_OPTIONS: ViewLayoutOptions = {
   columnSize: 3,
   borderRadius: "md",
   bookmarkWidthByType: {...DEFAULT_BOOKMARK_WIDTHS_BY_TYPE},
+  showTitle: true,
   contentToggles: {...DEFAULT_CONTENT_TOGGLES},
   postContentToggles: {...DEFAULT_POST_CONTENT_TOGGLES},
   compactInteractions: {...DEFAULT_COMPACT_INTERACTIONS},
@@ -200,6 +203,7 @@ function areLayoutOptionsEqual(left: ViewLayoutOptions, right: ViewLayoutOptions
     left.bookmarkWidthByType.website === right.bookmarkWidthByType.website &&
     left.bookmarkWidthByType.media === right.bookmarkWidthByType.media &&
     left.bookmarkWidthByType.post === right.bookmarkWidthByType.post &&
+    left.showTitle === right.showTitle &&
     left.contentToggles.description === right.contentToggles.description &&
     left.contentToggles.tags === right.contentToggles.tags &&
     left.contentToggles.source === right.contentToggles.source &&
@@ -343,6 +347,8 @@ export function createViewOptionsStore(initialCookie?: ViewOptionsCookie) {
       set((state) => updateLayoutOptions(state, layout, {borderRadius})),
 
     // Content (websites / media)
+    setShowTitle: (layout, showTitle) =>
+      set((state) => updateLayoutOptions(state, layout, {showTitle})),
     setContentToggle: (layout, field, value) =>
       set((state) =>
         updateLayoutOptions(state, layout, {

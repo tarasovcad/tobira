@@ -79,43 +79,54 @@ export function WebsiteSkeletonGrid({
 }: {
   borderRadiusClass?: string;
 }) {
-  const {contentToggles} = useViewOptionsStore();
+  const {contentToggles, showTitle} = useViewOptionsStore();
   const onlyTitle =
+    showTitle &&
     !contentToggles.source &&
     !contentToggles.savedDate &&
     !contentToggles.description &&
     !contentToggles.tags;
+  const hasVisibleMetadata =
+    showTitle ||
+    contentToggles.source ||
+    contentToggles.savedDate ||
+    contentToggles.description ||
+    contentToggles.tags;
 
   return (
     <div className={cn("bg-background w-full overflow-hidden border", borderRadiusClass)}>
       <Skeleton className="aspect-16/10 w-full rounded-none" />
-      <div
-        className={cn(
-          "flex min-h-0 min-w-0 flex-1 flex-col px-4",
-          onlyTitle ? "py-3" : "pt-3 pb-4",
-        )}>
-        <Skeleton className="h-[22.5px] w-3/4 rounded" />
-        {(contentToggles.source || contentToggles.savedDate) && (
-          <div className="mt-1">
-            <Skeleton className="h-[19.5px] w-1/2 rounded" />
-          </div>
-        )}
-        {contentToggles.description && (
-          <div
-            className={cn(contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5")}>
-            <Skeleton className="h-[19.5px] w-full rounded" />
-            <div className="mt-1.5">
-              <Skeleton className="h-[19.5px] w-2/3 rounded" />
+      {hasVisibleMetadata ? (
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col px-4",
+            onlyTitle ? "py-3" : "pt-3 pb-4",
+          )}>
+          {showTitle && <Skeleton className="h-[22.5px] w-3/4 rounded" />}
+          {(contentToggles.source || contentToggles.savedDate) && (
+            <div className="mt-1">
+              <Skeleton className="h-[19.5px] w-1/2 rounded" />
             </div>
-          </div>
-        )}
-        {contentToggles.tags && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            <Skeleton className="h-[20.5px] w-12 rounded-[2px]" />
-            <Skeleton className="h-[20.5px] w-16 rounded-[2px]" />
-          </div>
-        )}
-      </div>
+          )}
+          {contentToggles.description && (
+            <div
+              className={cn(
+                contentToggles.source || contentToggles.savedDate ? "mt-1.5" : "mt-0.5",
+              )}>
+              <Skeleton className="h-[19.5px] w-full rounded" />
+              <div className="mt-1.5">
+                <Skeleton className="h-[19.5px] w-2/3 rounded" />
+              </div>
+            </div>
+          )}
+          {contentToggles.tags && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              <Skeleton className="h-[20.5px] w-12 rounded-[2px]" />
+              <Skeleton className="h-[20.5px] w-16 rounded-[2px]" />
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

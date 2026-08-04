@@ -21,17 +21,24 @@ export default function WebsiteBookmarkGrid({
   isSelected = false,
   setSelected,
 }: AllItemsBookmarkComponentProps) {
-  const {borderRadius, contentToggles, gridGap} = useViewOptionsStore();
+  const {borderRadius, contentToggles, gridGap, showTitle} = useViewOptionsStore();
   const [previewOpenSignal, setPreviewOpenSignal] = useState(0);
   const zeroGap = gridGap === "none";
   const textMetadataStatus =
     item.kind === "website" ? item.metadata?.textMetadataStatus : undefined;
 
   const onlyTitle =
+    showTitle &&
     !contentToggles.source &&
     !contentToggles.savedDate &&
     !(contentToggles.description && item.description) &&
     !(contentToggles.tags && item.tags && item.tags.length > 0);
+  const hasVisibleMetadata =
+    showTitle ||
+    contentToggles.source ||
+    contentToggles.savedDate ||
+    (contentToggles.description && (item.description || textMetadataStatus === "pending")) ||
+    (contentToggles.tags && Boolean(item.tags?.length));
 
   const radiusClass = (() => {
     if (zeroGap) return "rounded-none";
@@ -83,29 +90,32 @@ export default function WebsiteBookmarkGrid({
         <WebsiteBookmarkGridImage item={item} previewOpenSignal={previewOpenSignal} />
       </div>
 
-      <div
-        className={cn(
-          "flex min-h-0 min-w-0 flex-1 flex-col px-4",
-          onlyTitle ? "py-3" : "pt-3 pb-4",
-        )}>
-        <WebsiteBookmarkMeta
-          title={item.title}
-          url={item.url}
-          createdAt={item.created_at}
-          description={item.description}
-          textMetadataStatus={textMetadataStatus}
-          tags={item.tags}
-          showSource={contentToggles.source}
-          showSavedDate={contentToggles.savedDate}
-          showDescription={contentToggles.description}
-          showTags={contentToggles.tags}
-          titleClassName="text-foreground line-clamp-1 text-[15px] font-[550]"
-          sourceRowClassName="text-muted-foreground mt-1 min-w-0 text-[13px] whitespace-nowrap"
-          descriptionClassName="text-muted-foreground line-clamp-2 text-[13px]"
-          tagsWrapperClassName="mt-2 flex flex-wrap gap-1"
-          tagClassName="text-muted-foreground text-[12px]"
-        />
-      </div>
+      {hasVisibleMetadata ? (
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col px-4",
+            onlyTitle ? "py-3" : "pt-3 pb-4",
+          )}>
+          <WebsiteBookmarkMeta
+            title={item.title}
+            url={item.url}
+            createdAt={item.created_at}
+            description={item.description}
+            textMetadataStatus={textMetadataStatus}
+            tags={item.tags}
+            showTitle={showTitle}
+            showSource={contentToggles.source}
+            showSavedDate={contentToggles.savedDate}
+            showDescription={contentToggles.description}
+            showTags={contentToggles.tags}
+            titleClassName="text-foreground line-clamp-1 text-[15px] font-[550]"
+            sourceRowClassName="text-muted-foreground mt-1 min-w-0 text-[13px] whitespace-nowrap"
+            descriptionClassName="text-muted-foreground line-clamp-2 text-[13px]"
+            tagsWrapperClassName="mt-2 flex flex-wrap gap-1"
+            tagClassName="text-muted-foreground text-[12px]"
+          />
+        </div>
+      ) : null}
     </Link>
   );
 }
