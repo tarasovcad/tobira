@@ -21,6 +21,7 @@ import {SliderComfortable} from "@/components/ui/app/slider";
 import {cn} from "@/lib/utils";
 import {
   hasLayoutOptionsChanges,
+  getLayoutOptions,
   useViewOptionsStore,
   type ColumnSize,
   type CompactPreviewPosition,
@@ -258,28 +259,27 @@ function isPostContentFieldEnabled(
 }
 
 const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
-  const bookmarkWidth = useViewOptionsStore(
-    (state) => state.bookmarkWidthByType[typeFilter as KindFilter],
-  );
-  const setBookmarkWidthForType = useViewOptionsStore((state) => state.setBookmarkWidthForType);
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
   const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
+  const currentView = getCurrentAllItemsView(view, typeFilter);
+  const layoutOptions = useViewOptionsStore((state) =>
+    getLayoutOptions(state.viewOptionsByLayout, currentView),
+  );
+  const bookmarkWidth = layoutOptions.bookmarkWidthByType[typeFilter as KindFilter];
+  const gridGap = layoutOptions.gridGap;
+  const columnSize = layoutOptions.columnSize;
+  const borderRadius = layoutOptions.borderRadius;
+  const contentToggles = layoutOptions.contentToggles;
+  const postContentToggles = layoutOptions.postContentToggles;
+  const compactInteractions = layoutOptions.compactInteractions;
 
-  const gridGap = useViewOptionsStore((state) => state.gridGap);
+  const setBookmarkWidthForType = useViewOptionsStore((state) => state.setBookmarkWidthForType);
   const setGridGap = useViewOptionsStore((state) => state.setGridGap);
-  const columnSize = useViewOptionsStore((state) => state.columnSize);
   const setColumnSize = useViewOptionsStore((state) => state.setColumnSize);
-  const borderRadius = useViewOptionsStore((state) => state.borderRadius);
   const setBorderRadius = useViewOptionsStore((state) => state.setBorderRadius);
-
-  const contentToggles = useViewOptionsStore((state) => state.contentToggles);
   const setContentToggle = useViewOptionsStore((state) => state.setContentToggle);
-
-  const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
   const setPostContentToggle = useViewOptionsStore((state) => state.setPostContentToggle);
-
-  const compactInteractions = useViewOptionsStore((state) => state.compactInteractions);
   const setCompactInteraction = useViewOptionsStore((state) => state.setCompactInteraction);
 
   const isMedia = typeFilter === "media";
@@ -287,7 +287,6 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const maxWidthIndex = isPost
     ? WIDTH_OPTIONS.findIndex((o) => o.value === "md")
     : WIDTH_OPTIONS.length - 1;
-  const currentView = getCurrentAllItemsView(view, typeFilter);
   const hasCurrentLayoutChanges = useViewOptionsStore((state) =>
     hasLayoutOptionsChanges(state.viewOptionsByLayout, currentView),
   );
@@ -417,6 +416,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     disabled={disabledAppearanceFields.includes("width")}
                     onChange={(val) =>
                       setBookmarkWidthForType(
+                        currentView,
                         typeFilter as KindFilter,
                         WIDTH_OPTIONS[val as number].value as BookmarkWidth,
                       )
@@ -433,7 +433,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     variant="pips"
                     showTooltip={false}
                     disabled={disabledAppearanceFields.includes("columnSize")}
-                    onChange={(val) => setColumnSize(val as ColumnSize)}
+                    onChange={(val) => setColumnSize(currentView, val as ColumnSize)}
                   />
 
                   <SliderComfortable
@@ -447,7 +447,9 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     className="cursor-pointer rounded-md"
                     formatValue={(v) => GRID_GAP_OPTIONS[v as number].label}
                     disabled={disabledAppearanceFields.includes("gridGap")}
-                    onChange={(val) => setGridGap(GRID_GAP_OPTIONS[val as number].value as GridGap)}
+                    onChange={(val) =>
+                      setGridGap(currentView, GRID_GAP_OPTIONS[val as number].value as GridGap)
+                    }
                   />
 
                   <SliderComfortable
@@ -462,7 +464,10 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                     formatValue={(v) => BORDER_RADIUS_OPTIONS[v as number].label}
                     disabled={disabledAppearanceFields.includes("borderRadius")}
                     onChange={(val) =>
-                      setBorderRadius(BORDER_RADIUS_OPTIONS[val as number].value as BorderRadius)
+                      setBorderRadius(
+                        currentView,
+                        BORDER_RADIUS_OPTIONS[val as number].value as BorderRadius,
+                      )
                     }
                   />
                 </div>
@@ -499,6 +504,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                           checked={isPostContentFieldEnabled(postContentToggles, id)}
                           onToggle={() =>
                             setPostContentToggle(
+                              currentView,
                               id,
                               !isPostContentFieldEnabled(postContentToggles, id),
                             )
@@ -533,7 +539,11 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                             checked={isDisabled ? false : isContentFieldEnabled(contentToggles, id)}
                             onToggle={() => {
                               if (!isDisabled) {
-                                setContentToggle(id, !isContentFieldEnabled(contentToggles, id));
+                                setContentToggle(
+                                  currentView,
+                                  id,
+                                  !isContentFieldEnabled(contentToggles, id),
+                                );
                               }
                             }}
                             labelClassName="text-sm"
@@ -583,7 +593,11 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                       checked={compactInteractions.hoverPreview}
                       disabled={interactionsDisabled}
                       onToggle={() =>
-                        setCompactInteraction("hoverPreview", !compactInteractions.hoverPreview)
+                        setCompactInteraction(
+                          currentView,
+                          "hoverPreview",
+                          !compactInteractions.hoverPreview,
+                        )
                       }
                       labelClassName="text-sm"
                       className={cn(
@@ -598,6 +612,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                       disabled={previewControlsDisabled}
                       onToggle={() =>
                         setCompactInteraction(
+                          currentView,
                           "previewAnimation",
                           !compactInteractions.previewAnimation,
                         )
@@ -627,6 +642,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                       disabled={previewControlsDisabled}
                       onChange={(value) =>
                         setCompactInteraction(
+                          currentView,
                           "previewSize",
                           PREVIEW_SIZE_OPTIONS[value as number].value,
                         )
@@ -647,6 +663,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                       disabled={previewControlsDisabled}
                       onChange={(value) =>
                         setCompactInteraction(
+                          currentView,
                           "previewPosition",
                           PREVIEW_POSITION_OPTIONS[value as number].value,
                         )

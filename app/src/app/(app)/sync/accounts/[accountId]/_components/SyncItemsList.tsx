@@ -5,8 +5,7 @@ import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import Spinner from "@/components/ui/app/spinner";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import type {TypeFilter} from "@/features/home/types";
-import type {ViewMode} from "@/store/use-view-options";
-import {useViewOptionsStore} from "@/store/use-view-options";
+import {getLayoutOptions, useViewOptionsStore, type ViewMode} from "@/store/use-view-options";
 import {
   getCurrentAllItemsView,
   getAllItemsListViewOptions,
@@ -61,12 +60,11 @@ export function SyncItemsList({
   const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
 
-  const gridGap = useViewOptionsStore((state) => state.gridGap);
-  const columnSize = useViewOptionsStore((state) => state.columnSize);
-  const borderRadius = useViewOptionsStore((state) => state.borderRadius);
-  const bookmarkWidth = useViewOptionsStore((state) =>
-    getBookmarkWidthForType(state.bookmarkWidthByType, typeFilter),
+  const layoutOptions = useViewOptionsStore((state) =>
+    getLayoutOptions(state.viewOptionsByLayout, currentView),
   );
+  const {gridGap, columnSize, borderRadius} = layoutOptions;
+  const bookmarkWidth = getBookmarkWidthForType(layoutOptions.bookmarkWidthByType, typeFilter);
 
   const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
     {

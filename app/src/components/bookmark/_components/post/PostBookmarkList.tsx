@@ -69,7 +69,9 @@ export default function PostBookmarkList({
   isPostDetailOpen = false,
 }: PostBookmarkListProps) {
   const [isExpanded, setIsExpanded] = useState(isPostDetailOpen);
-  const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
+  const postContentToggles = useViewOptionsStore(
+    (state) => state.viewOptionsByLayout.list.postContentToggles,
+  );
 
   const meta = item.metadata;
   const qrtMediaGalleryEntries = useMemo(

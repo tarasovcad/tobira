@@ -58,7 +58,9 @@ export default function MediaBookmarkGrid({
   isSelected = false,
   setSelected,
 }: MediaBookmarkGridProps) {
-  const {borderRadius, columnSize, gridGap} = useViewOptionsStore();
+  const {borderRadius, columnSize, gridGap} = useViewOptionsStore(
+    (state) => state.viewOptionsByLayout.grid,
+  );
   const previewSize = getBookmarkMediaPreviewSizeForColumnSize(columnSize);
   const imageSizes = getBookmarkMediaSizesForColumnSize(columnSize);
   const imageQuality = getBookmarkMediaQualityForColumnSize(columnSize);

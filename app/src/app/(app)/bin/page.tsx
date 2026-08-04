@@ -38,7 +38,10 @@ export default async function BinPage(props: {searchParams?: Promise<SearchParam
   };
 
   return (
-    <Suspense fallback={<BinPageSkeleton />}>
+    <Suspense
+      fallback={
+        <BinPageSkeleton typeFilter={filterParams.typeFilter} sort={filterParams.sortFilter} />
+      }>
       <BinPageDataWrapper userId={session.user.id} params={filterParams} />
     </Suspense>
   );

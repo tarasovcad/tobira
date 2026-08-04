@@ -1,4 +1,9 @@
-import {create} from "zustand";
+"use client";
+
+import {createContext, useContext} from "react";
+import {useStore} from "zustand";
+import {createStore, type StoreApi} from "zustand/vanilla";
+import type {ViewOptionsCookie} from "@/lib/view-options-cookie";
 
 export type ViewMode = "list" | "grid" | "table" | "compact";
 export type GridGap = "none" | "xs" | "sm" | "md" | "lg";
@@ -65,24 +70,25 @@ export interface ViewOptionsState extends ViewLayoutOptions {
   setView: (view: ViewMode) => void;
 
   // Appearance
-  setBookmarkWidthForType: (type: KindFilter, width: BookmarkWidth) => void;
-  setGridGap: (gap: GridGap) => void;
-  setColumnSize: (size: ColumnSize) => void;
-  setBorderRadius: (radius: BorderRadius) => void;
+  setBookmarkWidthForType: (layout: ViewMode, type: KindFilter, width: BookmarkWidth) => void;
+  setGridGap: (layout: ViewMode, gap: GridGap) => void;
+  setColumnSize: (layout: ViewMode, size: ColumnSize) => void;
+  setBorderRadius: (layout: ViewMode, radius: BorderRadius) => void;
 
   // Content (websites / media)
-  setContentToggle: (field: ContentField, value: boolean) => void;
-  setContentToggles: (toggles: Record<ContentField, boolean>) => void;
+  setContentToggle: (layout: ViewMode, field: ContentField, value: boolean) => void;
+  setContentToggles: (layout: ViewMode, toggles: Record<ContentField, boolean>) => void;
 
   // Content (posts)
-  setPostContentToggle: (field: PostContentField, value: boolean) => void;
+  setPostContentToggle: (layout: ViewMode, field: PostContentField, value: boolean) => void;
 
   // Interactions (compact view)
   setCompactInteraction: <K extends keyof CompactInteractions>(
+    layout: ViewMode,
     key: K,
     value: CompactInteractions[K],
   ) => void;
-  setCompactInteractions: (interactions: CompactInteractions) => void;
+  setCompactInteractions: (layout: ViewMode, interactions: CompactInteractions) => void;
 
   // Reset
   resetViewOptions: (view?: ViewMode) => void;
@@ -156,7 +162,7 @@ const DEFAULT_LAYOUT_OPTIONS: Record<ViewMode, ViewLayoutOptions> = {
   },
 };
 
-function cloneLayoutOptions(options: ViewLayoutOptions): ViewLayoutOptions {
+export function cloneLayoutOptions(options: ViewLayoutOptions): ViewLayoutOptions {
   return {
     ...options,
     bookmarkWidthByType: {...options.bookmarkWidthByType},
@@ -166,7 +172,10 @@ function cloneLayoutOptions(options: ViewLayoutOptions): ViewLayoutOptions {
   };
 }
 
-function getLayoutOptions(optionsByLayout: Record<ViewMode, ViewLayoutOptions>, view: ViewMode) {
+export function getLayoutOptions(
+  optionsByLayout: Record<ViewMode, ViewLayoutOptions>,
+  view: ViewMode,
+) {
   switch (view) {
     case "list":
       return optionsByLayout.list;
@@ -177,6 +186,10 @@ function getLayoutOptions(optionsByLayout: Record<ViewMode, ViewLayoutOptions>, 
     case "table":
       return optionsByLayout.table;
   }
+}
+
+function getDefaultLayoutOptions(view: ViewMode) {
+  return cloneLayoutOptions(getLayoutOptions(DEFAULT_LAYOUT_OPTIONS, view));
 }
 
 function areLayoutOptionsEqual(left: ViewLayoutOptions, right: ViewLayoutOptions) {
@@ -204,10 +217,6 @@ function areLayoutOptionsEqual(left: ViewLayoutOptions, right: ViewLayoutOptions
   );
 }
 
-function getDefaultLayoutOptions(view: ViewMode) {
-  return cloneLayoutOptions(getLayoutOptions(DEFAULT_LAYOUT_OPTIONS, view));
-}
-
 export function hasLayoutOptionsChanges(
   optionsByLayout: Record<ViewMode, ViewLayoutOptions>,
   view: ViewMode,
@@ -218,7 +227,7 @@ export function hasLayoutOptionsChanges(
   );
 }
 
-function createDefaultLayoutOptions() {
+export function createDefaultLayoutOptions() {
   return {
     list: getDefaultLayoutOptions("list"),
     grid: getDefaultLayoutOptions("grid"),
@@ -227,104 +236,182 @@ function createDefaultLayoutOptions() {
   } satisfies Record<ViewMode, ViewLayoutOptions>;
 }
 
-function updateActiveLayoutOptions(state: ViewOptionsState, updates: Partial<ViewLayoutOptions>) {
+function areLayoutOptionValuesEqual(left: unknown, right: unknown) {
+  if (Object.is(left, right)) {
+    return true;
+  }
+
+  if (
+    typeof left !== "object" ||
+    left === null ||
+    typeof right !== "object" ||
+    right === null ||
+    Array.isArray(left) ||
+    Array.isArray(right)
+  ) {
+    return false;
+  }
+
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const leftEntries = Object.entries(leftRecord);
+  const rightEntries = Object.entries(rightRecord);
+
+  return (
+    leftEntries.length === rightEntries.length &&
+    leftEntries.every(([leftKey, leftValue]) =>
+      rightEntries.some(
+        ([rightKey, rightValue]) => rightKey === leftKey && Object.is(rightValue, leftValue),
+      ),
+    )
+  );
+}
+
+function updateLayoutOptions(
+  state: ViewOptionsState,
+  layout: ViewMode,
+  updates: Partial<ViewLayoutOptions>,
+) {
+  const currentLayoutOptions = getLayoutOptions(state.viewOptionsByLayout, layout);
+  const currentEntries = Object.entries(currentLayoutOptions);
+  const hasChanges = Object.entries(updates).some(([key, nextValue]) => {
+    const currentEntry = currentEntries.find(([currentKey]) => currentKey === key);
+    return currentEntry === undefined || !areLayoutOptionValuesEqual(currentEntry[1], nextValue);
+  });
+
+  if (!hasChanges) {
+    return state;
+  }
+
   const nextLayoutOptions = {
-    ...getLayoutOptions(state.viewOptionsByLayout, state.view),
+    ...currentLayoutOptions,
     ...updates,
   };
 
   return {
-    ...nextLayoutOptions,
+    ...(layout === state.view ? nextLayoutOptions : {}),
     viewOptionsByLayout: {
       ...state.viewOptionsByLayout,
-      [state.view]: nextLayoutOptions,
+      [layout]: nextLayoutOptions,
     },
   };
 }
 
-export const useViewOptionsStore = create<ViewOptionsState>((set) => {
-  const viewOptionsByLayout = createDefaultLayoutOptions();
+export function createViewOptionsStore(initialCookie?: ViewOptionsCookie) {
+  const view = initialCookie?.view ?? "list";
+  const viewOptionsByLayout = initialCookie
+    ? {
+        list: cloneLayoutOptions(initialCookie.layouts.list),
+        grid: cloneLayoutOptions(initialCookie.layouts.grid),
+        compact: cloneLayoutOptions(initialCookie.layouts.compact),
+        table: cloneLayoutOptions(initialCookie.layouts.table),
+      }
+    : createDefaultLayoutOptions();
+  const activeLayoutOptions = getLayoutOptions(viewOptionsByLayout, view);
 
-  return {
+  return createStore<ViewOptionsState>((set) => ({
     // Layout
-    ...viewOptionsByLayout.list,
-    view: "list",
+    ...activeLayoutOptions,
+    view,
     viewOptionsByLayout,
-    setView: (view) =>
-      set((state) => ({
-        view,
-        ...getLayoutOptions(state.viewOptionsByLayout, view),
-      })),
+    setView: (nextView) =>
+      set((state) => {
+        if (state.view === nextView) {
+          return state;
+        }
+
+        return {
+          view: nextView,
+          ...getLayoutOptions(state.viewOptionsByLayout, nextView),
+        };
+      }),
 
     // Appearance
-    setBookmarkWidthForType: (type, width) =>
+    setBookmarkWidthForType: (layout, type, width) =>
       set((state) =>
-        updateActiveLayoutOptions(state, {
+        updateLayoutOptions(state, layout, {
           bookmarkWidthByType: {
-            ...getLayoutOptions(state.viewOptionsByLayout, state.view).bookmarkWidthByType,
+            ...getLayoutOptions(state.viewOptionsByLayout, layout).bookmarkWidthByType,
             [type]: width,
           },
         }),
       ),
-    setGridGap: (gridGap) => set((state) => updateActiveLayoutOptions(state, {gridGap})),
-    setColumnSize: (columnSize) => set((state) => updateActiveLayoutOptions(state, {columnSize})),
-    setBorderRadius: (borderRadius) =>
-      set((state) => updateActiveLayoutOptions(state, {borderRadius})),
+    setGridGap: (layout, gridGap) => set((state) => updateLayoutOptions(state, layout, {gridGap})),
+    setColumnSize: (layout, columnSize) =>
+      set((state) => updateLayoutOptions(state, layout, {columnSize})),
+    setBorderRadius: (layout, borderRadius) =>
+      set((state) => updateLayoutOptions(state, layout, {borderRadius})),
 
     // Content (websites / media)
-    setContentToggle: (field, value) =>
+    setContentToggle: (layout, field, value) =>
       set((state) =>
-        updateActiveLayoutOptions(state, {
+        updateLayoutOptions(state, layout, {
           contentToggles: {
-            ...getLayoutOptions(state.viewOptionsByLayout, state.view).contentToggles,
+            ...getLayoutOptions(state.viewOptionsByLayout, layout).contentToggles,
             [field]: value,
           },
         }),
       ),
-    setContentToggles: (contentToggles) =>
-      set((state) => updateActiveLayoutOptions(state, {contentToggles})),
+    setContentToggles: (layout, contentToggles) =>
+      set((state) => updateLayoutOptions(state, layout, {contentToggles})),
 
     // Content (posts)
-    setPostContentToggle: (field, value) =>
+    setPostContentToggle: (layout, field, value) =>
       set((state) =>
-        updateActiveLayoutOptions(state, {
+        updateLayoutOptions(state, layout, {
           postContentToggles: {
-            ...getLayoutOptions(state.viewOptionsByLayout, state.view).postContentToggles,
+            ...getLayoutOptions(state.viewOptionsByLayout, layout).postContentToggles,
             [field]: value,
           },
         }),
       ),
 
     // Interactions (compact view)
-    setCompactInteraction: (key, value) =>
+    setCompactInteraction: (layout, key, value) =>
       set((state) =>
-        updateActiveLayoutOptions(state, {
+        updateLayoutOptions(state, layout, {
           compactInteractions: {
-            ...getLayoutOptions(state.viewOptionsByLayout, state.view).compactInteractions,
+            ...getLayoutOptions(state.viewOptionsByLayout, layout).compactInteractions,
             [key]: value,
           },
         }),
       ),
-    setCompactInteractions: (compactInteractions) =>
-      set((state) => updateActiveLayoutOptions(state, {compactInteractions})),
+    setCompactInteractions: (layout, compactInteractions) =>
+      set((state) => updateLayoutOptions(state, layout, {compactInteractions})),
 
     // Reset
-    resetViewOptions: (view) =>
+    resetViewOptions: (layout) =>
       set((state) => {
-        const nextView = view ?? "list";
-        const nextViewOptions = getDefaultLayoutOptions(nextView);
-        const nextViewOptionsByLayout = view
-          ? {
-              ...state.viewOptionsByLayout,
-              [nextView]: nextViewOptions,
-            }
-          : createDefaultLayoutOptions();
+        if (!layout) {
+          const viewOptionsByLayout = createDefaultLayoutOptions();
+
+          return {
+            ...viewOptionsByLayout.list,
+            view: "list" as const,
+            viewOptionsByLayout,
+          };
+        }
+
+        const nextLayoutOptions = getDefaultLayoutOptions(layout);
 
         return {
-          ...nextViewOptions,
-          view: nextView,
-          viewOptionsByLayout: nextViewOptionsByLayout,
+          ...(layout === state.view ? nextLayoutOptions : {}),
+          viewOptionsByLayout: {
+            ...state.viewOptionsByLayout,
+            [layout]: nextLayoutOptions,
+          },
         };
       }),
-  };
-});
+  }));
+}
+
+export const ViewOptionsStoreContext = createContext<StoreApi<ViewOptionsState> | null>(null);
+const fallbackViewOptionsStore = createViewOptionsStore();
+const identitySelector = (state: ViewOptionsState) => state;
+
+export function useViewOptionsStore<T = ViewOptionsState>(
+  selector: (state: ViewOptionsState) => T = identitySelector as (state: ViewOptionsState) => T,
+) {
+  const store = useContext(ViewOptionsStoreContext) ?? fallbackViewOptionsStore;
+  return useStore(store, selector);
+}

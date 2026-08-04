@@ -2,7 +2,7 @@
 
 import {ScrollArea} from "@/components/ui/coss/scroll-area";
 import {Skeleton} from "@/components/ui/coss/skeleton";
-import {useViewOptionsStore} from "@/store/use-view-options";
+import {getLayoutOptions, useViewOptionsStore} from "@/store/use-view-options";
 import type {SortMode, TypeFilter} from "@/features/home/types";
 import {BookmarkTableShell} from "@/components/bookmark/BookmarkTableShell";
 import {HomeToolbar} from "@/features/home/components/HomeToolbar";
@@ -33,15 +33,14 @@ export function BookmarksLoader({
   collectionFilter?: string | null;
 }) {
   const view = useViewOptionsStore((state) => state.view);
-  const gridGap = useViewOptionsStore((state) => state.gridGap);
-  const columnSize = useViewOptionsStore((state) => state.columnSize);
-  const borderRadius = useViewOptionsStore((state) => state.borderRadius);
-  const bookmarkWidth = useViewOptionsStore((state) =>
-    getBookmarkWidthForType(state.bookmarkWidthByType, typeFilter),
+  const currentView = getCurrentAllItemsView(view, typeFilter);
+  const layoutOptions = useViewOptionsStore((state) =>
+    getLayoutOptions(state.viewOptionsByLayout, currentView),
   );
+  const {gridGap, columnSize, borderRadius} = layoutOptions;
+  const bookmarkWidth = getBookmarkWidthForType(layoutOptions.bookmarkWidthByType, typeFilter);
 
   const isPostDetailOpen = useIsPostDetailOpen();
-  const currentView = getCurrentAllItemsView(view, typeFilter);
   const isMediaGrid = currentView === "grid" && typeFilter === "media";
   const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
     {

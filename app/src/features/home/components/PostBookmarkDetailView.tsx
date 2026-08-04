@@ -35,7 +35,9 @@ export function PostBookmarkDetailView({
   setSelected,
   toggleSelected,
 }: PostBookmarkDetailViewProps) {
-  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidthByType.post);
+  const bookmarkWidth = useViewOptionsStore(
+    (state) => state.viewOptionsByLayout.list.bookmarkWidthByType.post,
+  );
   const itemId = item?.id;
   const handleDetailClickCapture = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {

@@ -1,7 +1,10 @@
 import {useEffect, useRef} from "react";
 import type {ViewMode} from "@/store/use-view-options";
 import type {TypeFilter} from "@/features/home/types";
-import {getNextAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
+import {
+  getCurrentAllItemsView,
+  getNextAllItemsView,
+} from "@/features/all-items/components/all-items-list-view-options";
 
 interface UseHomeShortcutsProps {
   selectionMode: boolean;
@@ -54,7 +57,11 @@ export function useHomeShortcuts({
           typeFilter: currentTypeFilter,
           setView: currentSetView,
         } = stateRef.current;
-        currentSetView(getNextAllItemsView(currentView, currentTypeFilter));
+        const effectiveView = getCurrentAllItemsView(currentView, currentTypeFilter);
+        const nextView = getNextAllItemsView(currentView, currentTypeFilter);
+        if (nextView !== effectiveView) {
+          currentSetView(nextView);
+        }
       }
     };
 

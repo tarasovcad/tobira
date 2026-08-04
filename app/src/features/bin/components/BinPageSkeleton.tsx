@@ -11,22 +11,21 @@ import {
 } from "@/features/all-items/components/all-items-list-view-options";
 import {getAllItemsListLayoutConfig} from "@/features/all-items/components/all-items-list-layout";
 import {HomeToolbar} from "@/features/home/components/HomeToolbar";
-import {useViewOptionsStore} from "@/store/use-view-options";
+import type {SortMode, TypeFilter} from "@/features/home/types";
+import {getLayoutOptions, useViewOptionsStore} from "@/store/use-view-options";
 
 const SKELETON_ROWS = 8;
 const STAT_LABEL_WIDTHS = ["w-[60px]", "w-[90px]", "w-[67px]", "w-[68px]"];
 
-export function BinPageSkeleton() {
+export function BinPageSkeleton({typeFilter, sort}: {typeFilter: TypeFilter; sort: SortMode}) {
   const view = useViewOptionsStore((state) => state.view);
-  const gridGap = useViewOptionsStore((state) => state.gridGap);
-  const columnSize = useViewOptionsStore((state) => state.columnSize);
-  const borderRadius = useViewOptionsStore((state) => state.borderRadius);
-  const bookmarkWidth = useViewOptionsStore((state) =>
-    getBookmarkWidthForType(state.bookmarkWidthByType, "website"),
+  const currentView = getCurrentAllItemsView(view, typeFilter);
+  const layoutOptions = useViewOptionsStore((state) =>
+    getLayoutOptions(state.viewOptionsByLayout, currentView),
   );
-
-  const currentView = getCurrentAllItemsView(view, "website");
-  const isMediaGrid = false;
+  const {gridGap, columnSize, borderRadius} = layoutOptions;
+  const bookmarkWidth = getBookmarkWidthForType(layoutOptions.bookmarkWidthByType, typeFilter);
+  const isMediaGrid = currentView === "grid" && typeFilter === "media";
   const {borderRadiusClass, gapClass, gridColsClass, masonryColsClass} = getAllItemsListViewOptions(
     {
       borderRadius,
@@ -42,7 +41,7 @@ export function BinPageSkeleton() {
     masonryColsClass,
     isMediaGrid,
     bookmarkWidth,
-    typeFilter: "website",
+    typeFilter,
   });
 
   const skeletons = Array.from({length: SKELETON_ROWS}, (_, index) =>
@@ -96,9 +95,9 @@ export function BinPageSkeleton() {
       </div>
 
       <HomeToolbar
-        typeFilter="website"
+        typeFilter={typeFilter}
         onTypeChange={() => {}}
-        sort="recent"
+        sort={sort}
         onSortChange={() => {}}
         selectionMode={false}
       />
