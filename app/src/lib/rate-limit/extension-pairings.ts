@@ -26,9 +26,30 @@ const extensionPairingRedeemTokenLimiter = new Ratelimit({
   prefix: "rl:extension-pairing:redeem:token:minute",
 });
 
+const extensionPairingApprovalLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.tokenBucket(20, "1 m", 20),
+  prefix: "rl:extension-pairing:approval:user:minute",
+});
+
+const extensionConnectionMinuteLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.tokenBucket(300, "1 m", 300),
+  prefix: "rl:extension-connection:credential:minute",
+});
+
+const extensionConnectionIpMinuteLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.tokenBucket(600, "1 m", 600),
+  prefix: "rl:extension-connection:ip:minute",
+});
+
 export class ExtensionPairingRateLimitError extends Error {
-  constructor(public readonly reset: number) {
-    super("Too many extension pairing requests. Please try again later.");
+  constructor(
+    public readonly reset: number,
+    message = "Too many extension pairing requests. Please try again later.",
+  ) {
+    super(message);
     this.name = "ExtensionPairingRateLimitError";
   }
 
@@ -45,27 +66,37 @@ export class ExtensionPairingRateLimitUnavailableError extends Error {
 }
 
 export async function enforceExtensionPairingCreateRateLimit(identifier: string) {
-  try {
-    await enforceLimit(extensionPairingMinuteLimiter, identifier);
-    await enforceLimit(extensionPairingHourLimiter, identifier);
-  } catch (error) {
-    if (
-      error instanceof ExtensionPairingRateLimitError ||
-      error instanceof ExtensionPairingRateLimitUnavailableError
-    ) {
-      throw error;
-    }
-
-    logger.error("Extension pairing rate limit failed", {error: toLogError(error)});
-    throw new ExtensionPairingRateLimitUnavailableError();
-  }
+  await enforceLimits("Extension pairing rate limit failed", [
+    [extensionPairingMinuteLimiter, identifier],
+    [extensionPairingHourLimiter, identifier],
+  ]);
 }
 
-export async function enforceExtensionPairingRedeemRateLimit(ip: string, deviceTokenHash: string) {
+export async function enforceExtensionPairingRedeemRateLimit(ip: string, credentialHash: string) {
+  await enforceLimits("Extension pairing redemption rate limit failed", [
+    [extensionPairingRedeemMinuteLimiter, ip],
+    [extensionPairingRedeemTokenLimiter, credentialHash.slice(0, 16)],
+  ]);
+}
+
+export async function enforceExtensionPairingApprovalRateLimit(userId: string) {
+  await enforceLimits("Extension pairing approval rate limit failed", [
+    [extensionPairingApprovalLimiter, userId],
+  ]);
+}
+
+export async function enforceExtensionConnectionRateLimit(ip: string, credentialHash: string) {
+  await enforceLimits("Extension connection rate limit failed", [
+    [extensionConnectionIpMinuteLimiter, ip],
+    [extensionConnectionMinuteLimiter, credentialHash.slice(0, 16)],
+  ]);
+}
+
+async function enforceLimits(message: string, limits: ReadonlyArray<readonly [Ratelimit, string]>) {
   try {
-    await enforceLimit(extensionPairingRedeemMinuteLimiter, ip);
-    // The hash avoids putting the device token itself into the rate-limit key.
-    await enforceLimit(extensionPairingRedeemTokenLimiter, deviceTokenHash.slice(0, 16));
+    for (const [limiter, identifier] of limits) {
+      await enforceLimit(limiter, identifier);
+    }
   } catch (error) {
     if (
       error instanceof ExtensionPairingRateLimitError ||
@@ -74,7 +105,7 @@ export async function enforceExtensionPairingRedeemRateLimit(ip: string, deviceT
       throw error;
     }
 
-    logger.error("Extension pairing redemption rate limit failed", {error: toLogError(error)});
+    logger.error(message, {error: toLogError(error)});
     throw new ExtensionPairingRateLimitUnavailableError();
   }
 }

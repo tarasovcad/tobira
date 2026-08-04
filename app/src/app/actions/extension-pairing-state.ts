@@ -7,6 +7,7 @@ export type ExtensionPairingApprovalState =
   | {status: "expired"}
   | {status: "used"}
   | {status: "cancelled"}
+  | {status: "rate-limited"}
   | {status: "error"};
 
 export const initialExtensionPairingApprovalState: ExtensionPairingApprovalState = {

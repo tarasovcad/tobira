@@ -73,6 +73,7 @@ function getApprovalMessage(
     | "expired"
     | "used"
     | "cancelled"
+    | "rate-limited"
     | "error",
 ) {
   switch (status) {
@@ -88,6 +89,8 @@ function getApprovalMessage(
       return "This connection request has already been used.";
     case "cancelled":
       return "This connection request was cancelled.";
+    case "rate-limited":
+      return "Too many connection attempts. Please wait a moment and try again.";
     case "error":
       return "The extension could not be connected. Please try again.";
   }

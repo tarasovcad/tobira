@@ -71,6 +71,13 @@
       "when": 1785739554005,
       "tag": "0016_whole_gamora",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785801098505,
+      "tag": "0017_extension_connections_model",
+      "breakpoints": true
     }
   ]
 }

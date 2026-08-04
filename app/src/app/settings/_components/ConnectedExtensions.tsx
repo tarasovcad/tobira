@@ -40,7 +40,7 @@ export function ConnectedExtensions({connections}: ConnectedExtensionsProps) {
 
     setError(null);
     startTransition(async () => {
-      const result = await revokeConnectedExtension({apiKeyId: selectedConnection.id});
+      const result = await revokeConnectedExtension({connectionId: selectedConnection.id});
       if (!result.success) {
         setError(result.error);
         return;

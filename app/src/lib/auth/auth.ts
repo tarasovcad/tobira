@@ -2,14 +2,12 @@ import {betterAuth} from "better-auth";
 import {emailOTP} from "better-auth/plugins";
 import {nextCookies} from "better-auth/next-js";
 import Cloudflare from "cloudflare";
-import {apiKey} from "@better-auth/api-key";
 import {drizzleAdapter} from "@better-auth/drizzle-adapter";
 
 import {db} from "@/db";
 import {trackServerEvent} from "@/lib/analytics/server";
 import type {AuthMethod} from "@/lib/analytics/events";
 import {AUTH_COOKIE_PREFIX} from "@/lib/auth/cookies";
-import {EXTENSION_API_KEY_PERMISSIONS} from "@/lib/auth/extension-permissions";
 
 type AuthHookContext = {
   path?: string;
@@ -17,8 +15,6 @@ type AuthHookContext = {
     id?: string;
   };
 } | null;
-
-export const EXTENSION_API_KEY_CONFIG_ID = "chrome-extension";
 
 function getAuthMethodFromContext(context: AuthHookContext): AuthMethod {
   if (context?.path === "/sign-in/email-otp") return "otp";
@@ -84,30 +80,6 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    apiKey({
-      configId: EXTENSION_API_KEY_CONFIG_ID,
-      references: "user",
-      defaultPrefix: "tobira_ext_",
-      defaultKeyLength: 64,
-      requireName: true,
-      enableMetadata: true,
-      keyExpiration: {
-        defaultExpiresIn: 90 * 24 * 60 * 60,
-        disableCustomExpiresTime: true,
-      },
-      rateLimit: {
-        enabled: true,
-        timeWindow: 60 * 1000,
-        maxRequests: 300,
-      },
-      enableSessionForAPIKeys: false,
-      permissions: {
-        defaultPermissions: {
-          ...EXTENSION_API_KEY_PERMISSIONS.accountRead,
-          ...EXTENSION_API_KEY_PERMISSIONS.connectionDelete,
-        },
-      },
-    }),
     emailOTP({
       storeOTP: "hashed",
       otpLength: 6,

@@ -1,15 +1,13 @@
 import type {ReactNode} from "react";
 import AppShell from "@/components/app-shell/AppShell";
 import {Sidebar} from "@/components/app-shell/sidebar/Sidebar";
-import {auth} from "@/lib/auth/auth";
+import {getCurrentSession} from "@/lib/auth/session";
 import {parseSidebarPreferences, SIDEBAR_PREFERENCES_COOKIE} from "@/lib/sidebar-preferences";
-import {cookies, headers} from "next/headers";
+import {cookies} from "next/headers";
 import {redirect} from "next/navigation";
 
 export default async function SettingsLayout({children}: {children: ReactNode}) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getCurrentSession();
 
   if (!session) {
     redirect("/login");

@@ -8,7 +8,7 @@ import {revokeExtensionConnection} from "@/lib/auth/extension-connections";
 import {logger, toLogError} from "@/lib/shared/logger";
 
 const revokeConnectionSchema = z.object({
-  apiKeyId: z.string().trim().min(1).max(128),
+  connectionId: z.string().trim().min(1).max(128),
 });
 
 export type RevokeExtensionConnectionResult = {success: true} | {success: false; error: string};
@@ -23,7 +23,7 @@ export async function revokeConnectedExtension(
 
   try {
     const userId = await requireAuthenticatedUserId();
-    const revoked = await revokeExtensionConnection(userId, parsed.data.apiKeyId);
+    const revoked = await revokeExtensionConnection(userId, parsed.data.connectionId);
 
     if (!revoked) {
       return {success: false, error: "This connection is no longer active."};

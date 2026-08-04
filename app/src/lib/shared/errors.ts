@@ -36,20 +36,6 @@ export class UnauthorizedError extends AppError {
   }
 }
 
-export class ForbiddenError extends AppError {
-  constructor(message = "Forbidden") {
-    super(message, "FORBIDDEN", 403);
-    this.name = "ForbiddenError";
-  }
-}
-
-export class RateLimitError extends AppError {
-  constructor(message = "Too many requests", context?: Record<string, unknown>) {
-    super(message, "RATE_LIMITED", 429, context);
-    this.name = "RateLimitError";
-  }
-}
-
 export class ValidationError extends AppError {
   constructor(
     message: string,

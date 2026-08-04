@@ -1,15 +1,20 @@
 "use server";
 
-import {and, eq, gt, isNull} from "drizzle-orm";
+import {redirect} from "next/navigation";
 
-import {db} from "@/db";
-import {extensionPairings} from "@/db/schema";
-import {getCurrentUserId} from "@/lib/auth/session";
+import {getCurrentUserId, requireAuthenticatedUserId} from "@/lib/auth/session";
+import {
+  approveExtensionPairingForUser,
+  cancelExtensionPairing as cancelPairing,
+} from "@/lib/extension/connections";
 import {
   EXTENSION_PAIRING_CODE_PATTERN,
-  hashExtensionPairingSecret,
   normalizeExtensionPairingCode,
 } from "@/lib/extension/pairings";
+import {
+  enforceExtensionPairingApprovalRateLimit,
+  ExtensionPairingRateLimitError,
+} from "@/lib/rate-limit/extension-pairings";
 import {logger, toLogError} from "@/lib/shared/logger";
 import type {ExtensionPairingApprovalState} from "./extension-pairing-state";
 
@@ -17,92 +22,45 @@ export async function approveExtensionPairing(
   _previousState: ExtensionPairingApprovalState,
   formData: FormData,
 ): Promise<ExtensionPairingApprovalState> {
-  const rawCode = formData.get("code");
-
-  if (typeof rawCode !== "string") {
-    return {status: "invalid-code"};
-  }
-
-  const normalizedCode = normalizeExtensionPairingCode(rawCode);
-  if (!EXTENSION_PAIRING_CODE_PATTERN.test(normalizedCode)) {
-    return {status: "invalid-code"};
-  }
+  const code = readPairingCode(formData);
+  if (!code) return {status: "invalid-code"};
 
   try {
     const userId = await getCurrentUserId();
-    if (!userId) {
-      return {status: "unauthenticated"};
-    }
+    if (!userId) return {status: "unauthenticated"};
 
-    const userCodeHash = hashExtensionPairingSecret(normalizedCode, "user-code");
-    const now = new Date();
-    const nowIso = now.toISOString();
-
-    const [approvedPairing] = await db
-      .update(extensionPairings)
-      .set({
-        userId,
-        approvedAt: nowIso,
-        updatedAt: nowIso,
-      })
-      .where(
-        and(
-          eq(extensionPairings.userCodeHash, userCodeHash),
-          isNull(extensionPairings.userId),
-          isNull(extensionPairings.approvedAt),
-          isNull(extensionPairings.claimedAt),
-          isNull(extensionPairings.redeemedAt),
-          isNull(extensionPairings.cancelledAt),
-          isNull(extensionPairings.apiKeyId),
-          gt(extensionPairings.expiresAt, nowIso),
-        ),
-      )
-      .returning({id: extensionPairings.id});
-
-    if (approvedPairing) {
-      return {status: "approved"};
-    }
-
-    const [pairing] = await db
-      .select({
-        userId: extensionPairings.userId,
-        apiKeyId: extensionPairings.apiKeyId,
-        expiresAt: extensionPairings.expiresAt,
-        approvedAt: extensionPairings.approvedAt,
-        claimedAt: extensionPairings.claimedAt,
-        redeemedAt: extensionPairings.redeemedAt,
-        cancelledAt: extensionPairings.cancelledAt,
-      })
-      .from(extensionPairings)
-      .where(eq(extensionPairings.userCodeHash, userCodeHash))
-      .limit(1);
-
-    if (!pairing) {
-      return {status: "not-found"};
-    }
-
-    if (pairing.cancelledAt) {
-      return {status: "cancelled"};
-    }
-
-    if (new Date(pairing.expiresAt).getTime() <= now.getTime()) {
-      return {status: "expired"};
-    }
-
-    if (
-      pairing.userId ||
-      pairing.apiKeyId ||
-      pairing.approvedAt ||
-      pairing.claimedAt ||
-      pairing.redeemedAt
-    ) {
-      return {status: "used"};
-    }
-
-    logger.warn("Extension pairing approval did not update a pending pairing");
-    return {status: "error"};
+    await enforceExtensionPairingApprovalRateLimit(userId);
+    const result = await approveExtensionPairingForUser(code, userId);
+    return {status: result};
   } catch (error) {
+    if (error instanceof ExtensionPairingRateLimitError) {
+      return {status: "rate-limited"};
+    }
+
     logger.error("Extension pairing approval failed", {error: toLogError(error)});
     return {status: "error"};
   }
+}
+
+export async function cancelExtensionPairing(formData: FormData): Promise<void> {
+  const code = readPairingCode(formData);
+  if (!code) redirect("/home");
+
+  try {
+    const userId = await requireAuthenticatedUserId();
+    await enforceExtensionPairingApprovalRateLimit(userId);
+    await cancelPairing(code);
+  } catch (error) {
+    logger.error("Extension pairing cancellation failed", {error: toLogError(error)});
+  }
+
+  redirect("/home");
+}
+
+function readPairingCode(formData: FormData) {
+  const rawCode = formData.get("code");
+  if (typeof rawCode !== "string") return null;
+
+  const normalizedCode = normalizeExtensionPairingCode(rawCode);
+  return EXTENSION_PAIRING_CODE_PATTERN.test(normalizedCode) ? normalizedCode : null;
 }

@@ -1,9 +1,10 @@
-import {createHash, randomBytes, randomInt} from "node:crypto";
+import {createHash, createHmac, randomBytes, randomInt} from "node:crypto";
 
 export const EXTENSION_PAIRING_PATH = "/connect-extension";
 export const EXTENSION_PAIRING_TTL_MS = 5 * 60 * 1000;
-export const EXTENSION_PAIRING_POLL_INTERVAL_MS = 5 * 1000;
+export const EXTENSION_CREDENTIAL_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const EXTENSION_PAIRING_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
+export const EXTENSION_CREDENTIAL_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 
 const DEVICE_TOKEN_BYTES = 32;
 const USER_CODE_LENGTH = 8;
@@ -11,7 +12,7 @@ const USER_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export type ExtensionPairingCredentials = {
   deviceToken: string;
-  deviceTokenHash: string;
+  credentialHash: string;
   userCode: string;
   userCodeHash: string;
 };
@@ -21,16 +22,15 @@ export type ExtensionPairingUrls = {
   verificationUrlComplete: string;
 };
 
-// Return plaintext only to the caller; the database receives hashes below.
 export function generateExtensionPairingCredentials(): ExtensionPairingCredentials {
   const deviceToken = randomBytes(DEVICE_TOKEN_BYTES).toString("base64url");
   const userCode = formatExtensionPairingCode(generateExtensionPairingCode());
 
   return {
     deviceToken,
-    deviceTokenHash: hashExtensionPairingSecret(deviceToken, "device"),
+    credentialHash: hashExtensionCredential(deviceToken),
     userCode,
-    userCodeHash: hashExtensionPairingSecret(userCode, "user-code"),
+    userCodeHash: hashExtensionPairingCode(userCode),
   };
 }
 
@@ -46,12 +46,13 @@ export function buildExtensionPairingUrls(userCode: string): ExtensionPairingUrl
   };
 }
 
-export function hashExtensionPairingSecret(secret: string, kind: "device" | "user-code") {
-  const canonicalSecret = kind === "user-code" ? normalizeExtensionPairingCode(secret) : secret;
+export function hashExtensionCredential(credential: string) {
+  return createHash("sha256").update(credential, "utf8").digest("base64url");
+}
 
-  // Keep device tokens and display codes in separate hash domains.
-  return createHash("sha256")
-    .update(`tobira:extension-pairing:${kind}:${canonicalSecret}`, "utf8")
+export function hashExtensionPairingCode(code: string) {
+  return createHmac("sha256", getPairingHashSecret())
+    .update(`tobira:extension-pairing:user-code:${normalizeExtensionPairingCode(code)}`, "utf8")
     .digest("base64url");
 }
 
@@ -91,8 +92,16 @@ function getApplicationUrl(): URL {
     throw new Error("NEXT_PUBLIC_APP_URL must not contain credentials");
   }
 
-  // Never build verification links from the request Host header.
   appUrl.search = "";
   appUrl.hash = "";
   return appUrl;
+}
+
+function getPairingHashSecret() {
+  const secret = process.env.BETTER_AUTH_SECRET?.trim();
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET is required for extension pairing");
+  }
+
+  return secret;
 }

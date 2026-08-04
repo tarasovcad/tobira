@@ -1,12 +1,12 @@
 import {NextResponse} from "next/server";
 import {db} from "@/db";
-import {extensionPairings} from "@/db/schema";
+import {extensionConnections} from "@/db/schema";
 import {
   buildExtensionPairingUrls,
-  EXTENSION_PAIRING_POLL_INTERVAL_MS,
   EXTENSION_PAIRING_TTL_MS,
   generateExtensionPairingCredentials,
 } from "@/lib/extension/pairings";
+import {cleanupExpiredExtensionConnections} from "@/lib/extension/connections";
 import {
   enforceExtensionPairingCreateRateLimit,
   ExtensionPairingRateLimitError,
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
 
     const ip = await getIp();
     await enforceExtensionPairingCreateRateLimit(ip);
+    await cleanupStaleConnections();
 
     const now = Date.now();
     const expiresAt = new Date(now + EXTENSION_PAIRING_TTL_MS).toISOString();
@@ -42,12 +43,12 @@ export async function POST(request: Request) {
       const urls = buildExtensionPairingUrls(credentials.userCode);
 
       try {
-        // The API key is created only after the user approves this pairing.
-        await db.insert(extensionPairings).values({
+        // The token remains unusable until approval and redemption activate this row.
+        await db.insert(extensionConnections).values({
           userCodeHash: credentials.userCodeHash,
-          deviceTokenHash: credentials.deviceTokenHash,
+          credentialHash: credentials.credentialHash,
           clientMetadata,
-          expiresAt,
+          pairingExpiresAt: expiresAt,
         });
 
         return NextResponse.json(
@@ -57,7 +58,6 @@ export async function POST(request: Request) {
             verificationUrl: urls.verificationUrl,
             verificationUrlComplete: urls.verificationUrlComplete,
             expiresAt,
-            pollIntervalMs: EXTENSION_PAIRING_POLL_INTERVAL_MS,
           },
           {status: 201, headers: NO_STORE_HEADERS},
         );
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ExtensionPairingRateLimitError) {
       return NextResponse.json(
-        {error: error.message},
+        {error: error.message, code: "RATE_LIMITED"},
         {
           status: 429,
           headers: {
@@ -86,21 +86,21 @@ export async function POST(request: Request) {
 
     if (error instanceof ExtensionPairingRateLimitUnavailableError) {
       return NextResponse.json(
-        {error: "Extension pairing is temporarily unavailable"},
+        {error: "Extension pairing is temporarily unavailable", code: "RATE_LIMIT_UNAVAILABLE"},
         {status: 503, headers: NO_STORE_HEADERS},
       );
     }
 
     logger.error("Extension pairing creation failed", {error: toLogError(error)});
     return NextResponse.json(
-      {error: "Failed to create extension pairing"},
+      {error: "Failed to create extension pairing", code: "PAIRING_CREATE_FAILED"},
       {status: 500, headers: NO_STORE_HEADERS},
     );
   }
 
   logger.error("Extension pairing creation exhausted insert attempts");
   return NextResponse.json(
-    {error: "Failed to create extension pairing"},
+    {error: "Failed to create extension pairing", code: "PAIRING_CREATE_FAILED"},
     {status: 500, headers: NO_STORE_HEADERS},
   );
 }
@@ -128,4 +128,12 @@ function isUniqueViolation(error: unknown): boolean {
   }
 
   return error.code === "23505";
+}
+
+async function cleanupStaleConnections() {
+  try {
+    await cleanupExpiredExtensionConnections();
+  } catch (error) {
+    logger.error("Failed to clean up stale extension connections", {error: toLogError(error)});
+  }
 }

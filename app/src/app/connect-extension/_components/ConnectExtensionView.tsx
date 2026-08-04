@@ -4,18 +4,20 @@ import {useCallback, useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+import {cancelExtensionPairing} from "@/app/actions/extension-pairing";
 import {Button} from "@/components/ui/coss/button";
 import {ApproveExtensionButton} from "./ApproveExtensionButton";
 
 export type ConnectExtensionViewState =
   | {kind: "pending"; code: string}
-  | {kind: "signed-out"; code: string}
+  | {kind: "approved"}
+  | {kind: "connected"}
   | {kind: "missing-code"}
   | {kind: "invalid-code"}
   | {kind: "not-found"}
-  | {kind: "expired"; code?: string}
-  | {kind: "cancelled"; code?: string}
-  | {kind: "connected"};
+  | {kind: "expired"}
+  | {kind: "cancelled"}
+  | {kind: "used"};
 
 type ConnectExtensionViewProps = {
   state: ConnectExtensionViewState;
@@ -71,18 +73,19 @@ export function ConnectExtensionLogo({connected = false}: {connected?: boolean})
 export function ConnectExtensionView({state}: ConnectExtensionViewProps) {
   const [isApproved, setIsApproved] = useState(false);
   const handleApproved = useCallback(() => setIsApproved(true), []);
+  const showsConnectedLogo = isApproved || state.kind === "approved" || state.kind === "connected";
 
   return (
     <ConnectExtensionShell>
-      <ConnectExtensionLogo connected={isApproved || state.kind === "connected"} />
+      <ConnectExtensionLogo connected={showsConnectedLogo} />
 
       {state.kind === "pending" &&
         (isApproved ? (
-          <ConnectedState />
+          <ApprovedState />
         ) : (
           <PendingState code={state.code} onApproved={handleApproved} />
         ))}
-      {state.kind === "signed-out" && <SignedOutState code={state.code} />}
+      {state.kind === "approved" && <ApprovedState />}
       {state.kind === "missing-code" && (
         <TerminalState
           title="Missing connection code"
@@ -111,6 +114,12 @@ export function ConnectExtensionView({state}: ConnectExtensionViewProps) {
         <TerminalState
           title="Connection cancelled"
           description="No account access was granted. You can close this tab or start again from the extension."
+        />
+      )}
+      {state.kind === "used" && (
+        <TerminalState
+          title="Connection already used"
+          description="This request has already been completed. Start again from the extension if it is not connected."
         />
       )}
       {state.kind === "connected" && <ConnectedState />}
@@ -144,9 +153,12 @@ function PendingState({code, onApproved}: {code: string; onApproved: () => void}
       <ApproveExtensionButton code={code} onApproved={onApproved} />
 
       <div className="mt-2">
-        <Button variant="ghost" size="default" className="w-full" render={<Link href="/home" />}>
-          Cancel
-        </Button>
+        <form action={cancelExtensionPairing}>
+          <input type="hidden" name="code" value={code} />
+          <Button type="submit" variant="ghost" size="default" className="w-full">
+            Cancel
+          </Button>
+        </form>
       </div>
     </section>
   );
@@ -166,21 +178,16 @@ function ConnectedState() {
   );
 }
 
-function SignedOutState({code}: {code: string}) {
+function ApprovedState() {
   return (
     <section className="w-full" aria-labelledby="connect-extension-title">
       <PageHeader
-        title="Sign in to continue"
-        description="Sign in to Tobira, then confirm this extension connection."
+        title="Connection approved"
+        description="Return to the extension while it finishes connecting to your Tobira account."
       />
-
-      <PairingCode code={code} />
-
-      <div className="mt-8">
-        <Button size="default" className="w-full rounded-lg" disabled aria-disabled="true">
-          Sign in to continue
-        </Button>
-      </div>
+      <Button size="default" className="w-full rounded-lg" render={<Link href="/home" />}>
+        Go to Tobira
+      </Button>
     </section>
   );
 }

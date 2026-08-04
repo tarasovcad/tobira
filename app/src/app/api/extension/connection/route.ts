@@ -1,7 +1,11 @@
 import {NextResponse} from "next/server";
 
 import {revokeExtensionConnection} from "@/lib/auth/extension-connections";
-import {EXTENSION_API_KEY_PERMISSIONS, requireExtensionApiKey} from "@/lib/auth/extension-api-key";
+import {requireExtensionCredential} from "@/lib/auth/extension-credential";
+import {
+  ExtensionPairingRateLimitError,
+  ExtensionPairingRateLimitUnavailableError,
+} from "@/lib/rate-limit/extension-pairings";
 import {isAppError} from "@/lib/shared/errors";
 import {logger, toLogError} from "@/lib/shared/logger";
 
@@ -10,16 +14,13 @@ export const runtime = "nodejs";
 const NO_STORE_HEADERS = {"cache-control": "no-store"};
 export async function GET(request: Request) {
   try {
-    const principal = await requireExtensionApiKey(
-      request,
-      EXTENSION_API_KEY_PERMISSIONS.accountRead,
-    );
+    const principal = await requireExtensionCredential(request);
 
     return NextResponse.json(
       {
         user: principal.user,
-        apiKeyId: principal.apiKeyId,
-        expiresAt: principal.expiresAt?.toISOString() ?? null,
+        apiKeyId: principal.connectionId,
+        expiresAt: principal.expiresAt,
       },
       {headers: NO_STORE_HEADERS},
     );
@@ -30,12 +31,9 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const principal = await requireExtensionApiKey(
-      request,
-      EXTENSION_API_KEY_PERMISSIONS.connectionDelete,
-    );
+    const principal = await requireExtensionCredential(request);
 
-    await revokeExtensionConnection(principal.userId, principal.apiKeyId);
+    await revokeExtensionConnection(principal.userId, principal.connectionId);
 
     return NextResponse.json({revoked: true}, {headers: NO_STORE_HEADERS});
   } catch (error) {
@@ -44,6 +42,23 @@ export async function DELETE(request: Request) {
 }
 
 function handleConnectionError(error: unknown, operation: string) {
+  if (error instanceof ExtensionPairingRateLimitError) {
+    return NextResponse.json(
+      {error: error.message, code: "RATE_LIMITED"},
+      {
+        status: 429,
+        headers: {...NO_STORE_HEADERS, "retry-after": String(error.retryAfterSeconds)},
+      },
+    );
+  }
+
+  if (error instanceof ExtensionPairingRateLimitUnavailableError) {
+    return NextResponse.json(
+      {error: "Extension connection temporarily unavailable", code: "RATE_LIMIT_UNAVAILABLE"},
+      {status: 503, headers: NO_STORE_HEADERS},
+    );
+  }
+
   if (isAppError(error)) {
     return NextResponse.json(
       {error: error.message, code: error.code},

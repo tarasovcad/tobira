@@ -1,11 +1,12 @@
 import type {Metadata} from "next";
 import {redirect} from "next/navigation";
 
+import {getCurrentUserId} from "@/lib/auth/session";
+import {getExtensionPairingViewState} from "@/lib/extension/connections";
 import {
   EXTENSION_PAIRING_CODE_PATTERN,
   normalizeExtensionPairingCode,
 } from "@/lib/extension/pairings";
-import {getCurrentUserId} from "@/lib/auth/session";
 import {
   ConnectExtensionView,
   type ConnectExtensionViewState,
@@ -20,7 +21,9 @@ type ConnectExtensionSearchParams = {
   code?: string | string[];
 };
 
-function getViewState(codeParam: ConnectExtensionSearchParams["code"]): ConnectExtensionViewState {
+async function getViewState(
+  codeParam: ConnectExtensionSearchParams["code"],
+): Promise<ConnectExtensionViewState> {
   if (!codeParam) {
     return {kind: "missing-code"};
   }
@@ -35,10 +38,14 @@ function getViewState(codeParam: ConnectExtensionSearchParams["code"]): ConnectE
     return {kind: "invalid-code"};
   }
 
-  return {
-    kind: "pending",
-    code: `${normalizedCode.slice(0, 4)}-${normalizedCode.slice(4)}`,
-  };
+  const code = `${normalizedCode.slice(0, 4)}-${normalizedCode.slice(4)}`;
+  const state = await getExtensionPairingViewState(code);
+
+  if (state.kind === "pending") return {kind: "pending", code};
+  if (state.kind === "approved") return {kind: "approved"};
+  if (state.kind === "connected") return {kind: "connected"};
+
+  return state;
 }
 
 export default async function ConnectExtensionPage({
@@ -54,5 +61,5 @@ export default async function ConnectExtensionPage({
 
   const {code} = await searchParams;
 
-  return <ConnectExtensionView state={getViewState(code)} />;
+  return <ConnectExtensionView state={await getViewState(code)} />;
 }

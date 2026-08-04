@@ -1,7 +1,6 @@
 import {SettingsContent} from "./SettingsContent";
-import {auth} from "@/lib/auth/auth";
 import {listExtensionConnections} from "@/lib/auth/extension-connections";
-import {headers} from "next/headers";
+import {getCurrentSession} from "@/lib/auth/session";
 
 export const metadata = {
   title: "Settings – Tobira",
@@ -10,7 +9,7 @@ export const metadata = {
 
 const SettingsPage = async ({searchParams}: {searchParams: Promise<{tab?: string}>}) => {
   const activeTag = (await searchParams).tab ?? "general";
-  const session = await auth.api.getSession({headers: await headers()});
+  const session = await getCurrentSession();
   const extensionConnections =
     activeTag === "account" && session ? await listExtensionConnections(session.user.id) : [];
 

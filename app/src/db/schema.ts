@@ -11,6 +11,7 @@ import {
   jsonb,
   primaryKey,
   pgEnum,
+  check,
 } from "drizzle-orm/pg-core";
 import {sql} from "drizzle-orm";
 
@@ -351,72 +352,62 @@ export const account = pgTable(
   ],
 );
 
-export const apikey = pgTable(
-  "apikey",
-  {
-    id: text().primaryKey().notNull(),
-    configId: text().default("default").notNull(),
-    name: text(),
-    start: text(),
-    referenceId: text().notNull(),
-    prefix: text(),
-    key: text().notNull(),
-    refillInterval: integer(),
-    refillAmount: integer(),
-    lastRefillAt: timestamp({withTimezone: true, mode: "string"}),
-    enabled: boolean().default(true),
-    rateLimitEnabled: boolean().default(true),
-    rateLimitTimeWindow: integer().default(60 * 1000),
-    rateLimitMax: integer().default(300),
-    requestCount: integer().default(0),
-    remaining: integer(),
-    lastRequest: timestamp({withTimezone: true, mode: "string"}),
-    expiresAt: timestamp({withTimezone: true, mode: "string"}),
-    createdAt: timestamp({withTimezone: true, mode: "string"}).notNull(),
-    updatedAt: timestamp({withTimezone: true, mode: "string"}).notNull(),
-    permissions: text(),
-    metadata: text(),
-  },
-  (table) => [
-    index("apikey_configId_idx").on(table.configId),
-    index("apikey_referenceId_idx").on(table.referenceId),
-    index("apikey_key_idx").on(table.key),
-  ],
-);
+export type ExtensionConnectionStatus = "pending" | "approved" | "active" | "cancelled" | "revoked";
 
-export const extensionPairings = pgTable(
-  "extension_pairings",
+export type ExtensionClientMetadataRecord = {
+  installationId: string;
+  browser: "chrome";
+  os: "mac" | "win" | "android" | "cros" | "linux" | "openbsd" | "fuchsia";
+  architecture: "arm" | "arm64" | "x86-32" | "x86-64" | "mips" | "mips64" | "riscv64";
+  extensionVersion: string;
+};
+
+export const extensionConnections = pgTable(
+  "extension_connections",
   {
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    userCodeHash: text("user_code_hash").notNull(),
-    deviceTokenHash: text("device_token_hash").notNull(),
-    clientMetadata: jsonb("client_metadata"),
+    id: text()
+      .default(sql`gen_random_uuid()::text`)
+      .primaryKey()
+      .notNull(),
+    userCodeHash: text("user_code_hash"),
+    credentialHash: text("credential_hash").notNull(),
+    status: text({enum: ["pending", "approved", "active", "cancelled", "revoked"]})
+      .default("pending")
+      .notNull(),
     userId: text("user_id"),
-    apiKeyId: text("api_key_id"),
-    expiresAt: timestamp("expires_at", {withTimezone: true, mode: "string"}).notNull(),
+    name: text().default("Tobira Chrome extension").notNull(),
+    clientMetadata: jsonb("client_metadata")
+      .$type<ExtensionClientMetadataRecord>()
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    pairingExpiresAt: timestamp("pairing_expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    credentialExpiresAt: timestamp("credential_expires_at", {withTimezone: true, mode: "string"}),
     approvedAt: timestamp("approved_at", {withTimezone: true, mode: "string"}),
-    claimedAt: timestamp("claimed_at", {withTimezone: true, mode: "string"}),
-    redeemedAt: timestamp("redeemed_at", {withTimezone: true, mode: "string"}),
+    activatedAt: timestamp("activated_at", {withTimezone: true, mode: "string"}),
     cancelledAt: timestamp("cancelled_at", {withTimezone: true, mode: "string"}),
+    revokedAt: timestamp("revoked_at", {withTimezone: true, mode: "string"}),
+    lastUsedAt: timestamp("last_used_at", {withTimezone: true, mode: "string"}),
     createdAt: timestamp("created_at", {withTimezone: true, mode: "string"}).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", {withTimezone: true, mode: "string"}).defaultNow().notNull(),
   },
   (table) => [
-    unique("extension_pairings_user_code_hash_key").on(table.userCodeHash),
-    unique("extension_pairings_device_token_hash_key").on(table.deviceTokenHash),
-    index("extension_pairings_expires_at_idx").on(table.expiresAt),
-    index("extension_pairings_user_id_idx").on(table.userId),
-    index("extension_pairings_api_key_id_idx").on(table.apiKeyId),
+    unique("extension_connections_user_code_hash_key").on(table.userCodeHash),
+    unique("extension_connections_credential_hash_key").on(table.credentialHash),
+    index("extension_connections_user_status_idx").on(table.userId, table.status),
+    index("extension_connections_pairing_expires_at_idx").on(table.pairingExpiresAt),
+    index("extension_connections_credential_expires_at_idx").on(table.credentialExpiresAt),
     foreignKey({
       columns: [table.userId],
       foreignColumns: [user.id],
-      name: "extension_pairings_user_id_fkey",
+      name: "extension_connections_user_id_fkey",
     }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.apiKeyId],
-      foreignColumns: [apikey.id],
-      name: "extension_pairings_api_key_id_fkey",
-    }).onDelete("set null"),
+    check(
+      "extension_connections_status_check",
+      sql`${table.status} in ('pending', 'approved', 'active', 'cancelled', 'revoked')`,
+    ),
   ],
 );
 

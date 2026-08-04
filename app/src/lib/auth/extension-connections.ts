@@ -1,8 +1,7 @@
 import {and, desc, eq, gt, isNull, or} from "drizzle-orm";
 
 import {db} from "@/db";
-import {apikey} from "@/db/schema";
-import {EXTENSION_API_KEY_CONFIG_ID} from "@/lib/auth/auth";
+import {extensionConnections} from "@/db/schema";
 import {
   parseExtensionClientMetadata,
   type ExtensionClientMetadata,
@@ -21,60 +20,55 @@ export async function listExtensionConnections(userId: string): Promise<Extensio
   const now = new Date().toISOString();
   const rows = await db
     .select({
-      id: apikey.id,
-      name: apikey.name,
-      metadata: apikey.metadata,
-      createdAt: apikey.createdAt,
-      lastRequest: apikey.lastRequest,
-      expiresAt: apikey.expiresAt,
+      id: extensionConnections.id,
+      name: extensionConnections.name,
+      metadata: extensionConnections.clientMetadata,
+      createdAt: extensionConnections.activatedAt,
+      lastRequest: extensionConnections.lastUsedAt,
+      expiresAt: extensionConnections.credentialExpiresAt,
     })
-    .from(apikey)
+    .from(extensionConnections)
     .where(
       and(
-        eq(apikey.referenceId, userId),
-        eq(apikey.configId, EXTENSION_API_KEY_CONFIG_ID),
-        eq(apikey.enabled, true),
-        or(isNull(apikey.expiresAt), gt(apikey.expiresAt, now)),
+        eq(extensionConnections.userId, userId),
+        eq(extensionConnections.status, "active"),
+        isNull(extensionConnections.revokedAt),
+        or(
+          isNull(extensionConnections.credentialExpiresAt),
+          gt(extensionConnections.credentialExpiresAt, now),
+        ),
       ),
     )
-    .orderBy(desc(apikey.createdAt));
+    .orderBy(desc(extensionConnections.activatedAt));
 
   return rows.map((row) => ({
     id: row.id,
-    name: row.name ?? "Tobira extension",
-    device: parseExtensionClientMetadata(parseJson(row.metadata)),
-    createdAt: row.createdAt,
+    name: row.name,
+    device: parseExtensionClientMetadata(row.metadata),
+    createdAt: row.createdAt ?? now,
     lastRequest: row.lastRequest,
     expiresAt: row.expiresAt,
   }));
 }
 
-export async function revokeExtensionConnection(userId: string, apiKeyId: string) {
+export async function revokeExtensionConnection(userId: string, connectionId: string) {
+  const now = new Date().toISOString();
   const [revoked] = await db
-    .update(apikey)
+    .update(extensionConnections)
     .set({
-      enabled: false,
-      updatedAt: new Date().toISOString(),
+      status: "revoked",
+      revokedAt: now,
+      updatedAt: now,
     })
     .where(
       and(
-        eq(apikey.id, apiKeyId),
-        eq(apikey.referenceId, userId),
-        eq(apikey.configId, EXTENSION_API_KEY_CONFIG_ID),
-        eq(apikey.enabled, true),
+        eq(extensionConnections.id, connectionId),
+        eq(extensionConnections.userId, userId),
+        eq(extensionConnections.status, "active"),
+        isNull(extensionConnections.revokedAt),
       ),
     )
-    .returning({id: apikey.id});
+    .returning({id: extensionConnections.id});
 
   return revoked !== undefined;
-}
-
-function parseJson(value: string | null): unknown {
-  if (!value) return null;
-
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return null;
-  }
 }
