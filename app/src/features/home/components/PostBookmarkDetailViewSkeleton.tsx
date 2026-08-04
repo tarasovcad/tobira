@@ -13,7 +13,9 @@ interface PostBookmarkDetailViewSkeletonProps {
 
 export function PostBookmarkDetailViewSkeleton({className}: PostBookmarkDetailViewSkeletonProps) {
   const {closePostDetail} = usePostDetailUrl();
-  const bookmarkWidth = useViewOptionsStore((state) => state.bookmarkWidthByType.post);
+  const bookmarkWidth = useViewOptionsStore(
+    (state) => state.viewOptionsByLayout.list.bookmarkWidthByType.post,
+  );
 
   return (
     <div className={cn("relative flex h-full min-h-0 flex-col", className)}>

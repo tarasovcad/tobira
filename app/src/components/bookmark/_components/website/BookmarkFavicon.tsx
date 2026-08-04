@@ -3,16 +3,15 @@ import {buildR2PublicUrl} from "@/lib/storage/r2-public";
 import {useViewOptionsStore} from "@/store/use-view-options";
 import {cn} from "@/lib/utils";
 import Image from "next/image";
-import {Avatar} from "@/components/ui/app/avatar";
 import {buildWebsiteAssetUrl} from "@/components/bookmark/_utils/website-asset-url";
 
-function getDomainLetter(url: string): {letter: string; domain: string} {
+function getDomainLetter(url: string): string {
   try {
     const hostname = new URL(url).hostname.replace(/^www\./, "");
     const letter = hostname[0]?.toUpperCase() ?? "?";
-    return {letter, domain: hostname};
+    return letter;
   } catch {
-    return {letter: "?", domain: "fallback"};
+    return "?";
   }
 }
 
@@ -96,7 +95,7 @@ const BookmarkFavicon = ({
   const {contentToggles} = useViewOptionsStore();
   const showImage = contentToggles.avatar;
   const isCompact = variant === "compact";
-  const {letter, domain} = getDomainLetter(bookmarkUrl);
+  const letter = getDomainLetter(bookmarkUrl);
   const baseSrc = url ? buildR2PublicUrl(url) : "";
   const image = useRetryingImage(baseSrc, fetchedAt);
 
@@ -155,19 +154,9 @@ const BookmarkFavicon = ({
     <div
       className={cn(
         "flex items-center justify-center rounded-sm",
-        isCompact ? "size-[18px]" : "size-9",
+        isCompact ? "size-[18px]" : "bg-background size-9 rounded-md border",
       )}>
-      <Avatar
-        seed={domain}
-        label={letter}
-        size={isCompact ? 18 : 32}
-        animated={false}
-        showFrame={false}
-        className={cn("rounded-sm")}
-        style={{
-          fontSize: isCompact ? "10px" : Math.max(10, Math.floor(36 * 0.55)) + "px",
-        }}
-      />
+      <FaviconPlaceholder />
     </div>
   );
 };

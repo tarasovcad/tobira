@@ -2,14 +2,11 @@
 
 import {useQueryStates} from "nuqs";
 import {usePathname} from "next/navigation";
-import {useViewOptionsStore} from "@/store/use-view-options";
 import {getBookmarkWorkspaceScope, type SortMode, type TypeFilter} from "@/features/home/types";
-import {getDefaultAllItemsView} from "@/features/all-items/components/all-items-list-view-options";
 import {binFilterParsers, homeFilterParsers} from "@/lib/query-params";
 
 export function useHomeFilters({bin = false}: {bin?: boolean} = {}) {
   const pathname = usePathname();
-  const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
   const parsers = bin ? binFilterParsers : homeFilterParsers;
   const [{type, sort}, setHomeFilters] = useQueryStates({
     type: parsers.type,
@@ -30,7 +27,6 @@ export function useHomeFilters({bin = false}: {bin?: boolean} = {}) {
 
   const handleTypeChange = (nextType: TypeFilter) => {
     void setHomeFilters({type: nextType});
-    resetViewOptions(getDefaultAllItemsView(nextType));
   };
 
   const handleSortChange = (nextSort: SortMode) => {
