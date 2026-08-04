@@ -4,6 +4,8 @@ import {
   Menu,
   MenuTrigger,
   MenuPopup,
+  MenuItem,
+  MenuSeparator,
   DropdownMenuGroup,
   DropdownMenuLabel,
 } from "@/components/ui/coss/menu";
@@ -18,8 +20,8 @@ import {Switch} from "@/components/ui/app/switch";
 import {SliderComfortable} from "@/components/ui/app/slider";
 import {cn} from "@/lib/utils";
 import {
+  hasLayoutOptionsChanges,
   useViewOptionsStore,
-  DEFAULT_COMPACT_INTERACTIONS,
   type ColumnSize,
   type CompactPreviewPosition,
   type CompactPreviewSize,
@@ -255,72 +257,6 @@ function isPostContentFieldEnabled(
   }
 }
 
-const DEFAULT_VIEW_OPTIONS: Record<
-  ViewMode,
-  {
-    gridGap: GridGap;
-    columnSize: ColumnSize;
-    borderRadius: BorderRadius;
-    bookmarkWidth: BookmarkWidth;
-    contentToggles: Record<ContentField, boolean>;
-    compactInteractions?: typeof DEFAULT_COMPACT_INTERACTIONS;
-  }
-> = {
-  list: {
-    gridGap: "none",
-    columnSize: 3,
-    borderRadius: "none",
-    bookmarkWidth: "full",
-    contentToggles: {
-      avatar: true,
-      description: true,
-      tags: false,
-      source: true,
-      savedDate: true,
-    },
-  },
-  compact: {
-    gridGap: "none",
-    columnSize: 3,
-    borderRadius: "none",
-    bookmarkWidth: "sm",
-    contentToggles: {
-      avatar: true,
-      description: false,
-      tags: false,
-      source: true,
-      savedDate: false,
-    },
-    compactInteractions: DEFAULT_COMPACT_INTERACTIONS,
-  },
-  grid: {
-    gridGap: "md",
-    columnSize: 4,
-    borderRadius: "md",
-    bookmarkWidth: "full",
-    contentToggles: {
-      avatar: true,
-      description: false,
-      tags: false,
-      source: true,
-      savedDate: true,
-    },
-  },
-  table: {
-    gridGap: "none",
-    columnSize: 1,
-    borderRadius: "none",
-    bookmarkWidth: "full",
-    contentToggles: {
-      avatar: true,
-      description: false,
-      tags: false,
-      source: true,
-      savedDate: true,
-    },
-  },
-};
-
 const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const bookmarkWidth = useViewOptionsStore(
     (state) => state.bookmarkWidthByType[typeFilter as KindFilter],
@@ -328,6 +264,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
   const setBookmarkWidthForType = useViewOptionsStore((state) => state.setBookmarkWidthForType);
   const view = useViewOptionsStore((state) => state.view);
   const setView = useViewOptionsStore((state) => state.setView);
+  const resetViewOptions = useViewOptionsStore((state) => state.resetViewOptions);
 
   const gridGap = useViewOptionsStore((state) => state.gridGap);
   const setGridGap = useViewOptionsStore((state) => state.setGridGap);
@@ -338,14 +275,12 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
 
   const contentToggles = useViewOptionsStore((state) => state.contentToggles);
   const setContentToggle = useViewOptionsStore((state) => state.setContentToggle);
-  const setContentToggles = useViewOptionsStore((state) => state.setContentToggles);
 
   const postContentToggles = useViewOptionsStore((state) => state.postContentToggles);
   const setPostContentToggle = useViewOptionsStore((state) => state.setPostContentToggle);
 
   const compactInteractions = useViewOptionsStore((state) => state.compactInteractions);
   const setCompactInteraction = useViewOptionsStore((state) => state.setCompactInteraction);
-  const setCompactInteractions = useViewOptionsStore((state) => state.setCompactInteractions);
 
   const isMedia = typeFilter === "media";
   const isPost = typeFilter === "post";
@@ -353,6 +288,9 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
     ? WIDTH_OPTIONS.findIndex((o) => o.value === "md")
     : WIDTH_OPTIONS.length - 1;
   const currentView = getCurrentAllItemsView(view, typeFilter);
+  const hasCurrentLayoutChanges = useViewOptionsStore((state) =>
+    hasLayoutOptionsChanges(state.viewOptionsByLayout, currentView),
+  );
   const disabledAppearanceFields = DISABLED_APPEARANCE_BY_VIEW[currentView as ViewMode] || [];
   const isCompactView = currentView === "compact";
   const interactionsDisabled = !isCompactView;
@@ -423,25 +361,7 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
                         onClick={() => {
                           if (isOptionDisabled) return;
 
-                          // Set the new view
-                          const newView = id as ViewMode;
-                          setView(newView);
-
-                          // Reset to default options for the new view
-                          const defaults = DEFAULT_VIEW_OPTIONS[newView];
-                          if (defaults) {
-                            setGridGap(defaults.gridGap);
-                            setColumnSize(defaults.columnSize);
-                            setBorderRadius(defaults.borderRadius);
-                            setBookmarkWidthForType(
-                              typeFilter as KindFilter,
-                              defaults.bookmarkWidth,
-                            );
-                            setContentToggles(defaults.contentToggles);
-                            if (defaults.compactInteractions) {
-                              setCompactInteractions(defaults.compactInteractions);
-                            }
-                          }
+                          setView(id as ViewMode);
                         }}
                         className={cn(
                           "hover:bg-accent hover:text-accent-foreground flex items-center justify-start gap-2 rounded-sm p-1",
@@ -737,6 +657,18 @@ const ViewOptionsMenu = ({typeFilter}: {typeFilter: TypeFilter}) => {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+
+          {hasCurrentLayoutChanges ? (
+            <>
+              <MenuSeparator />
+              <MenuItem
+                className="mt-1 justify-center"
+                closeOnClick={false}
+                onClick={() => resetViewOptions(currentView)}>
+                Reset
+              </MenuItem>
+            </>
+          ) : null}
         </DropdownMenuGroup>
       </MenuPopup>
     </Menu>
