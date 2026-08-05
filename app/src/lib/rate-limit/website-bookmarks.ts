@@ -3,10 +3,20 @@ import {redis} from "@/lib/cache/redis";
 import {logger, toLogError} from "@/lib/shared/logger";
 import {getIp} from "@/lib/utils/ip";
 
-class WebsiteBookmarkRateLimitError extends Error {
-  constructor(message: string) {
+export class WebsiteBookmarkRateLimitError extends Error {
+  constructor(
+    public readonly retryAfterSeconds: number,
+    message: string,
+  ) {
     super(message);
     this.name = "WebsiteBookmarkRateLimitError";
+  }
+}
+
+export class WebsiteBookmarkRateLimitUnavailableError extends Error {
+  constructor() {
+    super("Website bookmark creation is temporarily unavailable. Please try again soon.");
+    this.name = "WebsiteBookmarkRateLimitUnavailableError";
   }
 }
 
@@ -74,7 +84,7 @@ export async function enforceWebsiteBookmarkCreateRateLimit(userId: string) {
       error: toLogError(error),
     });
 
-    throw new Error("Website bookmark creation is temporarily unavailable. Please try again soon.");
+    throw new WebsiteBookmarkRateLimitUnavailableError();
   }
 }
 
@@ -100,8 +110,10 @@ async function enforceLimit(
 }
 
 function throwRateLimitError(reset: number): never {
-  const retryAfterMinutes = Math.max(1, Math.ceil((reset - Date.now()) / 60_000));
+  const retryAfterSeconds = Math.max(1, Math.ceil((reset - Date.now()) / 1_000));
+  const retryAfterMinutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
   throw new WebsiteBookmarkRateLimitError(
+    retryAfterSeconds,
     `Too many website bookmarks. Please try again in ${retryAfterMinutes}m.`,
   );
 }
