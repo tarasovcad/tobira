@@ -10,6 +10,8 @@ import {
 import { isTobiraPairingCode } from "@/lib/tobira-contracts";
 import {
   getRuntimeMessageType,
+  TOBIRA_SHOW_TOAST,
+  type TobiraToastMessage,
   type TobiraRuntimeResponse,
 } from "@/lib/tobira-messages";
 
@@ -50,10 +52,10 @@ export default defineBackground(() => {
     console.error("Failed to initialize Tobira context menus", error);
   });
 
-  browser.contextMenus.onClicked.addListener((info) => {
+  browser.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId !== SAVE_LINK_MENU_ID || !info.linkUrl) return;
 
-    void saveWebsiteBookmarkFromContextMenu(info.linkUrl);
+    void saveWebsiteBookmarkFromContextMenu(info.linkUrl, tab?.id);
   });
 
   browser.runtime.onMessage.addListener(
@@ -79,7 +81,12 @@ async function initializeContextMenus(): Promise<void> {
   });
 }
 
-async function saveWebsiteBookmarkFromContextMenu(url: string): Promise<void> {
+async function saveWebsiteBookmarkFromContextMenu(
+  url: string,
+  tabId: number | undefined,
+): Promise<void> {
+  let toastId: string | undefined;
+
   try {
     await ensureTobiraStorageAccess();
 
@@ -89,41 +96,59 @@ async function saveWebsiteBookmarkFromContextMenu(url: string): Promise<void> {
       auth.kind !== "connected" ||
       auth.connection.confirmationPending
     ) {
-      await showContextMenuNotification(
+      await showContextMenuToast(
+        tabId,
         "Connect Tobira first",
         "Open the Tobira extension popup and connect your account before saving links.",
+        "error",
       );
       return;
     }
 
-    await browserTobiraApi.createWebsiteBookmark(auth.connection.apiKey, url);
-    await showContextMenuNotification(
+    toastId = `bookmark-save-${crypto.randomUUID()}`;
+    await showContextMenuToast(
+      tabId,
       "Saved to Tobira",
-      "The link was added to your website bookmarks.",
+      undefined,
+      "success",
+      toastId,
     );
+
+    await browserTobiraApi.createWebsiteBookmark(auth.connection.apiKey, url);
   } catch (error) {
     console.error("Failed to save website bookmark from context menu", error);
 
-    await showContextMenuNotification(
+    await showContextMenuToast(
+      tabId,
       "Could not save to Tobira",
       getContextMenuSaveErrorMessage(error),
+      "error",
+      toastId,
     );
   }
 }
 
-async function showContextMenuNotification(
+async function showContextMenuToast(
+  tabId: number | undefined,
   title: string,
-  message: string,
+  message: string | undefined,
+  toastType: TobiraToastMessage["toastType"],
+  id?: string,
 ): Promise<void> {
+  if (tabId === undefined) return;
+
+  const toastMessage: TobiraToastMessage = {
+    type: TOBIRA_SHOW_TOAST,
+    ...(id ? {id} : {}),
+    title,
+    description: message,
+    toastType,
+  };
+
   try {
-    await browser.notifications.create({
-      type: "basic",
-      iconUrl: browser.runtime.getURL("/icon/128.png"),
-      title,
-      message,
-    });
+    await browser.tabs.sendMessage(tabId, toastMessage);
   } catch (error) {
-    console.error("Failed to show Tobira context menu notification", error);
+    console.error("Failed to show Tobira context menu toast", error);
   }
 }
 

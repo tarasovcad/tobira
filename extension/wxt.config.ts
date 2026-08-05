@@ -29,8 +29,9 @@ export default defineConfig({
       name: "Tobira",
       description:
         "Connect Tobira to your browser and bring your saved content together.",
-      permissions: ["contextMenus", "cookies", "notifications", "storage"],
+      permissions: ["contextMenus", "cookies", "storage"],
       host_permissions: [
+        "<all_urls>",
         "*://*.x.com/*",
         "*://*.twitter.com/*",
         `${tobiraAppUrl}/*`,
