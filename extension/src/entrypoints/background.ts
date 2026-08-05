@@ -41,7 +41,9 @@ const tobiraConnectionManager = new TobiraConnectionManager({
   },
 });
 
+const SAVE_PAGE_MENU_ID = "save-to-tobira-page";
 const SAVE_LINK_MENU_ID = "save-to-tobira-link";
+const SAVE_CURRENT_PAGE_COMMAND = "save-current-page";
 
 export default defineBackground(() => {
   void initializeTobiraStorage().catch((error) => {
@@ -53,9 +55,37 @@ export default defineBackground(() => {
   });
 
   browser.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId !== SAVE_LINK_MENU_ID || !info.linkUrl) return;
+    if (info.menuItemId === SAVE_LINK_MENU_ID && info.linkUrl) {
+      void saveWebsiteBookmarkFromContextMenu(info.linkUrl, tab?.id);
+      return;
+    }
 
-    void saveWebsiteBookmarkFromContextMenu(info.linkUrl, tab?.id);
+    if (info.menuItemId !== SAVE_PAGE_MENU_ID) return;
+
+    const pageUrl = info.pageUrl ?? tab?.url;
+    if (!pageUrl) return;
+
+    void saveWebsiteBookmarkFromContextMenu(pageUrl, tab?.id);
+  });
+
+  browser.commands.onCommand.addListener((command, tab) => {
+    if (command !== SAVE_CURRENT_PAGE_COMMAND) return;
+
+    void saveCurrentPage(tab).catch((error) => {
+      console.error("Failed to save the current page from keyboard shortcut", error);
+    });
+  });
+
+  void browser.omnibox
+    .setDefaultSuggestion({description: "Save current page to Tobira"})
+    .catch((error) => {
+      console.error("Failed to initialize the Tobira omnibox suggestion", error);
+    });
+
+  browser.omnibox.onInputEntered.addListener(() => {
+    void saveCurrentPage(undefined).catch((error) => {
+      console.error("Failed to save the current page from the Tobira omnibox", error);
+    });
   });
 
   browser.runtime.onMessage.addListener(
@@ -75,10 +105,28 @@ export default defineBackground(() => {
 async function initializeContextMenus(): Promise<void> {
   await browser.contextMenus.removeAll();
   await browser.contextMenus.create({
+    id: SAVE_PAGE_MENU_ID,
+    title: "Save page to Tobira",
+    contexts: ["page"],
+  });
+  await browser.contextMenus.create({
     id: SAVE_LINK_MENU_ID,
-    title: "Save to Tobira",
+    title: "Save link to Tobira",
     contexts: ["link"],
   });
+}
+
+async function saveCurrentPage(
+  tab: {id?: number; url?: string} | undefined,
+): Promise<void> {
+  const currentTab =
+    tab?.url
+      ? tab
+      : (await browser.tabs.query({active: true, lastFocusedWindow: true}))[0];
+
+  if (!currentTab?.url) return;
+
+  await saveWebsiteBookmarkFromContextMenu(currentTab.url, currentTab.id);
 }
 
 async function saveWebsiteBookmarkFromContextMenu(

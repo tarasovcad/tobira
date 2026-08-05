@@ -36,6 +36,18 @@ export default defineConfig({
         "*://*.twitter.com/*",
         `${tobiraAppUrl}/*`,
       ],
+      omnibox: {
+        keyword: "tobira",
+      },
+      commands: {
+        "save-current-page": {
+          suggested_key: {
+            default: "Ctrl+Shift+S",
+            mac: "Command+Shift+S",
+          },
+          description: "Save the current page to Tobira",
+        },
+      },
     };
   },
 });
