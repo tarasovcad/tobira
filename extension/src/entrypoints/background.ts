@@ -1,6 +1,6 @@
 import { checkXAuth, fetchXUser } from "@/lib/x-api";
 import { saveXConfig, type XConfig } from "@/lib/x-config";
-import { browserTobiraApi } from "@/lib/tobira-api";
+import { browserTobiraApi, TobiraApiError } from "@/lib/tobira-api";
 import { isTobiraAppUrl } from "@/lib/tobira-config";
 import { TobiraConnectionManager } from "@/lib/tobira-connection-manager";
 import {
@@ -39,9 +39,21 @@ const tobiraConnectionManager = new TobiraConnectionManager({
   },
 });
 
+const SAVE_LINK_MENU_ID = "save-to-tobira-link";
+
 export default defineBackground(() => {
   void initializeTobiraStorage().catch((error) => {
     console.error("Failed to initialize extension storage", error);
+  });
+
+  void initializeContextMenus().catch((error) => {
+    console.error("Failed to initialize Tobira context menus", error);
+  });
+
+  browser.contextMenus.onClicked.addListener((info) => {
+    if (info.menuItemId !== SAVE_LINK_MENU_ID || !info.linkUrl) return;
+
+    void saveWebsiteBookmarkFromContextMenu(info.linkUrl);
   });
 
   browser.runtime.onMessage.addListener(
@@ -57,6 +69,81 @@ export default defineBackground(() => {
     },
   );
 });
+
+async function initializeContextMenus(): Promise<void> {
+  await browser.contextMenus.removeAll();
+  await browser.contextMenus.create({
+    id: SAVE_LINK_MENU_ID,
+    title: "Save to Tobira",
+    contexts: ["link"],
+  });
+}
+
+async function saveWebsiteBookmarkFromContextMenu(url: string): Promise<void> {
+  try {
+    await ensureTobiraStorageAccess();
+
+    const auth = await browserTobiraAuthStore.get();
+    if (
+      !auth ||
+      auth.kind !== "connected" ||
+      auth.connection.confirmationPending
+    ) {
+      await showContextMenuNotification(
+        "Connect Tobira first",
+        "Open the Tobira extension popup and connect your account before saving links.",
+      );
+      return;
+    }
+
+    await browserTobiraApi.createWebsiteBookmark(auth.connection.apiKey, url);
+    await showContextMenuNotification(
+      "Saved to Tobira",
+      "The link was added to your website bookmarks.",
+    );
+  } catch (error) {
+    console.error("Failed to save website bookmark from context menu", error);
+
+    await showContextMenuNotification(
+      "Could not save to Tobira",
+      getContextMenuSaveErrorMessage(error),
+    );
+  }
+}
+
+async function showContextMenuNotification(
+  title: string,
+  message: string,
+): Promise<void> {
+  try {
+    await browser.notifications.create({
+      type: "basic",
+      iconUrl: browser.runtime.getURL("/icon/128.png"),
+      title,
+      message,
+    });
+  } catch (error) {
+    console.error("Failed to show Tobira context menu notification", error);
+  }
+}
+
+function getContextMenuSaveErrorMessage(error: unknown): string {
+  if (error instanceof TobiraApiError) {
+    if (error.status === 401 || error.status === 403) {
+      return "Your Tobira connection expired. Reconnect the extension and try again.";
+    }
+
+    if (error.status === 429) {
+      return error.retryAfterSeconds
+        ? `Tobira is rate limiting saves. Try again in ${error.retryAfterSeconds} seconds.`
+        : "Tobira is rate limiting saves. Try again shortly.";
+    }
+
+    if (error.status === 400) return error.message;
+  }
+
+  return "Please try again in a moment.";
+}
 
 async function initializeTobiraStorage(): Promise<void> {
   await ensureTobiraStorageAccess();

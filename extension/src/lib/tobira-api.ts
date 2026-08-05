@@ -1,5 +1,6 @@
 import { buildTobiraUrl, isTobiraAppUrl } from "@/lib/tobira-config";
 import {
+  isRecord,
   parseTobiraPairingResponse,
   parseTobiraRedeemResult,
   parseTobiraRemoteConnection,
@@ -11,13 +12,23 @@ import { getTobiraDeviceMetadata } from "@/lib/tobira-connection-storage";
 
 const PAIRINGS_ENDPOINT = "/api/extension/pairings";
 const CONNECTION_ENDPOINT = "/api/extension/connection";
+const BOOKMARKS_ENDPOINT = "/api/extension/bookmarks";
 const TOBIRA_REQUEST_TIMEOUT_MS = 10_000;
+
+export type TobiraCreatedBookmark = {
+  id: string;
+  url: string;
+};
 
 export type TobiraApi = {
   createPairing(): Promise<TobiraPairingResponse>;
   redeemPairing(deviceToken: string): Promise<TobiraRedeemResult>;
   getConnection(apiKey: string): Promise<TobiraRemoteConnection>;
   revokeConnection(apiKey: string): Promise<void>;
+  createWebsiteBookmark(
+    apiKey: string,
+    url: string,
+  ): Promise<TobiraCreatedBookmark>;
 };
 
 export class TobiraApiError extends Error {
@@ -41,6 +52,7 @@ export const browserTobiraApi: TobiraApi = {
   redeemPairing: redeemTobiraPairing,
   getConnection: getTobiraConnection,
   revokeConnection: revokeTobiraConnection,
+  createWebsiteBookmark: createTobiraWebsiteBookmark,
 };
 
 export async function requestTobira<T>(
@@ -162,6 +174,26 @@ async function revokeTobiraConnection(apiKey: string): Promise<void> {
   }
 }
 
+async function createTobiraWebsiteBookmark(
+  apiKey: string,
+  url: string,
+): Promise<TobiraCreatedBookmark> {
+  const payload = await requestTobira<unknown>(BOOKMARKS_ENDPOINT, {
+    method: "POST",
+    apiKey,
+    body: JSON.stringify({kind: "website", url}),
+  });
+
+  if (!isCreatedBookmark(payload)) {
+    throw new TobiraApiError(
+      "Tobira returned an invalid bookmark response",
+      502,
+    );
+  }
+
+  return payload;
+}
+
 async function readResponsePayload(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
@@ -215,5 +247,16 @@ function isRevocationResult(value: unknown): value is { revoked: true } {
     value !== null &&
     "revoked" in value &&
     value.revoked === true
+  );
+}
+
+function isCreatedBookmark(value: unknown): value is TobiraCreatedBookmark {
+  return (
+    isRecord(value) &&
+    value.ok === true &&
+    typeof value.id === "string" &&
+    value.id.length > 0 &&
+    typeof value.url === "string" &&
+    value.url.length > 0
   );
 }
