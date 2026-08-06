@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 
 import arcIcon from "@/assets/socials/arc.svg";
 import chromeIcon from "@/assets/socials/chrome.svg";
-import diaIcon from "@/assets/socials/dia-icon.png";
+import diaIcon from "@/assets/socials/dia.png";
 import dribbbleIcon from "@/assets/socials/dribbble.svg";
 import firefoxIcon from "@/assets/socials/firefox.svg";
 import pinterestIcon from "@/assets/socials/pinterest.svg";
