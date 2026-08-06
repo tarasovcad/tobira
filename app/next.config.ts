@@ -6,6 +6,9 @@ const isSentryEnabled =
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    turbopackFileSystemCacheForBuild: true,
+  },
   reactCompiler: true,
   async headers() {
     if (!isSentryEnabled) return [];
