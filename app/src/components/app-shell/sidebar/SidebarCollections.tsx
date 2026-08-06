@@ -217,7 +217,7 @@ function SidebarCollectionsContent({
                 onClick={handleCreateCollection}
                 className={cn(
                   "text-secondary bg-transparent",
-                  "flex w-full items-center gap-2 rounded-md px-3 py-[7.5px] text-sm font-medium",
+                  "flex w-full items-center gap-2 rounded-md px-3 py-[7.5px] text-sm font-medium whitespace-nowrap",
                   "hover:bg-muted hover:text-foreground transition-none!",
                   "cursor-pointer",
                   "focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-1",

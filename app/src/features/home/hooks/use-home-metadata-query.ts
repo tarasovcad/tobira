@@ -3,6 +3,8 @@ import {getCollections, type Collection} from "@/app/actions/collections";
 import {getSidebarTags} from "@/app/actions/tags";
 import type {SidebarTag} from "@/features/home/types";
 
+const HOME_METADATA_STALE_TIME = 5 * 60 * 1000;
+
 export const homeMetadataKeys = {
   collectionsRoot: ["collections"] as const,
   collections: (userId?: string | null) => ["collections", userId ?? null] as const,
@@ -13,6 +15,8 @@ export const homeMetadataKeys = {
 export function collectionsQueryOptions(userId?: string | null) {
   return queryOptions({
     queryKey: homeMetadataKeys.collections(userId),
+    staleTime: HOME_METADATA_STALE_TIME,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       if (!userId) return [];
       return await getCollections(userId);
@@ -23,6 +27,8 @@ export function collectionsQueryOptions(userId?: string | null) {
 export function tagsQueryOptions(userId?: string | null) {
   return queryOptions({
     queryKey: homeMetadataKeys.tags(userId),
+    staleTime: HOME_METADATA_STALE_TIME,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       if (!userId) return [];
       return await getSidebarTags(userId);
