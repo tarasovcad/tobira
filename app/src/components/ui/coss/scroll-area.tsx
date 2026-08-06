@@ -14,7 +14,7 @@ function ScrollArea({
   scrollFadeRight,
   scrollbarGutter = false,
   hideScrollbar = false,
-  hideFocusRing = false,
+  hideFocusRing = true,
   viewportProps,
   ...props
 }: ScrollAreaPrimitive.Root.Props & {
