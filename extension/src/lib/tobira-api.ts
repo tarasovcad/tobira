@@ -13,11 +13,18 @@ import { getTobiraDeviceMetadata } from "@/lib/tobira-connection-storage";
 const PAIRINGS_ENDPOINT = "/api/extension/pairings";
 const CONNECTION_ENDPOINT = "/api/extension/connection";
 const BOOKMARKS_ENDPOINT = "/api/extension/bookmarks";
+const BULK_BOOKMARKS_ENDPOINT = "/api/extension/bookmarks/bulk";
 const TOBIRA_REQUEST_TIMEOUT_MS = 10_000;
 
 export type TobiraCreatedBookmark = {
   id: string;
   url: string;
+};
+
+export type TobiraBulkWebsiteBookmarkResult = {
+  bookmarks: TobiraCreatedBookmark[];
+  rejected: Array<{raw: string; reason: string}>;
+  duplicates: string[];
 };
 
 export type TobiraApi = {
@@ -29,6 +36,10 @@ export type TobiraApi = {
     apiKey: string,
     url: string,
   ): Promise<TobiraCreatedBookmark>;
+  createBulkWebsiteBookmarks(
+    apiKey: string,
+    urls: string[],
+  ): Promise<TobiraBulkWebsiteBookmarkResult>;
 };
 
 export class TobiraApiError extends Error {
@@ -53,6 +64,7 @@ export const browserTobiraApi: TobiraApi = {
   getConnection: getTobiraConnection,
   revokeConnection: revokeTobiraConnection,
   createWebsiteBookmark: createTobiraWebsiteBookmark,
+  createBulkWebsiteBookmarks: createTobiraBulkWebsiteBookmarks,
 };
 
 export async function requestTobira<T>(
@@ -194,6 +206,26 @@ async function createTobiraWebsiteBookmark(
   return payload;
 }
 
+async function createTobiraBulkWebsiteBookmarks(
+  apiKey: string,
+  urls: string[],
+): Promise<TobiraBulkWebsiteBookmarkResult> {
+  const payload = await requestTobira<unknown>(BULK_BOOKMARKS_ENDPOINT, {
+    method: "POST",
+    apiKey,
+    body: JSON.stringify({kind: "website", urls}),
+  });
+
+  if (!isBulkWebsiteBookmarkResult(payload)) {
+    throw new TobiraApiError(
+      "Tobira returned an invalid bulk bookmark response",
+      502,
+    );
+  }
+
+  return payload;
+}
+
 async function readResponsePayload(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
@@ -258,5 +290,40 @@ function isCreatedBookmark(value: unknown): value is TobiraCreatedBookmark {
     value.id.length > 0 &&
     typeof value.url === "string" &&
     value.url.length > 0
+  );
+}
+
+function isBulkWebsiteBookmarkResult(
+  value: unknown,
+): value is TobiraBulkWebsiteBookmarkResult {
+  return (
+    isRecord(value) &&
+    value.ok === true &&
+    Array.isArray(value.bookmarks) &&
+    value.bookmarks.every(isBulkCreatedBookmark) &&
+    Array.isArray(value.rejected) &&
+    value.rejected.every(isRejectedBulkUrl) &&
+    Array.isArray(value.duplicates) &&
+    value.duplicates.every((duplicate) => typeof duplicate === "string")
+  );
+}
+
+function isBulkCreatedBookmark(value: unknown): value is TobiraCreatedBookmark {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    value.id.length > 0 &&
+    typeof value.url === "string" &&
+    value.url.length > 0
+  );
+}
+
+function isRejectedBulkUrl(
+  value: unknown,
+): value is {raw: string; reason: string} {
+  return (
+    isRecord(value) &&
+    typeof value.raw === "string" &&
+    typeof value.reason === "string"
   );
 }

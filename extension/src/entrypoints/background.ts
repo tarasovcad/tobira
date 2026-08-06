@@ -1,6 +1,10 @@
 import { checkXAuth, fetchXUser } from "@/lib/x-api";
 import { saveXConfig, type XConfig } from "@/lib/x-config";
-import { browserTobiraApi, TobiraApiError } from "@/lib/tobira-api";
+import {
+  browserTobiraApi,
+  TobiraApiError,
+  type TobiraBulkWebsiteBookmarkResult,
+} from "@/lib/tobira-api";
 import { isTobiraAppUrl } from "@/lib/tobira-config";
 import { TobiraConnectionManager } from "@/lib/tobira-connection-manager";
 import {
@@ -43,7 +47,15 @@ const tobiraConnectionManager = new TobiraConnectionManager({
 
 const SAVE_PAGE_MENU_ID = "save-to-tobira-page";
 const SAVE_LINK_MENU_ID = "save-to-tobira-link";
+const SAVE_SELECTED_TABS_MENU_ID = "save-selected-tabs-to-tobira";
 const SAVE_CURRENT_PAGE_COMMAND = "save-current-page";
+const TOBIRA_BULK_WEBSITE_MAX_URLS = 10;
+
+type TabContextMenuProperties = {
+  id: string;
+  title: string;
+  contexts: ["tab"];
+};
 
 export default defineBackground(() => {
   void initializeTobiraStorage().catch((error) => {
@@ -55,6 +67,13 @@ export default defineBackground(() => {
   });
 
   browser.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === SAVE_SELECTED_TABS_MENU_ID) {
+      void saveSelectedTabsFromContextMenu(tab).catch((error) => {
+        console.error("Failed to save selected tabs to Tobira", error);
+      });
+      return;
+    }
+
     if (info.menuItemId === SAVE_LINK_MENU_ID && info.linkUrl) {
       void saveWebsiteBookmarkFromContextMenu(info.linkUrl, tab?.id);
       return;
@@ -66,6 +85,12 @@ export default defineBackground(() => {
     if (!pageUrl) return;
 
     void saveWebsiteBookmarkFromContextMenu(pageUrl, tab?.id);
+  });
+
+  browser.tabs.onHighlighted.addListener(({tabIds}) => {
+    void updateSelectedTabsMenuTitle(tabIds.length).catch((error) => {
+      console.error("Failed to update the selected tabs menu", error);
+    });
   });
 
   browser.commands.onCommand.addListener((command, tab) => {
@@ -114,6 +139,146 @@ async function initializeContextMenus(): Promise<void> {
     title: "Save link to Tobira",
     contexts: ["link"],
   });
+
+  // Chrome supports the tab context, but the installed WXT browser types do not include it yet.
+  const selectedTabsMenu: TabContextMenuProperties = {
+    id: SAVE_SELECTED_TABS_MENU_ID,
+    title: "Save selected pages to Tobira",
+    contexts: ["tab"],
+  };
+  await browser.contextMenus.create(
+    selectedTabsMenu as unknown as Parameters<typeof browser.contextMenus.create>[0],
+  );
+
+  await updateSelectedTabsMenuTitle();
+}
+
+async function updateSelectedTabsMenuTitle(tabCount?: number): Promise<void> {
+  const count =
+    tabCount ??
+    (
+      await browser.tabs.query({
+        highlighted: true,
+        lastFocusedWindow: true,
+      })
+    ).length;
+
+  if (count === 0) return;
+
+  await browser.contextMenus.update(SAVE_SELECTED_TABS_MENU_ID, {
+    title: getSelectedTabsMenuTitle(count),
+  });
+}
+
+function getSelectedTabsMenuTitle(count: number): string {
+  return count === 1
+    ? "Save page to Tobira"
+    : `Save ${count} pages to Tobira`;
+}
+
+async function saveSelectedTabsFromContextMenu(
+  tab: {id?: number; url?: string; windowId?: number} | undefined,
+): Promise<void> {
+  const highlightedTabs = await browser.tabs.query(
+    typeof tab?.windowId === "number"
+      ? {highlighted: true, windowId: tab.windowId}
+      : {highlighted: true, lastFocusedWindow: true},
+  );
+  const urls = highlightedTabs.flatMap((highlightedTab) =>
+    highlightedTab.url ? [highlightedTab.url] : [],
+  );
+
+  if (urls.length === 0 && tab?.url) urls.push(tab.url);
+  if (urls.length === 0) return;
+
+  if (urls.length === 1) {
+    await saveWebsiteBookmarkFromContextMenu(urls[0]!, tab?.id);
+    return;
+  }
+
+  await saveBulkWebsiteBookmarksFromContextMenu(urls, tab?.id);
+}
+
+async function saveBulkWebsiteBookmarksFromContextMenu(
+  urls: string[],
+  tabId: number | undefined,
+): Promise<void> {
+  let toastId: string | undefined;
+
+  try {
+    await ensureTobiraStorageAccess();
+
+    const auth = await browserTobiraAuthStore.get();
+    if (
+      !auth ||
+      auth.kind !== "connected" ||
+      auth.connection.confirmationPending
+    ) {
+      await showContextMenuToast(
+        tabId,
+        "Connect Tobira first",
+        "Open the Tobira extension popup and connect your account before saving pages.",
+        "error",
+      );
+      return;
+    }
+
+    toastId = `bookmark-save-${crypto.randomUUID()}`;
+    const result = await createBulkWebsiteBookmarksInBatches(
+      auth.connection.apiKey,
+      urls,
+    );
+    const savedCount = result.bookmarks.length;
+    const skippedCount = result.rejected.length + result.duplicates.length;
+
+    await showContextMenuToast(
+      tabId,
+      savedCount > 0
+        ? `Saved ${savedCount} ${savedCount === 1 ? "page" : "pages"} to Tobira`
+        : "No pages saved to Tobira",
+      skippedCount > 0
+        ? `${skippedCount} ${skippedCount === 1 ? "page was" : "pages were"} skipped.`
+        : undefined,
+      savedCount > 0 ? "success" : "warning",
+      toastId,
+    );
+  } catch (error) {
+    console.error("Failed to save selected pages to Tobira", error);
+
+    await showContextMenuToast(
+      tabId,
+      "Could not save pages to Tobira",
+      getContextMenuSaveErrorMessage(error),
+      "error",
+      toastId,
+    );
+  }
+}
+
+async function createBulkWebsiteBookmarksInBatches(
+  apiKey: string,
+  urls: string[],
+): Promise<TobiraBulkWebsiteBookmarkResult> {
+  const results: TobiraBulkWebsiteBookmarkResult[] = [];
+
+  for (
+    let start = 0;
+    start < urls.length;
+    start += TOBIRA_BULK_WEBSITE_MAX_URLS
+  ) {
+    results.push(
+      await browserTobiraApi.createBulkWebsiteBookmarks(
+        apiKey,
+        urls.slice(start, start + TOBIRA_BULK_WEBSITE_MAX_URLS),
+      ),
+    );
+  }
+
+  return {
+    bookmarks: results.flatMap((result) => result.bookmarks),
+    rejected: results.flatMap((result) => result.rejected),
+    duplicates: results.flatMap((result) => result.duplicates),
+  };
 }
 
 async function saveCurrentPage(
